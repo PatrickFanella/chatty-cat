@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+web/node_modules
+web/dist
+bin
+coverage*
+*.log

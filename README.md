@@ -52,6 +52,12 @@ request receipts and explicit handling of uncertain sends apply to commands,
 replies, actions and whispers. Tests use fake Twitch services; real user consent,
 posting and moderation acceptance remain release gates.
 
+## Self-hosting
+
+[Deployment instructions](deploy/README.md) cover the combined Go/frontend image,
+loopback service binding and optional Caddy HTTPS proxy. Container runtime and
+public-domain acceptance must pass before cutover.
+
 ## Implemented checkpoints
 
 Chat includes replies, permalinks, room/own-user state, moderation notices,

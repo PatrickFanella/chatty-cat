@@ -1107,3 +1107,32 @@ controls, current provider seed rankings, and preserved start time/window choice
 on reload (1,357 then 1,394 persisted message uses as live traffic continued).
 Grouped badge reference, complete daily/hourly presentation, rate scope controls
 and stream/viewer histories remain open.
+
+### Self-hosting package checkpoint
+
+A multi-stage Dockerfile builds the TypeScript frontend and static Go service
+into one image with CA certificates, timezone data, license and attribution.
+The app runs as UID 10001; Compose uses a read-only root filesystem, dropped
+capabilities, bounded temporary storage and loopback publishing. Named runtime
+configuration supplies Twitch credentials and optional Giphy integration.
+Environment files, Git history, local binaries and dependencies are excluded
+from the build context. Optional Caddy HTTPS routing has container and host
+examples, certificate volumes and a health dependency.
+
+Deployment instructions cover callbacks, WebSocket routing, credential handling,
+immutable release tags, rollback and source availability. The help panel links
+the rebuilt source while retaining upstream credit. No cutover was performed.
+
+Validation: Compose with/without HTTPS profile and both Caddy examples validate.
+The Linux arm64 image built (about 8 MB), became healthy, served the built assets
+and connected/rendered live HasanAbi messages at loopback port 18080. Inspection
+confirmed UID 10001, a read-only root, license/static files, and absence of an
+environment file or frontend dependencies. Its temporary container stopped and
+was removed. Docker Desktop had been stopped, was started for these checks, and
+was unavailable again during the separate amd64 build, which ended with an RPC
+EOF. The Dockerfile uses native builder stages and target Go cross-compilation;
+the amd64 image/runtime check remains open. Public TLS routing, real login and
+production acceptance remain separate gates. Resource tests and strict frontend
+build pass. References: https://docs.docker.com/reference/compose-file/services/,
+https://caddyserver.com/docs/caddyfile/directives/reverse_proxy and
+https://caddyserver.com/docs/quick-starts/https (checked 2026-10-11).
