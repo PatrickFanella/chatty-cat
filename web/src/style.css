@@ -237,3 +237,7 @@ html[data-stitle="false"] #stream{display:none}
 #panel-rail>#rail-split[hidden] {display:none}
 #panel-rail>#rail-split:is(:hover,:focus-visible) {background:var(--accent);outline:2px solid var(--accent)}
 #panel-rail>#emote-picker,#panel-rail>#stats-panel {flex-basis:0;min-height:80px!important;overflow:auto}
+
+.chat-image-link {float:right;margin-left:6px}
+.chat-image {max-height:6em;max-width:min(240px,40vw);vertical-align:middle;border-radius:3px;object-fit:contain}
+.reply-preview .chat-image {max-height:2.2em}

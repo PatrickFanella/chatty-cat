@@ -14,7 +14,8 @@ worker.addEventListener('install', event => {
   })());
 });
 worker.addEventListener('activate', event => {
-  event.waitUntil((async () => { for (const name of await caches.keys()) if (name.startsWith('chatthing-') && !KEEP.has(name)) await caches.delete(name); await worker.clients.claim(); })());
+  event.waitUntil((async () => { for (const name of await caches.keys()) if (name.startsWith('chatthing-') && !KEEP.has(name)) await caches.delete(name); const images=await caches.open(IMAGES);for(const request of await images.keys()){const host=new URL(request.url).hostname;if(host==='giphy.com'||host.endsWith('.giphy.com'))await images.delete(request);}
+    await worker.clients.claim(); })());
 });
 worker.addEventListener('message', event => { if (event.data === 'activate-update') void worker.skipWaiting(); });
 async function shell(request: Request): Promise<Response> {
@@ -30,6 +31,7 @@ worker.addEventListener('fetch', event => {
   const request = event.request; const url = new URL(request.url); if (request.method !== 'GET' || !['https:', 'http:'].includes(url.protocol)) return;
   // Login, chat, provider data and third-party embeds always use the network.
   if (url.origin === worker.location.origin && url.pathname.startsWith('/api/')) return;
+  if(url.hostname==='giphy.com'||url.hostname.endsWith('.giphy.com'))return;
   if (request.destination === 'image') { event.respondWith(cachedAsset(request, IMAGES, 600)); return; }
   if (request.destination === 'font' || url.hostname === 'fonts.googleapis.com') { event.respondWith(cachedAsset(request, FONTS, 100)); return; }
   if (url.origin === worker.location.origin && (request.mode === 'navigate' || url.pathname.startsWith('/assets/') || ['/manifest.webmanifest', '/favicon.ico'].includes(url.pathname))) event.respondWith(shell(request));

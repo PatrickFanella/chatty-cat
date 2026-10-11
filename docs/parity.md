@@ -971,3 +971,26 @@ with video floated changed the pane heights from 80/302 to 302/80 pixels. A shor
 rail with docked video retains minimum pane heights and scrolls rather than
 claiming the entire layout can fit. Responsive minimum-height behavior and
 column-local hover pause remain open.
+
+### Inline image links and GIF-title fallback checkpoint
+
+Public HTTPS image links now show a bounded lazy image beside the readable URL,
+with no-referrer requests and a URL fallback if loading fails. Giphy page links
+resolve recognized IDs, and gifv links use their GIF form. Page anchors ending in
+an image filename remain pages; credentialed, local/numeric-host and non-HTTPS
+image loads are excluded. Native bracketed GIF-title posts produce safe Giphy
+search links, normalizing the original GIF-by connector and retaining their label.
+
+Validation: 217 frontend tests and production build pass. Fixtures cover URL/ID
+recognition, anchors, unsafe media URLs, lazy/error fallback, title normalization,
+query bounds and escaping. Giphy assets bypass service-worker media caching;
+activation removes earlier Giphy entries from that optional cache.
+
+GIF-title search resolution remains a compatibility dependency. Current Giphy
+API documentation requires direct client requests and does not allow media URL
+or asset caching without specific approval. The original relay uses a shared
+upstream integration key, proxy and persistent caches. This conversion needs its
+own integration configuration and a confirmed supported caching approach before
+claiming that behavior as parity. Independent conversion work continues.
+Reference: https://developers.giphy.com/docs/api/#best-practices and
+https://developers.giphy.com/docs/api/endpoint/#search (checked 2026-10-11).
