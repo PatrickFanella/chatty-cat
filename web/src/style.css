@@ -250,3 +250,5 @@ html[data-stitle="false"] #stream{display:none}
 .social-video button {display:block}
 .social-video img {max-width:180px;max-height:120px;display:block}
 .social-video iframe {width:min(400px,70vw);height:auto;min-height:180px;border:0;display:block}
+
+.picker-age.missed {opacity:.45;border-style:dashed;}

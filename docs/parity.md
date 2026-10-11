@@ -1033,3 +1033,23 @@ controls are fixture-verified; actual video playback is not yet verified.
 Nitter selection, profile routing and external quoted-media thumbnails remain
 open. Reference: https://github.com/FxEmbed/FxEmbed/wiki/Status-Fetch-API
 (checked 2026-10-11).
+
+### Independent manual column holds and picker gap checkpoint
+
+Manual scrolling in a page layout now holds that column while other pages
+continue live. Page dealing and rotation preserve held pages, including reverse
+layouts; holding every column stops page replacement. Returning a column to its
+live edge releases its hold, and Jump to live releases all holds and redeals the
+newest retained data. Explicit global history/navigation pauses remain global.
+
+Picker age markers now share the rate timeline's socket, timer, closed-page and
+unobserved windows. A missing overlap must exceed 30 seconds or one eighth of
+the age window before dimming the rung, matching the original threshold. Grouped
+provider grids defer pending thresholds to one shared tail.
+
+Validation: 230 frontend tests and strict production build pass. Fixtures cover
+held/active/all-held pages, reverse updates, release, observation windows and
+shared pending markers. Browser verification retained exactly the same visible
+row and -10.796875px offset while another column's tail advanced; Jump to live
+restored the column edges and hid its button. Picker gap visuals are fixture
+verified. Full keyboard focus isolation and age-square packing remain open.

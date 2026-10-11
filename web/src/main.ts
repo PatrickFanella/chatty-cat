@@ -97,7 +97,7 @@ const composer = new Composer(element('composer', HTMLFormElement), channels, (i
   picker.refresh();
 }, (result, text, requestID) => { if (result.whisper && result.recipient) { const match = /^\/w\s+\S+\s+(.+)$/i.exec(text.trim()); if (match) whispers.echo(result.recipient, match[1]!, requestID); } });
 const pickerModel = new PickerModel();
-const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();});
+const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();},()=>rateTimeline.series.observationGaps());
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
@@ -274,10 +274,10 @@ connection.start();
 log.addEventListener('scroll', (event) => {
   if(virtualLog.hoverPaused(event.target))return;
   if (archiveView) { follow = false; latest.hidden = false; return; }
-  follow = virtualLog.isAtLive(event.target);
-  latest.hidden = follow;
+  follow = virtualLog.trackScroll(event.target,follow);
+  latest.hidden = follow && !virtualLog.hasManualPause();
 },{capture:true});
-latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
+latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {

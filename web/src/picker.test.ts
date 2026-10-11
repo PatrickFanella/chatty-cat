@@ -61,3 +61,8 @@ it('resets recorded ordering through both the button and middle-click',()=>{
  observe();expect(model.lastUse(channel,'Kappa')).toBeGreaterThan(0);root.querySelector<HTMLButtonElement>('#picker-reset-order')!.click();expect(model.lastUse(channel,'Kappa')).toBe(0);
  observe();root.querySelector('#picker-sort')!.dispatchEvent(new MouseEvent('auxclick',{button:1,cancelable:true}));expect(model.lastUse(channel,'Kappa')).toBe(0);
 });
+it('places grouped pending ages once after all provider cells',()=>{
+ const {root,model}=setup();model.options.enabled=['BTTV','FFZ'];model.options.mixed=false;model.options.ages=true;model.options.sort='use';model.setMetadata('hasanabi',{Never:{code:'Never',source:'BTTV',url:'https://example.com/n.png',staticUrl:'https://example.com/n.png',animated:false,zeroWidth:false},Used:{code:'Used',source:'FFZ',url:'https://example.com/u.png',staticUrl:'https://example.com/u.png',animated:false,zeroWidth:false}});
+ model.observe({id:'age-fixture',command:'PRIVMSG',text:'Used',login:'alice',channel:'hasanabi',timestamp:Date.now()-45000,tags:{}},true);picker!.refresh(true);
+ const grid=root.querySelector('#picker-grid')!,pending=[...grid.querySelectorAll<HTMLElement>('.picker-age.soon')];expect(pending.length).toBeGreaterThan(0);expect(new Set(pending.map(mark=>mark.dataset.age)).size).toBe(pending.length);const children=[...grid.children],lastCell=Math.max(...children.map((child,index)=>child.matches('button')?index:-1));expect(pending.every(mark=>children.indexOf(mark)>lastCell)).toBe(true);
+});

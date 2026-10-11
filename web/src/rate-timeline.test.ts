@@ -15,3 +15,7 @@ it('ranks distinct bursts across the full recorded day and isolates glorp spikes
  expect(series.peaks(2400000,'one',86400,'glorps').map(p=>p.second)).toEqual([200]);
  expect(series.peaks(2400000,'other')).toEqual([]);
 });
+
+it('shares unwatched history and live socket gaps in millisecond age windows',()=>{
+ const series=new RateSeries(['one'],100000);series.status({type:'status',detail:'',state:'connected'},100000);series.status({type:'status',detail:'',state:'reconnecting'},102000);const gaps=series.observationGaps(110000);expect(gaps).toContainEqual({from:102000,to:111000});expect(gaps.some(gap=>gap.to===100000)).toBe(true);series.status({type:'status',detail:'',state:'connected'},112000);expect(series.observationGaps(113000)).toContainEqual({from:102000,to:112000});
+});

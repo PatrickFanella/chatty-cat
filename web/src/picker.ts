@@ -1,5 +1,5 @@
 import {capturePicker,animatePicker} from './picker-motion';
-import { AGE_SECONDS, ageLabel, crossedAges } from './picker-order';
+import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
 import { PickerModel, pickerURL, SOURCES, type PickerItem } from './picker-model';
 
@@ -29,7 +29,7 @@ export class EmotePicker {
   private readonly saveTimer: ReturnType<typeof setInterval>;
   constructor(private readonly root: HTMLElement, private readonly trigger: HTMLButtonElement,
     private readonly model: PickerModel, private readonly channel: () => string,
-    private readonly canInsert: () => boolean, private readonly insert: (code: string) => void, private readonly temporaryFreeze:(on:boolean)=>void=()=>{}) {
+    private readonly canInsert: () => boolean, private readonly insert: (code: string) => void, private readonly temporaryFreeze:(on:boolean)=>void=()=>{}, private readonly observationGaps:()=>readonly {from:number;to:number}[]=()=>[]) {
     this.search = get(root, 'picker-search', HTMLInputElement); this.grid = get(root, 'picker-grid', HTMLElement);
     this.ageObserver=new ResizeObserver(()=>this.paintAgeRows());this.ageObserver.observe(this.grid);
     this.recent = get(root, 'picker-recent', HTMLElement); this.count = get(root, 'picker-count', HTMLElement);
@@ -70,7 +70,7 @@ export class EmotePicker {
     this.grid.replaceChildren();
     let source = '';
     const channel=this.channel(),crossed=this.ageCrossed.get(channel)??new Set<number>();this.ageCrossed.set(channel,crossed);
-    const nowAge=Date.now();for(const item of displayed){const last=this.model.lastUse(channel,item.code);if(!last)continue;const key=channel+'/'+item.code,age=Math.max(0,nowAge-last),old=this.ageHistory.get(key);if(old?.last===last)for(const seconds of crossedAges(old.age,age))crossed.add(seconds);this.ageHistory.delete(key);this.ageHistory.set(key,{last,age});}while(this.ageHistory.size>10000){const first=this.ageHistory.keys().next().value;if(first)this.ageHistory.delete(first);else break;}
+    const nowAge=Date.now(),gaps=this.observationGaps();for(const item of displayed){const last=this.model.lastUse(channel,item.code);if(!last)continue;const key=channel+'/'+item.code,age=Math.max(0,nowAge-last),old=this.ageHistory.get(key);if(old?.last===last)for(const seconds of crossedAges(old.age,age))crossed.add(seconds);this.ageHistory.delete(key);this.ageHistory.set(key,{last,age});}while(this.ageHistory.size>10000){const first=this.ageHistory.keys().next().value;if(first)this.ageHistory.delete(first);else break;}
     const oldestAge=Math.max(0,...displayed.map(item=>this.model.lastUse(channel,item.code)).filter(Boolean).map(last=>Math.max(0,nowAge-last)));
     const freshness=new Map<string,number>();for(const item of items)freshness.set(item.source,Math.max(freshness.get(item.source)??0,this.model.lastUse(channel,item.code)));
 
@@ -87,13 +87,14 @@ export class EmotePicker {
       }
       if (this.model.options.ages && this.model.options.sort === 'use') {
         for (const seconds of crossedAges(previousAge, age)) {
-          const marker = document.createElement('span'); marker.className = 'picker-age';marker.dataset.age=String(seconds);marker.classList.toggle('soon',seconds*1000>oldestAge);marker.classList.toggle('crossed',crossed.has(seconds));marker.title=seconds*1000>oldestAge?'No used emote has reached this age yet':crossed.has(seconds)?'An emote crossed this age while this picker was open':'Emotes below were last used over '+ageLabel(seconds)+' ago'; marker.textContent = ageLabel(seconds); this.grid.append(marker);
+          if(!this.model.options.mixed&&seconds*1000>oldestAge)continue;
+          const marker = document.createElement('span'); marker.className = 'picker-age';marker.dataset.age=String(seconds);marker.classList.toggle('soon',seconds*1000>oldestAge);marker.classList.toggle('crossed',crossed.has(seconds));marker.classList.toggle('missed',missedAge(seconds,nowAge,gaps));marker.title=seconds*1000>oldestAge?'No used emote has reached this age yet':crossed.has(seconds)?'An emote crossed this age while this picker was open':'Emotes below were last used over '+ageLabel(seconds)+' ago'; if(marker.classList.contains('missed'))marker.title+=' · Chat was not observed for part of this age window';marker.textContent = ageLabel(seconds); this.grid.append(marker);
         }
         previousAge = age;
       }
       this.grid.append(this.cell(item));
     }
-    if(this.model.options.ages&&this.model.options.sort==='use'&&displayed.length){const printed=new Set([...this.grid.querySelectorAll<HTMLElement>('.picker-age')].map(marker=>Number(marker.dataset.age)));for(const seconds of AGE_SECONDS)if(seconds*1000>oldestAge&&!printed.has(seconds)){const marker=document.createElement('span');marker.className='picker-age soon';marker.dataset.age=String(seconds);marker.textContent=ageLabel(seconds);marker.title='No used emote has reached this age yet';this.grid.append(marker);}}
+    if(this.model.options.ages&&this.model.options.sort==='use'&&displayed.length){const printed=new Set([...this.grid.querySelectorAll<HTMLElement>('.picker-age')].map(marker=>Number(marker.dataset.age)));for(const seconds of AGE_SECONDS)if(seconds*1000>oldestAge&&!printed.has(seconds)){const marker=document.createElement('span');marker.className='picker-age soon';marker.dataset.age=String(seconds);marker.textContent=ageLabel(seconds);marker.title='No used emote has reached this age yet';marker.classList.toggle('missed',missedAge(seconds,nowAge,gaps));if(marker.classList.contains('missed'))marker.title+=' · Chat was not observed for part of this age window';this.grid.append(marker);}}
     this.root.dataset.ageRows=String(this.model.options.sort==='use'?this.model.options.ageRows:0);this.paintAgeRows();
     this.grid.scrollTop = oldTop;
     this.recent.replaceChildren();

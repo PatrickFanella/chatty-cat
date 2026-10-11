@@ -9,3 +9,7 @@ export function ageLabel(seconds: number): string {
   return seconds < 120 && seconds % 60 !== 0 ? `${seconds}s` : seconds < 3600 ? `${seconds / 60}m` : `${seconds / 3600}h`;
 }
 export function crossedAges(previous: number, age: number): number[] { return AGE_SECONDS.filter(s => s * 1000 > previous && s * 1000 <= age); }
+
+export function missedAge(seconds:number,now:number,gaps:readonly {from:number;to:number}[]):boolean {
+ const duration=seconds*1000;return gaps.some(gap=>Math.min(gap.to,now)-Math.max(gap.from,now-duration)>Math.max(30000,duration/8));
+}
