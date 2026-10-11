@@ -1,3 +1,4 @@
+import {youtubeVideo,youtubeFrame} from './youtube';
 import {parseSocial,appendSocial,type SocialMedia} from './social-media';
 import { cleanURL } from './links';
 export interface PreviewCard { social?:SocialMedia; url: string; title: string; description: string; site: string; image: string; icon: string; author: string; published: string; contentType: string; ttl: number }
@@ -8,9 +9,7 @@ export function parsePreview(value: unknown): PreviewCard {
   const social = parseSocial(d.social);
   return { ...(social ? { social } : {}), url: String(d.url).slice(0, 2048), title: String(d.title).slice(0, 300), description: String(d.description).slice(0, d.social?4000:1000), site: String(d.site).slice(0, 100), image: String(d.image).slice(0, 2048), icon: String(d.icon).slice(0, 2048), author: String(d.author).slice(0, 200), published: String(d.published).slice(0, 100), contentType: String(d.contentType).slice(0, 100), ttl: d.ttl };
 }
-export function youtubeID(raw: string): string | undefined {
-  try { const url = new URL(raw); if (!['https:', 'http:'].includes(url.protocol)) return undefined; const id = url.hostname === 'youtu.be' ? url.pathname.slice(1) : ['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(url.hostname) ? url.searchParams.get('v') || url.pathname.match(/^\/(?:shorts|embed)\/([\w-]+)/)?.[1] : undefined; return id && /^[\w-]{11}$/.test(id) ? id : undefined; } catch { return undefined; }
-}
+export function youtubeID(raw:string):string|undefined {return youtubeVideo(raw)?.id;}
 export function previewMode(): number { const value=Number(document.documentElement.dataset.peek??2);return [0,1,2,3].includes(value)?value:2; }
 export class LinkPreview {
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -46,10 +45,10 @@ export class LinkPreview {
       if (!card.social&&previewMode()===2 && card.image.startsWith('https:')) { const image = document.createElement('img'); image.src = card.image; image.alt = ''; image.loading = 'lazy'; image.addEventListener('error', () => image.remove(), { once: true }); this.root.append(image); }
       if(previewMode()>=2&&card.icon.startsWith('https:')){const icon=document.createElement('img');icon.src=card.icon;icon.alt='';icon.className='preview-icon';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});heading.prepend(icon);}
       if(card.social)appendSocial(this.root,card.social,previewMode()===2);
-      const youtube = document.documentElement.dataset.yt==='false'?undefined:youtubeID(card.url);
+      const youtube = document.documentElement.dataset.yt==='false'?undefined:youtubeVideo(card.url);
       if (previewMode()===2 && (youtube || card.contentType.startsWith('video/') || card.contentType.startsWith('audio/'))) {
         const play = document.createElement('button'); play.type = 'button'; play.textContent = 'Load media player'; play.addEventListener('click', () => {
-          if (youtube) { const iframe = document.createElement('iframe'); iframe.src = 'https://www.youtube-nocookie.com/embed/' + youtube + '?autoplay=0'; iframe.title = card.title || 'YouTube video'; iframe.allow = 'fullscreen; encrypted-media; picture-in-picture'; iframe.allowFullscreen = true; this.root.append(iframe); }
+          if (youtube) { this.root.append(youtubeFrame(youtube,card.title)); }
           else { const media = document.createElement(card.contentType.startsWith('audio/') ? 'audio' : 'video'); media.src = card.url; media.controls = true; media.preload = 'none'; this.root.append(media); }
           play.remove(); this.position();
         }, { once: true }); this.root.append(play);

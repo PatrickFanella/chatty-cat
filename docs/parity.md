@@ -1053,3 +1053,29 @@ shared pending markers. Browser verification retained exactly the same visible
 row and -10.796875px offset while another column's tail advanced; Jump to live
 restored the column edges and hid its button. Picker gap visuals are fixture
 verified. Full keyboard focus isolation and age-square packing remain open.
+
+### Inline YouTube metadata and stable player checkpoint
+
+Public YouTube watch, short, live, embed and music links now use a fixed oEmbed
+endpoint for normalized title/channel/thumbnail cards. The shared preview cache,
+request budget, response bound and public-network restrictions apply. Upstream
+HTML is discarded. Unavailable metadata leaves the readable link and play control.
+
+Inline glyphs and thumbnails load a YouTube player only on selection, preserving
+validated start offsets with autoplay disabled. The control toggles the player,
+and disabling YouTube removes open inline players. Fossabot's Fear&/HasanAbi
+Gaming card suppression follows the original rule. Virtual updates preserve
+unchanged row subtrees instead of detaching every row, so open media survives
+ordinary live append/viewport changes; unmounted rows still release players.
+Column scroll paints notify the media controller when older rows mount.
+
+Validation: 233 frontend tests and strict production build pass. Go race/coverage,
+vet and lint pass; preview coverage 93.6%. Fixtures verify URL/time handling,
+bounded malformed upstream responses, explicit player loading/closing, disabled
+preferences and unchanged subtree retention. DOM tests disable child-frame
+network navigation. Live Go and browser reads displayed a Google for Developers
+video title/channel card and selected a 560x315 player with start=90 and autoplay=0
+while chat stayed connected. This proves creation and configuration, not playback
+or audibility. YouTube view/date enrichment and channel/playlist cards remain
+open. Reference: https://developers.google.com/youtube/player_parameters
+(checked 2026-10-11).

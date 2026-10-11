@@ -252,3 +252,8 @@ html[data-stitle="false"] #stream{display:none}
 .social-video iframe {width:min(400px,70vw);height:auto;min-height:180px;border:0;display:block}
 
 .picker-age.missed {opacity:.45;border-style:dashed;}
+
+.youtube-thumb{max-width:200px;max-height:120px;object-fit:contain;display:block;}
+.youtube-player{width:min(100%,560px);height:315px;min-width:200px;min-height:200px;border:0;display:block;}
+.youtube-inline-player{margin:.4em 0;}
+.youtube-play{padding:0 .3em;font-size:.9em;}

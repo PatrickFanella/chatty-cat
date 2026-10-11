@@ -275,6 +275,9 @@ func (s *Service) fetch(ctx context.Context, u *url.URL) (Card, error) {
 	if id := twitterID(u); id != "" {
 		return s.twitter(ctx, u, id)
 	}
+	if id := youtubeID(u); id != "" {
+		return s.youtube(ctx, u, id)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return Card{}, err
