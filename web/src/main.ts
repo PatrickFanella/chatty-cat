@@ -1,3 +1,4 @@
+import {SocialCards} from './social-cards';
 import { RateTimeline } from './rate-timeline';
 import { linkFingerprint } from './links';
 import { PickerLighting } from './picker-lighting';
@@ -50,6 +51,7 @@ const log = element('log', HTMLElement);
 let rail:PanelRail|undefined;
 const virtualLog = new ColumnLog(log);
 const pronouns = new Pronouns();
+const socialCards=new SocialCards(log);
 const linkPreview = new LinkPreview(log, element('link-preview', HTMLElement));
 const status = element('status', HTMLElement);
 const count = element('count', HTMLElement);
@@ -302,5 +304,5 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) store.save(); });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });

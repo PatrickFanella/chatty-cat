@@ -241,3 +241,12 @@ html[data-stitle="false"] #stream{display:none}
 .chat-image-link {float:right;margin-left:6px}
 .chat-image {max-height:6em;max-width:min(240px,40vw);vertical-align:middle;border-radius:3px;object-fit:contain}
 .reply-preview .chat-image {max-height:2.2em}
+
+.social-card {margin:4px 0 4px 1em;padding:6px;border-left:2px solid var(--accent);max-width:560px;font-size:.9em}
+.social-card p {margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.social-avatar {width:24px;height:24px;border-radius:50%}
+.social-photo {max-width:48%;max-height:160px;object-fit:contain;margin:2px}
+.social-video {display:inline-block;max-width:100%;margin:3px}
+.social-video button {display:block}
+.social-video img {max-width:180px;max-height:120px;display:block}
+.social-video iframe {width:min(400px,70vw);height:auto;min-height:180px;border:0;display:block}

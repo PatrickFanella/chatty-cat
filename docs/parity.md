@@ -1009,3 +1009,27 @@ verification held the middle column's scroll position and tail message while a
 different column's tail advanced on the live Twitch stream. Deliberate manual
 scroll navigation still uses the existing global follow state; independently
 retaining manual scroll positions in each column remains open.
+
+### X/Twitter inline card checkpoint
+
+Recognized public status links use a fixed FxTwitter status endpoint with the
+shared preview request budget, cache and fetch capacity. Responses validate the
+requested ID and author, bound payloads and normalize plain text, dates, quoted
+text and up to four photos/videos. Media uses approved Twitter CDN hosts; raw
+upstream HTML is never forwarded. Successes cache for ten minutes and failures
+for one minute. Cancellation retains its context error.
+
+Visible rows show up to four distinct cards and coalesce repeated URLs. Preview
+modes control text/images, and disabled previews remove cards on later mounts.
+Players load only on selection, in sandboxed no-referrer frames without autoplay,
+with an original media link fallback. Unavailable posts retain readable links.
+
+Validation: 223 frontend tests and strict production build pass; the additional
+multi-post/coalescing fixture passes. Go race/coverage, vet and lint pass, with
+preview coverage 95.0%. Live service and browser reads rendered the public
+jack/status/20 post while chat remained connected. An unavailable public sample
+returned the expected failure and retained its URL. Quoted media and player
+controls are fixture-verified; actual video playback is not yet verified.
+Nitter selection, profile routing and external quoted-media thumbnails remain
+open. Reference: https://github.com/FxEmbed/FxEmbed/wiki/Status-Fetch-API
+(checked 2026-10-11).
