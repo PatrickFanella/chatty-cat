@@ -994,3 +994,18 @@ own integration configuration and a confirmed supported caching approach before
 claiming that behavior as parity. Independent conversion work continues.
 Reference: https://developers.giphy.com/docs/api/#best-practices and
 https://developers.giphy.com/docs/api/endpoint/#search (checked 2026-10-11).
+
+### Column-local message hover pause checkpoint
+
+Hover pause now engages over actual message rows and applies to the column under
+the pointer. Empty column space does not pause. Other columns continue live
+pagination; page rotation avoids overwriting the held column. Leaving a row or
+disabling pause restores its follow state. Keyboard reveal clears the hover hold.
+The former outer-log hover guard no longer pauses every column at once.
+
+Validation: 218 frontend tests and strict production build pass. Fixtures cover
+column isolation, continued updates, empty space and disabling pause. Browser
+verification held the middle column's scroll position and tail message while a
+different column's tail advanced on the live Twitch stream. Deliberate manual
+scroll navigation still uses the existing global follow state; independently
+retaining manual scroll positions in each column remains open.

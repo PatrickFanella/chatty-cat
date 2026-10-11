@@ -198,7 +198,7 @@ function render(): void {
       row.classList.toggle('removed', removed); return row;
     } });
   }
-  virtualLog.set(display.options.rev?items.reverse():items, follow && !(display.options.pause && log.matches(':hover')), visualRevision, display.options.rev, overlay?1:display.options.split);
+  virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split,display.options.pause);
   count.textContent = archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
   latest.hidden = follow;
   navigation.reveal();
@@ -269,11 +269,8 @@ const connection = new ChatConnection(channels, (event) => {
 });
 connection.start();
 
-let hoverFollow = false;
-log.addEventListener('pointerenter', () => { hoverFollow = display.options.pause && follow; });
-log.addEventListener('wheel', () => { hoverFollow = false; }, { passive: true });
-log.addEventListener('pointerleave', () => { if (hoverFollow) { follow = true; log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; } hoverFollow = false; });
 log.addEventListener('scroll', (event) => {
+  if(virtualLog.hoverPaused(event.target))return;
   if (archiveView) { follow = false; latest.hidden = false; return; }
   follow = virtualLog.isAtLive(event.target);
   latest.hidden = follow;

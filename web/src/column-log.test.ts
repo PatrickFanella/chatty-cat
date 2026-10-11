@@ -15,3 +15,10 @@ it('freezes paused normal pages, re-deals on resume and drains reverse pages int
  const root=setup();view?.set(records(1000),true,0,false,2);const text=root.textContent;view?.set(records(1100),false,0,false,2);expect(root.textContent).toBe(text);view?.set(records(1100),true,1,false,2);expect(root.textContent).toContain('1099');
  view?.set(records(1100).reverse(),true,2,true,2);expect(root.firstElementChild?.getAttribute('data-active')).toBe('true');expect(root.firstElementChild?.textContent).toContain('1099');expect(view?.reveal('100')).toBe(true);expect(root.querySelector('[data-virtual-key="100"]')).not.toBeNull();
 });
+it('pauses only a hovered message column and ignores empty column space',()=>{
+ const root=setup();view?.set(records(100),true,0,false,2,true);const columns=[...root.querySelectorAll<HTMLElement>('.log-column')];
+ const row=columns[0]!.querySelector<HTMLElement>('.row')!;row.dispatchEvent(new PointerEvent('pointerover',{bubbles:true}));expect(view?.hoverPaused(columns[0]!)).toBe(true);expect(view?.hoverPaused(columns[1]!)).toBe(false);
+ view?.set(records(110),true,0,false,2,true);expect(root.textContent).toContain('109');
+ columns[0]!.dispatchEvent(new PointerEvent('pointerover',{bubbles:true}));expect(view?.hoverPaused(columns[0]!)).toBe(false);
+ row.dispatchEvent(new PointerEvent('pointerover',{bubbles:true}));view?.set(records(110),true,0,false,2,false);expect(view?.hoverPaused(columns[0]!)).toBe(false);
+});
