@@ -930,3 +930,28 @@ Validation: 211 frontend tests and strict production build pass. Fixtures cover
 repeated-cell positions, motion suppression, reset persistence and both controls.
 Browser verification observed 220 ms picker animations and reset followed by
 new live usage. Full age-gap packing and preset integration remain open.
+
+### Broadcaster and account commands checkpoint
+
+Added /raid, /unraid, /mod, /unmod, /vip, /unvip, /block, /unblock and /shoutout
+through documented Helix APIs. Login requests their scopes, and session responses
+expose only the granted permission names. The actor always comes from the
+server-held session. Broadcaster-only commands reject a different selected
+channel before mutation. Targets resolve by validated login; self-targeting,
+missing targets and missing scopes fail before mutation.
+
+Raids require a valid pending-raid confirmation and the composer reports a
+request rather than completed delivery. Other new commands require the specified
+204 response. Explicit 422/425 role rejections remain confirmed failures;
+unexpected successes remain uncertain and are not automatically retried.
+Help lists the commands and account requirements.
+
+Reference: https://dev.twitch.tv/docs/api/reference/ (raid, moderator/VIP,
+user block and shoutout endpoints checked 2026-10-11).
+Validation: Go race tests, vet and lint pass; auth coverage 87.8%. All 212 frontend
+tests and production build pass with one test worker. The large fake IndexedDB
+fixture timed out at five seconds under parallel load and passed in isolation
+and in the serial full suite. Fixtures check exact HTTP/query bindings,
+ownership, scopes, self/missing targets and malformed/unexpected confirmations.
+No live role, raid, block or shoutout mutation was performed; account acceptance
+remains a release gate.
