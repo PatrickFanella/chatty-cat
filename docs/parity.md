@@ -881,3 +881,19 @@ app credentials, a real latest VOD and 357 native emotes (14 animated).
 Fixtures cover shared token acquisition, credential mismatch/revocation cooldown,
 once-only read retry, VOD validation and native precedence. Stream-history
 statistics and complete live account acceptance remain open.
+
+### Observed rate timeline checkpoint
+
+The header now tracks arrival-time live messages separately from retained chat,
+with a rolling five-second messages/second rate, glorp/F markers and time ticks.
+Replay and hydration do not add live traffic. Channel-scoped snapshots retain
+24 hours of aggregate counts in IndexedDB; scope keys and outage history are
+bounded. Closed-page, socket and timer gaps stay distinct from observed silence.
+The statistics panel lists observed peaks from the last 30 minutes.
+
+Validation: 204 frontend tests and strict production build pass. Fixtures cover
+deduplication, channel isolation, replay exclusion, outage bands, malformed
+snapshots and startup overlap. Browser verification observed the live graph and
+its persisted aggregate snapshot (27 occupied seconds at the first save).
+Complete burst statistics, backfilled-band reconciliation and visual parity
+remain open.

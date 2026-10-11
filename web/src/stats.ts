@@ -1,3 +1,4 @@
+import type { RateSeries } from './rate-timeline';
 import type { ChatMessage } from './protocol';
 import { cleanURL } from './links';
 import { tokenize, type Emote } from './tokens';
@@ -31,7 +32,7 @@ export class StatsPanel {
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
-  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[]) {
+  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries) {
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!; this.channel = dialog.querySelector<HTMLSelectElement>('#stats-channel')!; this.exclusions = dialog.querySelector<HTMLInputElement>('#stats-exclusions')!;
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
     try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
@@ -47,12 +48,13 @@ export class StatsPanel {
   private paint = (): void => {
     const now = Date.now(); const excluded = new Set(this.exclusions.value.toLowerCase().split(/[\s,]+/).filter(Boolean));
     const stats = summarize(this.messages(), now, 60000, '', excluded, this.emotes);
-    this.header.replaceChildren(rateGraph(stats.buckets, `Last minute: ${stats.messages} messages from ${stats.chatters} chatters`)); this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
+    if(!this.timeline)this.header.replaceChildren(rateGraph(stats.buckets, `Last minute: ${stats.messages} messages from ${stats.chatters} chatters`)); if(!this.timeline)this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
     if (!this.dialog.open) return;
     const windowMs = Number(this.scope.value); const data = summarize(this.messages(), now, windowMs, this.channel.value, excluded, this.emotes);
     const summary = this.dialog.querySelector<HTMLElement>('#stats-summary')!; summary.textContent = `${data.messages.toLocaleString()} messages · ${data.chatters.toLocaleString()} chatters · ${data.perMinute.toFixed(1)}/min · peak minute ${data.peakPerMinute}`;
     const graph = this.dialog.querySelector<HTMLElement>('#stats-graph')!; graph.replaceChildren(rateGraph(data.buckets, 'Message count over the selected time window'));
     const body = this.dialog.querySelector<HTMLElement>('#stats-lists')!; body.replaceChildren();
+    if(this.timeline){const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent='Observed rate / glorp peaks (last 30 minutes)';section.append(heading);const list=document.createElement('ol');for(const peak of this.timeline.peaks(now,this.channel.value)){const item=document.createElement('li');item.textContent=new Date(peak.second*1000).toLocaleTimeString()+' · '+peak.rate.toFixed(1)+' msgs/s · '+peak.glorps+' glorp/F';list.append(item);}section.append(list);body.append(section);}
     for (const [title, rows] of [['Users', data.users], ['Emotes', data.emotes], ['Badges', data.badges], ['Link domains', data.links], ['Hours', data.hours], ['Days', data.days]] as const) {
       const section = document.createElement('section'); const heading = document.createElement('h3'); heading.textContent = title; section.append(heading); const list = document.createElement('ol');
       for (const row of rows) { const item = document.createElement('li'); item.textContent = `${row.name} · ${row.count.toLocaleString()}`; list.append(item); } section.append(list); body.append(section);

@@ -1,3 +1,4 @@
+import { RateTimeline } from './rate-timeline';
 import { linkFingerprint } from './links';
 import { PickerLighting } from './picker-lighting';
 import { IdentityCards } from './identity-cards';
@@ -76,10 +77,11 @@ try { channels = parseChannels(new URL(location.href).searchParams.get('channel'
 catch { channels = ['hasanabi']; }
 input.value = channels.join(',');
 const store = new MessageStore(channels);
+const rateTimeline=new RateTimeline(element('rate',HTMLElement),channels);
 const videoPanel = new VideoPanel(element('video-panel', HTMLElement), element('video-open', HTMLButtonElement), channels);
 rail=new PanelRail(log,[{name:'video',root:element('video-panel',HTMLElement),show:open=>videoPanel.showRail(open),float:()=>videoPanel.float(),isOpen:()=>!element('video-panel',HTMLElement).hidden},{name:'emotes',root:element('emote-picker',HTMLElement),show:open=>picker.showRail(open),isOpen:()=>!element('emote-picker',HTMLElement).hidden},{name:'stats',root:element('stats-panel',HTMLDialogElement),show:open=>statsPanel.showRail(open),float:()=>statsPanel.float(),isOpen:()=>element('stats-panel',HTMLDialogElement).open}]);
 window.addEventListener('resize',scheduleRender);
-const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels);
+const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series);
 const archive = new MessageArchive((message) => { element('archive-status', HTMLElement).textContent = message; });
 for (const message of store.messages) archive.add(message);
 const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text) => {
@@ -136,6 +138,7 @@ if (initialID && !store.messages.some(message => message.id === initialID)) void
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
 function observe(message: ChatMessage, live = false): void {
+  rateTimeline.series.observe(message,live);
   if (roomStates.observe(message)) renderRoom();
   const used=pickerModel.observe(message, live);if(message.channel===composer.target)pickerLighting.use(used);
   if (message.command !== 'PRIVMSG') return;
@@ -249,7 +252,7 @@ metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
 const connection = new ChatConnection(channels, (event) => {
   if (event.type === 'status') {
-    recovery.status(event);
+    rateTimeline.series.status(event);recovery.status(event);
     status.textContent = event.detail || event.state;
     status.dataset.state = event.state;
     return;
@@ -302,5 +305,5 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) store.save(); });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
