@@ -19,3 +19,12 @@ it('uses accessible SVG labels and handles an empty graph', () => {
   expect(graph.querySelectorAll('rect')).toHaveLength(3); expect(graph.querySelector('rect')?.getAttribute('height')).toBe('0');
   expect(rateGraph([], 'No messages').querySelectorAll('rect')).toHaveLength(0);
 });
+it('counts glorp messages once and keeps rankings scoped and excluded',()=>{
+ const rows=[{...message,text:'glorp F',id:'g1'},{...message,text:'F',id:'g2',login:'bob'},{...message,text:'coffee',id:'g3'}];
+ const data=summarize([...rows,rows[0]!],120000,120000,'one',new Set(['bob']),emotes);
+ expect(data.glorps).toBe(1);expect(data.glorpers).toEqual([{name:'alice',count:1}]);
+});
+it('counts bare-domain posts using the same parser as chat',()=>{
+ const data=summarize([{...message,text:'example.com/a alice@example.org'}],120000,120000,'one',new Set(),emotes);
+ expect(data.links).toEqual([{name:'example.com',count:1}]);
+});

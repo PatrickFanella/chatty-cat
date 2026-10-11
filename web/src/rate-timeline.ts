@@ -24,11 +24,20 @@ export class RateSeries {
  tick(now=Date.now()):void {const second=Math.floor(now/1000);if(second-this.lastTick>5&&!this.active)this.addGap(this.lastTick+1,second,'timer paused');this.lastTick=second;for(const rows of this.rows.values())for(const stamp of rows.keys())if(stamp<second-KEEP)rows.delete(stamp);this.gaps=this.gaps.filter(gap=>gap.to>=second-KEEP).slice(-1000);}
  private addGap(from:number,to:number,cause:GapCause):void {if(to<=from)return;this.gaps.push({from,to,cause});if(this.gaps.length>1000)this.gaps.shift();}
  samples(now=Date.now(),seconds=240,channel=''):RateSample[]{
-  const end=Math.floor(now/1000),size=Math.max(1,Math.min(1800,Math.floor(seconds)));const gaps=this.active?[...this.gaps,{...this.active,to:end+1}]:this.gaps;
+  const end=Math.floor(now/1000),size=Math.max(1,Math.min(KEEP,Math.floor(seconds)));const gaps=(this.active?[...this.gaps,{...this.active,to:end+1}]:[...this.gaps]).sort((a,b)=>a.from-b.from);let gapIndex=0;
   const counts=new Map<number,Count>();for(const [name,rows] of this.rows){if(channel&&channel!==name)continue;for(const [stamp,count] of rows)if(stamp>=end-size-4&&stamp<=end){const old=counts.get(stamp)??{messages:0,glorps:0};counts.set(stamp,{messages:old.messages+count.messages,glorps:old.glorps+count.glorps});}}
-  return Array.from({length:size},(_,i)=>{const second=end-size+1+i;let messages=0;for(let offset=0;offset<5;offset++)messages+=counts.get(second-offset)?.messages??0;const gap=gaps.find(value=>second>=value.from&&second<value.to)?.cause;return {second,rate:messages/5,glorps:counts.get(second)?.glorps??0,gap:second<this.watchFrom?gap??'not observed':gap};});
+  return Array.from({length:size},(_,i)=>{const second=end-size+1+i;let messages=0;for(let offset=0;offset<5;offset++)messages+=counts.get(second-offset)?.messages??0;while(gapIndex<gaps.length&&gaps[gapIndex]!.to<=second)gapIndex++;const current=gaps[gapIndex];const gap=current&&second>=current.from&&second<current.to?current.cause:undefined;return {second,rate:messages/5,glorps:counts.get(second)?.glorps??0,gap:second<this.watchFrom?gap??'not observed':gap};});
  }
- peaks(now=Date.now(),channel=''):RateSample[]{return this.samples(now,1800,channel).filter(sample=>!sample.gap&&(sample.rate>=4||sample.glorps>0)).sort((a,b)=>b.rate-a.rate||b.glorps-a.glorps).slice(0,20);}
+ peaks(now=Date.now(),channel='',seconds=KEEP,kind:'rate'|'glorps'='rate'):RateSample[]{
+  const candidates=this.samples(now,seconds,channel).filter(sample=>!sample.gap&&(kind==='rate'?sample.rate>=4:sample.glorps>2)).sort((a,b)=>kind==='rate'?b.rate-a.rate||a.second-b.second:b.glorps-a.glorps||a.second-b.second);
+  if(kind==='glorps')return candidates.slice(0,3);
+  const picks:RateSample[]=[];
+  for(const candidate of candidates){
+   if(picks.every(pick=>Math.abs(pick.second-candidate.second)>10&&!(kind==='rate'&&Math.abs(pick.second-candidate.second)<=30&&candidate.rate>=pick.rate-.05)))picks.push(candidate);
+   if(picks.length===3)break;
+  }
+  return picks;
+ }
  snapshot(now=Date.now()):RateSnapshot {this.tick(now);const rows:RateSnapshot['rows']=[];for(const [channel,counts] of this.rows)for(const [second,count] of counts)rows.push([channel,second,count.messages,count.glorps]);return {at:Math.floor(now/1000),from:Math.max(Math.floor(now/1000)-KEEP,this.watchFrom),rows,gaps:[...this.gaps.map(gap=>({...gap})),...(this.active&&Math.floor(now/1000)>this.active.from?[{...this.active,to:Math.floor(now/1000)}]:[])]};}
  restore(value:unknown,now=Date.now()):void {
   if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>,end=Math.floor(now/1000);if(typeof data.at!=='number'||!Number.isSafeInteger(data.at)||data.at>end+5||data.at<end-KEEP||!Array.isArray(data.rows)||!Array.isArray(data.gaps))return;

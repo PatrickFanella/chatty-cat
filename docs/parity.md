@@ -897,3 +897,17 @@ snapshots and startup overlap. Browser verification observed the live graph and
 its persisted aggregate snapshot (27 occupied seconds at the first save).
 Complete burst statistics, backfilled-band reconciliation and visual parity
 remain open.
+
+### Glorp and distinct burst statistics checkpoint
+
+Statistics now count glorp/F messages and top glorpers within the selected
+retained-message window, channel and exclusions. Link-domain counts use the
+same bare-domain parser as chat. Observed rate peaks cover the recorded 24-hour
+aggregate history, selecting three distinct bursts with the original 10-second
+suppression and 30-second similar-rate rule. Glorp spikes rank separately above
+two per second. Channel-scoped bursts link their UTC day in the public chat logs.
+
+Validation: 207 frontend tests; production build and targeted fixtures pass.
+Browser verification confirmed the tally, separate burst/spike sections and
+channel/day links. Earlier saved rate samples survived reload. Emote source
+windows, grouped badge reference and full session counters remain open.
