@@ -1,0 +1,233 @@
+package metadata
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+func TestLoadPrecedenceAndBadges(t *testing.T) {
+	responses := map[string]string{
+		"/se/room/stats":                      `{"bttvEmotes":[{"emote":"Shared","amount":42}]}`,
+		"/ivr/user":                           `[{"id":"123"}]`,
+		"/7tv/emote-sets/global":              `{"emotes":[{"id":"global","name":"Shared","flags":1,"data":{"animated":true}},{"id":"overlay","name":"Overlay","flags":1}]}`,
+		"/bttv/emotes/global":                 `[{"id":"bglobal","code":"Shared","imageType":"gif"}]`,
+		"/ffz/set/global":                     `{"sets":{"1":{"emoticons":[{"name":"Shared","urls":{"2":"//cdn.frankerfacez.com/emote/1/2"}}]}}}`,
+		"/7tv/users/twitch/123":               `{"emote_set":{"emotes":[{"id":"channel","name":"Shared","flags":1,"data":{"animated":true}},{"id":"channel7","name":"Channel7"}]}}`,
+		"/bttv/users/twitch/123":              `{"channelEmotes":[{"id":"channelB","code":"Shared"}],"sharedEmotes":[{"id":"sharedB","code":"SharedB","imageType":"gif"}]}`,
+		"/ffz/room/room":                      `{"sets":{"2":{"emoticons":[{"name":"Shared","urls":{"2":"https://cdn.frankerfacez.com/emote/2/2"}},{"name":"Anim","urls":{"2":"https://cdn.frankerfacez.com/emote/3/2"}}]}}}`,
+		"/bttv/frankerfacez/users/twitch/123": `[{"code":"Anim","animated":true,"images":{"2x":"https://cdn.betterttv.net/frankerfacez_emote/3/2"}}]`,
+		"/ivr/badges/global":                  `[{"set_id":"subscriber","versions":[{"id":"1","image_url_2x":"https://badges.example/global","title":"Global"},{"id":"2","image_url_1x":"https://badges.example/2","title":"Two"}]}]`,
+		"/ivr/badges/channel":                 `[{"set_id":"subscriber","versions":[{"id":"1","image_url_2x":"https://badges.example/channel","title":"Channel","description":"Subscriber"}]}]`,
+		"/decapi/uptime/room":                 " 2 hours ", "/decapi/viewercount/room": "1234", "/decapi/title/room": "A stream title",
+	}
+	var calls atomic.Int32
+	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		data, ok := responses[r.URL.Path]
+		if !ok {
+			t.Errorf("unexpected path: %s", r.URL)
+			http.NotFound(w, r)
+			return
+		}
+		if _, err := w.Write([]byte(data)); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer host.Close()
+	s := New(host.Client(), testEndpoints(host.URL), func(_ context.Context, path string) ([]byte, error) {
+		calls.Add(1)
+		if path == "/chat/emotes/global" || path == "/chat/emotes?broadcaster_id=123" {
+			return []byte(`{"data":[{"id":"emotesv2_test","name":"Native","format":["static","animated"]}]}`), nil
+		}
+		if path != "/videos?user_id=123&type=archive&sort=time&first=1" {
+			t.Errorf("unexpected public read %s", path)
+		}
+		return []byte(`{"data":[{"id":"999","user_id":"123","created_at":"2026-10-10T12:00:00Z","duration":"1h","title":"Previous stream","type":"archive"}]}`), nil
+	})
+	got, err := s.Load(context.Background(), "room")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Emotes["Native"].Source != "Twitch" || !got.Emotes["Native"].Animated {
+		t.Fatalf("native catalog: %+v", got.Emotes["Native"])
+	}
+	if got.LastVod == nil || got.LastVod.End != "2026-10-10T13:00:00Z" {
+		t.Fatalf("VOD: %+v", got.LastVod)
+	}
+	if got.EmoteUse["Shared"] != 42 {
+		t.Fatalf("usage seeds: %v", got.EmoteUse)
+	}
+	if len(got.Errors) > 0 {
+		t.Fatalf("provider errors: %v", got.Errors)
+	}
+	if got.Emotes["Shared"].Source != "FFZ" || got.Emotes["Shared"].ZeroWidth || got.Emotes["Shared"].Animated {
+		t.Fatalf("stale winner flags: %#v", got.Emotes["Shared"])
+	}
+	if !got.Emotes["Overlay"].ZeroWidth || got.Emotes["Channel7"].Source != "7TV" || !got.Emotes["SharedB"].Animated {
+		t.Fatalf("missing emotes: %#v", got.Emotes)
+	}
+	if got.Emotes["Anim"].Source != "FFZ animated" || !got.Emotes["Anim"].Animated || got.Emotes["Anim"].StaticURL != "https://cdn.frankerfacez.com/emote/3/2" {
+		t.Fatalf("animation: %#v", got.Emotes["Anim"])
+	}
+	if got.Badges["subscriber"]["1"].Title != "Channel" || got.Badges["subscriber"]["2"].Title != "Two" {
+		t.Fatalf("badge merge: %#v", got.Badges)
+	}
+	if got.Stream.Uptime != "2 hours" || got.Stream.Viewers != "1234" || got.Stream.Title != "A stream title" {
+		t.Fatalf("stream: %#v", got.Stream)
+	}
+	before := calls.Load()
+	if _, err := s.Load(context.Background(), "room"); err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != before {
+		t.Fatal("repeat load did not use cache")
+	}
+}
+
+func testEndpoints(base string) Endpoints {
+	return Endpoints{SevenTV: base + "/7tv", BTTV: base + "/bttv", FFZ: base + "/ffz", IVR: base + "/ivr", DecAPI: base + "/decapi", StreamElements: base + "/se"}
+}
+
+func TestPartialFailureAndInvalidChannel(t *testing.T) {
+	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/7tv/emote-sets/global" {
+			if _, err := w.Write([]byte(`{"emotes":[{"id":"good","name":"Good"}]}`)); err != nil {
+				t.Error(err)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer host.Close()
+	s := New(host.Client(), testEndpoints(host.URL))
+	got, err := s.Load(context.Background(), "room")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Emotes["Good"].URL == "" || len(got.Errors) == 0 {
+		t.Fatalf("partial failure erased good data: %#v", got)
+	}
+	if _, err := s.Load(context.Background(), "room/../other"); err == nil {
+		t.Fatal("invalid channel accepted")
+	}
+}
+
+func TestCoalescingAndCancellation(t *testing.T) {
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	var calls atomic.Int32
+	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			close(entered)
+		}
+		select {
+		case <-release:
+		case <-r.Context().Done():
+			return
+		}
+		if _, err := w.Write([]byte(`{"ok":true}`)); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer host.Close()
+	s := New(host.Client(), testEndpoints(host.URL))
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if _, err := s.get(context.Background(), host.URL+"/test", time.Minute); err != nil {
+			t.Error(err)
+		}
+	}()
+	<-entered
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := s.get(ctx, host.URL+"/test", time.Minute); err == nil {
+		t.Fatal("cancelled waiter did not return")
+	}
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if _, err := s.get(context.Background(), host.URL+"/test", time.Minute); err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	close(release)
+	wg.Wait()
+	if calls.Load() != 1 {
+		t.Fatalf("coalesced calls: %d", calls.Load())
+	}
+}
+
+func TestFailedRefreshUsesStaleData(t *testing.T) {
+	var fail atomic.Bool
+	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if fail.Load() {
+			if _, err := w.Write([]byte("<html>provider error</html>")); err != nil {
+				t.Error(err)
+			}
+			return
+		}
+		if _, err := w.Write([]byte(`{"ok":true}`)); err != nil {
+			t.Error(err)
+		}
+	}))
+	defer host.Close()
+	s := New(host.Client(), testEndpoints(host.URL))
+	address := host.URL + "/test"
+	if _, err := s.get(context.Background(), address, time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	s.mu.Lock()
+	old := s.cache[address]
+	old.expires = time.Now().Add(-time.Second)
+	s.cache[address] = old
+	s.mu.Unlock()
+	fail.Store(true)
+	data, err := s.get(context.Background(), address, time.Minute)
+	if err == nil || string(data) != `{"ok":true}` {
+		t.Fatalf("stale fallback: %s %v", data, err)
+	}
+}
+
+func TestImageValidation(t *testing.T) {
+	for _, tt := range []struct{ in, out string }{
+		{"//cdn.example/image", "https://cdn.example/image"}, {"https://cdn.example/image", "https://cdn.example/image"},
+		{"javascript:alert(1)", ""}, {"http://cdn.example/image", ""}, {"https://user:password@cdn.example/image", ""}, {"not a URL", ""},
+	} {
+		if got := safeImage(tt.in); got != tt.out {
+			t.Errorf("%q: %q", tt.in, got)
+		}
+	}
+}
+
+func TestResponseLimits(t *testing.T) {
+	for _, tt := range []struct {
+		name, body string
+		status     int
+	}{
+		{"bad status", "", 503}, {"invalid JSON", "nope", 200}, {"oversized", strings.Repeat("x", (8<<20)+1), 200},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.status)
+				if _, err := w.Write([]byte(tt.body)); err != nil {
+					t.Log(err)
+				}
+			}))
+			defer host.Close()
+			s := New(host.Client(), testEndpoints(host.URL))
+			if _, err := s.get(context.Background(), host.URL+"/test", time.Minute); err == nil {
+				t.Fatal("invalid response accepted")
+			}
+		})
+	}
+}

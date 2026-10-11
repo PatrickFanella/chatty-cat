@@ -1,0 +1,37 @@
+// @vitest-environment happy-dom
+import { afterEach, expect, it, vi } from 'vitest';
+import { Attention } from './attention';
+import { defaultDisplay } from './display';
+import type { ChatMessage } from './protocol';
+const message: ChatMessage = { id: 'id', channel: 'hasanabi', command: 'PRIVMSG', login: 'alice', text: '@bob hello', timestamp: 1, tags: {} };
+afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
+it('queues unique live mentions while away, jumps FIFO and clears with Shift-click',()=>{
+ vi.spyOn(document,'hasFocus').mockReturnValue(false);
+ const button=document.createElement('button'),jump=vi.fn();const attention=new Attention(button,defaultDisplay,jump);
+ attention.mention(message,true,true);attention.mention(message,false);expect(button.textContent).toBe('');
+ attention.mention(message,true);attention.mention(message,true);attention.mention({...message,id:'two'},true);expect(button.textContent).toBe('@2');
+ button.click();expect(jump).toHaveBeenCalledWith('id','hasanabi');expect(button.textContent).toBe('@1');
+ button.dispatchEvent(new MouseEvent('click',{shiftKey:true}));expect(button.hidden).toBe(true);attention.stop();
+ attention.mention({...message,id:'three'},true);expect(button.hidden).toBe(true);
+});
+it('does not count focused chat or unidentifiable notices and bounds the queue',()=>{
+ const focus=vi.spyOn(document,'hasFocus').mockReturnValue(true);const button=document.createElement('button');const attention=new Attention(button,defaultDisplay,vi.fn());
+ attention.mention(message,true);expect(button.textContent).toBe('');focus.mockReturnValue(false);
+ attention.mention({...message,id:''},true);attention.mention({...message,command:'NOTICE'},true);expect(button.textContent).toBe('');
+ for(let i=0;i<600;i++)attention.mention({...message,id:String(i)},true);expect(button.textContent).toBe('@500');attention.stop();
+});
+it('requests notification permission only when explicitly enabled',async()=>{
+ const permission=vi.fn().mockResolvedValue('granted');vi.stubGlobal('Notification',{permission:'default',requestPermission:permission});
+ const options=defaultDisplay();const attention=new Attention(document.createElement('button'),()=>options,vi.fn());
+ await attention.permission();expect(permission).not.toHaveBeenCalled();options.notify=true;await attention.permission();expect(permission).toHaveBeenCalledOnce();attention.stop();
+});
+it('notifies hidden-page mentions through the service worker and throttles bursts',async()=>{
+ vi.spyOn(document,'hasFocus').mockReturnValue(false);vi.spyOn(document,'hidden','get').mockReturnValue(true);
+ vi.stubGlobal('Notification',{permission:'granted'});const showNotification=vi.fn().mockResolvedValue(undefined);
+ Object.defineProperty(navigator,'serviceWorker',{value:{getRegistration:vi.fn().mockResolvedValue({showNotification})},configurable:true});
+ const attention=new Attention(document.createElement('button'),()=>({...defaultDisplay(),notify:true}),vi.fn());
+ attention.mention(message,true);attention.mention({...message,id:'two'},true);await vi.waitFor(()=>expect(showNotification).toHaveBeenCalledOnce());
+ expect(showNotification.mock.calls[0]?.[0]).toBe('alice mentioned you');
+ attention.stream('hasanabi',true,'Already live');expect(showNotification).toHaveBeenCalledOnce();
+ attention.stream('hasanabi',false,'');attention.stream('hasanabi',true,'New stream');await vi.waitFor(()=>expect(showNotification).toHaveBeenCalledTimes(2));attention.stop();
+});

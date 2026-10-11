@@ -1,0 +1,15 @@
+// @vitest-environment happy-dom
+import {afterEach,expect,it,vi} from 'vitest';
+import {DisplaySettings} from './display';
+let settings:DisplaySettings|undefined;
+afterEach(()=>{settings?.stop();document.body.replaceChildren();localStorage.clear();vi.unstubAllGlobals();});
+it('saves three validated slots, recalls them and only overwrites deliberately',()=>{
+ vi.stubGlobal('matchMedia',()=>Object.assign(new EventTarget(),{matches:false}));
+ const dialog=document.createElement('dialog');dialog.innerHTML='<form><select name="size"></select><select name="colour"></select><input name="keywords"></form><button data-slot="0">Slot 1</button><button data-slot="1">Slot 2</button><button data-slot="2">Slot 3</button>';
+ const trigger=document.createElement('button');document.body.append(dialog,trigger);settings=new DisplaySettings(dialog,trigger,vi.fn());
+ const size=dialog.querySelector<HTMLSelectElement>('[name=size]')!,slot=dialog.querySelector<HTMLButtonElement>('[data-slot="0"]')!;
+ size.value='18';size.dispatchEvent(new Event('change',{bubbles:true}));slot.click();expect(slot.textContent).toContain('saved');
+ size.value='24';size.dispatchEvent(new Event('change',{bubbles:true}));slot.click();expect(size.value).toBe('18');
+ size.value='24';size.dispatchEvent(new Event('change',{bubbles:true}));slot.dispatchEvent(new MouseEvent('click',{shiftKey:true,bubbles:true}));size.value='14';size.dispatchEvent(new Event('change',{bubbles:true}));slot.click();expect(size.value).toBe('24');
+ expect(JSON.parse(localStorage.getItem('chatthing:v1:display-slots')!)[0].size).toBe(24);
+});
