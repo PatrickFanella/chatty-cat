@@ -851,3 +851,33 @@ normalize for duplicates, and case-sensitive paths/IDs remain distinct.
 
 Validation: 198 frontend tests/build pass. Fixtures cover bare domains, email
 exclusion, tracking/host normalization and preserving YouTube ID case.
+
+### Standalone repository and public Twitch metadata checkpoint
+
+The owner moved conversion work to the standalone `rebuild/` Git repository
+(`chatty-cat`) and created its `init` baseline on 2026-10-11. Earlier chronological
+checkpoint entries describe work from the former parent repository. Subsequent
+commits use this standalone repository; the original source remains alongside it.
+The module path now matches the Gitea repository, and AGPL license/attribution
+and current run instructions are included. The resource generator accepts an
+explicit original HTML path and writes into this repository.
+
+Public Twitch reads use an allowlisted GET helper and a separate in-memory app
+token. Token acquisition coalesces, validates client binding, rejects a user token,
+revalidates before reuse after 30 minutes and refreshes once on explicit 401.
+Credential rejection has a one-minute cooldown; shutdown cancels reads.
+No app credentials or raw token responses are forwarded to the browser.
+
+The original relay's GraphQL VOD lookup is replaced by documented Helix archive
+reads. Returned channel ID, duration, type, timestamp and video ID are validated;
+latest archive links appear in the stream bar. Public global/channel emote
+catalogs add native precedence and animated/still URLs for anonymous viewing.
+Helix user lookup can recover the channel ID if the public IVR lookup fails.
+Public catalog visibility does not imply subscriber entitlement to send an emote.
+
+Validation: 199 frontend tests/build; Go race/coverage, vet and lint pass. Auth
+coverage 87.3%, metadata 90.2%, server 86.3%. Live reads verified the configured
+app credentials, a real latest VOD and 357 native emotes (14 animated).
+Fixtures cover shared token acquisition, credential mismatch/revocation cooldown,
+once-only read retry, VOD validation and native precedence. Stream-history
+statistics and complete live account acceptance remain open.

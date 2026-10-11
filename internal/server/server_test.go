@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/metadata"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"net/http"
 	"net/http/httptest"
 	"os"

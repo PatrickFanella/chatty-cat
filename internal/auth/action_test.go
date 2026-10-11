@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/irc"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 )
 
 func TestActionAcknowledgements(t *testing.T) {
