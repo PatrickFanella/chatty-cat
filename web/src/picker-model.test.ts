@@ -55,3 +55,8 @@ it('round-trips picker provider and animation preferences in original URL aliase
  expect(pickerFromURL(parsed,new URLSearchParams('ephold&epanim=still')).holdPlus).toBe(false);
 });
 it('shares disabled sources and age rows without widening the restored filter',async()=>{const {pickerFromURL,pickerURL}=await import('./picker-model');const options=parseOptions({enabled:[],ages:false,ageRows:2});const url=new URL('https://chat.subcult.tv/');pickerURL(options,url);expect(pickerFromURL(parseOptions(null),url.searchParams)).toEqual(options);});
+it('resetting order preserves catalog, seeds and recents while clearing persisted live usage',()=>{
+ const model=new PickerModel();model.setMetadata('hasanabi',{A:make('A'),B:make('B')});model.options.enabled=['BTTV'];model.setSeeds('hasanabi',{B:100});model.select('hasanabi','A');model.observe(msg('A',100,'live'),true);expect(model.query('hasanabi','')[0]?.code).toBe('A');
+ model.resetOrder('hasanabi');expect(model.query('hasanabi','')[0]?.code).toBe('B');expect(model.lastUse('hasanabi','A')).toBe(0);expect(model.recent('hasanabi')[0]?.code).toBe('A');
+ const restored=new PickerModel();restored.setMetadata('hasanabi',{A:make('A')});expect(restored.lastUse('hasanabi','A')).toBe(0);
+});

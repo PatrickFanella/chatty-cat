@@ -911,3 +911,22 @@ Validation: 207 frontend tests; production build and targeted fixtures pass.
 Browser verification confirmed the tally, separate burst/spike sections and
 channel/day links. Earlier saved rate samples survived reload. Emote source
 windows, grouped badge reference and full session counters remain open.
+
+### Picker movement and ordering reset checkpoint
+
+Picker rebuilds animate matching emote cells from their previous positions over
+220 ms. Duplicate recent/home cells retain separate positions; inline age squares
+participate while separate age rows do not. Destination measurements are batched,
+movement is bounded and previous animations are canceled. System reduced motion
+and disabled app motion suppress slides. Existing hover hold still prevents
+automatic grid replacement.
+
+Reset order clears recorded local usage and age-crossing state for the current
+channel, preserving catalog, recents and channel usage seeds. The button and
+original middle-click shortcut both persist the reset. Retained-message statistics
+remain separate.
+
+Validation: 211 frontend tests and strict production build pass. Fixtures cover
+repeated-cell positions, motion suppression, reset persistence and both controls.
+Browser verification observed 220 ms picker animations and reset followed by
+new live usage. Full age-gap packing and preset integration remain open.

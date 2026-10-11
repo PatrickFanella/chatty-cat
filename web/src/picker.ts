@@ -1,3 +1,4 @@
+import {capturePicker,animatePicker} from './picker-motion';
 import { AGE_SECONDS, ageLabel, crossedAges } from './picker-order';
 import { FloatingPanel } from './floating';
 import { PickerModel, pickerURL, SOURCES, type PickerItem } from './picker-model';
@@ -13,6 +14,7 @@ export class EmotePicker {
   private readonly tabs: HTMLElement;
   private readonly more: HTMLButtonElement;
   private readonly settings: HTMLElement;
+  private movement:Animation[]=[];
   private held = false;
   private gridHeld=false;
   private borrowed=false;
@@ -45,6 +47,8 @@ export class EmotePicker {
     this.grid.addEventListener('pointerenter',this.gridEnter);this.grid.addEventListener('pointerleave',this.gridLeave);
     trigger.addEventListener('click', this.toggle); root.addEventListener('click', this.click);
     document.addEventListener('keydown', this.key, true); root.addEventListener('pointerenter', this.enter); root.addEventListener('pointerleave', this.leave);
+    get(root,'picker-reset-order',HTMLButtonElement).addEventListener('click',this.resetOrder);
+    get(root,'picker-sort',HTMLSelectElement).addEventListener('auxclick',this.resetMiddle);
     this.tabs.addEventListener('change', this.change); this.settings.addEventListener('change', this.change);
     this.search.addEventListener('input', this.searchChange); this.search.addEventListener('keydown', this.searchKey); this.more.addEventListener('click', this.showMore);
     this.timer = setInterval(() => { if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold)) this.refresh(true); }, 1000);
@@ -61,6 +65,8 @@ export class EmotePicker {
     const items = this.model.query(this.channel(), this.search.value);
     const displayed = items.slice(0, this.page);
     const oldTop = this.grid.scrollTop;
+    const positions=capturePicker(this.root,this.model.options.ageRows);
+    for(const animation of this.movement)animation.cancel();
     this.grid.replaceChildren();
     let source = '';
     const channel=this.channel(),crossed=this.ageCrossed.get(channel)??new Set<number>();this.ageCrossed.set(channel,crossed);
@@ -97,6 +103,7 @@ export class EmotePicker {
     this.more.hidden = items.length <= this.page;
     this.root.classList.toggle('show-names', this.model.options.names);
     this.root.style.setProperty('--picker-cell', 64 * this.model.options.zoom + 'px');
+    this.movement=animatePicker(this.root,this.model.options.ageRows,positions);
   }
   private paintAgeRows():void {if(this.model.options.ageRows!==2||this.model.options.sort!=='use')return;const markers=[...this.grid.querySelectorAll<HTMLElement>('.picker-age')];for(let pass=0;pass<5;pass++){const ends=new Set<HTMLElement>();let previous:HTMLElement|undefined;for(const marker of markers){if(previous&&previous.offsetTop!==marker.offsetTop)ends.add(previous);previous=marker;}if(previous)ends.add(previous);let changed=false;for(const marker of markers){const end=ends.has(marker);if(marker.classList.contains('row-end')!==end){marker.classList.toggle('row-end',end);changed=true;}}if(!changed)break;}}
   private cell(item: PickerItem): HTMLButtonElement {
@@ -127,6 +134,8 @@ export class EmotePicker {
     const code = event.target.closest<HTMLButtonElement>('button[data-insert]')?.dataset.insert;
     if (code && this.canInsert()) { this.insert(code); this.model.select(this.channel(), code); this.dirty = true; }
   };
+  private resetOrder=():void=>{const channel=this.channel();this.model.resetOrder(channel);this.ageCrossed.delete(channel);for(const key of this.ageHistory.keys())if(key.startsWith(channel+'/'))this.ageHistory.delete(key);this.refresh(true);};
+  private resetMiddle=(event:MouseEvent):void=>{if(event.button===1){event.preventDefault();this.resetOrder();}};
   private change = (): void => {
     const options = this.model.options;options.ageRows=Number(get(this.root,'picker-ageRows',HTMLSelectElement).value)||0;
     options.enabled = [...this.tabs.querySelectorAll<HTMLInputElement>('input:checked')].flatMap((input) => SOURCES.includes(input.value as typeof SOURCES[number]) ? [input.value as typeof SOURCES[number]] : []);
@@ -146,6 +155,9 @@ export class EmotePicker {
   private searchChange = (): void => { this.page = 200; this.grid.scrollTop = 0; this.refresh(true); };
   private showMore = (): void => { this.page += 200; this.refresh(true); };
   stop(): void {
+    for(const animation of this.movement)animation.cancel();this.movement=[];
+    get(this.root,'picker-reset-order',HTMLButtonElement).removeEventListener('click',this.resetOrder);
+    get(this.root,'picker-sort',HTMLSelectElement).removeEventListener('auxclick',this.resetMiddle);
     this.ageObserver.disconnect();this.gridLeave();this.grid.removeEventListener('pointerenter',this.gridEnter);this.grid.removeEventListener('pointerleave',this.gridLeave);
     clearInterval(this.timer); clearInterval(this.saveTimer); this.floating.stop(); this.model.saveAll();
     this.trigger.removeEventListener('click', this.toggle); this.root.removeEventListener('click', this.click); document.removeEventListener('keydown', this.key, true);

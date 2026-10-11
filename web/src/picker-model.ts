@@ -99,6 +99,7 @@ export class PickerModel {
     while (uses.size > 4096) { const first = uses.keys().next().value; if (first) uses.delete(first); else break; }
     this.uses.set(message.channel, uses);return [...new Set(used)];
   }
+  resetOrder(channel:string):void {this.load(channel);this.uses.set(channel,new Map());this.save(channel);}
   saveAll(): void { for (const channel of this.loaded) this.save(channel); }
   save(channel: string): void {
     try {
