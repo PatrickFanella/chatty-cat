@@ -1136,3 +1136,21 @@ production acceptance remain separate gates. Resource tests and strict frontend
 build pass. References: https://docs.docker.com/reference/compose-file/services/,
 https://caddyserver.com/docs/caddyfile/directives/reverse_proxy and
 https://caddyserver.com/docs/quick-starts/https (checked 2026-10-11).
+
+### Picker preset integration checkpoint
+
+Theme presets now apply their picker fields on initial URL load and selection
+in display settings. The old-default/default alias restores mixed grids, Hold+
+and its fitted pinned geometry; Nightshade restores quarter-step zoom. Explicit
+picker URL parameters override preset fields. Runtime selection updates controls
+and saved options while retaining unspecified preferences. The original header
+font follow sentinel in the Minimal preset maps to automatic header sizing.
+
+Validation: the full frontend suite passed 247 tests and the strict production
+build. Subsequent targeted picker/display checks passed 21 tests, including
+preset/default aliases, explicit overrides, saved controls/pinning and header
+follow sizing. Live preset verification could not run: T3 returned
+"The calling provider no longer owns an active thread run." Concurrent edits
+to statistics, Giphy and server configuration were preserved separately.
+Complete settings-slot bundles and exhaustive preset visual comparison remain
+open.

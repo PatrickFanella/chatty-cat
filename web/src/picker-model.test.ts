@@ -60,3 +60,8 @@ it('resetting order preserves catalog, seeds and recents while clearing persiste
  model.resetOrder('hasanabi');expect(model.query('hasanabi','')[0]?.code).toBe('B');expect(model.lastUse('hasanabi','A')).toBe(0);expect(model.recent('hasanabi')[0]?.code).toBe('A');
  const restored=new PickerModel();restored.setMetadata('hasanabi',{A:make('A')});expect(restored.lastUse('hasanabi','A')).toBe(0);
 });
+it('applies preset picker defaults before explicit URL overrides',async()=>{
+ const {pickerPreset,pickerPresetGeometry,pickerFromURL,defaultOptions}=await import('./picker-model');const original=defaultOptions();original.zoom=2;original.mixed=false;original.hold=false;
+ const preset=pickerPreset(original,'default');expect(preset.mixed).toBe(true);expect(preset.hold).toBe(true);expect(preset.holdPlus).toBe(true);expect(pickerPresetGeometry('default')).toBe('876x625,646,173');expect(pickerPreset(original,'nightshade').zoom).toBe(.75);expect(pickerPresetGeometry('nightshade')).toBeUndefined();
+ const explicit=pickerFromURL(original,new URLSearchParams('theme=default&epmix=0&ephold=0&epzoom=big'));expect(explicit.mixed).toBe(false);expect(explicit.hold).toBe(false);expect(explicit.zoom).toBe(2);expect(original.mixed).toBe(false);
+});
