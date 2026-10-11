@@ -1,3 +1,4 @@
+import {type StatsLedger,type StatKind} from './stats-ledger';
 import { isGlorp, type RateSeries } from './rate-timeline';
 import type { ChatMessage } from './protocol';
 import { findLinks } from './links';
@@ -32,23 +33,23 @@ export class StatsPanel {
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
-  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries) {
+  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries,private ledger?:StatsLedger,private seeds:(channel:string)=>Record<string,number>=()=>({})) {
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!; this.channel = dialog.querySelector<HTMLSelectElement>('#stats-channel')!; this.exclusions = dialog.querySelector<HTMLInputElement>('#stats-exclusions')!;
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
-    try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
+    try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if(typeof data.channel==='string'&&[...this.channel.options].some(option=>option.value===data.channel))this.channel.value=data.channel; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if(data.windows&&typeof data.windows==='object')for(const select of dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const value=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof value==='string'&&[...select.options].some(option=>option.value===value))select.value=value;} if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
     trigger.addEventListener('click', this.open); dialog.querySelector('#stats-close')?.addEventListener('click', this.close); dialog.addEventListener('close', this.closed); dialog.addEventListener('change', this.change);
-    this.timer = setInterval(this.paint, 5000); this.paint();
+    let ticks=0;this.timer = setInterval(()=>{this.paint();if(++ticks%6===0)this.ledger?.save();}, 5000); this.paint();
   }
   float():void {this.dialog.removeAttribute('open');this.open();}
   showRail(open:boolean):void {if(open){if(this.dialog.open)this.dialog.close();this.dialog.setAttribute('open','');this.paint();}else this.dialog.removeAttribute('open');}
   private open = (): void => { this.dialog.showModal(); this.paint(); };
   private close = (): void => this.dialog.close();
   private closed = (): void => { this.trigger.focus(); };
-  private change = (): void => { try { localStorage.setItem('chatthing:v1:stats', JSON.stringify({ scope: this.scope.value, excluded: this.exclusions.value })); } catch { /* optional storage */ } this.paint(); };
+  private change = (): void => { try { localStorage.setItem('chatthing:v1:stats', JSON.stringify({ scope: this.scope.value, channel:this.channel.value, excluded: this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value])) })); } catch { /* optional storage */ } this.paint(); };
   private paint = (): void => {
     const now = Date.now(); const excluded = new Set(this.exclusions.value.toLowerCase().split(/[\s,]+/).filter(Boolean));
-    const stats = summarize(this.messages(), now, 60000, '', excluded, this.emotes);
-    if(!this.timeline)this.header.replaceChildren(rateGraph(stats.buckets, `Last minute: ${stats.messages} messages from ${stats.chatters} chatters`)); if(!this.timeline)this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
+    const stats = this.timeline?undefined:summarize(this.messages(), now, 60000, '', excluded, this.emotes);
+    if(stats)this.header.replaceChildren(rateGraph(stats.buckets, `Last minute: ${stats.messages} messages from ${stats.chatters} chatters`)); if(stats)this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
     if (!this.dialog.open) return;
     const windowMs = Number(this.scope.value); const data = summarize(this.messages(), now, windowMs, this.channel.value, excluded, this.emotes);
     const summary = this.dialog.querySelector<HTMLElement>('#stats-summary')!; summary.textContent = `${data.messages.toLocaleString()} messages · ${data.glorps.toLocaleString()} glorp/F · ${data.chatters.toLocaleString()} chatters · ${data.perMinute.toFixed(1)}/min · peak minute ${data.peakPerMinute}`;
@@ -69,8 +70,15 @@ export class StatsPanel {
         if(!list.childElementCount){const item=document.createElement('li');item.textContent='None observed';list.append(item);}section.append(list);body.append(section);
       }
     }
+    if(this.ledger){
+     const note=document.createElement('p');note.textContent='Observed totals since '+new Date(this.ledger.since).toLocaleString()+(this.ledger.limited?' · Aggregate capacity reached; some new keys or buckets were omitted':'')+(this.ledger.storageFailed?' · Counts could not be saved in this browser':'');body.append(note);
+     for(const kind of ['users','emotes','badges','links'] as StatKind[]){const control=this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="'+kind+'"]');const hours=Number(control?.value??(kind==='users'?'24':'3'));let rows=this.ledger.ranks(kind,Number.isFinite(hours)?hours:0,this.channel.value,new Set([...excluded,'fossabot','blammobot']),now);
+      if(kind==='emotes'&&control?.value==='se'){const totals=new Map<string,number>();for(const channel of this.channel.value?[this.channel.value]:[...this.channel.options].map(option=>option.value).filter(Boolean))for(const [name,count] of Object.entries(this.seeds(channel)))totals.set(name,(totals.get(name)??0)+count);rows=[...totals].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,50);}
+      const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent={users:'Top chatters',emotes:'Top emotes',badges:'Badge versions',links:'Top links'}[kind];section.append(heading);const list=document.createElement('ol');for(const row of rows){const item=document.createElement('li');if(kind==='links'){const link=document.createElement('a');link.href=row.name;link.textContent=row.name;link.target='_blank';link.rel='noopener noreferrer';item.append(link,' · '+row.count.toLocaleString());}else item.textContent=row.name+' · '+row.count.toLocaleString();list.append(item);}if(!rows.length){const item=document.createElement('li');item.textContent='None recorded';list.append(item);}section.append(list);body.append(section);
+     }
+    }
     for (const [title, rows] of [['Users', data.users], ['Top glorpers',data.glorpers], ['Emotes', data.emotes], ['Badges', data.badges], ['Link domains', data.links], ['Hours', data.hours], ['Days', data.days]] as const) {
-      const section = document.createElement('section'); const heading = document.createElement('h3'); heading.textContent = title; section.append(heading); const list = document.createElement('ol');
+      const section = document.createElement('section'); const heading = document.createElement('h3'); heading.textContent = this.ledger?title+' (retained rows)':title; section.append(heading); const list = document.createElement('ol');
       for (const row of rows) { const item = document.createElement('li'); item.textContent = `${row.name} · ${row.count.toLocaleString()}`; list.append(item); } section.append(list); body.append(section);
     }
   };

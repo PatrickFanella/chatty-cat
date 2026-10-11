@@ -1079,3 +1079,31 @@ while chat stayed connected. This proves creation and configuration, not playbac
 or audibility. YouTube view/date enrichment and channel/playlist cards remain
 open. Reference: https://developers.google.com/youtube/player_parameters
 (checked 2026-10-11).
+
+### Retained aggregate rankings and independent windows checkpoint
+
+Top chatters, emotes, badge versions and normalized links now retain aggregate
+totals separately from scrollback. Each family has its own all/24/12/6/3/1-hour
+control; emotes can instead use the channel's StreamElements totals. Channel
+scope and windows persist. Chatters exclude the original two bots and selected
+logins; link rankings omit the original evergreen promotions. Case-sensitive
+URL paths survive normalization, and repeated URLs/badge versions count once
+per message while repeated emotes count each use.
+
+Hour buckets retain seven days and day buckets 31 days; lifetime totals remain.
+Snapshots restore atomically after validation, retain bounded message-ID dedup
+and preserve unfinished emote classification for retained/archive rows until
+metadata returns. Saving occurs every 30 seconds and on pagehide. Capacity and
+storage failures are disclosed, with limits of 20,000 aggregate keys, 200,000
+buckets and 100,000 dedup/pending entries. The initial migration seeds available
+retained messages; it cannot recover counts for previously unobserved rows.
+The existing summary/time graph remains explicitly based on retained rows.
+
+Validation: 240 frontend tests and strict production build pass. Fixtures cover
+windows, channel isolation, duplicate links/badges/emotes, malformed snapshot
+rejection, bucket pruning, reload dedup after row eviction, delayed catalog
+classification and storage failure. Browser verification showed independent
+controls, current provider seed rankings, and preserved start time/window choice
+on reload (1,357 then 1,394 persisted message uses as live traffic continued).
+Grouped badge reference, complete daily/hourly presentation, rate scope controls
+and stream/viewer histories remain open.

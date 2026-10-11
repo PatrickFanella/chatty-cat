@@ -1,3 +1,4 @@
+import {StatsLedger} from './stats-ledger';
 import {SocialCards} from './social-cards';
 import { RateTimeline } from './rate-timeline';
 import { linkFingerprint } from './links';
@@ -83,7 +84,8 @@ const rateTimeline=new RateTimeline(element('rate',HTMLElement),channels);
 const videoPanel = new VideoPanel(element('video-panel', HTMLElement), element('video-open', HTMLButtonElement), channels);
 rail=new PanelRail(log,[{name:'video',root:element('video-panel',HTMLElement),show:open=>videoPanel.showRail(open),float:()=>videoPanel.float(),isOpen:()=>!element('video-panel',HTMLElement).hidden},{name:'emotes',root:element('emote-picker',HTMLElement),show:open=>picker.showRail(open),isOpen:()=>!element('emote-picker',HTMLElement).hidden},{name:'stats',root:element('stats-panel',HTMLDialogElement),show:open=>statsPanel.showRail(open),float:()=>statsPanel.float(),isOpen:()=>element('stats-panel',HTMLDialogElement).open}]);
 window.addEventListener('resize',scheduleRender);
-const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series);
+const statsLedger=new StatsLedger(channels,channel=>metadata.get(channel)?.emotes??{});statsLedger.bootstrap(store.messages);
+const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{});
 const archive = new MessageArchive((message) => { element('archive-status', HTMLElement).textContent = message; });
 for (const message of store.messages) archive.add(message);
 const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text) => {
@@ -103,7 +105,7 @@ const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.de
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
 const accountEmotes = new AccountEmotes(emotes => { pickerModel.setAccount(emotes); refreshCandidates(); picker.refresh(true); }, element('account-emotes', HTMLElement));
 let selfLogin = '';
-function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true); scheduleRender(); }
+function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true,true); scheduleRender(); }
 const tabSync = new TabSync(acceptEcho);
 const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{follow=false;latest.hidden=false;},()=>latest.click());
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message));
@@ -139,7 +141,8 @@ const initialID = new URL(location.href).searchParams.get('mid');
 if (initialID && !store.messages.some(message => message.id === initialID)) void archive.get(initialID, channels).then(message => { if (message) void showArchived(message); }).catch(() => {});
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
-function observe(message: ChatMessage, live = false): void {
+function observe(message: ChatMessage, live = false, countStats=false): void {
+  if(countStats)statsLedger.observe(message);else {statsLedger.attach(message);statsLedger.reconcile(message.channel);}
   rateTimeline.series.observe(message,live);
   if (roomStates.observe(message)) renderRoom();
   const used=pickerModel.observe(message, live);if(message.channel===composer.target)pickerLighting.use(used);
@@ -237,7 +240,7 @@ function scheduleRender(): void {
 const metadataClient = new MetadataClient(channels, (data) => {
   const previous = metadata.get(data.channel);
   if (JSON.stringify([previous?.emotes, previous?.badges]) !== JSON.stringify([data.emotes, data.badges])) visualRevision++;
-  metadata.set(data.channel, data);
+  metadata.set(data.channel, data);statsLedger.reconcile(data.channel);
   pickerModel.setSeeds(data.channel,data.emoteUse??{});pickerModel.setMetadata(data.channel, data.emotes); picker.refresh();
   refreshCandidates();
   if (data.stream.uptime && !data.errors.includes('stream uptime')) attention.stream(data.channel, !/offline|not streaming|not live|not online|not found/i.test(data.stream.uptime), data.stream.title);
@@ -261,7 +264,7 @@ const connection = new ChatConnection(channels, (event) => {
   }
   if (!store.add(event.message)) return;
   archive.add(event.message);
-  observe(event.message, !event.replay); refreshCandidates(); picker.refresh();
+  observe(event.message, !event.replay,true); refreshCandidates(); picker.refresh();
   if (!event.replay && event.message.command === 'PRIVMSG') {
     const visibility = messageVisibility(event.message, display.options, selfLogin);
     attention.mention(event.message, visibility.highlight && !visibility.blocked && !visibility.hiddenUser, event.replay);
@@ -303,6 +306,6 @@ animation.addEventListener('click', () => {
   scheduleRender();
 });
 setInterval(() => store.save(), 15000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) store.save(); });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });

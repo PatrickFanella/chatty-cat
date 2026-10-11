@@ -43,7 +43,12 @@
     <label for="stats-scope">Window</label><select id="stats-scope"><option value="60000">1 minute</option><option value="300000">5 minutes</option><option value="1800000">30 minutes</option><option value="3600000">1 hour</option><option value="86400000">24 hours</option></select>
     <label for="stats-channel">Channel</label><select id="stats-channel"><option value="">All joined channels</option></select>
     <label for="stats-exclusions">Exclude users</label><input id="stats-exclusions" maxlength="500" placeholder="Comma-separated usernames">
-    <p>Counts cover retained chat in this browser, including loaded backfill. Earlier unsaved messages are unavailable.</p><div id="stats-summary" role="status"></div><div id="stats-graph"></div><div id="stats-lists"></div>
+    <fieldset><legend>Ranked observation windows</legend>
+<label>Chatters<select data-stat-kind="users"><option value="0">All recorded</option><option value="24" selected>24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3">3 hours</option><option value="1">1 hour</option></select></label>
+<label>Emotes<select data-stat-kind="emotes"><option value="se">StreamElements totals</option><option value="0">All recorded</option><option value="24">24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3" selected>3 hours</option><option value="1">1 hour</option></select></label>
+<label>Badges<select data-stat-kind="badges"><option value="0">All recorded</option><option value="24">24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3" selected>3 hours</option><option value="1">1 hour</option></select></label>
+<label>Links<select data-stat-kind="links"><option value="0">All recorded</option><option value="24">24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3" selected>3 hours</option><option value="1">1 hour</option></select></label>
+</fieldset><p>Rankings retain observed counts independently of scrollback; hour windows include the current hour bucket. The summary and graph cover retained chat, including loaded backfill. Earlier unobserved messages are unavailable.</p><div id="stats-summary" role="status"></div><div id="stats-graph"></div><div id="stats-lists"></div>
   </dialog>
   <dialog id="archive-search" aria-label="Search local chat archive">
     <button id="archive-close" type="button">Close</button>
