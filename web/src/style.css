@@ -232,3 +232,8 @@ html[data-hold-freeze="true"] #animation,#emote-picker[data-hold-freeze="true"] 
 #picker-grid .picker-age.soon{border-color:#b18cff;color:#b18cff}#picker-grid .picker-age.crossed:not(.soon){border-color:#d8b64d;color:#d8b64d}
 
 html[data-stitle="false"] #stream{display:none}
+
+#panel-rail>#rail-split {flex:0 0 6px;min-height:6px;cursor:row-resize;touch-action:none;background:var(--line)}
+#panel-rail>#rail-split[hidden] {display:none}
+#panel-rail>#rail-split:is(:hover,:focus-visible) {background:var(--accent);outline:2px solid var(--accent)}
+#panel-rail>#emote-picker,#panel-rail>#stats-panel {flex-basis:0;min-height:80px!important;overflow:auto}

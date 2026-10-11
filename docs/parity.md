@@ -955,3 +955,19 @@ and in the serial full suite. Fixtures check exact HTTP/query bindings,
 ownership, scopes, self/missing targets and malformed/unexpected confirmations.
 No live role, raid, block or shoutout mutation was performed; account acceptance
 remains a release gate.
+
+### Docked rail pane divider checkpoint
+
+Mode 4 includes a horizontal separator between docked emotes and statistics.
+Dragging or Arrow Up/Down adjusts their shared height; Shift uses larger steps
+and Home/End select bounded extremes. The ratio persists and ARIA exposes its
+value. Floating either pane or leaving the combined rail hides the separator.
+Restored floating panels regain their original flex sizing. Dock order keeps
+emotes above statistics when either returns.
+
+Validation: 213 frontend tests and production build pass. Fixtures check docking,
+restoration, bounds, keyboard adjustment and saved ratio. Browser verification
+with video floated changed the pane heights from 80/302 to 302/80 pixels. A short
+rail with docked video retains minimum pane heights and scrolls rather than
+claiming the entire layout can fit. Responsive minimum-height behavior and
+column-local hover pause remain open.
