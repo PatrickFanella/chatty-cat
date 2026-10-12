@@ -7,7 +7,7 @@ export class ArchiveSearch {
   private channel: HTMLSelectElement;
   private results: HTMLElement;
   private status: HTMLElement;
-  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private archive: MessageArchive, channels: string[], private select: (message: ChatMessage) => void) {
+  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private archive: MessageArchive, private channels: string[], private select: (message: ChatMessage) => void) {
     this.input = dialog.querySelector<HTMLInputElement>('#archive-query')!;
     this.channel = dialog.querySelector<HTMLSelectElement>('#archive-channel')!;
     this.results = dialog.querySelector<HTMLElement>('#archive-results')!;
@@ -23,7 +23,7 @@ export class ArchiveSearch {
     event.preventDefault(); this.controller?.abort(); this.controller = new AbortController(); const generation = ++this.generation;
     this.status.textContent = 'Searching local archive…'; this.results.replaceChildren();
     try {
-      const results = await this.archive.search({ text: this.input.value, ...(this.channel.value ? { channel: this.channel.value } : {}), limit: 100 }, this.controller.signal);
+      const results = await this.archive.search({ text: this.input.value, channels: this.channels, ...(this.channel.value ? { channel: this.channel.value } : {}), limit: 100 }, this.controller.signal);
       if (generation !== this.generation) return;
       this.status.textContent = results.length === 100 ? 'Newest 100 matches; narrow your search for more' : `${results.length} local matches`;
       for (const message of results) {

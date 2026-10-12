@@ -23,6 +23,7 @@ export class ColumnLog {
   this.observer?.observe(root);
   root.addEventListener('logmetrics',this.refit);
   root.addEventListener('pointerover',this.over);root.addEventListener('pointerout',this.out);
+  root.addEventListener('wheel',this.scrollIntent,{passive:true});root.addEventListener('touchstart',this.scrollIntent,{passive:true});
  }
  private rebuild(count:number):void {
   for(const view of this.views)view.stop();this.views=[];this.columns=[];this.hovered=-1;this.manual.clear();this.count=count;this.active=count-1;this.pages=Array.from({length:count},()=>[]);this.root.replaceChildren();this.root.classList.toggle('page-columns',count>1);
@@ -31,7 +32,7 @@ export class ColumnLog {
  }
  set(items:readonly LogItem[],following:boolean,revision=0,reverse=false,mode=1,pauseHover=false):void {
   this.pauseHover=pauseHover;if(!pauseHover)this.hovered=-1;
-  const count=mode===1?1:mode===3&&innerWidth>innerHeight?3:2;
+  const count=mode===2?2:mode===3?(innerWidth>innerHeight?3:2):1;
   const reset=count!==this.count||reverse!==this.reverse||revision!==this.revision;
   const previousLast=this.items.at(-1)?.key;this.items=items;this.reverse=reverse;this.following=following;this.revision=revision;
   if(count!==this.count)this.rebuild(count);
@@ -101,25 +102,28 @@ export class ColumnLog {
   this.hovered=-1;this.paintCurrent();
  };
  private paintCurrent():void {if(this.count===1)this.views[0]!.set(this.items,this.following&&!this.held(0),this.revision,this.reverse);else this.paint();}
- hoverPaused(target:EventTarget|null):boolean {return this.hovered>=0&&this.columnAt(target)===this.hovered;}
+ hoverPaused(target:EventTarget|null):boolean {return this.hovered>=0&&!this.manual.has(this.hovered)&&this.columnAt(target)===this.hovered;}
+ private scrollIntent=(event:Event):void=>{const index=this.columnAt(event.target);if(index>=0&&this.following)this.manual.add(index);};
  private refit=():void=>{
   if(this.frame||this.count===1||!this.following)return;
   this.frame=requestAnimationFrame(()=>{this.frame=0;if(this.reverse)this.dealReverse();else if(this.pages.some((page,i)=>i!==this.active&&page.length>1&&this.pageHeight(page)>this.room()+1))this.deal();else {const page=this.pages[this.active]!;let used=0,cut=page.length;for(let i=0;i<page.length;i++){const height=this.height(page[i]!);if(i>0&&used+height>this.room()){cut=i;break;}used+=height;}if(cut<page.length&&!this.held(this.active)&&this.nextActive()>=0){const spill=page.splice(cut);this.active=this.nextActive();this.pages[this.active]=spill;if(this.pageHeight(spill)>this.room())this.deal();}}this.paint();});
  };
  // Scroll events in page layouts hold their own column while transport stays live.
  trackScroll(target:EventTarget|null,following:boolean):boolean {
-  if(this.count===1)return this.isAtLive(target);
+  if(this.count===1){const live=this.isAtLive(target);if(live){this.manual.delete(0);this.views[0]?.resume();}else this.manual.add(0);return live;}
   const index=this.columnAt(target);if(index<0||!following)return following;
-  if(this.isAtLive(target)){const wasHeld=this.manual.delete(index);if(wasHeld){if(this.reverse)this.dealReverse();else this.deal();this.paint();}}else this.manual.add(index);
+  if(this.isAtLive(target)){const wasHeld=this.manual.delete(index);if(wasHeld){this.views[index]?.resume();if(this.reverse)this.dealReverse();else this.deal();this.paint();}}else this.manual.add(index);
   return true;
  }
  hasManualPause():boolean {return this.manual.size>0;}
- resume():void {this.manual.clear();this.hovered=-1;if(this.count>1){if(this.reverse)this.dealReverse();else this.deal();}}
+ resume():void {this.manual.clear();this.hovered=-1;for(const view of this.views)view.resume();if(this.count>1){if(this.reverse)this.dealReverse();else this.deal();}}
  isAtLive(target:EventTarget|null=this.root):boolean {
   const column=target instanceof HTMLElement&&this.columns.includes(target)?target:this.columns[this.active]!;
   return this.reverse?column.scrollTop<48:column.scrollHeight-column.clientHeight-column.scrollTop<48;
  }
  edgeKey(last:boolean):string|undefined {return this.items[last?this.items.length-1:0]?.key;}
+ pausedByHover(target:EventTarget|null):boolean {const index=this.columns.findIndex(column=>column===target);return index>=0&&(this.views[index]?.pausedByHover()??false);}
+ allFollowing():boolean {return this.following&&!this.manual.size&&this.views.every((view,index)=>index===this.hovered||view.isFollowing());}
  moveKey(current:string|undefined,delta:number):string|undefined {const index=current?this.items.findIndex(item=>item.key===current):-1;return this.items[index<0?(delta<0?this.items.length-1:0):Math.max(0,Math.min(this.items.length-1,index+delta))]?.key;}
  reveal(key:string):boolean {
   this.following=false;this.hovered=-1;
@@ -127,5 +131,5 @@ export class ColumnLog {
   for(let i=0;i<this.pages.length;i++)if(this.pages[i]!.includes(key))return this.views[i]!.reveal(key);
   return this.views[0]!.reveal(key);
  }
- stop():void {this.root.removeEventListener('pointerover',this.over);this.root.removeEventListener('pointerout',this.out);cancelAnimationFrame(this.frame);this.observer?.disconnect();this.root.removeEventListener('logmetrics',this.refit);for(const view of this.views)view.stop();}
+ stop():void {this.root.removeEventListener('pointerover',this.over);this.root.removeEventListener('pointerout',this.out);this.root.removeEventListener('wheel',this.scrollIntent);this.root.removeEventListener('touchstart',this.scrollIntent);cancelAnimationFrame(this.frame);this.observer?.disconnect();this.root.removeEventListener('logmetrics',this.refit);for(const view of this.views)view.stop();}
 }

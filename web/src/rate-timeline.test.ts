@@ -19,3 +19,15 @@ it('ranks distinct bursts across the full recorded day and isolates glorp spikes
 it('shares unwatched history and live socket gaps in millisecond age windows',()=>{
  const series=new RateSeries(['one'],100000);series.status({type:'status',detail:'',state:'connected'},100000);series.status({type:'status',detail:'',state:'reconnecting'},102000);const gaps=series.observationGaps(110000);expect(gaps).toContainEqual({from:102000,to:111000});expect(gaps.some(gap=>gap.to===100000)).toBe(true);series.status({type:'status',detail:'',state:'connected'},112000);expect(series.observationGaps(113000)).toContainEqual({from:102000,to:112000});
 });
+
+it('shades confirmed quiet intervals but never unwatched socket or timer periods',()=>{
+ const series=new RateSeries(['one'],100000);series.status({type:'status',detail:'',state:'connected'},100000);series.observe(message,true,100000);
+ for(let second=101;second<=200;second++)series.tick(second*1000);
+ series.observe({...message,id:'next'},true,200000);
+ expect(series.samples(200000,101)[50]?.quiet).toBe(true);
+ expect(timelineGraph(series.samples(200000,101)).textContent).toContain('quiet period');
+ series.status({type:'status',detail:'',state:'reconnecting'},201000);series.status({type:'status',detail:'',state:'connected'},302000);series.tick(302000);series.observe({...message,id:'after-drop'},true,302000);
+ expect(series.samples(302000,102).some(sample=>sample.quiet)).toBe(false);
+ const restored=new RateSeries(['one'],303000);restored.restore(series.snapshot(302000),303000);
+ expect(restored.samples(303000,204).some(sample=>sample.quiet)).toBe(true);
+});

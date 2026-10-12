@@ -172,6 +172,7 @@ export class Composer {
     this.replyTarget.hidden = !this.reply;
     this.replyLabel.textContent = this.reply ? `Replying to ${this.reply.login}: ${this.reply.text.slice(0, 120)}` : '';
     this.cancelReply.disabled = this.busy;
+    this.form.dispatchEvent(new Event('channelstatechange'));
   }
   private edit = (): void => { this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
     this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes);

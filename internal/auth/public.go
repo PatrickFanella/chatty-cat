@@ -21,7 +21,7 @@ func (s *Service) PublicRead(ctx context.Context, path string) ([]byte, error) {
 		return nil, errors.New("invalid public API path")
 	}
 	switch u.Path {
-	case "/users", "/videos", "/chat/emotes/global", "/chat/emotes":
+	case "/users", "/videos", "/clips", "/chat/emotes/global", "/chat/emotes":
 	default:
 		return nil, errors.New("public API path unavailable")
 	}

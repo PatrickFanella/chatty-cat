@@ -8,6 +8,16 @@ function setup() {
 }
 function items(count:number,start=0):LogItem[]{return Array.from({length:count},(_,i)=>({key:String(start+i),render:()=>{const row=document.createElement('article');row.className='row';row.textContent=String(start+i);return row;}}));}
 afterEach(()=>{document.body.replaceChildren();vi.restoreAllMocks();});
+it('pauses only over message rows and resumes on leaving without losing deliberate scroll',()=>{
+ const {log,view}=setup();view.set(items(100),true,0,false,true);log.scrollTop=log.scrollHeight-log.clientHeight;const liveTop=log.scrollTop;
+ log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+ view.set(items(110),true,0,false,true);expect(log.scrollTop).toBe(liveTop);
+ log.dispatchEvent(new MouseEvent('mouseleave'));expect(log.scrollTop).toBeGreaterThan(liveTop);
+ log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+ log.dispatchEvent(new WheelEvent('wheel'));log.scrollTop=100;log.dispatchEvent(new Event('scroll'));
+ log.dispatchEvent(new MouseEvent('mouseleave'));view.set(items(120),true,0,false,true);expect(log.scrollTop).toBe(100);
+ view.resume();view.set(items(120),true,0,false,true);expect(log.scrollTop).toBeGreaterThan(100);view.stop();
+});
 it('mounts a bounded window for 100,000 records and navigates to distant rows',()=>{
  const {log,view}=setup();const records=items(100000);view.set(records,true);
  expect(log.querySelectorAll('.row').length).toBeLessThan(100);expect(log.textContent).toContain('99999');
@@ -18,6 +28,12 @@ it('anchors a paused reader when old rows are evicted or new rows arrive',()=>{
  const {log,view}=setup();view.set(items(1000),false);view.reveal('500');const oldTop=log.scrollTop;
  view.set(items(1000,100),false);expect(log.scrollTop).toBe(oldTop-3200);expect(log.querySelector('[data-virtual-key="500"]')).not.toBeNull();
  view.set(items(1100,100),false);expect(log.scrollTop).toBe(oldTop-3200);view.stop();
+});
+it('anchors the visible DOM row when unmeasured heights disagree with estimated offsets',()=>{
+ const {log,view}=setup();view.set(items(1000),false);view.reveal('500');
+ vi.spyOn(log,'getBoundingClientRect').mockReturnValue(new DOMRect(0,100,400,640));
+ for(const row of log.querySelectorAll<HTMLElement>('.row')){const index=Number(row.dataset.virtualKey);vi.spyOn(row,'getBoundingClientRect').mockReturnValue(new DOMRect(0,90+(index-500)*32,400,32));}
+ view.set(items(1000,100),false);expect(log.scrollTop).toBe(400*32+10);view.stop();
 });
 it('does not build offscreen DOM nodes or repaint after disposal',()=>{
  const {log,view}=setup();const render=vi.fn(()=>document.createElement('article'));

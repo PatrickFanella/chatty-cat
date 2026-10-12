@@ -32,3 +32,17 @@ it('does not count reconnect backfill twice after reload even when the row was e
 it('preserves unfinished emote classification across reload until its retained message and catalog return',()=>{
  const first=new StatsLedger(['one'],()=>({}));first.observe(message);first.save();const next=new StatsLedger(['one'],()=>catalog);next.bootstrap([message]);next.reconcile('one');next.reconcile('one');expect(next.ranks('emotes',0)).toEqual([{name:'Kappa',count:2}]);expect(next.ranks('users',0)).toEqual([{name:'alice',count:1}]);
 });
+
+it('keeps hour/day message buckets across eviction and reload with scope and exclusions',()=>{
+ const now=Math.floor(Date.now()/86400000)*86400000;const first=new StatsLedger(['one','two'],()=>catalog);
+ first.observe({...message,id:'one'},now-3600000);first.observe({...message,id:'two',channel:'two',login:'bob'},now);first.save();
+ const next=new StatsLedger(['one','two'],()=>catalog);next.bootstrap([]);
+ expect(next.buckets('hours','one',new Set(),now)).toEqual([{at:now-3600000,count:1}]);
+ expect(next.buckets('days','',new Set(['alice']),now)).toEqual([{at:now,count:1}]);
+ expect(next.buckets('hours','',new Set(),now+8*86400000)).toEqual([]);
+ expect(next.ranks('badges',0,'',new Set(),now,0)).toEqual([]);
+});
+it('counts newly imported rows once at their historical time after bootstrap',()=>{
+ const ledger=new StatsLedger(['one'],()=>catalog);ledger.bootstrap([]);ledger.observe(message,message.timestamp);ledger.observe(message,message.timestamp);
+ expect(ledger.buckets('hours','one',new Set(),message.timestamp)).toEqual([{at:message.timestamp,count:1}]);
+});

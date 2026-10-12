@@ -39,3 +39,15 @@ it('retains a held reverse page while another receives the newest rows',()=>{
  const root=setup();view!.set(records(100).reverse(),true,0,true,2);const column=root.firstElementChild as HTMLElement;Object.defineProperty(column,'scrollHeight',{value:1000});Object.defineProperty(column,'clientHeight',{value:640});column.scrollTop=200;view!.trackScroll(column,true);view!.set(records(100).reverse(),true,0,true,2);const held=column.textContent;
  view!.set(records(110).reverse(),true,0,true,2);expect(column.textContent).toBe(held);expect(root.lastElementChild?.textContent).toContain('109');view!.resume();view!.set(records(110).reverse(),true,0,true,2);expect(root.firstElementChild?.textContent).toContain('109');
 });
+it('retains a deliberate wheel hold made while a message is hovered',()=>{
+ const root=setup();view!.set(records(100),true,0,false,2,true);const column=root.firstElementChild as HTMLElement,row=column.querySelector('.row')!;
+ row.dispatchEvent(new PointerEvent('pointerover',{bubbles:true}));expect(view!.hoverPaused(column)).toBe(true);expect(view!.allFollowing()).toBe(true);
+ const current=column.querySelector('.row')!;current.dispatchEvent(new WheelEvent('wheel',{bubbles:true}));expect(view!.hoverPaused(column)).toBe(false);expect(view!.hasManualPause()).toBe(true);
+ const held=column.textContent;current.dispatchEvent(new PointerEvent('pointerout',{bubbles:true}));view!.set(records(120),true,0,false,2,true);expect(column.textContent).toBe(held);expect(root.textContent).toContain('119');
+ view!.resume();view!.set(records(120),true,0,false,2,true);expect(view!.allFollowing()).toBe(true);
+});
+
+it('keeps rail modes 4–6 in one chat column on desktop and portrait screens',()=>{
+ const root=setup();for(const mode of [4,5,6]){view!.set(records(100),true,0,false,mode);expect(root.querySelectorAll('.log-column')).toHaveLength(0);expect(root.textContent).toContain('99');}
+ vi.stubGlobal('innerWidth',375);vi.stubGlobal('innerHeight',812);view!.set(records(100),true,0,false,4);expect(root.querySelectorAll('.log-column')).toHaveLength(0);
+});

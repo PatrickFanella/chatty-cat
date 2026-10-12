@@ -25,14 +25,28 @@ class Tabs(HTMLParser):
         if tag == 'div': self.depth += 1
         if tag not in ['div', 'span', 'a', 'b', 'i', 'em', 'strong', 'br', 'sup', 'p', 'ul', 'li']: return
         output = '<' + tag
+        classes = [name for name in attrs.get('class', '').split() if name in ['linkcols', 'stbl', 'flow', 'xtra', 'live', 'news', 'wider', 'ag', 'note', 'authctl', 'au']]
+        if tag == 'div': classes.append('resource-group')
+        if classes: output += ' class="' + ' '.join(classes) + '"'
+        if attrs.get('id') == 'authSections': output += ' id="resources-author-sections"'
         if tag == 'a':
             href = attrs.get('href', '')
             if href.startswith('?channel='):
                 output += ' href="' + escape(href, quote=True) + '" data-channel-link="true"'
             elif urlparse(href).scheme in ['https', 'http'] and not urlparse(href).username:
                 output += ' href="' + escape(href, quote=True) + '" target="_blank" rel="noopener noreferrer"'
+            elif href == '#authors' and attrs.get('data-au'):
+                output += ' href="#authors" data-au="' + escape(attrs['data-au'][:100], quote=True) + '"'
+            for key in ['data-b', 'data-d']:
+                value = attrs.get(key, '')
+                if value.lstrip('-').isdigit() and len(value) <= 6: output += ' ' + key + '="' + value + '"'
+            for key in ['data-w', 'data-g']:
+                value = attrs.get(key, '')
+                if urlparse(value).scheme in ['https', 'http'] and not urlparse(value).username:
+                    output += ' ' + key + '="' + escape(value, quote=True) + '"'
+            for key, choices in [('data-ainfo', ['0', '1', '2', '3']), ('data-asort', ['area', 'birth', 'activity'])]:
+                if attrs.get(key) in choices: output += ' ' + key + '="' + attrs[key] + '" role="button" tabindex="0"'
             if attrs.get('title'): output += ' title="' + escape(attrs['title'], quote=True) + '"'
-        if tag == 'div': output += ' class="resource-group"'
         self.tabs[self.active] += output + '>'
     def handle_endtag(self, tag):
         if not self.active: return

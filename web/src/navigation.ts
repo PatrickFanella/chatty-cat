@@ -5,7 +5,7 @@ export class MessageNavigation {
   private readonly status: HTMLElement;
   constructor(private readonly log: HTMLElement, private readonly pause: () => void, private readonly locate?: (id: string) => void) {
     this.status = document.createElement('div'); this.status.className = 'message-navigation'; this.status.role = 'status';
-    this.log.before(this.status);
+    (this.log.closest('.chat-workspace') ?? this.log).before(this.status);
     this.pending = new URL(location.href).searchParams.get('mid') || undefined;
     log.addEventListener('click', this.click);
     window.addEventListener('popstate', this.pop);

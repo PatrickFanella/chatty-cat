@@ -1,13 +1,16 @@
+import { twitchMedia, twitchFrame } from './twitch-media';
 import {youtubeVideo,youtubeFrame} from './youtube';
 import {parseSocial,appendSocial,type SocialMedia} from './social-media';
 import { cleanURL } from './links';
-export interface PreviewCard { social?:SocialMedia; url: string; title: string; description: string; site: string; image: string; icon: string; author: string; published: string; contentType: string; ttl: number }
+export interface PreviewCard { social?:SocialMedia; video?:string; url: string; title: string; description: string; site: string; image: string; icon: string; author: string; published: string; contentType: string; ttl: number }
 export function parsePreview(value: unknown): PreviewCard {
   if (!value || typeof value !== 'object') throw new Error('Invalid preview'); const d = value as Record<string, unknown>;
   for (const key of ['url', 'title', 'description', 'site', 'image', 'icon', 'author', 'published', 'contentType']) if (typeof d[key] !== 'string') throw new Error('Invalid preview field');
   if (!cleanURL(String(d.url)) || ![d.image, d.icon].every(v => v === '' || typeof v === 'string' && !!cleanURL(v)) || typeof d.ttl !== 'number' || !Number.isSafeInteger(d.ttl) || d.ttl < 1 || d.ttl > 86400) throw new Error('Invalid preview URL/TTL');
+  if (d.video !== undefined && (typeof d.video !== 'string' || !cleanURL(d.video))) throw new Error('Invalid video URL');
+  const video = typeof d.video === 'string' ? d.video.slice(0,2048) : undefined;
   const social = parseSocial(d.social);
-  return { ...(social ? { social } : {}), url: String(d.url).slice(0, 2048), title: String(d.title).slice(0, 300), description: String(d.description).slice(0, d.social?4000:1000), site: String(d.site).slice(0, 100), image: String(d.image).slice(0, 2048), icon: String(d.icon).slice(0, 2048), author: String(d.author).slice(0, 200), published: String(d.published).slice(0, 100), contentType: String(d.contentType).slice(0, 100), ttl: d.ttl };
+  return { ...(social ? { social } : {}), ...(video ? { video } : {}), url: String(d.url).slice(0, 2048), title: String(d.title).slice(0, 300), description: String(d.description).slice(0, d.social?4000:1000), site: String(d.site).slice(0, 100), image: String(d.image).slice(0, 2048), icon: String(d.icon).slice(0, 2048), author: String(d.author).slice(0, 200), published: String(d.published).slice(0, 100), contentType: String(d.contentType).slice(0, 100), ttl: d.ttl };
 }
 export function youtubeID(raw:string):string|undefined {return youtubeVideo(raw)?.id;}
 export function previewMode(): number { const value=Number(document.documentElement.dataset.peek??2);return [0,1,2,3].includes(value)?value:2; }
@@ -46,10 +49,15 @@ export class LinkPreview {
       if(previewMode()>=2&&card.icon.startsWith('https:')){const icon=document.createElement('img');icon.src=card.icon;icon.alt='';icon.className='preview-icon';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});heading.prepend(icon);}
       if(card.social)appendSocial(this.root,card.social,previewMode()===2);
       const youtube = document.documentElement.dataset.yt==='false'?undefined:youtubeVideo(card.url);
-      if (previewMode()===2 && (youtube || card.contentType.startsWith('video/') || card.contentType.startsWith('audio/'))) {
+      const twitch = twitchMedia(card.url);
+      if (previewMode() === 2 && twitch && innerWidth >= 450) {
+        const play = document.createElement('button'); play.type = 'button'; play.textContent = 'Load Twitch player';
+        play.addEventListener('click', () => { this.root.style.width = 'min(680px, calc(100vw - 24px))'; this.root.append(twitchFrame(twitch, card.title)); play.remove(); this.position(); }, {once:true}); this.root.append(play);
+      }
+      if (previewMode()===2 && (youtube || card.video || card.contentType.startsWith('video/') || card.contentType.startsWith('audio/'))) {
         const play = document.createElement('button'); play.type = 'button'; play.textContent = 'Load media player'; play.addEventListener('click', () => {
           if (youtube) { this.root.append(youtubeFrame(youtube,card.title)); }
-          else { const media = document.createElement(card.contentType.startsWith('audio/') ? 'audio' : 'video'); media.src = card.url; media.controls = true; media.preload = 'none'; this.root.append(media); }
+          else { const media = document.createElement(card.contentType.startsWith('audio/') ? 'audio' : 'video'); media.src = card.video || card.url; media.controls = true; media.preload = 'none'; this.root.append(media); }
           play.remove(); this.position();
         }, { once: true }); this.root.append(play);
       }
@@ -58,6 +66,6 @@ export class LinkPreview {
   }
   private closeClick = (event: MouseEvent): void => { if (event.target instanceof Element && event.target.closest('[data-close-preview]')) this.close(); };
   private key = (event: KeyboardEvent): void => { if (!this.root.hidden && event.key === 'Escape') this.close(); };
-  private close = (): void => { this.hold(); this.generation++; this.abort?.abort(); this.root.hidden = true; this.root.replaceChildren(); this.anchor = undefined; };
+  private close = (): void => { this.hold(); this.generation++; this.abort?.abort(); this.root.hidden = true; this.root.replaceChildren(); this.root.style.width = ''; this.anchor = undefined; };
   stop(): void { this.close(); this.log.removeEventListener('pointerover', this.hover); this.log.removeEventListener('pointerout', this.leave); this.log.removeEventListener('focusin', this.hover); this.log.removeEventListener('click', this.click); this.root.removeEventListener('pointerenter', this.hold); this.root.removeEventListener('pointerleave', this.leave); this.root.removeEventListener('click', this.closeClick); document.removeEventListener('keydown', this.key);document.removeEventListener('previewsettings',this.close); }
 }

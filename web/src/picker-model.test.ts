@@ -7,6 +7,17 @@ import type { ChatMessage } from './protocol';
 const make = (code: string, source = 'BTTV', animated = false): Emote => ({ code, source, animated, zeroWidth: false, url: 'https://example.com/' + code, staticUrl: 'https://example.com/still/' + code });
 const msg = (text: string, timestamp = 10, id = 'id', channel = 'hasanabi'): ChatMessage => ({ text, timestamp, id, channel, command: 'PRIVMSG', login: 'user', tags: {} });
 beforeEach(() => localStorage.clear());
+it('saves per-channel coverage and restores page-closed time without overwriting usage', () => {
+  const model = new PickerModel(); model.connection(['hasanabi'], 'connected');
+  model.setMetadata('hasanabi', { A: make('A') }); model.observe(msg('A', Date.now()), true); model.saveAll();
+  const saved = JSON.parse(localStorage.getItem('chatthing:v1:picker:hasanabi') ?? '{}');
+  saved.coverage.savedAt = Date.now() - 120000;
+  localStorage.setItem('chatthing:v1:picker:hasanabi', JSON.stringify(saved));
+  const restored = new PickerModel(); restored.connection(['hasanabi', 'other'], 'connected');
+  expect(restored.coverage('hasanabi').missed(180)).toBe(true);
+  expect(restored.coverage('other').missed(180)).toBe(false);
+  expect(restored.lastUse('hasanabi', 'A')).toBeGreaterThan(0);
+});
 it('validates stored options without trusting arbitrary shapes', () => {
   expect(parseOptions({ enabled: ['BTTV', 'unsafe'], zoom: 100, names: 'yes' })).toMatchObject({ enabled: ['BTTV'], zoom: 1, names: true });
   expect(parseOptions({ enabled: [], animation: 'still', sort: 'az', frozen: true }).enabled).toEqual([]);

@@ -1,7 +1,7 @@
 import type { ChatMessage, ServerEvent } from './protocol';
 export type GapCause='not observed'|'connecting'|'socket dropped'|'page closed'|'timer paused';
 export interface RateGap {from:number;to:number;cause:GapCause}
-export interface RateSample {second:number;rate:number;glorps:number;gap:GapCause|undefined}
+export interface RateSample {second:number;rate:number;glorps:number;gap:GapCause|undefined;quiet?:boolean}
 interface Count {messages:number;glorps:number}
 export interface RateSnapshot {at:number;from:number;rows:[string,number,number,number][];gaps:RateGap[]}
 const KEEP=86400;
@@ -27,7 +27,10 @@ export class RateSeries {
  samples(now=Date.now(),seconds=240,channel=''):RateSample[]{
   const end=Math.floor(now/1000),size=Math.max(1,Math.min(KEEP,Math.floor(seconds)));const gaps=(this.active?[...this.gaps,{...this.active,to:end+1}]:[...this.gaps]).sort((a,b)=>a.from-b.from);let gapIndex=0;
   const counts=new Map<number,Count>();for(const [name,rows] of this.rows){if(channel&&channel!==name)continue;for(const [stamp,count] of rows)if(stamp>=end-size-4&&stamp<=end){const old=counts.get(stamp)??{messages:0,glorps:0};counts.set(stamp,{messages:old.messages+count.messages,glorps:old.glorps+count.glorps});}}
-  return Array.from({length:size},(_,i)=>{const second=end-size+1+i;let messages=0;for(let offset=0;offset<5;offset++)messages+=counts.get(second-offset)?.messages??0;while(gapIndex<gaps.length&&gaps[gapIndex]!.to<=second)gapIndex++;const current=gaps[gapIndex];const gap=current&&second>=current.from&&second<current.to?current.cause:undefined;return {second,rate:messages/5,glorps:counts.get(second)?.glorps??0,gap:second<this.watchFrom?gap??'not observed':gap};});
+  const quiet:{from:number;to:number}[]=[],stamps=[...new Set([...this.rows].filter(([name])=>!channel||channel===name).flatMap(([,rows])=>[...rows.keys()].filter(stamp=>stamp<=end)))].sort((a,b)=>a-b);
+  for(let i=1;i<stamps.length;i++){const from=stamps[i-1]!,to=stamps[i]!;if(to-from>90&&from>=this.watchFrom&&to<=this.lastTick+5&&!gaps.some(gap=>gap.from<to&&gap.to>from))quiet.push({from,to});}
+  let quietIndex=0;
+  return Array.from({length:size},(_,i)=>{const second=end-size+1+i;let messages=0;for(let offset=0;offset<5;offset++)messages+=counts.get(second-offset)?.messages??0;while(gapIndex<gaps.length&&gaps[gapIndex]!.to<=second)gapIndex++;const current=gaps[gapIndex];const gap=current&&second>=current.from&&second<current.to?current.cause:undefined;while(quietIndex<quiet.length&&quiet[quietIndex]!.to<=second)quietIndex++;const silent=quiet[quietIndex];return {second,rate:messages/5,glorps:counts.get(second)?.glorps??0,gap:second<this.watchFrom?gap??'not observed':gap,quiet:!!silent&&second>silent.from&&second<silent.to};});
  }
  peaks(now=Date.now(),channel='',seconds=KEEP,kind:'rate'|'glorps'='rate'):RateSample[]{
   const candidates=this.samples(now,seconds,channel).filter(sample=>!sample.gap&&(kind==='rate'?sample.rate>=4:sample.glorps>2)).sort((a,b)=>kind==='rate'?b.rate-a.rate||a.second-b.second:b.glorps-a.glorps||a.second-b.second);
@@ -51,7 +54,7 @@ export class RateSeries {
 export function timelineGraph(samples:readonly RateSample[]):SVGSVGElement {
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 600 40');svg.setAttribute('role','img');svg.setAttribute('aria-label','Observed messages per second; coloured bands mark unwatched periods');const peak=Math.max(1,...samples.map(sample=>sample.rate));
  for(const [index,sample] of samples.entries()){
-  const rect=document.createElementNS(ns,'rect'),width=600/Math.max(1,samples.length);rect.setAttribute('x',String(index*width));rect.setAttribute('width',String(width));rect.setAttribute('y',sample.gap?'0':String(40-sample.rate/peak*36));rect.setAttribute('height',sample.gap?'40':String(sample.rate/peak*36));rect.setAttribute('fill',sample.gap?sample.gap==='page closed'?'#a48ad4':sample.gap==='timer paused'||sample.gap==='not observed'?'#898994':'#d96a72':sample.glorps?'#ed7777':'currentColor');rect.setAttribute('opacity',sample.gap?'.35':'1');const title=document.createElementNS(ns,'title');title.textContent=new Date(sample.second*1000).toLocaleTimeString()+' · '+(sample.gap||sample.rate.toFixed(1)+' msgs/s · '+sample.glorps+' glorp/F');rect.append(title);svg.append(rect);
+  const rect=document.createElementNS(ns,'rect'),width=600/Math.max(1,samples.length),band=sample.gap||sample.quiet;rect.setAttribute('x',String(index*width));rect.setAttribute('width',String(width));rect.setAttribute('y',band?'0':String(40-sample.rate/peak*36));rect.setAttribute('height',band?'40':String(sample.rate/peak*36));rect.setAttribute('fill',sample.gap?sample.gap==='page closed'?'#a48ad4':sample.gap==='timer paused'||sample.gap==='not observed'?'#898994':'#d96a72':sample.quiet?'#898994':sample.glorps?'#ed7777':'currentColor');rect.setAttribute('opacity',band?'.35':'1');const title=document.createElementNS(ns,'title');title.textContent=new Date(sample.second*1000).toLocaleTimeString()+' · '+(sample.gap||(sample.quiet?'quiet period · ':'')+sample.rate.toFixed(1)+' msgs/s · '+sample.glorps+' glorp/F');rect.append(title);svg.append(rect);
   if(sample.second%10===0){const tick=document.createElementNS(ns,'line');tick.setAttribute('x1',String(index*width));tick.setAttribute('x2',String(index*width));tick.setAttribute('y1',sample.second%60===0?'30':'35');tick.setAttribute('y2','40');tick.setAttribute('stroke','currentColor');tick.setAttribute('opacity','.35');svg.append(tick);}
  }
  return svg;
@@ -68,7 +71,7 @@ export class RateTimeline {
   let ticks=0;this.timer=setInterval(()=>{this.series.tick();this.paint();if(++ticks%30===0)void this.save(channels.join(','));},1000);this.key=channels.join(',');this.paint();
  }
  private key:string;
- private paint():void {const seconds=Math.max(30,Math.min(1800,Math.floor((this.header.clientWidth||720)/3)));const samples=this.series.samples(Date.now(),seconds),latest=samples.at(-1);this.header.replaceChildren(timelineGraph(samples));this.header.title=latest?.gap??`${latest?.rate.toFixed(1)??'0.0'} msgs/sec · last ${seconds}s`;}
+ private paint():void {const seconds=Math.max(240,Math.min(1800,Math.floor((this.header.clientWidth||720)/3)));const samples=this.series.samples(Date.now(),seconds),latest=samples.at(-1);this.header.replaceChildren(timelineGraph(samples));this.header.title=latest?.gap??`${latest?.rate.toFixed(1)??'0.0'} msgs/sec · last ${seconds}s`;}
  private async save(key:string):Promise<void>{if(this.saving)return;this.saving=true;try{const db=await this.database;if(!db)return;const snapshot=this.series.snapshot();await new Promise<void>((resolve,reject)=>{const tx=db.transaction('snapshots','readwrite');const store=tx.objectStore('snapshots');store.put(snapshot,key);const keys=store.getAllKeys();keys.onsuccess=()=>{const older=keys.result.filter(other=>other!==key);for(const other of older.slice(0,Math.max(0,older.length-15)))store.delete(other);};tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}catch{/* optional public aggregate storage */}finally{this.saving=false;}}
  stop():void {this.stopped=true;clearInterval(this.timer);void this.save(this.key).finally(()=>void this.database.then(db=>db?.close()));}
 }

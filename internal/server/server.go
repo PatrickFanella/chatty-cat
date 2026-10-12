@@ -11,6 +11,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -28,6 +30,7 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	GiphyAPIKey       string
 	Auth              *auth.Service
 	Assets            string
 	IRCURL            string
@@ -65,7 +68,7 @@ func New(cfg Config) *Server {
 	if cfg.Auth != nil && cfg.Auth.HasAppCredentials() {
 		read = cfg.Auth.PublicRead
 	}
-	return &Server{cfg: cfg, ctx: ctx, cancel: cancel, client: client, slots: make(chan struct{}, 32), metadata: metadata.New(client, cfg.MetadataEndpoints, read), metadataSlots: make(chan struct{}, 16), previews: preview.New(nil), previewSlots: make(chan struct{}, 16)}
+	return &Server{cfg: cfg, ctx: ctx, cancel: cancel, client: client, slots: make(chan struct{}, 32), metadata: metadata.New(client, cfg.MetadataEndpoints, read), metadataSlots: make(chan struct{}, 16), previews: preview.New(nil, preview.PublicReader(read)), previewSlots: make(chan struct{}, 16)}
 }
 
 // Close cancels and waits for all active chat handlers.
@@ -90,13 +93,51 @@ func (s *Server) Handler() http.Handler {
 	}
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := io.WriteString(w, `{"status":"ok","stage":"migration-foundation"}`); err != nil {
+		if _, err := io.WriteString(w, `{"status":"ok"}`); err != nil {
 			slog.Debug("health response closed", "error", err)
+		}
+	})
+	mux.HandleFunc("GET /api/ready", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		s.mu.Lock()
+		closing := s.closing
+		s.mu.Unlock()
+		info, err := os.Stat(filepath.Join(s.cfg.Assets, "index.html"))
+		if closing || err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			http.Error(w, `{"status":"unavailable"}`, http.StatusServiceUnavailable)
+			return
+		}
+		if _, err := io.WriteString(w, `{"status":"ready"}`); err != nil {
+			slog.Debug("readiness response closed", "error", err)
+		}
+	})
+
+	mux.HandleFunc("GET /api/public-config", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		if err := json.NewEncoder(w).Encode(struct {
+			GiphyAPIKey string `json:"giphyApiKey"`
+		}{s.cfg.GiphyAPIKey}); err != nil {
+			slog.Debug("public configuration response closed", "error", err)
 		}
 	})
 	mux.HandleFunc("GET /api/chat", s.chat)
 	mux.HandleFunc("GET /api/channels/{channel}", s.channelMetadata)
 	mux.HandleFunc("GET /api/preview", s.linkPreview)
+	mux.HandleFunc("GET /api/nitter", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+		defer cancel()
+		stop := context.AfterFunc(s.ctx, cancel)
+		defer stop()
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		if err := json.NewEncoder(w).Encode(struct {
+			Host string `json:"host"`
+		}{s.previews.Nitter(ctx)}); err != nil {
+			slog.Debug("mirror selection response closed")
+		}
+	})
 	mux.HandleFunc("GET /api/users/{login}", s.userProfile)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unknown API route", http.StatusNotFound) })
 	mux.Handle("/", http.FileServer(http.Dir(s.cfg.Assets)))

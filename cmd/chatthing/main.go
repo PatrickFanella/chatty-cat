@@ -45,7 +45,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	app := server.New(server.Config{Assets: assets, Auth: login})
+	app := server.New(server.Config{Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
 	defer app.Close()
 	httpServer := &http.Server{Addr: addr, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

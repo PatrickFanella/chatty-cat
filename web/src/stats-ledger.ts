@@ -38,12 +38,17 @@ export class StatsLedger {
   for(const url of new Set(findLinks(message.text).map(link=>{const url=new URL(link.href);url.hostname=url.hostname.replace(/^(?:www|mobile)\./,'');return url.href;})))add('links',url);
  }
  reconcile(channel:string):void {const catalog=this.emotes(channel);if(!Object.keys(catalog).length)return;for(const [key,pending] of this.pending){if(!pending.message||pending.message.channel!==channel)continue;const counted=[...pending.counted];for(const token of tokenize(pending.message.text,pending.message.tags.emotes??'',catalog,false,/^[1-9][0-9]*$/.test(pending.message.tags.bits??'')))if(token.type==='emote'){const index=counted.indexOf(token.emote.code);if(index>=0)counted.splice(index,1);else this.increment(channel,'emotes',token.emote.code,Math.floor(pending.at/3600000),Math.floor(pending.at/86400000));}this.pending.delete(key);}}
- ranks(kind:StatKind,hours:number,channel='',excluded:ReadonlySet<string>=new Set(),now=Date.now()):LedgerRank[]{
+ ranks(kind:StatKind,hours:number,channel='',excluded:ReadonlySet<string>=new Set(),now=Date.now(),limit=50):LedgerRank[]{
   const totals=new Map<string,number>(),from=Math.floor(now/3600000)-hours+1;
   for(const [key,value] of this.data){const [scope,type,name]=JSON.parse(key) as [string,StatKind,string];if(type!==kind||channel&&scope!==channel||kind==='users'&&excluded.has(name))continue;if(kind==='links'){const url=new URL(name);if(HIDDEN_LINKS.has(url.hostname+url.pathname.replace(/\/$/,'')))continue;}
    let count=hours===0?value.total:0;if(hours)for(const [hour,total] of value.hours)if(hour>=from&&hour<=Math.floor(now/3600000))count+=total;if(count)totals.set(name,Math.min(Number.MAX_SAFE_INTEGER,(totals.get(name)??0)+count));
   }
-  return [...totals].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,50);
+  return [...totals].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,Number.isFinite(limit)?Math.max(0,Math.min(MAX,Math.floor(limit))):50);
+ }
+ buckets(unit:'hours'|'days',channel='',excluded:ReadonlySet<string>=new Set(),now=Date.now()):{at:number;count:number}[]{
+  const duration=unit==='hours'?3600000:86400000,last=Math.floor(now/duration),first=last-(unit==='hours'?167:30),totals=new Map<number,number>();
+  for(const [key,value] of this.data){const [scope,kind,name]=JSON.parse(key) as [string,StatKind,string];if(kind!=='users'||channel&&scope!==channel||excluded.has(name))continue;for(const [index,count] of value[unit])if(index>=first&&index<=last)totals.set(index,Math.min(Number.MAX_SAFE_INTEGER,(totals.get(index)??0)+count));}
+  return [...totals].sort(([a],[b])=>a-b).map(([index,count])=>({at:index*duration,count}));
  }
  prune(now=Date.now()):void {const hour=Math.floor(now/3600000)-168,day=Math.floor(now/86400000)-31;for(const value of this.data.values())for(const [map,from] of [[value.hours,hour],[value.days,day]] as const)for(const index of map.keys())if(index<from){map.delete(index);this.bucketCount--;}}
  snapshot(now=Date.now()):unknown {this.prune(now);return {version:1,since:this.since,limited:this.limited,seen:[...this.seen],pending:[...this.pending].map(([key,value])=>[key,value.at,value.counted]),rows:[...this.data].map(([key,value])=>[JSON.parse(key),value.total,[...value.hours],[...value.days]])};}

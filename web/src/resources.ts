@@ -1,7 +1,21 @@
+import {registerSettings} from './settings-bundle';
+import { ResourceAuthors } from './resource-authors';
+import { ResourceStreams } from './resource-streams';
+import { RepositoryDetails } from './resource-repository';
+import { channelURL } from './channels';
 import { FloatingPanel } from './floating';
 import { RESOURCE_TABS } from './resource-data';
+export function resourceURL(query:URLSearchParams):{tab:string|undefined;open:boolean|undefined;width:number|undefined;action:string|undefined} {
+ const name=query.get('htab')??'',tab=({config:'help',help:'help',media:'htabRes',resources:'htabRes',left:'htabLib',liberatory:'htabLib',libre:'htabLbr',authors:'htabAuth',stats:'help'} as Record<string,string>)[name];
+ const help=query.get('help'),width=Number(query.get('hpw'));
+ return {tab,open:help==='off'||help==='0'||help==='labels'?false:help==='panel'||help==='both'||help==='1'||help===''?true:tab?true:undefined,width:Number.isInteger(width)&&width>=480&&width<=1600?width:undefined,action:name==='config'?'display-open':name==='stats'?'stats-open':undefined};
+}
 export class Resources {
   private floating: FloatingPanel;
+  private authors: ResourceAuthors;
+  private streams: ResourceStreams;
+  private repositories: RepositoryDetails;
+  private bundleDispose:()=>void;
   private tabs: HTMLButtonElement[] = [];
   private pages = new Map<string, HTMLElement>();
   private selected = 'help';
@@ -25,6 +39,9 @@ export class Resources {
     for (const [name, label] of [['display-open', 'Display settings'], ['stats-open', 'Stats'], ['archive-open', 'Search archive']] as const) { const button = document.createElement('button'); button.type = 'button'; button.dataset.helpAction = name; button.textContent = label; help.append(button); }
     const credit = document.createElement('p'); credit.append('Rebuilt in Go and TypeScript from ');
     const upstream = document.createElement('a'); upstream.href = 'https://github.com/mxmilkiib/hasanabi.neocities.org'; upstream.textContent = 'the original AGPL project'; upstream.target = '_blank'; upstream.rel = 'noopener noreferrer'; credit.append(upstream,'. ');const source=document.createElement('a');source.href='https://git.subcult.tv/subculture-collective/chatty-cat';source.textContent='Go and TypeScript source';source.target='_blank';source.rel='noopener noreferrer';credit.append(source);help.append(credit);
+    const repositoryOutputs: { url: string; output: HTMLElement }[] = [];
+    for (const [label, url] of [['Rebuild repository', source.href], ['Upstream repository', upstream.href]]) { const row = document.createElement('p'), output = document.createElement('span'); row.append(label + ': ', output); help.append(row); repositoryOutputs.push({url:url!,output}); }
+    this.repositories = new RepositoryDetails(repositoryOutputs);
     this.pages.set('help',help); content.append(help);
     for (const [key, html] of Object.entries(RESOURCE_TABS)) {
       const page = document.createElement('section'); page.id = 'resources-' + key; page.role = 'tabpanel'; page.tabIndex = 0;
@@ -36,21 +53,40 @@ export class Resources {
       this.pages.get(key!)?.setAttribute('aria-labelledby',button.id);
     }
     try { const saved=localStorage.getItem('chatthing:v1:resources:tab'); if(saved && this.pages.has(saved))this.selected=saved; } catch { /* optional storage */ }
+    this.authors = new ResourceAuthors(this.pages.get('htabAuth')!);
+    this.streams = new ResourceStreams(this.pages.get('htabRes')!);
+    const current = new URL(location.href), joined = (current.searchParams.get('channel') ?? 'hasanabi').split(',');
+    for (const link of root.querySelectorAll<HTMLAnchorElement>('a[data-channel-link]')) {
+      const channel = new URL(link.href).searchParams.get('channel'); if (!channel) continue;
+      const action = joined.includes(channel) ? 'remove' : 'add';
+      if (action === 'remove' && joined.length === 1 || action === 'add' && joined.length >= 6) continue;
+      try { const control = document.createElement('a'); control.href = channelURL(current, joined, { kind: action, channel }).href; control.textContent = action === 'add' ? '+' : '−'; control.setAttribute('aria-label', (action === 'add' ? 'Join #' : 'Leave #') + channel); control.className = 'resource-channel-control'; link.after(control); } catch { /* invalid curated channel */ }
+    }
     this.select(this.selected);
     this.floating = new FloatingPanel(root,root.querySelector<HTMLElement>('#resources-handle')!,root.querySelector<HTMLButtonElement>('#resources-pin')!,'chatthing:v1:resources:geometry');
     trigger.addEventListener('click',this.toggle);root.addEventListener('click',this.click);root.addEventListener('keydown',this.key);
-    if(this.floating.reopen)this.open();
+    this.bundleDispose=registerSettings('resources',()=>({tab:this.selected,authors:this.authors.state(),floating:this.floating.state()}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(typeof data.tab!=='string'||!this.pages.has(data.tab)||!this.floating.restore(data.floating))return;this.authors.restore(data.authors);this.select(data.tab);if(this.floating.reopen)this.open();else this.close();});
+    const query=resourceURL(new URL(location.href).searchParams);
+    if(query.tab)this.select(query.tab);
+    if(query.width){const box=this.floating.geometry();this.floating.configure({width:query.width,height:box?.height??600,left:box?.left??20,top:box?.top??60},this.floating.pinned);}
+    if(query.open===true||query.open===undefined&&this.floating.reopen)this.open();else if(query.open===false)this.close();
+    if(query.action&&query.open!==false)this.action(query.action);
+    document.addEventListener('share-settings',this.share);
   }
   private select(key:string):void {
     this.selected=key;for(const [name,page] of this.pages)page.hidden=name!==key;
     for(const button of this.tabs){const active=button.dataset.tab===key;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}
     try {localStorage.setItem('chatthing:v1:resources:tab',key);}catch{/* optional storage */}
+    if (key === 'htabRes' && !this.root.hidden) this.streams.start(); else this.streams.stop();
+    if (key === 'help' && !this.root.hidden) this.repositories.start(); else this.repositories.stop();
   }
-  private open():void {this.root.hidden=false;this.trigger.setAttribute('aria-expanded','true');this.floating.opened();this.tabs.find(tab=>tab.dataset.tab===this.selected)?.focus();}
-  private close():void {this.root.hidden=true;this.trigger.setAttribute('aria-expanded','false');this.floating.closed();this.trigger.focus();}
+  private open():void {this.root.hidden=false;this.trigger.setAttribute('aria-expanded','true');this.floating.opened();this.select(this.selected);this.tabs.find(tab=>tab.dataset.tab===this.selected)?.focus();}
+  private close():void {this.repositories.stop();this.streams.stop();this.root.hidden=true;this.trigger.setAttribute('aria-expanded','false');this.floating.closed();this.trigger.focus();}
   private toggle=():void=>{if(this.root.hidden)this.open();else this.close();};
   private click=(event:MouseEvent):void=>{
     if(!(event.target instanceof Element))return;const button=event.target.closest<HTMLButtonElement>('button');
+    const citation = event.target.closest<HTMLAnchorElement>('a[data-au]');
+    if (citation) { event.preventDefault(); this.select('htabAuth'); const name = citation.dataset.au?.toLowerCase(); const hit = [...this.pages.get('htabAuth')!.querySelectorAll<HTMLAnchorElement>('a[data-b]')].find(link => link.textContent?.trim().toLowerCase() === name); hit?.closest('i')?.scrollIntoView({block:'center'}); hit?.focus({preventScroll:true}); return; }
     if(button?.id==='resources-close')this.close();
     else if(button?.dataset.tab)this.select(button.dataset.tab);
     else if(button?.dataset.helpAction)this.action(button.dataset.helpAction);
@@ -64,5 +100,6 @@ export class Resources {
     if(event.key==='ArrowRight')next=(index+1)%this.tabs.length;else if(event.key==='ArrowLeft')next=(index+this.tabs.length-1)%this.tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=this.tabs.length-1;else return;
     event.preventDefault();const tab=this.tabs[next];if(tab?.dataset.tab){this.select(tab.dataset.tab);tab.focus();}
   };
-  stop():void {this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
+  private share=(event:Event):void=>{if(!(event instanceof CustomEvent)||!(event.detail instanceof URL))return;const q=event.detail.searchParams;q.set('help',this.root.hidden?'off':'panel');q.set('htab',({help:'help',htabRes:'media',htabLib:'left',htabLbr:'libre',htabAuth:'authors'} as Record<string,string>)[this.selected]??'help');const box=this.floating.geometry();if(box)q.set('hpw',String(Math.max(480,Math.min(1600,Math.round(box.width)))));};
+  stop():void {document.removeEventListener('share-settings',this.share);this.repositories.stop();this.streams.stop();this.authors.stop();this.bundleDispose();this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
 }

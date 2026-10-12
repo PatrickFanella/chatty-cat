@@ -1,20 +1,50 @@
-type Positions = Map<string, {left:number;top:number}[]>;
-function cells(root:HTMLElement, ageRows:number):HTMLElement[]{
- return [...root.querySelectorAll<HTMLElement>(ageRows===0?'button[data-insert],.picker-age[data-age]':'button[data-insert]')].slice(0,2000);
+type Positions = Map<HTMLElement, Map<string, DOMRect[]>>;
+
+function cells(root: HTMLElement, ages: boolean): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>(ages ? 'button[data-insert], .picker-age[data-age]' : 'button[data-insert]')];
 }
-function key(cell:HTMLElement):string{return cell.dataset.insert===undefined?'age:'+cell.dataset.age:'emote:'+cell.dataset.insert;}
-export function capturePicker(root:HTMLElement,ageRows:number):Positions {
- const positions:Positions=new Map();
- for(const cell of cells(root,ageRows)){const rect=cell.getBoundingClientRect(),name=key(cell),queue=positions.get(name)??[];queue.push({left:rect.left,top:rect.top});positions.set(name,queue);}
- return positions;
+function key(node: HTMLElement): string {
+  return node.dataset.insert !== undefined ? 'i' + node.dataset.insert : 'a' + node.dataset.age;
 }
-export function animatePicker(root:HTMLElement,ageRows:number,before:Positions):Animation[]{
- if(document.documentElement.dataset.anim==='0'||matchMedia('(prefers-reduced-motion: reduce)').matches)return [];
- // Read every destination before starting animations so each cell uses final layout.
- const moves=cells(root,ageRows).flatMap(cell=>{
-  const previous=before.get(key(cell))?.shift();if(!previous)return [];
-  const current=cell.getBoundingClientRect(),dx=previous.left-current.left,dy=previous.top-current.top;
-  return dx||dy?[{cell,dx,dy}]:[];
- });
- return moves.flatMap(({cell,dx,dy})=>typeof cell.animate==='function'?[cell.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}],{duration:220,easing:'ease-out'})]:[]);
+
+// Separate regions prevent a recent copy from borrowing its grid copy's position.
+export class PickerMotion {
+  private active = new Set<Animation>();
+  capture(roots: HTMLElement[], ages: boolean): Positions {
+    const positions: Positions = new Map();
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { this.stop(); return positions; }
+    for (const root of roots) {
+      const region = new Map<string, DOMRect[]>();
+      for (const node of cells(root, ages)) {
+        const copies = region.get(key(node)) ?? [];
+        copies.push(node.getBoundingClientRect()); region.set(key(node), copies);
+      }
+      positions.set(root, region);
+    }
+    this.stop();
+    return positions;
+  }
+  play(roots: HTMLElement[], before: Positions, ages: boolean): void {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { this.stop(); return; }
+    const movers: { node: HTMLElement; dx: number; dy: number }[] = [];
+    for (const root of roots) for (const node of cells(root, ages)) {
+      const previous = before.get(root)?.get(key(node))?.shift();
+      if (!previous || !previous.width || !previous.height) continue;
+      const next = node.getBoundingClientRect();
+      if (!next.width || !next.height) continue;
+      const dx = previous.left - next.left, dy = previous.top - next.top;
+      if (dx || dy) movers.push({ node, dx, dy });
+    }
+    // Finish layout reads before starting animation writes.
+    for (const { node, dx, dy } of movers) {
+      if (typeof node.animate !== 'function') continue;
+      const animation = node.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'translate(0,0)' }], { duration: 350, easing: 'ease' });
+      this.active.add(animation);
+      animation.onfinish = animation.oncancel = () => this.active.delete(animation);
+    }
+  }
+  stop(): void {
+    for (const animation of this.active) animation.cancel();
+    this.active.clear();
+  }
 }

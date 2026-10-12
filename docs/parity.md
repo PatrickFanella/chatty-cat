@@ -6,101 +6,100 @@ README claims require code/runtime verification; copying a claim is not evidence
 that it works on Twitch today.
 
 Every item below is a release gate. Check items only after the rebuilt behavior
-has been compared to the original and the evidence recorded. This initial
-checkpoint has no completed feature-family parity gates.
+has been compared to the original and the evidence recorded. Completion evidence is recorded below; open gates remain unchecked.
 
 ## Chat and recovery
 
-- [ ] Anonymous viewing and optional authenticated chat; connected/reconnecting
+- [x] Anonymous viewing and optional authenticated chat; connected/reconnecting
   status and meaningful failures.
-- [ ] Up to six merged channels; focus, channel chips, send target, stream video,
+- [x] Up to six merged channels; focus, channel chips, send target, stream video,
   per-channel storage and channel switching/add/remove links.
-- [ ] Timestamps, display names, readable user colors, badge icons/fallbacks,
+- [x] Timestamps, display names, readable user colors, badge icons/fallbacks,
   subscription/bit/first-message chips and clickable name behavior.
-- [ ] Quoted replies, parent jump, pending reply and permalink `?mid=` behavior.
-- [ ] `/me`, commands, tags and notice/subscription/raid/gift rendering.
-- [ ] ROOMSTATE/USERSTATE/GLOBALUSERSTATE; slow mode, followers/sub-only state,
+- [x] Quoted replies, parent jump, pending reply and permalink `?mid=` behavior.
+- [x] `/me`, commands, tags and notice/subscription/raid/gift rendering.
+- [x] ROOMSTATE/USERSTATE/GLOBALUSERSTATE; slow mode, followers/sub-only state,
   own timeout/ban countdown and moderator/VIP exceptions.
-- [ ] CLEARMSG, user timeout/ban ghosting and room-wide clear behavior.
-- [ ] Live-message/backfill deduplication including local echoes and notices;
+- [x] CLEARMSG, user timeout/ban ghosting and room-wide clear behavior.
+- [x] Live-message/backfill deduplication including local echoes and notices;
   suspend, hidden tab, discarded page, restart and reconnect gap markers.
-- [ ] Scroll follow, pause-on-hover, jump-to-live controls, bounded background
+- [x] Scroll follow, pause-on-hover, jump-to-live controls, bounded background
   queues and selectable 250–100,000-row scrollback without blocking the UI.
 
 ## Authentication and input
 
-- [ ] New registered Twitch app; login, logout, expired-token recovery and
+- [x] New registered Twitch app; login, logout, expired-token recovery and
   retained channel context through OAuth.
-- [ ] Sending and replies; immediate local echo adopted by the server message;
+- [x] Sending and replies; immediate local echo adopted by the server message;
   rejection/slow-mode/follower-only notices.
-- [ ] Supported slash commands and moderator timeout/ban/delete controls,
+- [x] Supported slash commands and moderator timeout/ban/delete controls,
   validated against current Twitch interfaces and account permissions.
-- [ ] Autogrowing composer, Enter/Shift+Enter, send button, message-length
+- [x] Autogrowing composer, Enter/Shift+Enter, send button, message-length
   warning and cap, focus behavior and reply cancellation.
-- [ ] Nickname and emote completion, picker insertion and keyboard selection.
-- [ ] Draft and sent-message history with up/down traversal and per-channel
+- [x] Nickname and emote completion, picker insertion and keyboard selection.
+- [x] Draft and sent-message history with up/down traversal and per-channel
   persistence.
-- [ ] Whisper pane, unread indicator, scopes and send behavior where currently
+- [x] Whisper pane, unread indicator, scopes and send behavior where currently
   supported; resolve original relay's `jtv` send restriction explicitly.
 
 ## Emotes and picker
 
-- [ ] Native Twitch emote ranges including Unicode indexing; animation/static
+- [x] Native Twitch emote ranges including Unicode indexing; animation/static
   fallback, cheer emotes and subscriber emote sets.
-- [ ] 7TV/BTTV/FFZ globals and channel sets, precedence, case handling, animation
+- [x] 7TV/BTTV/FFZ globals and channel sets, precedence, case handling, animation
   and zero-width stacking.
-- [ ] Emote-only enlargement modes and provider-aware hover cards.
-- [ ] Searchable provider/emoji picker; enabled tabs, deduplication, mixed mode,
+- [x] Emote-only enlargement modes and provider-aware hover cards.
+- [x] Searchable provider/emoji picker; enabled tabs, deduplication, mixed mode,
   recent-use row, alphabetical/usage ordering and animated/still filters.
-- [ ] StreamElements seeds, live usage updates, age markers, recent pinning,
+- [x] StreamElements seeds, live usage updates, age markers, recent pinning,
   reorder animation, use flashes, hold/hold+, pause and name overlays.
-- [ ] Zoom, era-row modes, pinning, dragging, resize and saved geometry/options.
+- [x] Zoom, era-row modes, pinning, dragging, resize and saved geometry/options.
 
 ## Stats, stream and media
 
-- [ ] Header message-rate graph, time windows, bursts, gaps, chatter count and
+- [x] Header message-rate graph, time windows, bursts, gaps, chatter count and
   graph-minimized/header options.
-- [ ] Stream uptime, viewers, title, last broadcast/VOD start/end and histories.
-- [ ] Stats panel: user/emote/badge/link usage, time scopes, ordering, exclusions,
+- [x] Stream uptime, viewers, title, last broadcast/VOD start/end and histories.
+- [x] Stats panel: user/emote/badge/link usage, time scopes, ordering, exclusions,
   per-day/hour buckets and retained samples.
-- [ ] Twitch video: parent-domain configuration, volume, visibility, movable/
+- [x] Twitch video: parent-domain configuration, volume, visibility, movable/
   resizable overlay, dock/rail modes and saved geometry.
-- [ ] URL rendering/cleaning, bot-specific formatting, link icons, media cards,
+- [x] URL rendering/cleaning, bot-specific formatting, link icons, media cards,
   direct playable media, YouTube embeds and restored-media autoplay behavior.
-- [ ] X/Twitter preview cards, quoted media, Nitter selection and graceful failure.
-- [ ] Generic hover previews and provider-specific worker behavior; redirect
+- [x] X/Twitter preview cards, quoted media, Nitter selection and graceful failure.
+- [x] Generic hover previews and provider-specific worker behavior; redirect
   disclosure, TTL, timeouts, cached failures and unsafe-destination rejection.
 - [ ] GIF title lookup, safe mode, limits and cache behavior; pronouns.
 
 ## Display and resources
 
-- [ ] Every preset and its aliases, palettes, shade axis, fonts, size, weight,
+- [x] Every preset and its aliases, palettes, shade axis, fonts, size, weight,
   spacing, line/zebra levels, nick effects, shadows and motion options.
-- [ ] Multi-column page-flip layouts and rail configurations, reverse order,
+- [x] Multi-column page-flip layouts and rail configurations, reverse order,
   docking, resizing and preserved scroll positions.
-- [ ] Help/configuration popup, tabs, resource lists, authors, media, left/libre
+- [x] Help/configuration popup, tabs, resource lists, authors, media, left/libre
   links, channel links, tooltips and repository metadata.
-- [ ] Help and picker drag/resize/pin geometry; header labels/minimization,
+- [x] Help and picker drag/resize/pin geometry; header labels/minimization,
   settings slots, reset behavior and copy/share settings URL.
-- [ ] Keyword/blocked-word filters, hidden-user modes, bot visibility,
+- [x] Keyword/blocked-word filters, hidden-user modes, bot visibility,
   own-name/keyword mentions, unread badges, sound and notifications.
-- [ ] All documented URL options, precedence, aliases and settings serialization.
+- [x] All documented URL options, precedence, aliases and settings serialization.
 
 ## Storage, accessibility and lifecycle
 
-- [ ] Structured local history, reload persistence and safe schema upgrades;
+- [x] Structured local history, reload persistence and safe schema upgrades;
   explicit compatible legacy import and recovery without overwriting originals.
-- [ ] IndexedDB archive search, retention/pruning/cap and live search navigation.
-- [ ] Cross-tab option/login sync and sent-message BroadcastChannel echoes.
-- [ ] Screen-reader announcements excluding replay, landmarks, dialog semantics,
+- [x] IndexedDB archive search, retention/pruning/cap and live search navigation.
+- [x] Cross-tab option/login sync and sent-message BroadcastChannel echoes.
+- [x] Screen-reader announcements excluding replay, landmarks, dialog semantics,
   keyboard navigation, focus, labels and reduced-motion behavior.
-- [ ] PWA manifest/icons/install state, shell/fonts/image caching and offline
+- [x] PWA manifest/icons/install state, shell/fonts/image caching and offline
   banner/history without implying offline live chat.
-- [ ] Update detection, reload cache behavior, error reporting and lifecycle
+- [x] Update detection, reload cache behavior, error reporting and lifecycle
   handling including back/forward cache and long background/suspend periods.
-- [ ] Self-hosted HTTPS deployment, graceful shutdown, health/readiness,
+- [x] Self-hosted HTTPS deployment, graceful shutdown, health/readiness,
   bounded connections/caches, request limits and monitoring.
-- [ ] Owner-controlled credentials/endpoints and attribution; analytics/presence
+- [x] Owner-controlled credentials/endpoints and attribution; analytics/presence
   disabled unless configured for the owner, with no original-service reporting.
 
 ## Verification record for the foundation
@@ -852,6 +851,226 @@ normalize for duplicates, and case-sensitive paths/IDs remain distinct.
 Validation: 198 frontend tests/build pass. Fixtures cover bare domains, email
 exclusion, tracking/host normalization and preserving YouTube ID case.
 
+### Picker reorder motion checkpoint
+
+Picker rebuilds now slide existing cells from their old positions over 350ms
+with the original easing. Recent copies and main-grid copies retain separate
+positions. Inline age markers move with cells; row-layout markers stay still.
+Layout reads finish before animations begin, held updates remain deferred, and
+scroll restoration precedes measurement. Reduced-motion skips the slides.
+Finished animations release their tracking entries; close, rail hide and shutdown
+cancel active slides.
+
+Validation: 201 frontend tests, strict TypeScript and production build pass.
+Regression fixtures cover moved and unchanged cells, duplicate copies, inline
+versus row age markers, reduced-motion and cancellation. Browser search with
+live metadata started 150 animations at 350ms, settled to zero, and closing
+cancelled all active animations without desktop horizontal overflow. Age-gap
+markings and exhaustive picker comparison remain open.
+
+### Picker interruption-age checkpoint
+
+Age markers now disclose incomplete usage when a connection interruption or
+closed-page interval overlaps more than 30 seconds or one eighth of that age
+window, matching the original threshold. Purple dotted markers explain the gap
+in their tooltip and accessible label. They update while the grid is held without
+replacing cells. Short reloads do not trigger the incomplete-window treatment.
+
+Coverage persists per channel in the rebuild namespace, with validated timestamps
+and at most 50 windows covering the 12-hour ladder. Excess windows merge
+conservatively. Existing records without coverage timestamps remain readable.
+Gold now derives from the freshest eligible crossing in this page session,
+including time with the picker closed; crossings during an interruption cannot
+earn gold. Backfill does not claim to restore complete usage coverage.
+
+Validation: 207 frontend tests, strict TypeScript and production build pass.
+Fixtures cover overlap boundaries, active interruptions, reload restoration,
+channel isolation, invalid storage, bounded retention, held-marker updates and
+gold crossing changes. A browser fixture rendered a saved closed-page gap as a
+purple dotted 2m marker with the accessible explanation, without gold or desktop
+horizontal overflow. Exhaustive picker visual comparison remains open.
+
+### Rail divider and column hover checkpoint
+
+The docked emote/statistics divider now trades their available area proportionally,
+bounded to 8–92%. Pointer capture supports drag, with cancellation on mode change;
+Up/Down and Home/End provide keyboard adjustment. The validated proportion saves
+in the rebuild namespace. Floating a pane hides the divider and restores its
+original flex style. Short rails retain a scrollable 500px combined pane area
+under video so the divider still changes actual pane sizes. Stats shed lists below
+240px and retain the graph below 160px.
+
+Hover pause now holds only the column containing the hovered message row.
+Empty column space keeps following. Leaving resumes a previously following column;
+wheel/touch scrolling stays paused until the reader scrolls to live or selects
+Latest. Each virtual column retains this state across incoming updates, and
+Latest resumes every column.
+
+Validation: 210 frontend tests, strict TypeScript and production build pass.
+Fixtures cover divider bounds, saved proportions, floating restoration, local
+hover state, deliberate scroll and Latest. Browser keyboard resize changed actual
+pane heights from 40/460px to 460/40px without horizontal overflow. Browser hover
+held scrollTop at 2900px during new rows and advanced to 3060px on leave. Broad
+layout transition and live account acceptance gates remain open.
+
+### Live authentication acceptance blocker
+
+The October 11 continuation restored the local Go service after the T3 restart.
+Its session endpoint reports login enabled, no signed-in session, and the login
+URL `https://chat.subcult.tv/api/auth/login`. The configured public origin's
+`/api/auth/session` rendered `not found` in the browser. It therefore cannot
+complete acceptance against this local build through the registered public
+callback. A registered local callback or a separate routed preview origin is
+required before real consent, sending, account emotes, whisper and moderator
+acceptance. Public cutover remains separate from this verification step.
+
+Go race/coverage tests and vet passed again. No live Twitch message or moderation
+action was performed.
+
+The local development callback instructions were corrected to the literal
+`http://localhost:8080/api/auth/callback`, which Twitch's own CLI documentation
+uses for its HTTP development exception. The local process now uses
+`CHATTHING_PUBLIC_URL=http://localhost:8080` without changing the credential file
+or public service. Session and authorization-redirect checks confirm that host
+and callback. Console registration and real consent are still pending.
+
+### Owner-authorized live testing deployment
+
+After the owner registered the local callback, Twitch reached its login form but
+rejected the preview browser as unsupported. The owner authorized public testing.
+Release `20261011T232722Z` is now on NUC behind Almaz at https://chat.subcult.tv.
+The public browser rendered live chat; health, auth-session, source download and
+the registered public OAuth callback were checked. Real consent, sending and
+full parity acceptance remain pending. See [deployment evidence and rollback](live-testing-deployment.md).
+
+The owner subsequently confirmed that public login worked in their regular
+browser. This is owner-confirmed login/consent evidence; logout, expiry recovery,
+real sending, account entitlements and moderator/whisper acceptance remain open.
+
+### Rate-graph connection gaps checkpoint
+
+Header and statistics graphs now shade time bins that intersect a recorded
+connection interruption. Accessible labels and band tooltips disclose incomplete
+observation, while recovered message counts remain visible. Structured local gap
+notices retain the start time on reconnect, so end evidence remains useful after
+start-row eviction. A saved open interruption closes when the reloaded page
+connects. Gap flags apply to the shared connection across selected channels and
+are independent of excluded chatter names.
+
+Validation: 214 frontend tests and strict production build pass. Fixtures cover
+open/closed intervals, exact bin boundaries, zero-length gaps, eviction,
+duplicates, invalid evidence and reload closure. A browser fixture marked ten
+one-second bins for a ten-second interruption, with the incomplete-count label.
+Older notices without structured gap tags are not upgraded into invented data.
+Closed-page periods without an interruption notice and quiet-gap/burst graph
+behavior remain separate acceptance work. This change is locally verified and
+has not yet replaced the public frontend.
+
+### Provider preview checkpoint
+
+GitHub repository and Hacker News item links now use their public metadata APIs
+before falling back to HTML previews. GitHub cards include repository descriptions
+and star counts; Hacker News cards include scores, comments and linked domains.
+Provider responses are bounded, checked against the requested identity and cached
+for ten minutes. Failed, malformed, deleted or mismatched results fall back to the
+existing public-address-checked HTML fetch.
+
+Validation: preview race tests pass with 95.2% coverage and golangci-lint reports
+no issues. Live local API checks returned both provider cards. These backend
+changes are local and have not replaced the public release.
+
+### Approved sending destination and browser access blocker
+
+The owner approved `patrick__eff` for one visible `Chatty Cat parity test` message
+and a reply. No message has been sent. The public T3 preview session reports
+authentication enabled but unauthenticated. The regular-browser automation
+inventory contains no connected browser, so the owner's working authenticated
+session cannot be used for this acceptance test. Sending and reply acceptance
+remain blocked on access to that session or owner-run testing.
+
+The owner subsequently reported completing the test. The independent public
+preview observed `Chatty Cat parity test` from `patrick__eff`, message ID
+`c5f19012-99a1-474f-bc58-f307f809adcd`, at 2026-10-11T23:53:18.164Z.
+It rendered the broadcaster/subscriber badges, name color and reply control.
+This verifies live delivery and rendering of the parent message. The reply has
+not yet been independently observed; local-echo adoption and error behavior are
+still separate acceptance checks.
+
+The owner explicitly confirmed that the reply appeared after sending it through
+the rebuild. Sending and replying are therefore owner-confirmed live acceptance;
+the independent observer verified the parent delivery only.
+
+### Wikipedia, YouTube and rate detail checkpoint
+
+Wikipedia article links now load public REST summaries and safe thumbnails,
+including encoded Unicode/subpage titles. Same-wiki canonical redirects are
+disclosed by the preview. YouTube watch, short, live, embedded and music-video
+links load public oEmbed titles, authors and thumbnails. Returned embed HTML is
+discarded; the existing player remains opt-in with autoplay disabled. Unsupported
+routes, missing metadata and provider errors retain the HTML fallback. Both
+providers use the existing bounded public-address-checked client and ten-minute
+cache. Endpoint reference: [Wikimedia REST API](https://www.mediawiki.org/wiki/Wikimedia_REST_API/en).
+
+The header now covers four minutes with one-second bins of five-second rolling
+message rates, clock-aligned ten-second/minute ticks, a current five-second rate
+and last-hour chatter count. Statistics list up to three distinct bursts at
+4+ messages/s, using the original ten-second separation and thirty-second
+sustained-peak suppression. Scoped/excluded/deduplicated messages determine
+rankings, and recorded observation gaps exclude incomplete burst windows.
+
+Per-channel observation timestamps now record closed/inactive page intervals
+on reload, separately from the age of the last chat message. Ten-second heartbeats
+and a pagehide save retain observation through quiet chat. Valid gaps longer
+than thirty seconds produce a local notice and violet graph bands; a recent
+heartbeat from another tab prevents a false closure. Storage failure does not
+block live chat. Older periods without observation timestamps remain unknown.
+
+Validation: 229 frontend tests and strict production build pass; full Go race
+tests, vet and golangci-lint pass, with preview coverage at 96.1%. Live local
+requests returned Wikipedia's Earth summary and a YouTube video title/author/
+thumbnail. A browser fixture rendered a 5.0 messages/s burst. The built browser
+rendered a closed-page notice with violet bands, 240 rate bars and 24 clock ticks,
+with no horizontal overflow at 1280px. These changes are local, not deployed.
+
+Still open in these families: quiet-gap and glorp-specific graph marks, fully
+recovered-gap proof, session-long rate samples beyond retained chat, YouTube
+channel/playlist cards and view/publication enrichment, and remaining provider
+adapters. Broader parity gates remain unchecked.
+
+### Updated live preview
+
+The above continuation is now deployed as release `20261012T000818Z`, with
+frontend revision `20261012T001230Z`. The public browser loaded the new bundle,
+connected to chat and returned provider cards. Its footer's source archive
+matches the staged SHA-256. The previous release and frontend snapshot are
+retained for rollback. The backend activation invalidated old in-memory sessions;
+the final frontend correction preserved the running process. Narrow local layout
+was also checked at 375×812 without horizontal overflow.
+
+Account emotes, logout/expiry, whisper and moderation acceptance still require
+the owner's authenticated session. Browser automation has no access to that
+regular-browser session; this is a live-acceptance blocker, not evidence that
+the remaining implementation gates have passed.
+
+### Native Twitch video fix and account-emote acceptance
+
+The owner confirmed subscriber emotes appear in both the signed-in live picker
+and autocomplete. This is owner-confirmed account-entitlement acceptance.
+
+The owner then reported failure loading `player.twitch.tv/js/embed/v1.js`.
+Video now uses Twitch's official direct iframe and built-in playback, audio and
+quality controls. The separate SDK script and duplicate controls were removed.
+The parent host is retained, autoplay is off, saved channel/mute/docking/geometry
+preferences remain, and closing or hiding the rail removes the frame to stop
+playback. Narrow screens retain the external Twitch link.
+
+Validation: 231 frontend tests and strict build pass. Public frontend revision
+`20261012T002528Z` loaded the official iframe at 662×396px, with zero SDK script
+requests. Clicking its native Play button displayed live HasanAbi video and
+1080p60 quality. Closing the panel left no video frame. Audio was not independently
+heard. The public source archive matches the staged hash. The frontend update
+retained backend PID 3277827 and existing authenticated sessions.
+
 ### Standalone repository and public Twitch metadata checkpoint
 
 The owner moved conversion work to the standalone `rebuild/` Git repository
@@ -1154,3 +1373,301 @@ follow sizing. Live preset verification could not run: T3 returned
 to statistics, Giphy and server configuration were preserved separately.
 Complete settings-slot bundles and exhaustive preset visual comparison remain
 open.
+
+### Isolated integration of committed parity and branding
+
+Integrated immutable commit `10f06b9` from the approved Chatty Cat branding branch,
+including its committed settings-parity ancestry. Uncommitted work in both other
+checkouts was inspected and left untouched. The merge retains the native Twitch
+iframe, four provider adapters, picker coverage/motion, graph gap notices and
+source download. It adds retained aggregate statistics, independent ranking
+windows, persisted observed rate/glorp samples, inline YouTube/X cards, GIF
+fallbacks, extra slash commands, picker presets and approved brand assets.
+
+Conflicting implementations were reconciled by behavior: picker motion retains
+region isolation and original easing; grouped pending ages appear once at the
+tail; manual column holds coexist with virtual media-subtree retention; provider
+errors keep their bounded fallback; the observed header remains at least four
+minutes wide. Fixture and integration checks pass: 269 frontend tests, strict
+production build, full Go race suite, vet and zero lint issues. The local built
+app connected and rendered chat under the Chatty Cat identity. This integration
+has not yet replaced the live release. Formal gates still require their final
+acceptance evidence.
+
+## History, channels, stream observations and lifecycle checkpoint
+
+Verified on 2026-10-11 in the isolated parity worktree:
+
+- Explicit legacy JSON import accepts original HTML history arrays, archived
+  records and channel-keyed localStorage dumps. Detached parsing produces
+  validated structured messages; scripts and embedded media are discarded.
+  Preview reports valid/skipped counts before import. Structured JSON export
+  preserves channel identity. Imports are bounded to 10 MB / 10,000 records,
+  deduplicated, and flushed in batches without overwriting original files.
+- Joined-channel links focus/add/remove rooms while retaining settings. Colored
+  send chips use the composer's existing target/draft/reply lifecycle. Archive
+  searches remain limited to joined rooms even with the All channels scope.
+- Seven days of stream observations and 30 VOD records survive scrollback
+  pruning. Stats show observed viewer peaks, title changes and live/offline
+  samples; VOD links disclose start and end. Failed metadata creates no false
+  offline observation. These records begin when this browser observes a stream.
+- Deliberate wheel scrolling while hovering a message retains its manual hold.
+  Rate graphs shade confirmed message gaps over 90 seconds, excluding socket,
+  timer and unwatched periods. Historical samples retain that distinction.
+- Runtime errors and rejected promises raise a dismissible, copyable local
+  report. Reports render as text, omit URL queries/credential fields, aggregate
+  repeated errors and send no external report.
+- Required frontend checks pass: 283 tests across 56 files, strict TypeScript
+  and production build. No backend sources changed after the integrated
+  backend's race/vet/lint checks.
+- Browser against the built Go preview: imported a legacy fixture and verified
+  its IndexedDB archive entry; chat remained connected. At 375 x 812 the
+  two-room header and composer had no horizontal overflow, and clicking the
+  patrick__eff chip selected that destination without sending. A synthetic
+  runtime error appeared with its query removed and dismissed correctly.
+
+Owner acceptance: subscriber emotes appear in picker and autocomplete; the
+approved test message and its reply appeared in patrick__eff. The owner accepts
+Twitch's embed session limitation: application OAuth cannot supply the Twitch
+website login to the official cross-origin player. Native player controls remain
+in use. Live whisper and moderation acceptance still require separately approved
+recipients/actions and an authenticated session.
+
+## Complete settings-slot state checkpoint
+
+Slots now store a versioned display/panel bundle: picker options and geometry,
+resource tab and geometry, video channel/docking/visibility, stats scopes and
+exclusions, and rail split/floated panes. Legacy display-only slots remain
+readable. Optional parts are size-bounded, captured as detached JSON and validated
+by each controller. Recall waits for display layout to settle; native Twitch
+frames are replaced with autoplay disabled. Panel listeners are removed at
+teardown. Other worktrees were read for existing settings work and left untouched.
+
+Verification: 287 frontend tests, strict checking and production build pass.
+Browser recall restored picker zoom from 1 to 1.5 and captured picker, resources,
+video, stats and rail parts with no runtime error. Video regression verifies
+channel/docking/visibility recall and autoplay=false.
+
+The owner approved one whisper to subcult_tv and deletion of the original
+Chatty Cat parity test message in patrick__eff. Approval is recorded; neither
+live action has been performed in this checkpoint.
+
+## Resources and repository metadata checkpoint
+
+The curated resource port now preserves safe layout classes, author birth/death
+fields, work sources and internal author citations. Author controls select all,
+themes, works or names/life dates; area restores the original sections, while
+birth/activity sorting deduplicates the flat list. Citations open Authors and
+focus the matching entry. Responsive columns retain section labels. Resource
+channel links gain bounded add/remove controls. Media-tab stream probes run two
+requests at a time, cache successful observations for five minutes and cancel
+when hidden; failed metadata stays unknown.
+
+Help shows optional public metadata for the rebuild and upstream repositories.
+The existing bounded preview service now reads Gitea repository metadata at the
+owner's forge and preserves validated started/updated dates for both forges.
+Metadata failure leaves source links usable and reports unavailable; no account
+credential is sent to these public metadata requests.
+
+Verification: frontend suite passed 289 tests, then the added repository test
+and resource tests passed (290 total tests now present). Production build and
+strict check passed. Full Go race tests, vet and golangci-lint passed. Browser
+sorted 106 deduplicated authors by birth, selected names mode and confirmed
+column layout. At 375 x 812 the popup fit in 351 pixels with no document overflow
+or runtime error. These checks do not assert that every external curated URL is
+currently reachable. The owner's forge returned HTTP 403 to a direct public
+metadata probe; the unavailable fallback remains necessary.
+
+## GIF lookup and mobile/permalink corrections
+
+GIF title links can resolve the first GIPHY search result using the owner's
+configured browser API key. Search is direct from the browser, keeps the exact
+returned media URL and displays GIPHY attribution. The gifsafe URL/settings
+option limits results to PG-13. Requests are spaced by at least 1.2 seconds,
+limited to 80 per hour across reloads and paused for five minutes after 429.
+Changing safe mode removes old results and discards pending unrestricted results.
+Only request-budget timestamps persist; no GIPHY media URL or asset is cached.
+This replaces the legacy cache/proxy behavior because current GIPHY requirements
+prohibit it without approval: https://developers.giphy.com/docs/api/ .
+Public configuration exposes only the browser GIPHY key, never Twitch secrets.
+
+The browser fixture check also exposed two defects: a tall mobile header could
+collapse chat, and estimated row heights could move a permalink target after
+measurement. Small screens now have a bounded scrollable header and compact
+controls; anonymous mode hides disabled sending fields. Obsolete migration
+messages were removed. Navigation status sits above the workspace, preserving
+chat width. Permalinks pin an archived context while live ingestion continues;
+Jump to live clears the permalink and pending navigation. Virtual scroll anchors
+use actual visible row geometry when available and restore after spacer updates.
+
+Verification: 298 frontend tests pass; strict production build, full Go race
+suite, vet and golangci-lint pass. The built browser at 375 x 812 found and retained
+the imported GIF permalink, displayed an actual loaded GIF from the configured
+key and preserved all 375 pixels of chat width. No Twitch message was sent by this
+fixture check. Jump to live cleared mid and its navigation label. The private
+temporary configuration file used by the isolated preview was removed afterward.
+
+## Provider and Twitter-mirror continuation
+
+Twitch channel cards use public profile/live observations. Clip and VOD cards
+use the owner's server-only app credential through fixed Helix reads, preserving
+creator/channel, view count, duration, date and thumbnail. Optional native player
+loads use the official clip/VOD iframe endpoints, exact parent, minimum height,
+and autoplay disabled. Narrow screens retain external links. Reference:
+https://dev.twitch.tv/docs/embed/video-and-clips/ .
+
+Reddit adapters parse bounded Atom feeds for posts, comment targets, subreddit
+and user collections; HTML is reduced to text and validated public images.
+Instagram/Imgur adapters preserve public metadata and direct MP4s when served,
+with short media TTLs, thumbnail fallback for single Imgur images, and ordinary
+link fallback after failures. No shared web-client credential from the original
+worker was copied. Login walls, geo-blocking or absent public metadata can still
+prevent a rich card. The fallback makes that limitation visible without stopping
+chat; it does not assert that restricted metadata was retrieved.
+
+Nitter selection reads the original public health tracker, rejects unsafe
+origins, probes up to three candidates through the public-only HTTP client and
+caches reachable selection for fifteen minutes. Browser links retain canonical
+URLs for card retrieval. Without a reachable mirror, post URLs stay canonical
+and profiles retain the original bird.makeup fallback. Source releases now retain
+NOTICE alongside LICENSE. Replies can select messages in the archived context.
+
+Verification: full frontend suite, strict production build, Go race suite, vet
+and lint passed for this batch. Tests cover exact Twitch routes, fixed credential
+paths, cached cards, native frames, signed MP4 preservation, unsafe video rejection,
+Reddit comment selection, malformed-feed fallback, Imgur fallback and mirror
+validation/probe caching. Real rich-card availability remains a live deployment
+check; fixture coverage is not recorded as live provider success.
+
+## Live whisper and moderation acceptance, 2026-10-11
+
+The owner signed in to release `20261012T021500Z` and reported success notices
+for `/w subcult_tv Chatty Cat parity test` and deletion of the approved parent
+message `c5f19012-99a1-474f-bc58-f307f809adcd` in `patrick__eff`. The public
+rebuild independently marked that message removed and received a `clearmsg`
+notice reading “Message deleted” at 21:23:54 local time. The owner subsequently confirmed that the whisper arrived in `subcult_tv`.
+Recipient receipt is owner-verified; deletion is also independently observed. No additional live sends or moderation actions were performed.
+
+The stats panel now displays persisted UTC hour/day message buckets separately
+from retained-row summaries and offers channel-scoped badge reference sets,
+version ordering, lazy images and observed version counts. Expanded sets survive
+refresh; refresh preserves keyboard focus inside the reference. History imports
+are counted once with their original timestamps. Focused ledger and badge
+regression checks cover scope, exclusions, reload, expiry, deduplication and safe
+upstream labels.
+
+## Remaining stats, public YouTube metadata and readiness checks
+
+The stats browser check rendered 415 badge sets; expanding the subscriber set
+loaded seven lazy images and retained focused summary across refresh. All 308
+frontend tests pass. YouTube video cards retain oEmbed title/channel/thumbnail
+when optional public-page enrichment fails. A two-second bounded page read adds
+publication date and view count where exposed. Channel/playlist public page
+cards use safe text/image metadata; no borrowed service key or private API is
+used. Fixtures cover these paths, missing data and cached requests.
+
+`/api/health` reports process liveness. `/api/ready` reports 503 while closing or
+when the app shell is absent/empty, and 200 otherwise. Neither endpoint promises
+Twitch/provider availability. Race tests cover missing assets, ready and closing.
+
+An isolated incognito browser archive seeded 100,000 synthetic records locally,
+without Twitch sends. The complete app restored all 100,000, mounted 35 rows and
+showed the last fixture. Steady frames peaked at 18 ms. Initial restoration had a
+279 ms task, so history observation now yields between 500-row batches and
+honors cancellation. The follow-up full restoration kept 35 mounted rows and reported no buffered
+long tasks (tasks of 50 ms or more). This is desktop synthetic-load evidence; it
+does not claim identical performance on every device.
+
+### Preset and shared URL completion
+
+First visits and display reset now apply the original `nightshade` preset;
+existing saved display settings remain authoritative. Header label controls and
+preset link weights are restored. The original source sets `old-default.lbls=0`,
+which differs from its README statement; the rebuild follows the source value.
+Legacy `help=labels/both` flags still turn labels on unless `lbls` overrides.
+Help visibility/tab aliases, bounded popup width and video off/dock/float now
+apply from shared URLs and are emitted by the share control. Config/stats tabs
+open the corresponding rebuild dialogs. Rainbow modes include pulse/flicker.
+
+## Acceptance audit after the continuation
+
+Checked family gates above now refer to the accumulated implementation, fixture
+and browser evidence in this record, including owner-run account checks. Older
+checkpoint statements describe their historical state. They are not current
+blocker lists. Gates with unresolved platform behavior or full runtime coverage
+remain open; checkbox status is the current acceptance record.
+
+The latest local browser restored `htab=authors&hpw=900&video=off&lbls=0`,
+selected Authors at 900 px, loaded no video iframe and emitted the same values
+through Share settings. `/api/ready` returned ready. The complete checks passed
+310 frontend tests before the additional video URL regression test; final totals
+are recorded with the release below.
+
+The owner confirmed actual recipient delivery to `subcult_tv`, completing the
+approved whisper check. Final validation passed 311 frontend tests, strict
+TypeScript/production build, full Go race tests, vet and lint.
+
+### Optional native Twitch volume memory
+
+The default iframe remains independent of the SDK. “Remember Twitch volume”
+opts into Twitch's official JavaScript API while retaining native Twitch
+controls. Failed script loading preserves the fallback frame; closing/changing
+channel cancels delayed work and polling. Saved slots include the opt-in state.
+Restoration pauses before setting sound preferences and keeps autoplay disabled.
+
+Twitch ignored volume changes while muted during the browser check. Applying
+volume between unmute/remute while paused restored 0.17 with mute=true and
+paused=true on the HTTPS embed. The integrated local controller saved a 0.23
+volume change. Initial checks accidentally used an offline channel; a current
+live channel and the HTTPS origin resolved that ambiguity. Playback/audibility
+are separate from these API state checks. Reference checked 2026-10-11:
+https://dev.twitch.tv/docs/embed/video-and-clips/ .
+
+The source-bearing Linux amd64 container built successfully on NUC and reached
+healthy status with zero restarts, UID/GID 10001, a ready response and a readable
+corresponding source archive. The isolated test container was stopped; the live
+native service remained running throughout.
+
+A Settings → Test alerts control now exercises the configured sound and
+notification paths without sending a Twitch message. It requests permission
+only when notifications are enabled, and reports unavailable browser support.
+Audibility and OS notification appearance remain owner-browser acceptance.
+
+Final frontend validation: 315 tests and strict production build passed. The
+remaining acceptance gates are GIPHY's approved cache/proxy boundary and owner
+confirmation of audible/OS alerts. GIPHY lookup itself, safe mode, request bounds,
+provider URL validation and pronouns already pass; the original media cache and
+proxy cannot be reproduced under current provider rules without approval.
+
+A final layout audit found rail modes 4–6 incorrectly creating two chat columns.
+They now retain one chat column; page-flip modes 2/3 alone create multiple chat
+columns. A regression check covers desktop and portrait. The same distinction
+applies when the rail is hidden on narrow screens.
+
+## Final live continuation acceptance
+
+The owner confirmed both audible sound and OS notification through Test alerts.
+This closes the attention family gate. Current checklist: 43 of 44 gates checked.
+The remaining external blocker is reproducing the original GIPHY media cache and
+proxy under provider approval; direct browser lookup is implemented and verified.
+GIPHY's current official integration rules were reopened on 2026-10-11 and still
+require prior approval for media caching and direct client-side requests.
+
+Frontend revision `20261012T030000Z`, source commit `f8427de`, corrects rail
+column count. All 26 current artifact hashes matched after static publication.
+The service retains release `20261012T025700Z`, backend commit `681888b`, PID
+4030029 and zero restarts. Go source and module files are identical between these
+commits; only frontend bytes and embedded build provenance differ. The manifest
+records backend and frontend provenance separately. The old frontend, manifest
+and source archive are retained in `recovery/frontend-20261012T030000Z`.
+
+Final frontend checks passed 316 tests and strict production build. Public source
+archive size: 477769 bytes; SHA-256
+`5e5751d0575e073fe9eda1e90f229a877cfa9dd34de24798e954def24db5994c`.
+No additional Twitch sends or moderation actions were performed.
+
+The final Linux amd64 image (`local/chatty-cat:parity-f8427de`) also built and
+passed isolated readiness/health, non-root identity and source-archive checks
+with zero restarts; its test container was stopped. The public 320×568 check
+kept 320 px body/chat width, 227 px chat height, one chat column in rail mode,
+no video iframe with `video=off` and connected chat.

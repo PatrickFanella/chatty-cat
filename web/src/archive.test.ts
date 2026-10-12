@@ -16,6 +16,8 @@ it('uses channel and time ranges, newest-first limits and ignores state frames',
   const a = archive(); a.add(message); a.add({ ...message, id: 'new', timestamp: 200 }); a.add({ ...message, channel: 'two', id: 'other' }); a.add({ ...message, command: 'ROOMSTATE', id: 'state' });
   expect((await a.search({ text: '', channel: 'one', limit: 1 }))[0]?.id).toBe('new');
   expect((await a.search({ text: '', channel: 'one', before: 150 })).map(m => m.id)).toEqual(['id']);
+  expect((await a.search({ text: '', channels: ['one'] })).map(m => m.channel)).toEqual(['one', 'one']);
+  expect(await a.search({ text: '', channels: [] })).toEqual([]);
   expect(await a.search({ text: '', after: 300, before: 10 })).toEqual([]);
 });
 it('supports literal text/login filters and cancelled searches', async () => {
