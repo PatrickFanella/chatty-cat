@@ -1,13 +1,14 @@
 {
-  "brand": "chat-thing",
+  "brand": "chatty-cat",
+  "palette": "phosphor",
   "status": "local production pack v1; nothing here is approved for a post or a profile change",
-  "source": "subcult-tv studio/brands/chat-thing/product/",
+  "source": "subcult-tv studio/brands/chatty-cat/product/",
   "rule": "Regenerate in Studio and copy; do not edit these copies.",
   "assets": [
     {
       "path": "favicon.svg",
-      "sha256": "dce1b3e841b3ad788e990a2f6ae47e2dfb807e8d95abc003a246b1a09f230fb7",
-      "bytes": 742,
+      "sha256": "01bcfe753a3897c808a43279eec99482f7ea9a2eb22e5d47483c036551ce252e",
+      "bytes": 1952,
       "dimensions": {
         "width": 24.0,
         "height": 24.0
@@ -15,13 +16,22 @@
     },
     {
       "path": "favicon.ico",
-      "sha256": "622d9d5a1f41ef1ca7a8e21edcde89a97268457a21f4f5fe0a644916e1536d55",
-      "bytes": 2300
+      "sha256": "6fc607998c6c32de42001fdd1f2a08bc6ed6aca0d1d9eb97c90096545bf53c6a",
+      "bytes": 1430
     },
     {
       "path": "icon-src.svg",
-      "sha256": "dce1b3e841b3ad788e990a2f6ae47e2dfb807e8d95abc003a246b1a09f230fb7",
-      "bytes": 742,
+      "sha256": "01bcfe753a3897c808a43279eec99482f7ea9a2eb22e5d47483c036551ce252e",
+      "bytes": 1952,
+      "dimensions": {
+        "width": 24.0,
+        "height": 24.0
+      }
+    },
+    {
+      "path": "mark-themed.svg",
+      "sha256": "e83a8f30575ad90f4c25036c8c551fca4d4546e15b94a392e2853060fa9d21fe",
+      "bytes": 1874,
       "dimensions": {
         "width": 24.0,
         "height": 24.0
@@ -29,8 +39,8 @@
     },
     {
       "path": "icon-192.png",
-      "sha256": "118e002e16fa76072fda355f3f454b4fc5db1e9c40e6380a66f6b6732cd7674b",
-      "bytes": 4031,
+      "sha256": "05d8873de4a0ab1cb3d4d9a6ac942aa6345f83a15a2b1c21d77e3bb8a3c20065",
+      "bytes": 2408,
       "dimensions": {
         "width": 192,
         "height": 192
@@ -38,8 +48,8 @@
     },
     {
       "path": "icon-512.png",
-      "sha256": "b83e679f7eb0141d529f2bbc55bf5b6996d96044e92570cad5aed9c9d45d06ee",
-      "bytes": 12757,
+      "sha256": "d120701817b3c51cbd385717d76b314f8f851cce2d4cba2f180e0b25642b8077",
+      "bytes": 7216,
       "dimensions": {
         "width": 512,
         "height": 512
@@ -47,8 +57,8 @@
     },
     {
       "path": "icon-maskable-512.png",
-      "sha256": "372103ab0022d8509d6e9c306cbd9c2b3bbe2794fa63dcd429d1b39d2c04870f",
-      "bytes": 6157,
+      "sha256": "1dbabecdf7836b048576635f12940968fc1b2b832269c0b4f15cca45d27acae8",
+      "bytes": 2068,
       "dimensions": {
         "width": 512,
         "height": 512
@@ -56,8 +66,8 @@
     },
     {
       "path": "apple-touch-icon.png",
-      "sha256": "9b8fdfb94df7384f275c09089722791e425110ae0c7b508eedbde0481ef9698a",
-      "bytes": 4100,
+      "sha256": "98ae41379d6f21c452c317fce08b8243a1d9ffeac936a2e3b8e8d926533809ca",
+      "bytes": 2286,
       "dimensions": {
         "width": 180,
         "height": 180
@@ -65,12 +75,17 @@
     },
     {
       "path": "og.png",
-      "sha256": "1c1d0d946d7981a112d004a83683b87380f4c3e7e4399e85916362c2a43961b1",
-      "bytes": 59587,
+      "sha256": "c5102c7878e5f41d976eb391cc6967f6377ea818c16a583090ff09ba6d0defd7",
+      "bytes": 54554,
       "dimensions": {
         "width": 1200,
         "height": 630
       }
+    },
+    {
+      "path": "palettes.json",
+      "sha256": "f73b525d4a77a97236ce6d79bd35de8bcf5dc98f2d6f7f141685bf1b205f2fb2",
+      "bytes": 3188
     }
   ]
 }
