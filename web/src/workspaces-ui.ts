@@ -9,16 +9,17 @@ export class WorkspacePanel {
  private apply:HTMLButtonElement;
  private pending:Preview|undefined;
  private generation=0;
- constructor(private root:HTMLDialogElement,private trigger:HTMLButtonElement,private store:WorkspaceStore,private currentID:()=>string,private capture:()=>WorkspaceSnapshot,private saveCurrent:()=>void,private navigate:(workspace:Workspace)=>void){
+ constructor(private root:HTMLDialogElement,private trigger:HTMLButtonElement,private store:WorkspaceStore,private currentID:()=>string,private capture:()=>WorkspaceSnapshot,private saveCurrent:()=>void,private navigate:(workspace:Workspace)=>void,private readonlyView=false){
   this.selected=root.querySelector<HTMLSelectElement>('#workspace-select')!;this.name=root.querySelector<HTMLInputElement>('#workspace-name')!;
   this.file=root.querySelector<HTMLInputElement>('#workspace-file')!;this.status=root.querySelector<HTMLElement>('#workspace-status')!;this.apply=root.querySelector<HTMLButtonElement>('#workspace-apply')!;
   root.addEventListener('click',this.click);root.addEventListener('close',this.closed);trigger.addEventListener('click',this.open);this.selected.addEventListener('change',this.select);this.name.addEventListener('input',this.invalidate);this.file.addEventListener('change',this.fileChanged);
-  this.paint();if(store.error)this.status.textContent=store.error;
+  this.paint();if(readonlyView)trigger.hidden=true;if(store.error)this.status.textContent=store.error;
  }
  private paint():void {const selected=this.selected.value||this.currentID();this.selected.replaceChildren();for(const workspace of this.store.all()){const option=document.createElement('option');option.value=workspace.id;option.textContent=workspace.name+(workspace.id===this.currentID()?' · active':'');this.selected.append(option);}this.selected.value=this.store.get(selected)?selected:this.currentID();this.name.value=this.store.get(this.selected.value)?.name??'';this.trigger.textContent='Workspace: '+(this.store.get(this.currentID())?.name??'unsaved');}
  private invalidate=():void=>{this.pending=undefined;this.apply.disabled=true;this.generation++;};
  private select=():void=>{this.invalidate();this.name.value=this.store.get(this.selected.value)?.name??'';};
- private open=():void=>{if(privacyEnabled())return;this.paint();this.root.showModal();this.selected.focus();};
+ private open=():void=>{if(privacyEnabled()||this.readonlyView)return;this.paint();this.root.showModal();this.selected.focus();};
+ previewSwitch(id:string):void{if(privacyEnabled()||this.readonlyView)return;const workspace=this.store.get(id);if(!workspace)throw new Error('Workspace no longer exists');this.open();this.selected.value=id;this.name.value=workspace.name;this.preview({kind:'switch',workspace,name:workspace.name});}
  private closed=():void=>{this.invalidate();this.trigger.focus();};
  private preview(plan:Preview):void {
   this.pending=plan;this.apply.disabled=false;
@@ -30,6 +31,7 @@ export class WorkspacePanel {
  private click=(event:MouseEvent):void=>{
   if(!(event.target instanceof Element))return;const action=event.target.closest<HTMLButtonElement>('[data-workspace-action]')?.dataset.workspaceAction;if(!action)return;
   try{
+   if(this.readonlyView&&action!=='close')throw new Error('Manage workspaces in the main view');
    if(action==='close'){this.root.close();return;}
    if(action==='apply'){this.commit();return;}
    if(action==='export'){if(privacyEnabled())throw new Error('Workspace export is disabled in privacy mode');this.saveCurrent();const file=workspaceFile(this.store.all());const url=URL.createObjectURL(new Blob([file],{type:'application/json'}));const anchor=document.createElement('a');anchor.href=url;anchor.download='chatty-cat-workspaces.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);this.status.textContent='Exported public workspace settings; drafts and credentials are excluded';return;}

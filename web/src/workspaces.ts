@@ -2,6 +2,7 @@ import { parseDisplay } from './display';
 import type { SettingsBundle } from './settings-bundle';
 import { parseChannels } from './protocol';
 import {parseSplits} from './splits';
+import {parseHotkeys} from './hotkeys';
 
 export interface ReaderPosition { column:number; key:string; offset:number }
 export interface WorkspaceSnapshot { channels:string[]; target:string; focus:string; settings:SettingsBundle; readers:ReaderPosition[] }
@@ -38,6 +39,7 @@ function publicExtras(value:unknown,channels:readonly string[]):Record<string,un
   result[part]=data;
  }
  const splits=parseSplits(value.splits,channels);if(value.splits!==undefined&&!splits)throw new Error('Workspace pane layout is invalid or exceeds 32 KB');if(splits)result.splits=splits;
+ const hotkeys=parseHotkeys(value.hotkeys);if(value.hotkeys!==undefined&&!hotkeys)throw new Error('Workspace shortcuts are invalid or conflicting');if(hotkeys)result.hotkeys=hotkeys;
  return result;
 }
 export function parseSnapshot(value:unknown):WorkspaceSnapshot {

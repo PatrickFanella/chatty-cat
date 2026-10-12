@@ -13,3 +13,6 @@ it('backs off until actual upstream connection and retries immediately on networ
 it('ignores queued data from a stopped connection',()=>{
  vi.stubGlobal('WebSocket',Socket);const receive=vi.fn();connection=new ChatConnection([],receive,'/api/auth/whispers');connection.start();const old=Socket.all[0]!;connection.stop();old.onmessage?.(new MessageEvent('message',{data:JSON.stringify({type:'status',state:'connected'})}));expect(receive).not.toHaveBeenCalled();
 });
+it('manual reconnect replaces the socket once and invalidates old callbacks and pending retries',()=>{
+ vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);const receive=vi.fn();connection=new ChatConnection(['one'],receive);connection.start();const old=Socket.all[0]!;old.close();connection.reconnect();expect(Socket.all).toHaveLength(2);old.onmessage?.(new MessageEvent('message',{data:JSON.stringify({type:'status',state:'connected'})}));expect(receive).not.toHaveBeenCalledWith({type:'status',state:'connected'});vi.advanceTimersByTime(60000);expect(Socket.all).toHaveLength(2);connection.stop();connection.reconnect();expect(Socket.all).toHaveLength(2);
+});

@@ -4,7 +4,7 @@ import {SplitLayout,type SplitPane} from './splits';
 import {registerSettings} from './settings-bundle';
 import {privacyEnabled} from './privacy';
 
-interface PaneView {pane:SplitPane;root:HTMLElement;view:VirtualLog;items:readonly LogItem[];restore:boolean;unread:HTMLElement}
+interface PaneView {pane:SplitPane;root:HTMLElement;view:VirtualLog;items:readonly LogItem[];restore:boolean;unread:HTMLElement;send:HTMLButtonElement}
 interface SplitActions {target:(channel:string)=>void;changed:()=>void;popout:(pane:string)=>void;canChange?:()=>boolean}
 function button(label:string,action:()=>void):HTMLButtonElement{const node=document.createElement('button');node.type='button';node.textContent=label;node.addEventListener('click',action);return node;}
 
@@ -14,7 +14,7 @@ export class SplitLog {
  private legacy:ColumnLog|undefined;
  private views:PaneView[]=[];
  private signature='';
- private contexts=new Map<string,readonly LogItem[]>();
+ private contexts=new Map<string,{keys:string[];items:readonly LogItem[]}>();
  private following=true;
  private tabs:HTMLElement|undefined;
  private grid:HTMLElement|undefined;
@@ -24,6 +24,7 @@ export class SplitLog {
  private stopSettings:()=>void;
  private stopped=false;
  private observed=new Set<string>();
+ private keyboardManaged=false;
  constructor(private root:HTMLElement,private toggle:HTMLButtonElement,private joined:readonly string[],private actions:SplitActions,private popoutID=''){
   this.layout=new SplitLayout(joined);this.status=document.createElement('p');this.status.className='split-status';this.status.setAttribute('role','status');
   this.dialog=document.createElement('dialog');this.dialog.id='split-settings';this.dialog.setAttribute('aria-label','Pane settings');document.body.append(this.dialog);
@@ -44,7 +45,7 @@ export class SplitLog {
  private rebuild():void{this.signature='';}
  private clear():void{this.legacy?.stop();this.legacy=undefined;for(const entry of this.views)entry.view.stop();this.views=[];this.root.replaceChildren();this.root.classList.remove('page-columns');}
  private paintLayout():void {
-  const signature=this.layout.enabled?'split:'+this.layout.activeTab.id+':'+this.layout.activeTab.panes.map(p=>p.id+':'+p.channels.join(',')+':'+p.target+':'+p.filter+':'+p.reverse+':'+p.pauseHover).join('|'):'legacy';
+  const signature=this.layout.enabled?'split:'+this.layout.activeTab.id+':'+this.layout.activeTab.panes.map(p=>p.id+':'+p.channels.join(',')+':'+p.filter+':'+p.reverse+':'+p.pauseHover).join('|'):'legacy';
   if(signature===this.signature)return;
   this.clear();this.signature=signature;this.toggle.setAttribute('aria-pressed',String(this.layout.enabled));this.root.classList.toggle('independent-splits',this.layout.enabled);
   const ids=new Set(this.layout.tabs.flatMap(tab=>tab.panes.map(p=>p.id)));for(const id of this.contexts.keys())if(!ids.has(id))this.contexts.delete(id);
@@ -71,20 +72,21 @@ export class SplitLog {
     const label=document.createElement('label');label.textContent='Width ';const range=document.createElement('input');range.type='range';range.min='1';range.max='4';range.step='.25';range.value=String(pane.weight);range.setAttribute('aria-label','Pane width: '+pane.channels.join(', '));range.addEventListener('input',()=>{this.layout.resize(pane.id,Number(range.value));this.paintActive();});label.append(range);header.append(label);
    }
    const reader=document.createElement('div');reader.className='split-reader';reader.tabIndex=0;reader.setAttribute('aria-label','Chat: '+pane.channels.join(', '));section.append(header,reader);this.grid!.append(section);
-   this.views.push({pane,root:reader,view:new VirtualLog(reader,'split:'+index),items:[],restore:!!pane.reader,unread});
+   this.views.push({pane,root:reader,view:new VirtualLog(reader,'split:'+index),items:[],restore:!!pane.reader,unread,send});
   });
   this.paintActive();
  }
  private paintActive():void{
   if(this.paneSelect)this.paneSelect.value=this.layout.activePane.id;
   for(const node of this.tabs?.querySelectorAll<HTMLElement>('[data-tab]')??[]){const tab=this.layout.tabs.find(t=>t.id===node.dataset.tab);if(!tab)continue;const count=tab.panes.reduce((sum,p)=>sum+p.unread,0),active=tab.id===this.layout.activeTab.id;node.textContent=tab.name+(count?' ('+count+')':'');node.setAttribute('aria-selected',String(active));node.tabIndex=active?0:-1;}
-  for(const entry of this.views){const section=entry.root.parentElement!;section.dataset.active=String(entry.pane.id===this.layout.activePane.id);section.style.flex=String(entry.pane.weight)+' 1 0';entry.unread.textContent=entry.pane.unread?'Unread '+entry.pane.unread:'';}
+  for(const entry of this.views){const section=entry.root.parentElement!;section.dataset.active=String(entry.pane.id===this.layout.activePane.id);section.style.flex=String(entry.pane.weight)+' 1 0';entry.unread.textContent=entry.pane.unread?'Unread '+entry.pane.unread:'';entry.send.textContent='Send: '+entry.pane.target;}
  }
  private activate(id:string,send:boolean):void{if(send&&!this.canChange()){this.paintActive();return;}const changed=this.layout.activePane.id!==id;this.layout.selectPane(id);if(send)this.actions.target(this.layout.activePane.target);this.paintActive();if(send||changed)this.actions.changed();}
  private pointer=(event:PointerEvent):void=>{if(!this.layout.enabled||!(event.target instanceof Element))return;const pane=event.target.closest<HTMLElement>('[data-pane]');if(pane)this.activate(pane.dataset.pane!,true);};
  private key=(event:KeyboardEvent):void=>{
   if(!this.layout.enabled||event.isComposing||event.ctrlKey||event.metaKey||event.target instanceof Element&&event.target.closest('input,select,textarea'))return;
   if(event.target instanceof Element&&event.target.closest('[role=tab]')&&!event.altKey&&(event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();this.switchTab(event.key==='ArrowLeft'?-1:1);return;}
+  if(this.keyboardManaged)return;
   if(!event.altKey||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;event.preventDefault();
   const delta=event.key==='ArrowLeft'||event.key==='ArrowUp'?-1:1;
   if(event.key==='ArrowUp'||event.key==='ArrowDown'){if(event.shiftKey&&!this.popoutID)this.run(()=>this.layout.moveTab(this.layout.activeTab.id,delta));else this.switchTab(delta);}
@@ -107,7 +109,7 @@ export class SplitLog {
  set(items:readonly LogItem[],following:boolean,revision=0,reverse=false,mode=1,pauseHover=false):void {
   if(this.stopped)return;this.following=following;this.paintLayout();
   if(this.legacy){this.legacy.set(items,following,revision,reverse,mode,pauseHover);return;}
-  for(const entry of this.views){const p=entry.pane,filter=p.filter.toLowerCase(),context=this.contexts.get(p.id);entry.items=context??items.filter(item=>p.channels.includes(item.channel??item.key.split(':')[0]!)&&(!filter||(item.text??'').toLowerCase().includes(filter)));
+  for(const entry of this.views){const p=entry.pane,filter=p.filter.toLowerCase(),context=this.contexts.get(p.id);entry.items=context?.items??items.filter(item=>p.channels.includes(item.channel??item.key.split(':')[0]!)&&(!filter||(item.text??'').toLowerCase().includes(filter)));
    // Main's source order follows its global display setting; panes own theirs.
    const visible=!(innerWidth<=650||innerHeight>=innerWidth)||p.id===this.layout.activePane.id;
    if(reverse!==p.reverse)entry.items=[...entry.items].reverse();entry.view.set(entry.items,following&&!context&&visible,revision,p.reverse,p.pauseHover);
@@ -119,17 +121,27 @@ export class SplitLog {
  observe(channel:string,text:string,key?:string):void{if(!this.layout.enabled)return;if(key){if(this.observed.has(key))return;this.observed.add(key);if(this.observed.size>5000)this.observed.delete(this.observed.values().next().value!);}for(const tab of this.layout.tabs)for(const pane of tab.panes){if(!pane.channels.includes(channel)||pane.filter&&!text.toLowerCase().includes(pane.filter.toLowerCase()))continue;const entry=this.views.find(v=>v.pane.id===pane.id);if(tab.id!==this.layout.activeTab.id||!entry||!entry.view.isFollowing()||entry.view.pausedByHover()||entry.restore)pane.unread=Math.min(9999,pane.unread+1);}this.paintActive();}
  finishReaderRestore():void{for(const entry of this.views)if(entry.restore){entry.restore=false;entry.pane.reader=null;this.status.textContent='Some pane reader positions are no longer in retained history';}}
  private active():PaneView|undefined{return this.views.find(v=>v.pane.id===this.layout.activePane.id);}
+ manageKeyboard():void{this.keyboardManaged=true;}
+ hold():void{this.active()?.view.hold();}
+ selectPane(id:string):void{this.activate(id,true);if(this.layout.activePane.id===id)this.views.find(v=>v.pane.id===id)?.root.focus();}
+ selectTab(id:string):void{this.run(()=>this.layout.selectTab(id));}
+ updateTarget(channel:string):void{if(this.layout.enabled&&this.layout.activePane.channels.includes(channel)){this.layout.activePane.target=channel;this.paintActive();}}
+ focusChannel(channel:string):void{if(!this.canChange())return;if(this.popoutID&&!this.layout.activePane.channels.includes(channel)){this.status.textContent='This popout is limited to its saved pane';return;}if(!this.layout.enabled){this.actions.target(channel);return;}const tab=this.layout.tabs.find(t=>t.panes.some(p=>p.channels.includes(channel))),pane=this.layout.activePane.channels.includes(channel)?this.layout.activePane:tab?.panes.find(p=>p.channels.includes(channel));if(pane){this.run(()=>{pane.target=channel;this.layout.selectPane(pane.id);});this.actions.target(channel);}else this.run(()=>{const next=this.layout.activeTab.panes.length<6?this.layout.addPane():this.layout.addTab(channel).panes[0]!;this.layout.configure(next.id,{channels:[channel],target:channel,filter:'',reverse:false,pauseHover:true});});}
+ moveFocus(kind:'pane'|'tab',delta:number):void{if(!this.layout.enabled)return;if(kind==='tab')this.switchTab(delta);else{const panes=this.layout.activeTab.panes,index=panes.findIndex(p=>p.id===this.layout.activePane.id);this.selectPane(panes[(index+delta+panes.length)%panes.length]!.id);}}
+ rearrange(kind:'pane'|'tab',delta:number):void{if(!this.layout.enabled||this.popoutID)return;this.run(()=>kind==='pane'?this.layout.movePane(this.layout.activePane.id,delta):this.layout.moveTab(this.layout.activeTab.id,delta));}
  hasContexts():boolean{return this.contexts.size>0;}
- contextKeys():Set<string>{return new Set([...this.contexts.values()].flatMap(items=>items.map(item=>item.key)));}
+ contextKeys():Set<string>{return new Set([...this.contexts.values()].flatMap(context=>context.keys));}
+ refreshContexts(make:(keys:readonly string[])=>readonly LogItem[]):void{for(const context of this.contexts.values())context.items=make(context.keys);}
  private at(target:EventTarget|null):PaneView|undefined{return target instanceof Node?this.views.find(v=>v.root===target||v.root.contains(target)):undefined;}
  hoverPaused(target:EventTarget|null):boolean{return this.legacy?.hoverPaused(target)??this.at(target)?.view.pausedByHover()??false;}
  trackScroll(target:EventTarget|null,following:boolean):boolean{if(this.legacy)return this.legacy.trackScroll(target,following);return following;}
  readerPositions():{column:number;key:string;offset:number}[]{return this.legacy?.readerPositions()??[];}
  restoreReaders(positions:readonly {column:number;key:string;offset:number}[]):boolean{return this.legacy?.restoreReaders(positions)??true;}
- hasManualPause():boolean{return this.legacy?.hasManualPause()??this.views.some(v=>!v.view.isFollowing());}
- allFollowing():boolean{return this.legacy?.allFollowing()??(this.following&&this.views.every(v=>v.view.isFollowing()&&!v.restore));}
+ private visible(entry:PaneView):boolean{return !(innerWidth<=650||innerHeight>=innerWidth)||entry.pane.id===this.layout.activePane.id;}
+ hasManualPause():boolean{return this.legacy?.hasManualPause()??this.views.some(v=>this.visible(v)&&!v.view.isFollowing());}
+ allFollowing():boolean{return this.legacy?.allFollowing()??(this.following&&this.views.filter(v=>this.visible(v)).every(v=>v.view.isFollowing()&&!v.restore));}
  resume():void{if(this.legacy){this.legacy.resume();return;}const entry=this.active();if(entry)this.contexts.delete(entry.pane.id);entry?.view.resume();if(entry){entry.restore=false;entry.pane.reader=null;entry.pane.unread=0;}}
- showContext(items:readonly LogItem[]):void{if(!this.layout.enabled||!items.length)return;const channel=items[0]?.channel??items[0]?.key.split(':')[0];const tab=this.layout.tabs.find(t=>t.panes.some(p=>p.channels.includes(channel??''))),pane=this.layout.activePane.channels.includes(channel??'')?this.layout.activePane:tab?.panes.find(p=>p.channels.includes(channel??''));if(pane){this.captureReaders();this.activate(pane.id,false);this.contexts.set(pane.id,items);this.rebuild();}}
+ showContext(items:readonly LogItem[],keys=items.map(item=>item.key)):void{if(!this.layout.enabled||!keys.length)return;const channel=items[0]?.channel??keys[0]?.split(':')[0];const tab=this.layout.tabs.find(t=>t.panes.some(p=>p.channels.includes(channel??''))),pane=this.layout.activePane.channels.includes(channel??'')?this.layout.activePane:tab?.panes.find(p=>p.channels.includes(channel??''));if(pane){this.captureReaders();this.activate(pane.id,false);this.contexts.set(pane.id,{keys:[...keys].slice(0,501),items});this.rebuild();}}
  edgeKey(last:boolean):string|undefined{return this.legacy?.edgeKey(last)??this.active()?.view.edgeKey(last);}
  moveKey(current:string|undefined,delta:number):string|undefined{return this.legacy?.moveKey(current,delta)??this.active()?.view.moveKey(current,delta);}
  reveal(key:string):boolean{if(this.legacy)return this.legacy.reveal(key);const entry=this.active()?.items.some(i=>i.key===key)?this.active():this.views.find(v=>v.items.some(i=>i.key===key));if(!entry)return false;this.activate(entry.pane.id,false);return entry.view.reveal(key);}

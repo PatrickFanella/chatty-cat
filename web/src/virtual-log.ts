@@ -75,6 +75,7 @@ export class VirtualLog {
   pausedByHover():boolean {return this.hoverHeld&&!this.wheelDuringHold;}
   isFollowing():boolean {return this.allowFollow&&!this.manuallyPaused;}
   resume():void {this.manuallyPaused=false;this.following=this.allowFollow&&!this.hoverHeld;if(this.following)this.restore(undefined);this.schedule();}
+  hold():void {this.manuallyPaused=true;this.following=false;this.schedule();}
   private schedule = (): void => {
     if (!this.frame && !this.stopped) this.frame = requestAnimationFrame(() => { this.frame = 0; this.paint(); });
   };

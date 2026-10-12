@@ -37,6 +37,7 @@ export class ChatConnection {
   }
 
   private online=():void=>{if(this.stopped||this.socket)return;if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}this.start();};
+  reconnect():void{if(this.stopped)return;if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}const old=this.socket;this.socket=null;old?.close();this.attempt=0;this.receive({type:'status',state:'reconnecting',detail:'Reconnecting public chat'});this.start();}
   private visibility=():void=>{
     if(document.hidden){this.hiddenAt=Date.now();return;}
     if(this.hiddenAt&&Date.now()-this.hiddenAt>60000){this.hiddenAt=0;this.socket?.close();this.online();}
