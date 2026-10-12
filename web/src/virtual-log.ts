@@ -62,6 +62,8 @@ export class VirtualLog {
     const index = this.indexAt(this.log.scrollTop), item = this.items[index];
     return item ? { key: item.key, offset: this.log.scrollTop - (this.offsets[index] ?? 0) } : undefined;
   }
+  readerPosition(): {key:string;offset:number}|undefined { return this.following?undefined:this.anchor(); }
+  restoreReader(position:{key:string;offset:number}):boolean {if(!this.indexes.has(position.key))return false;this.manuallyPaused=true;this.following=false;this.restore(position);this.paint();this.restore(position);return true;}
   private restore(anchor: { key: string; offset: number } | undefined): void {
     if (this.following) this.log.scrollTop = this.reverse?0:Math.max(0, (this.offsets.at(-1) ?? 0) - this.log.clientHeight);
     else if (anchor) { const index = this.indexes.get(anchor.key); if (index !== undefined) this.log.scrollTop = (this.offsets[index] ?? 0) + anchor.offset; }

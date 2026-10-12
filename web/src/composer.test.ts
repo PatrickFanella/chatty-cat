@@ -143,3 +143,8 @@ it('reports a raid as a pending request rather than completed delivery',async()=
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,command:true})}));
  const {composer,edit,submit,status}=setup();composer.setAuth(signedIn);edit('/raid alice');submit();await vi.advanceTimersByTimeAsync(0);expect(status.textContent).toContain('Raid requested');
 });
+it('previews a custom invocation without sending or replacing its unsent draft',()=>{
+ const ui=setup();ui.composer.setAuth(signedIn);const preview=vi.fn(()=>true);const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
+ ui.composer.configureCommands(['/greet'],preview);ui.edit('/greet chat');expect(ui.button.disabled).toBe(false);ui.submit();
+ expect(preview).toHaveBeenCalledWith('/greet chat');expect(fetcher).not.toHaveBeenCalled();expect(ui.input.value).toBe('/greet chat');
+});

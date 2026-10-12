@@ -1,3 +1,4 @@
+import { privacyEnabled } from './privacy';
 import { MessageArchive } from './archive';
 import type { ChatMessage } from './protocol';
 export class ArchiveSearch {
@@ -16,7 +17,7 @@ export class ArchiveSearch {
     trigger.addEventListener('click', this.open); dialog.querySelector('#archive-close')?.addEventListener('click', this.close);
     dialog.querySelector('form')?.addEventListener('submit', this.search); dialog.addEventListener('close', this.closed);
   }
-  private open = (): void => { this.dialog.showModal(); this.input.focus(); };
+  private open = (): void => { if(privacyEnabled())return; this.dialog.showModal(); this.input.focus(); };
   private close = (): void => this.dialog.close();
   private closed = (): void => { this.generation++; this.controller?.abort(); this.trigger.focus(); };
   private search = async (event: Event): Promise<void> => {

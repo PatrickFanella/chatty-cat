@@ -1,8 +1,10 @@
+import { privacyEnabled } from './privacy';
 import type { AuthStatus } from './auth';
 import type { ChatMessage } from './protocol';
 import { parseSendResult } from './composer';
 export class UserInspector {
   private message: ChatMessage | undefined;
+  get selectedMessage():ChatMessage|undefined{return this.message;}
   private armed: string | undefined;
   private requestID: string | undefined;
   private busy = false;
@@ -16,6 +18,7 @@ export class UserInspector {
     log.addEventListener('click',this.inspect);dialog.addEventListener('click',this.click);dialog.addEventListener('close',this.closed);dialog.addEventListener('cancel',this.cancel);
   }
   private inspect=(event:MouseEvent):void=>{
+    if(privacyEnabled())return;
     if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||!(event.target instanceof Element))return;
     const name=event.target.closest<HTMLAnchorElement>('a.name,a.mention'),row=name?.closest<HTMLElement>('.row');if(!name||!row)return;
     if(this.busy){event.preventDefault();return;}

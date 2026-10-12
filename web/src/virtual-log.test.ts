@@ -52,3 +52,8 @@ it('follows the top edge in reverse flow and preserves paused anchors through pr
 it('keeps unchanged row subtrees connected as live rows append and the viewport advances',()=>{
  const {log,view}=setup();const records=Array.from({length:100},(_,i)=>{const row=document.createElement('article');row.className='row';return {key:String(i),render:()=>row};});view.set(records,true);const keep=log.querySelector('[data-virtual-key="95"]')!;const frame=document.createElement('iframe');keep.append(frame);const insert=vi.spyOn(log,'insertBefore');view.set([...records,{key:'100',render:()=>document.createElement('article')}],true);expect(log.querySelector('[data-virtual-key="95"]')).toBe(keep);expect(keep.querySelector('iframe')).toBe(frame);expect(insert.mock.calls.some(([node])=>node===keep)).toBe(false);view.stop();
 });
+it('restores a paused reader by stable key and pixel offset after rebuilding the view',()=>{
+ const {log,view}=setup();view.set(items(100),false);expect(view.restoreReader({key:'20',offset:7})).toBe(true);expect(log.scrollTop).toBe(647);
+ const position=view.readerPosition();expect(position).toEqual({key:'20',offset:7});view.stop();
+ const next=new VirtualLog(log);next.set(items(110),true);expect(next.restoreReader(position!)).toBe(true);expect(log.scrollTop).toBe(647);expect(next.isFollowing()).toBe(false);expect(next.restoreReader({key:'missing',offset:0})).toBe(false);next.stop();
+});

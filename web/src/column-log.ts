@@ -115,6 +115,8 @@ export class ColumnLog {
   if(this.isAtLive(target)){const wasHeld=this.manual.delete(index);if(wasHeld){this.views[index]?.resume();if(this.reverse)this.dealReverse();else this.deal();this.paint();}}else this.manual.add(index);
   return true;
  }
+ readerPositions():{column:number;key:string;offset:number}[]{return this.views.flatMap((view,column)=>{const position=view.readerPosition();return position?[{column,...position}]:[];});}
+ restoreReaders(positions:readonly {column:number;key:string;offset:number}[]):boolean {let restored=true;for(const position of positions){const view=this.views[position.column];if(!view||!view.restoreReader(position))restored=false;else this.manual.add(position.column);}return restored;}
  hasManualPause():boolean {return this.manual.size>0;}
  resume():void {this.manual.clear();this.hovered=-1;for(const view of this.views)view.resume();if(this.count>1){if(this.reverse)this.dealReverse();else this.deal();}}
  isAtLive(target:EventTarget|null=this.root):boolean {

@@ -334,3 +334,14 @@ html[data-stitle="false"] #stream{display:none}
 :root[data-rbw="4"] .rainbow {animation-name:rainbow-flicker;animation-timing-function:steps(1)}
 
 :root[data-anim="0"] .rainbow {animation:none}
+#privacy-toolbar{display:flex;align-items:center;gap:.5rem;padding:.4rem 1rem;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+#privacy-toolbar span{font-size:.8rem}
+#privacy-settings label{display:block;padding:.3rem}
+html[data-privacy="true"] #login,html[data-privacy="true"] #account,html[data-privacy="true"] #account-emotes,html[data-privacy="true"] #personal-status,html[data-privacy="true"] #whisper-open,html[data-privacy="true"] #whisper-panel,html[data-privacy="true"] #composer,html[data-privacy="true"] #user-inspector,html[data-privacy="true"] #identity-preview,html[data-privacy="true"] #link-preview,html[data-privacy="true"] #display-panel,html[data-privacy="true"] #resources-panel,html[data-privacy="true"] #workspace-panel,html[data-privacy="true"] #archive-search,html[data-privacy="true"] #stats-panel,html[data-privacy="true"] #announcer{display:none!important}
+html[data-privacy="true"][data-workspace-visible="false"] body>:not(#privacy-toolbar):not(#privacy-settings){display:none!important}
+html[data-privacy="true"] #privacy-settings{display:none!important}
+
+html[data-privacy="true"] #video-panel,html[data-privacy="true"] #emote-picker,html[data-privacy="true"] .error-report,html[data-privacy="true"] #missed-mentions{display:none!important}
+
+html[data-privacy="true"] #commands-panel{display:none!important}
+#commands-panel label{display:block;margin:.4rem 0}#command-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-width:70ch}

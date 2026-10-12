@@ -1,3 +1,4 @@
+import { privacyEnabled } from './privacy';
 import {captureBundle,parseBundle,restoreBundle,type SettingsBundle} from './settings-bundle';
 import './palettes.css';
 import './fonts.css';
@@ -74,9 +75,10 @@ export class DisplaySettings {
   private paintSlots():void {for(const button of this.dialog.querySelectorAll<HTMLButtonElement>('[data-slot]')){const index=Number(button.dataset.slot),value=this.slots[index];button.textContent='Slot '+(index+1)+(value?' · saved':' · empty');button.title=value?`${value.display.colour} · ${value.display.font} ${value.display.size}px. Click to recall; Shift-click or right-click overwrites.`:'Click to save current settings and panel state';}}
   private slot=(event:MouseEvent):void=>{if(!(event.target instanceof Element))return;const button=event.target.closest<HTMLButtonElement>('[data-slot]');if(!button)return;const index=Number(button.dataset.slot);if(!Number.isInteger(index)||index<0||index>2)return;event.preventDefault();const value=this.slots[index];if(value&&!event.shiftKey&&event.type!=='contextmenu'){this.options=parseDisplay(value.display);this.sync();this.apply();this.save();this.changed();cancelAnimationFrame(this.slotFrame);this.slotFrame=requestAnimationFrame(()=>{this.slotFrame=0;restoreBundle(value);button.focus({preventScroll:true});});}else{this.slots[index]=captureBundle(this.options);try{localStorage.setItem('chatthing:v1:display-slots',JSON.stringify(this.slots));}catch{/* optional storage */}this.paintSlots();}};
   private minimize=():void=>{this.options.min=(this.options.min+1)%3;this.sync();this.apply();this.save();this.changed();};
+  setOptions(value: unknown): void { this.options=parseDisplay(value); this.apply(); this.sync(); this.save(); this.changed(); }
   toggleTone(): void { this.options.shade = this.options.shade <= 3 ? 7 : 1; this.options.autoShade=false; this.apply(); this.sync(); this.save(); this.changed(); }
   private save(): void { try { localStorage.setItem('chatthing:v1:display', JSON.stringify(this.options)); } catch { /* optional storage */ } }
-  private open = (): void => this.dialog.showModal();
+  private open = (): void => {if(!privacyEnabled())this.dialog.showModal();};
   private close = (): void => { this.dialog.close(); this.trigger.focus(); };
   private submit = (event: Event): void => event.preventDefault();
   private change = (event: Event): void => {
@@ -85,7 +87,7 @@ export class DisplaySettings {
     this.apply(); this.save(); this.changed();
   };
   private reset = (): void => { this.options = displayFromURL(defaultDisplay(),new URLSearchParams('theme=nightshade'));document.dispatchEvent(new CustomEvent('displaypreset',{detail:'nightshade'}));this.apply(); this.sync(); this.save(); this.changed(); };
-  private share = (): void => { const url = new URL(location.href); for (const [key, value] of Object.entries(this.options)) url.searchParams.set(({ weight: 'wght', spacing: 'ls' } as Record<string, string>)[key] ?? key, key==='shade'&&this.options.autoShade?'auto':typeof value === 'boolean' ? value ? '1' : '0' : String(value)); document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));const output = this.dialog.querySelector<HTMLInputElement>('#display-url')!; output.value = url.href; output.hidden = false; output.select(); };
+  private share = (): void => { if(privacyEnabled())return; const url = new URL(location.href); for (const [key, value] of Object.entries(this.options)) url.searchParams.set(({ weight: 'wght', spacing: 'ls' } as Record<string, string>)[key] ?? key, key==='shade'&&this.options.autoShade?'auto':typeof value === 'boolean' ? value ? '1' : '0' : String(value)); document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));const output = this.dialog.querySelector<HTMLInputElement>('#display-url')!; output.value = url.href; output.hidden = false; output.select(); };
   private storage = (event: StorageEvent): void => { if(event.key==='chatthing:v1:display-slots'){this.readSlots();this.paintSlots();return;} if (event.key !== 'chatthing:v1:display') return; try { this.options = parseDisplay(JSON.parse(event.newValue ?? 'null')); this.apply(); this.sync(); this.changed(); } catch { /* malformed remote storage */ } };
   stop(): void { cancelAnimationFrame(this.slotFrame);this.dialog.removeEventListener('click',this.slot);this.dialog.removeEventListener('contextmenu',this.slot);document.getElementById('header-min')?.removeEventListener('click',this.minimize); this.trigger.removeEventListener('click', this.open); this.form.removeEventListener('change', this.change); this.form.removeEventListener('submit', this.submit); this.dialog.querySelector('#display-close')?.removeEventListener('click', this.close); this.dialog.querySelector('#display-reset')?.removeEventListener('click', this.reset); this.dialog.querySelector('#display-share')?.removeEventListener('click', this.share); window.removeEventListener('storage', this.storage);this.systemTone.removeEventListener('change',this.toneChanged); }
 }

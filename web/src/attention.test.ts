@@ -41,3 +41,15 @@ it('offers an explicit foreground notification check without creating a chat mes
  const attention=new Attention(document.createElement('button'),()=>({...defaultDisplay(),notify:true}),vi.fn());
  expect(await attention.test()).toContain('Test notification requested');expect(show).toHaveBeenCalledWith('Chatty Cat test alert',expect.objectContaining({tag:'test'}));attention.stop();
 });
+it('suppresses private notification contents, alert tests and delayed notifications after privacy is enabled',async()=>{
+ localStorage.removeItem('chatthing:v1:privacy');Object.defineProperty(document,'hidden',{configurable:true,value:true});
+ const notification=vi.fn();vi.stubGlobal('Notification',Object.assign(notification,{permission:'granted'}));
+ let resolve:((value:ServiceWorkerRegistration|undefined)=>void)|undefined;
+ const registration=new Promise<ServiceWorkerRegistration|undefined>(done=>{resolve=done;});const showNotification=vi.fn();
+ vi.spyOn(navigator,'serviceWorker','get').mockReturnValue({getRegistration:()=>registration} as unknown as ServiceWorkerContainer);
+ const attention=new Attention(document.createElement('button'),()=>({...defaultDisplay(),notify:true}),vi.fn());
+ attention.whisper({...message,text:'private body'});
+ localStorage.setItem('chatthing:v1:privacy',JSON.stringify({version:1,enabled:true,allowed:[],panic:false}));
+ resolve?.({showNotification} as unknown as ServiceWorkerRegistration);await Promise.resolve();await Promise.resolve();
+ expect(showNotification).not.toHaveBeenCalled();expect(notification).not.toHaveBeenCalled();expect(await attention.test()).toBe('Alerts are suppressed in privacy mode');attention.stop();localStorage.removeItem('chatthing:v1:privacy');
+});
