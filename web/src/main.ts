@@ -1,3 +1,4 @@
+import { NitterLinks } from './nitter';
 import { GiphyTitles } from './giphy';
 import { ErrorReport } from './error-report';
 import { ChannelControls } from './channels';
@@ -62,6 +63,7 @@ let rail:PanelRail|undefined;
 const virtualLog = new ColumnLog(log);
 const pronouns = new Pronouns();
 const socialCards=new SocialCards(log);
+const nitterLinks=new NitterLinks(log);
 const giphyTitles=new GiphyTitles(log);
 const linkPreview = new LinkPreview(log, element('link-preview', HTMLElement));
 const status = element('status', HTMLElement);
@@ -127,7 +129,7 @@ log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
   const channel = event.target.closest<HTMLElement>('.row')?.dataset.channel;
-  const message = store.messages.find((message) => message.id === id && message.channel === channel);
+  const message = (archiveView ?? store.messages).find((message) => message.id === id && message.channel === channel);
   if (message) composer.selectReply(message);
 });
 let renderQueued = false;
@@ -288,7 +290,7 @@ metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}},store.messages);
 const pageCoverage = new PageCoverage(channels, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
 window.addEventListener('pagehide', () => pageCoverage.stop());
-window.addEventListener('pagehide', () => { giphyTitles.stop(); historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
+window.addEventListener('pagehide', () => { nitterLinks.stop(); giphyTitles.stop(); historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
 const connection = new ChatConnection(channels, (event) => {
   if (event.type === 'status') {
     rateTimeline.series.status(event);recovery.status(event);

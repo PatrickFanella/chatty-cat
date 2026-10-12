@@ -25,12 +25,13 @@ def main():
     output.mkdir(parents=True)
     shutil.copytree(root / 'web/dist', output / 'web/dist')
     shutil.copy2(args.license, output / 'LICENSE')
+    shutil.copy2(root / 'NOTICE', output / 'NOTICE')
     env = dict(os.environ, CGO_ENABLED='0', GOOS='linux', GOARCH='amd64')
     subprocess.run(['go', 'build', '-o', str(output / 'chatthing'), './cmd/chatthing'], cwd=root, env=env, check=True)
     sources = ['cmd', 'internal', 'web/src', 'web/public', 'web/index.html',
                'web/package.json', 'web/package-lock.json', 'web/tsconfig.json',
                'web/tsconfig.sw.json', 'web/vite.config.ts', 'web/vitest.config.ts',
-               'go.mod', 'go.sum', 'README.md', 'docs/architecture.md']
+               'go.mod', 'go.sum', 'README.md', 'NOTICE', 'docs/architecture.md']
     with tarfile.open(output / 'source.tar.gz', 'w:gz') as archive:
         for name in sources:
             archive.add(root / name, arcname=name)

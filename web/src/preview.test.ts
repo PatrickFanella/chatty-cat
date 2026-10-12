@@ -39,6 +39,14 @@ it('debounces hover and preserves an external link after failure', async () => {
   await vi.advanceTimersByTimeAsync(100); expect(root.hidden).toBe(false); expect(root.textContent).toContain('Preview unavailable'); expect(root.querySelector('a')?.href).toBe('https://example.com/source');
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); expect(root.hidden).toBe(true);
 });
+it('plays a provider-supplied MP4 only after selection and retains its signed URL',async()=>{
+ const video='https://cdn.example.net/media.mp4?signature=keep';vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({...card,contentType:'text/html',video})}));const {anchor,root}=setup();anchor.click();await vi.advanceTimersByTimeAsync(0);expect(root.querySelector('video')).toBeNull();[...root.querySelectorAll('button')].find(button=>button.textContent==='Load media player')!.click();expect(root.querySelector('video')?.src).toBe(video);expect(root.querySelector('video')?.autoplay).toBe(false);
+ expect(()=>parsePreview({...card,video:'javascript:evil'})).toThrow();
+});
+it('loads native Twitch clips on selection and keeps a link on narrow screens',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({...card,url:'https://clips.twitch.tv/Clip-ID',contentType:'text/html'})}));const {anchor,root}=setup();anchor.click();await vi.advanceTimersByTimeAsync(0);expect(root.querySelector('iframe')).toBeNull();root.remove();[...root.querySelectorAll('button')].find(button=>button.textContent==='Load Twitch player')!.click();expect(new URL(root.querySelector('iframe')!.src).searchParams.get('autoplay')).toBe('false');
+ root.querySelector<HTMLButtonElement>('[data-close-preview]')!.click();vi.stubGlobal('innerWidth',375);anchor.click();await vi.advanceTimersByTimeAsync(0);expect(root.textContent).not.toContain('Load Twitch player');expect(root.querySelector('a')?.href).toBe('https://clips.twitch.tv/Clip-ID');
+});
 it('respects off, text, icon and YouTube preferences and closes on changes', async()=>{
  const fetcher=vi.fn().mockResolvedValue({ok:true,json:async()=>({...card,icon:'https://example.com/icon.png',url:'https://youtu.be/abcdefghijk',contentType:'text/html'})});vi.stubGlobal('fetch',fetcher);
  const {anchor,root}=setup();document.documentElement.dataset.peek='0';anchor.click();await vi.advanceTimersByTimeAsync(0);expect(fetcher).not.toHaveBeenCalled();

@@ -28,6 +28,7 @@ type Card struct {
 	Description string       `json:"description"`
 	Site        string       `json:"site"`
 	Image       string       `json:"image"`
+	Video       string       `json:"video,omitempty"`
 	Icon        string       `json:"icon"`
 	Author      string       `json:"author"`
 	Published   string       `json:"published"`
@@ -143,20 +144,31 @@ type flight struct {
 
 // Service owns a bounded cache and concurrent-fetch limit.
 type Service struct {
-	client  *http.Client
-	mu      sync.Mutex
-	cache   map[string]entry
-	flights map[string]*flight
-	slots   chan struct{}
-	budgets map[string]budget
+	publicRead    PublicReader
+	nitterHost    string
+	nitterUntil   time.Time
+	nitterLoading bool
+	client        *http.Client
+	mu            sync.Mutex
+	cache         map[string]entry
+	flights       map[string]*flight
+	slots         chan struct{}
+	budgets       map[string]budget
 }
 
 // New uses a public-address-pinned transport; a supplied client is for fixture tests.
-func New(client *http.Client) *Service {
+// PublicReader supplies server-owned credentials only for fixed Helix API paths.
+type PublicReader func(context.Context, string) ([]byte, error)
+
+func New(client *http.Client, readers ...PublicReader) *Service {
 	if client == nil {
 		client = publicClient()
 	}
-	return &Service{client: client, cache: make(map[string]entry), flights: make(map[string]*flight), slots: make(chan struct{}, 8), budgets: make(map[string]budget)}
+	var read PublicReader
+	if len(readers) > 0 {
+		read = readers[0]
+	}
+	return &Service{publicRead: read, client: client, cache: make(map[string]entry), flights: make(map[string]*flight), slots: make(chan struct{}, 8), budgets: make(map[string]budget)}
 }
 
 // Close releases idle public-web connections.
@@ -281,6 +293,10 @@ func (s *Service) fetch(ctx context.Context, u *url.URL) (Card, error) {
 	if card, ok := s.provider(ctx, u); ok {
 		return card, nil
 	}
+	return s.page(ctx, u)
+}
+
+func (s *Service) page(ctx context.Context, u *url.URL) (Card, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return Card{}, err
@@ -366,6 +382,12 @@ func (s *Service) fetch(ctx context.Context, u *url.URL) (Card, error) {
 	}
 	card.Description = clean(first("og:description", "twitter:description", "description"), 1000)
 	card.Image = asset(final, first("og:image", "twitter:image"))
+	if video := asset(final, first("og:video:secure_url", "og:video:url", "og:video")); video != "" {
+		if parsed, err := url.Parse(video); err == nil && strings.HasSuffix(strings.ToLower(parsed.Path), ".mp4") {
+			card.Video = video
+			card.TTL = 300
+		}
+	}
 	card.Author = clean(first("author", "article:author"), 200)
 	card.Published = clean(first("article:published_time", "date"), 100)
 	if site := clean(values["og:site_name"], 100); site != "" {

@@ -24,6 +24,18 @@ func (s *Service) provider(ctx context.Context, u *url.URL) (Card, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	host := strings.ToLower(u.Hostname())
+	if host == "twitch.tv" || host == "www.twitch.tv" || host == "clips.twitch.tv" {
+		return s.twitch(ctx, u)
+	}
+	if host == "reddit.com" || host == "www.reddit.com" || host == "old.reddit.com" || host == "np.reddit.com" || host == "m.reddit.com" || host == "redd.it" {
+		return s.reddit(ctx, u)
+	}
+	if host == "instagram.com" || host == "www.instagram.com" {
+		return s.instagram(ctx, u)
+	}
+	if host == "imgur.com" || host == "www.imgur.com" || host == "m.imgur.com" || host == "i.imgur.com" {
+		return s.imgur(ctx, u)
+	}
 	if wikipediaHost.MatchString(host) && strings.HasPrefix(u.Path, "/wiki/") {
 		return s.wikipedia(ctx, u)
 	}
@@ -175,18 +187,29 @@ func (s *Service) youtube(ctx context.Context, u *url.URL, id string) (Card, boo
 }
 
 func (s *Service) providerJSON(ctx context.Context, raw string, target any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	body, err := s.providerData(ctx, raw, "application/json")
 	if err != nil {
 		return err
 	}
+	if err := json.Unmarshal(body, target); err != nil {
+		return fmt.Errorf("provider JSON: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) providerData(ctx context.Context, raw, accept string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("User-Agent", "chatthing-preview/1.0 (+https://chat.subcult.tv)")
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", accept)
 	if req.URL.Hostname() == "api.github.com" {
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	}
 	response, err := s.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("provider request: %w", err)
+		return nil, fmt.Errorf("provider request: %w", err)
 	}
 	defer func() {
 		if err := response.Body.Close(); err != nil {
@@ -194,19 +217,16 @@ func (s *Service) providerJSON(ctx context.Context, raw string, target any) erro
 		}
 	}()
 	if response.StatusCode != http.StatusOK {
-		return errors.New("provider unavailable")
+		return nil, errors.New("provider unavailable")
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, 512*1024+1))
 	if err != nil {
-		return fmt.Errorf("provider response: %w", err)
+		return nil, fmt.Errorf("provider response: %w", err)
 	}
 	if len(body) > 512*1024 {
-		return errors.New("provider response too large")
+		return nil, errors.New("provider response too large")
 	}
-	if err := json.Unmarshal(body, target); err != nil {
-		return fmt.Errorf("provider JSON: %w", err)
-	}
-	return nil
+	return body, nil
 }
 
 func countText(count int64) string {

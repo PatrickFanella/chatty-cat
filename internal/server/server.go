@@ -66,7 +66,7 @@ func New(cfg Config) *Server {
 	if cfg.Auth != nil && cfg.Auth.HasAppCredentials() {
 		read = cfg.Auth.PublicRead
 	}
-	return &Server{cfg: cfg, ctx: ctx, cancel: cancel, client: client, slots: make(chan struct{}, 32), metadata: metadata.New(client, cfg.MetadataEndpoints, read), metadataSlots: make(chan struct{}, 16), previews: preview.New(nil), previewSlots: make(chan struct{}, 16)}
+	return &Server{cfg: cfg, ctx: ctx, cancel: cancel, client: client, slots: make(chan struct{}, 32), metadata: metadata.New(client, cfg.MetadataEndpoints, read), metadataSlots: make(chan struct{}, 16), previews: preview.New(nil, preview.PublicReader(read)), previewSlots: make(chan struct{}, 16)}
 }
 
 // Close cancels and waits for all active chat handlers.
@@ -107,6 +107,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/chat", s.chat)
 	mux.HandleFunc("GET /api/channels/{channel}", s.channelMetadata)
 	mux.HandleFunc("GET /api/preview", s.linkPreview)
+	mux.HandleFunc("GET /api/nitter", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+		defer cancel()
+		stop := context.AfterFunc(s.ctx, cancel)
+		defer stop()
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		if err := json.NewEncoder(w).Encode(struct {
+			Host string `json:"host"`
+		}{s.previews.Nitter(ctx)}); err != nil {
+			slog.Debug("mirror selection response closed")
+		}
+	})
 	mux.HandleFunc("GET /api/users/{login}", s.userProfile)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unknown API route", http.StatusNotFound) })
 	mux.Handle("/", http.FileServer(http.Dir(s.cfg.Assets)))

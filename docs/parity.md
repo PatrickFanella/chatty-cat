@@ -1506,3 +1506,35 @@ the imported GIF permalink, displayed an actual loaded GIF from the configured
 key and preserved all 375 pixels of chat width. No Twitch message was sent by this
 fixture check. Jump to live cleared mid and its navigation label. The private
 temporary configuration file used by the isolated preview was removed afterward.
+
+## Provider and Twitter-mirror continuation
+
+Twitch channel cards use public profile/live observations. Clip and VOD cards
+use the owner's server-only app credential through fixed Helix reads, preserving
+creator/channel, view count, duration, date and thumbnail. Optional native player
+loads use the official clip/VOD iframe endpoints, exact parent, minimum height,
+and autoplay disabled. Narrow screens retain external links. Reference:
+https://dev.twitch.tv/docs/embed/video-and-clips/ .
+
+Reddit adapters parse bounded Atom feeds for posts, comment targets, subreddit
+and user collections; HTML is reduced to text and validated public images.
+Instagram/Imgur adapters preserve public metadata and direct MP4s when served,
+with short media TTLs, thumbnail fallback for single Imgur images, and ordinary
+link fallback after failures. No shared web-client credential from the original
+worker was copied. Login walls, geo-blocking or absent public metadata can still
+prevent a rich card. The fallback makes that limitation visible without stopping
+chat; it does not assert that restricted metadata was retrieved.
+
+Nitter selection reads the original public health tracker, rejects unsafe
+origins, probes up to three candidates through the public-only HTTP client and
+caches reachable selection for fifteen minutes. Browser links retain canonical
+URLs for card retrieval. Without a reachable mirror, post URLs stay canonical
+and profiles retain the original bird.makeup fallback. Source releases now retain
+NOTICE alongside LICENSE. Replies can select messages in the archived context.
+
+Verification: full frontend suite, strict production build, Go race suite, vet
+and lint passed for this batch. Tests cover exact Twitch routes, fixed credential
+paths, cached cards, native frames, signed MP4 preservation, unsafe video rejection,
+Reddit comment selection, malformed-feed fallback, Imgur fallback and mirror
+validation/probe caching. Real rich-card availability remains a live deployment
+check; fixture coverage is not recorded as live provider success.
