@@ -79,3 +79,17 @@ Release rollback: first verify `current` still points to
 public bundle afterward. Actual rollback has not been run. The earlier edge and
 service withdrawal scripts remain available. Backend restart requires sign-in
 again; the frontend-only correction did not restart it.
+
+## Native Twitch controls fix
+
+Frontend revision `20261012T002528Z` removes the SDK script dependency after the
+owner reported it failing to load. The video panel uses Twitch's official iframe
+and native controls. Public browser verification started live video at 1080p60,
+with no SDK request; closing removed the frame. All 231 frontend tests and the
+production build pass. The Go sources matched the existing release before the
+static update, which preserved PID 3277827 and authenticated sessions. Its prior
+assets/source/manifest are retained in
+`/srv/apps/projects/chatty-cat/recovery/frontend-20261012T002528Z`.
+The footer source download returned 353260 bytes and SHA-256
+`eb552fa7a3e713d86e326e1f0cefe77a16ab4c21419970d65e05e43e281d6c7c`.
+The owner also confirmed subscriber emotes in the live picker and autocomplete.

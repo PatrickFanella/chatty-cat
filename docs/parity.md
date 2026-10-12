@@ -1052,3 +1052,22 @@ Account emotes, logout/expiry, whisper and moderation acceptance still require
 the owner's authenticated session. Browser automation has no access to that
 regular-browser session; this is a live-acceptance blocker, not evidence that
 the remaining implementation gates have passed.
+
+### Native Twitch video fix and account-emote acceptance
+
+The owner confirmed subscriber emotes appear in both the signed-in live picker
+and autocomplete. This is owner-confirmed account-entitlement acceptance.
+
+The owner then reported failure loading `player.twitch.tv/js/embed/v1.js`.
+Video now uses Twitch's official direct iframe and built-in playback, audio and
+quality controls. The separate SDK script and duplicate controls were removed.
+The parent host is retained, autoplay is off, saved channel/mute/docking/geometry
+preferences remain, and closing or hiding the rail removes the frame to stop
+playback. Narrow screens retain the external Twitch link.
+
+Validation: 231 frontend tests and strict build pass. Public frontend revision
+`20261012T002528Z` loaded the official iframe at 662×396px, with zero SDK script
+requests. Clicking its native Play button displayed live HasanAbi video and
+1080p60 quality. Closing the panel left no video frame. Audio was not independently
+heard. The public source archive matches the staged hash. The frontend update
+retained backend PID 3277827 and existing authenticated sessions.
