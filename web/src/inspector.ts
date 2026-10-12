@@ -24,7 +24,10 @@ export class UserInspector {
     if(this.busy){event.preventDefault();return;}
     const message=name.dataset.mention ? [...this.messages()].reverse().find(item=>item.login.toLowerCase()===name.dataset.mention&&item.channel===row.dataset.channel&&item.command==='PRIVMSG') : this.messages().find(item=>item.id===row.dataset.id&&item.channel===row.dataset.channel);
     if(!message||!message.login||!/^[a-z0-9_]{1,25}$/i.test(message.login))return;
-    event.preventDefault();this.message=message;this.armed=undefined;this.requestID=undefined;this.status.textContent='';this.confirm.hidden=true;
+    event.preventDefault();this.show(message);
+  };
+  openUser(login:string,channel:string):boolean{if(privacyEnabled()||this.busy)return false;const message=[...this.messages()].reverse().find(m=>m.login.toLowerCase()===login.toLowerCase()&&m.channel===channel&&m.command==='PRIVMSG');if(!message)return false;this.show(message);return true;}
+  private show(message:ChatMessage):void{this.message=message;this.armed=undefined;this.requestID=undefined;this.status.textContent='';this.confirm.hidden=true;
     const records=this.messages().filter(item=>item.channel===message.channel&&item.login===message.login&&item.command==='PRIVMSG');
     this.dialog.querySelector<HTMLElement>('h2')!.textContent=message.tags['display-name']||message.login;
     const profile=this.dialog.querySelector<HTMLAnchorElement>('[data-profile]')!;profile.href='https://www.twitch.tv/'+message.login;

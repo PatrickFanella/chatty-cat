@@ -201,3 +201,11 @@ func TestWhisperRequest(t *testing.T) {
 		}
 	}
 }
+
+func TestLocalCommandsNeverTranslateToProviderWrites(t *testing.T) {
+	for _, command := range []string{"/clearmessages", "/uptime", "/openurl https://example.com", "/copy text", "/user alice", "/usercard alice", "/reply text", "/r text", "/whisper alice text", "/msg alice text", ".w alice text", "/requests", "/help", "/disconnect", "/reconnect", "/popout", "/popup", "/ignore alice", "/unignore alice", "/follow", "/unfollow"} {
+		if _, err := parseCommand(command); err == nil {
+			t.Errorf("local command accepted by server: %s", command)
+		}
+	}
+}

@@ -1,3 +1,4 @@
+import {isLocalCommand} from './local-commands';
 import { validateMessage } from './composer';
 export interface CommandTemplate {trigger:string;name:string;group:string;body:string}
 export interface CommandContext {channel:{name:string;id:string;title:string;game:string};account:{name:string;id:string};message:{name:string;id:string;text:string}|undefined;input:string}
@@ -31,7 +32,7 @@ export function parseCommandList(value:unknown):CommandTemplate[]{
  if(!Array.isArray(value)||value.length>50)throw new Error('Save at most 50 commands');const result:CommandTemplate[]=[];
  for(const item of value){if(!item||typeof item!=='object')throw new Error('Invalid command');const data:Record<string,unknown>=item;
   if(typeof data.trigger!=='string'||!/^\/?[a-zA-Z][a-zA-Z0-9_-]{0,30}$/.test(data.trigger))throw new Error('Use a one-word trigger, optionally starting with /');
-  if(data.trigger.startsWith('/')&&!validateMessage(data.trigger))throw new Error('Cannot replace a built-in command');
+  if(isLocalCommand(data.trigger)||data.trigger.startsWith('/')&&!validateMessage(data.trigger))throw new Error('Cannot replace a built-in command');
   if(typeof data.name!=='string'||!data.name.trim()||data.name.length>60||typeof data.group!=='string'||data.group.length>60||typeof data.body!=='string')throw new Error('Invalid command name, group or body');
   compileTemplate(data.body);result.push({trigger:data.trigger,name:data.name.trim(),group:data.group.trim(),body:data.body});
  }

@@ -34,6 +34,7 @@ export class PersonalState {
   }
 }
 export class PersonalChat {
+  private paused=false;
   private connection:ChatConnection|undefined;
   private identity='';
   constructor(private channels:string[],private receive:(event:ServerEvent)=>void,private status:HTMLElement,private reset:(login:string)=>void){}
@@ -41,8 +42,10 @@ export class PersonalChat {
     const identity=auth?.authenticated?`${auth.userID}:${auth.personalChatEnabled}`:'';if(identity===this.identity)return;
     this.identity=identity;this.connection?.stop();this.connection=undefined;this.reset(auth?.authenticated?auth.login??'':'');this.status.textContent='';
     if(!auth?.authenticated)return;if(!auth.personalChatEnabled){this.status.textContent='Log in again to enable personal room state';return;}
-    this.connection=new ChatConnection(this.channels,event=>{if(event.type==='status')this.status.textContent=event.detail||`Personal chat: ${event.state}`;else this.receive(event);},'/api/auth/chat');this.connection.start();
+    this.connection=new ChatConnection(this.channels,event=>{if(event.type==='status')this.status.textContent=event.detail||`Personal chat: ${event.state}`;else this.receive(event);},'/api/auth/chat');if(this.paused)this.connection.disconnect();else this.connection.start();
   }
+  disconnect():void{this.paused=true;this.connection?.disconnect();}
+  reconnect():void{this.paused=false;this.connection?.reconnect();}
   stop():void {this.connection?.stop();}
   setChannels(channels:readonly string[]):void{this.channels=[...channels];this.connection?.setChannels(channels);}
 }
