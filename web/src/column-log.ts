@@ -32,7 +32,7 @@ export class ColumnLog {
  }
  set(items:readonly LogItem[],following:boolean,revision=0,reverse=false,mode=1,pauseHover=false):void {
   this.pauseHover=pauseHover;if(!pauseHover)this.hovered=-1;
-  const count=mode===1?1:mode===3&&innerWidth>innerHeight?3:2;
+  const count=mode===2?2:mode===3?(innerWidth>innerHeight?3:2):1;
   const reset=count!==this.count||reverse!==this.reverse||revision!==this.revision;
   const previousLast=this.items.at(-1)?.key;this.items=items;this.reverse=reverse;this.following=following;this.revision=revision;
   if(count!==this.count)this.rebuild(count);

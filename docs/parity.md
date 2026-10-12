@@ -1638,3 +1638,8 @@ remaining acceptance gates are GIPHY's approved cache/proxy boundary and owner
 confirmation of audible/OS alerts. GIPHY lookup itself, safe mode, request bounds,
 provider URL validation and pronouns already pass; the original media cache and
 proxy cannot be reproduced under current provider rules without approval.
+
+A final layout audit found rail modes 4–6 incorrectly creating two chat columns.
+They now retain one chat column; page-flip modes 2/3 alone create multiple chat
+columns. A regression check covers desktop and portrait. The same distinction
+applies when the rail is hidden on narrow screens.

@@ -46,3 +46,8 @@ it('retains a deliberate wheel hold made while a message is hovered',()=>{
  const held=column.textContent;current.dispatchEvent(new PointerEvent('pointerout',{bubbles:true}));view!.set(records(120),true,0,false,2,true);expect(column.textContent).toBe(held);expect(root.textContent).toContain('119');
  view!.resume();view!.set(records(120),true,0,false,2,true);expect(view!.allFollowing()).toBe(true);
 });
+
+it('keeps rail modes 4–6 in one chat column on desktop and portrait screens',()=>{
+ const root=setup();for(const mode of [4,5,6]){view!.set(records(100),true,0,false,mode);expect(root.querySelectorAll('.log-column')).toHaveLength(0);expect(root.textContent).toContain('99');}
+ vi.stubGlobal('innerWidth',375);vi.stubGlobal('innerHeight',812);view!.set(records(100),true,0,false,4);expect(root.querySelectorAll('.log-column')).toHaveLength(0);
+});
