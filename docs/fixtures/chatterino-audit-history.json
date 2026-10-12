@@ -1,0 +1,47 @@
+{
+  "format": "chatty-cat-history",
+  "version": 1,
+  "messages": [
+    {
+      "id": "audit-parent",
+      "command": "PRIVMSG",
+      "channel": "patrick__eff",
+      "login": "audit_reader",
+      "text": "coverage audit parent Kappa \ud83d\udc4b",
+      "timestamp": 1791801000000,
+      "tags": {
+        "display-name": "Audit Reader",
+        "emotes": "25:22-26"
+      }
+    },
+    {
+      "id": "audit-reply",
+      "command": "PRIVMSG",
+      "channel": "patrick__eff",
+      "login": "audit_reply",
+      "text": "coverage audit reply",
+      "timestamp": 1791801001000,
+      "tags": {
+        "reply-parent-msg-id": "audit-parent",
+        "reply-parent-display-name": "Audit Reader",
+        "reply-parent-msg-body": "coverage audit parent Kappa \ud83d\udc4b"
+      }
+    },
+    {
+      "id": "audit-parent",
+      "command": "PRIVMSG",
+      "channel": "patrick__eff",
+      "login": "audit_reader",
+      "text": "coverage audit parent Kappa \ud83d\udc4b",
+      "timestamp": 1791801000000,
+      "tags": {
+        "display-name": "Audit Reader",
+        "emotes": "25:22-26"
+      }
+    },
+    {
+      "id": "invalid"
+    },
+    "<div class=\"row\" data-ts=\"1791801002000\" data-ch=\"patrick__eff\" data-u=\"audit_legacy\" data-mid=\"audit-legacy\"><span class=\"msg\">coverage audit safe legacy<script>window.auditScriptRan=true</script></span></div>"
+  ]
+}

@@ -2,7 +2,7 @@
 
 Delivery is tracked in the [Gitea roadmap](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3) and [project board](https://git.subcult.tv/subculture-collective/chatty-cat/projects/2). The parity implementation was merged in [PR #2](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/2).
 
-The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatterino2/tree/v2.5.6), reviewed on 2026-10-11 against the [official wiki](https://wiki.chatterino.com/) and [release notes](https://chatterino.com/changelog). This is a delivery plan, not a claim that Chatty Cat already implements every Chatterino feature. The coverage audit accounts for gaps beyond the initial catalog.
+The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatterino2/tree/v2.5.6), reviewed on 2026-10-11 against the [official wiki](https://wiki.chatterino.com/) and [release notes](https://chatterino.com/changelog). This is a delivery plan, not a claim that Chatty Cat already implements every Chatterino feature. The [completed coverage audit](chatterino-coverage.md) maps exact settings, commands and hotkeys to implementation evidence, platform limits and delivery issues.
 
 ## Delivery stages
 
@@ -54,12 +54,26 @@ The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatt
 | [#37](https://git.subcult.tv/subculture-collective/chatty-cat/issues/37) | Add a capability-limited extension framework | #12 |
 | [#38](https://git.subcult.tv/subculture-collective/chatty-cat/issues/38) | Add owner-configured IRC networks and private conversations | #7 |
 
+## Audit follow-ups
+
+The [Chatterino inventory](chatterino-coverage.csv) and [report](chatterino-coverage.md) identified additional slices:
+
+- [#40](https://git.subcult.tv/subculture-collective/chatty-cat/issues/40) — Dispatch local Chatterino commands without sending them to Twitch.
+- [#41](https://git.subcult.tv/subculture-collective/chatty-cat/issues/41) — Add permission-aware clip, marker and broadcaster management actions.
+- [#42](https://git.subcult.tv/subculture-collective/chatty-cat/issues/42) — Add warnings, Shield Mode and ID-based moderation commands.
+- [#43](https://git.subcult.tv/subculture-collective/chatty-cat/issues/43) — Add Chatterino message and interface presentation controls.
+- [#44](https://git.subcult.tv/subculture-collective/chatty-cat/issues/44) — Add configurable safe link previews and selection search.
+- [#45](https://git.subcult.tv/subculture-collective/chatty-cat/issues/45) — Add a versioned Unicode emoji catalog, categories and style controls.
+- [#46](https://git.subcult.tv/subculture-collective/chatty-cat/issues/46) — Add bounded similar-message filtering with explicit highlight behavior.
+- [#47](https://git.subcult.tv/subculture-collective/chatty-cat/issues/47) — Add an optional paired desktop overlay with click-through controls.
+- [#48](https://git.subcult.tv/subculture-collective/chatty-cat/issues/48) — Private per-user notes in account-isolated user cards.
+
 ## Operating the board
 
-- PR #2 is merged. The coverage audit is Ready; named workspaces #6 and the conversation inbox #9 are the first implementation priorities.
+- PR #2 is merged. The coverage audit is complete; named workspaces #6 and the conversation inbox #9 are the first implementation priorities.
 - Internal dependencies remain Backlog until their blockers are satisfied. Move the next available tickets to Ready and apply `ready-for-agent`; a closed but unmerged PR does not satisfy the baseline.
 - Use In Progress for owned work, Review for an attached PR, Blocked for external impediments, and Done after acceptance evidence is recorded.
-- Each issue has a demoable outcome, acceptance criteria and native dependency links. Issues remain unassigned; milestone dates are unset until an owner commits to delivery.
+- Each issue has a demoable outcome, acceptance criteria and native dependency links. Delivery issues remain unassigned until work is owned; milestone dates are unset until an owner commits to delivery.
 - Keep web features usable without native integrations. Streamlink/player launch, watched-channel bridging and process-aware privacy require explicit companion pairing.
 - Chatterino import must exclude its stored credentials. Provider-specific unavailable features are disclosed rather than invented.
 

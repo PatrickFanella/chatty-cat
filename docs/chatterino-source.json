@@ -1,0 +1,22 @@
+{
+  "version": "v2.5.6",
+  "tag_object": "7892dfe345152ad1c336f2123b3f220ba6323b48",
+  "commit": "5921016f36ecc94afa2f0bf303e08c596d4e85fe",
+  "reviewed_at": "2026-10-12",
+  "rebuild_commit": "8501a49a826e9b26be9ddb0b6be676d80a887ddc",
+  "source_url": "https://github.com/Chatterino/chatterino2/tree/5921016f36ecc94afa2f0bf303e08c596d4e85fe",
+  "archive_url": "https://codeload.github.com/Chatterino/chatterino2/tar.gz/5921016f36ecc94afa2f0bf303e08c596d4e85fe",
+  "sha256": {
+    "src/singletons/Settings.hpp": "6d85377ed3296207bbf5137d0547c0668a7d8d81eb7d3f095c77b76f24a2c300",
+    "src/controllers/commands/CommandController.cpp": "7a439747583e3ff7450ffd0e55c3e27f9da5902407a888451700f860af500d1d",
+    "src/controllers/hotkeys/ActionNames.hpp": "c6de83d8947c15490ad5eef71c7e6ddcd63f1e5a25b4108d8198ef2512eae476",
+    "src/controllers/hotkeys/HotkeyController.cpp": "aa4a6ffb9847a55fd2aa7b2c784689ee3cd1f485e202f9a75781583e60f4920f",
+    "src/providers/twitch/TwitchCommon.cpp": "52c4b0e1d11aa73e3a1f4e5c1b95df00af82fcaf7c623560ad43b9e6b7c46ebb",
+    "src/widgets/splits/SplitInput.cpp": "9fda357a55a753c4e8fed640c9e86aa9661a06284835a25a43227c47a4e0e63f",
+    "src/providers/twitch/eventsub/Connection.hpp": "6b425bc8c5f84ecf83f301fb5e2dcf4fa5fd2d47761b619ca51b799d00b722dd",
+    "src/controllers/userdata/UserData.hpp": "9961808b8eb6592a7548c6c835e5e8d3b951f76145a9e7f52f9026f02e3596d4",
+    "src/controllers/plugins/PluginController.cpp": "22d3fc4440318123f4b23eb998c2524a63407ada32826ce38de23be92b194d03",
+    "src/widgets/OverlayWindow.cpp": "a9da1825bd6790e22d4ef49df017ded6f38f3d1b0c077e7f95b558db35e3f3dc",
+    "src/controllers/commands/builtin/Misc.cpp": "d714277cb76a5ad0f51e6a9e65a3f05399634558ac9c8e179b52b4e92b4ee7d8"
+  }
+}
