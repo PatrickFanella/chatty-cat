@@ -5,7 +5,7 @@ import {registerSettings} from './settings-bundle';
 import {privacyEnabled} from './privacy';
 
 interface PaneView {pane:SplitPane;root:HTMLElement;view:VirtualLog;items:readonly LogItem[];restore:boolean;unread:HTMLElement;send:HTMLButtonElement}
-interface SplitActions {target:(channel:string)=>void;changed:()=>void;popout:(pane:string)=>void;canChange?:()=>boolean}
+interface SplitActions {target:(channel:string)=>void;changed:()=>void;popout:(pane:string)=>void;canChange?:()=>boolean;rules?:()=>readonly {id:string;name:string}[]}
 function button(label:string,action:()=>void):HTMLButtonElement{const node=document.createElement('button');node.type='button';node.textContent=label;node.addEventListener('click',action);return node;}
 
 // One source transcript feeds every pane; only visible tabs mount virtual readers.
@@ -45,7 +45,7 @@ export class SplitLog {
  private rebuild():void{this.signature='';}
  private clear():void{this.legacy?.stop();this.legacy=undefined;for(const entry of this.views)entry.view.stop();this.views=[];this.root.replaceChildren();this.root.classList.remove('page-columns');}
  private paintLayout():void {
-  const signature=this.layout.enabled?'split:'+this.layout.activeTab.id+':'+this.layout.activeTab.panes.map(p=>p.id+':'+p.channels.join(',')+':'+p.filter+':'+p.reverse+':'+p.pauseHover).join('|'):'legacy';
+  const signature=this.layout.enabled?'split:'+this.layout.activeTab.id+':'+this.layout.activeTab.panes.map(p=>p.id+':'+p.channels.join(',')+':'+p.filter+':'+p.reverse+':'+p.pauseHover+':'+(p.rules??[]).join(',')).join('|'):'legacy';
   if(signature===this.signature)return;
   this.clear();this.signature=signature;this.toggle.setAttribute('aria-pressed',String(this.layout.enabled));this.root.classList.toggle('independent-splits',this.layout.enabled);
   const ids=new Set(this.layout.tabs.flatMap(tab=>tab.panes.map(p=>p.id)));for(const id of this.contexts.keys())if(!ids.has(id))this.contexts.delete(id);
@@ -102,14 +102,15 @@ export class SplitLog {
   const target=document.createElement('select');target.setAttribute('aria-label','Pane send target');for(const channel of this.joined){const option=document.createElement('option');option.value=channel;option.textContent=channel;target.append(option);}target.value=pane.target;
   const filter=document.createElement('input');filter.type='search';filter.maxLength=200;filter.value=pane.filter;filter.setAttribute('aria-label','Pane text filter');filter.placeholder='Only messages containing…';
   const checkbox=(text:string,on:boolean):{label:HTMLLabelElement;input:HTMLInputElement}=>{const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=on;label.append(input,text);return {label,input};};
+  const ruleChoices=document.createElement('fieldset'),ruleLegend=document.createElement('legend');ruleLegend.textContent='Message rules for this pane';ruleChoices.append(ruleLegend);const ruleChecks=(this.actions.rules?.()??[]).map(rule=>{const choice=checkbox(rule.name,(pane.rules??[]).includes(rule.id));choice.input.value=rule.id;ruleChoices.append(choice.label);return choice.input;});
   const reverse=checkbox('Newest first',pane.reverse),hover=checkbox('Pause on hover',pane.pauseHover);const error=document.createElement('p');error.setAttribute('role','status');
-  const save=button('Apply pane settings',()=>{this.captureReaders();try{this.layout.configure(id,{channels:checks.filter(c=>c.checked).map(c=>c.value),target:target.value,filter:filter.value,reverse:reverse.input.checked,pauseHover:hover.input.checked});if(this.layout.activePane.id===id)this.actions.target(target.value);this.rebuild();this.dialog.close();this.actions.changed();}catch(e){error.textContent=e instanceof Error?e.message:'Invalid pane';}});
-  form.append(channels,target,filter,reverse.label,hover.label,error,save,button('Cancel',()=>this.dialog.close()));form.addEventListener('submit',event=>{event.preventDefault();save.click();});this.dialog.append(form);this.dialog.showModal();
+  const save=button('Apply pane settings',()=>{this.captureReaders();try{this.layout.configure(id,{channels:checks.filter(c=>c.checked).map(c=>c.value),target:target.value,filter:filter.value,rules:ruleChecks.filter(c=>c.checked).map(c=>c.value),reverse:reverse.input.checked,pauseHover:hover.input.checked});if(this.layout.activePane.id===id)this.actions.target(target.value);this.rebuild();this.dialog.close();this.actions.changed();}catch(e){error.textContent=e instanceof Error?e.message:'Invalid pane';}});
+  form.append(channels,target,filter,ruleChoices,reverse.label,hover.label,error,save,button('Cancel',()=>this.dialog.close()));form.addEventListener('submit',event=>{event.preventDefault();save.click();});this.dialog.append(form);this.dialog.showModal();
  }
  set(items:readonly LogItem[],following:boolean,revision=0,reverse=false,mode=1,pauseHover=false):void {
   if(this.stopped)return;this.following=following;this.paintLayout();
   if(this.legacy){this.legacy.set(items,following,revision,reverse,mode,pauseHover);return;}
-  for(const entry of this.views){const p=entry.pane,filter=p.filter.toLowerCase(),context=this.contexts.get(p.id);entry.items=context?.items??items.filter(item=>p.channels.includes(item.channel??item.key.split(':')[0]!)&&(!filter||(item.text??'').toLowerCase().includes(filter)));
+  for(const entry of this.views){const p=entry.pane,filter=p.filter.toLowerCase(),context=this.contexts.get(p.id);entry.items=(context?.items??items).filter(item=>p.channels.includes(item.channel??item.key.split(':')[0]!)&&(!filter||(item.text??'').toLowerCase().includes(filter))&&(!item.visible||item.visible(p.rules??[])));
    // Main's source order follows its global display setting; panes own theirs.
    const visible=!(innerWidth<=650||innerHeight>=innerWidth)||p.id===this.layout.activePane.id;
    if(reverse!==p.reverse)entry.items=[...entry.items].reverse();entry.view.set(entry.items,following&&!context&&visible,revision,p.reverse,p.pauseHover);
@@ -118,6 +119,7 @@ export class SplitLog {
   }
   this.paintActive();
  }
+ ruleIDs(scope:string):readonly string[]{const index=Number(scope.split(':')[1]);return scope.startsWith('split:')?this.layout.activeTab.panes[index]?.rules??[]:[];}
  observe(channel:string,text:string,key?:string):void{if(!this.layout.enabled)return;if(key){if(this.observed.has(key))return;this.observed.add(key);if(this.observed.size>5000)this.observed.delete(this.observed.values().next().value!);}for(const tab of this.layout.tabs)for(const pane of tab.panes){if(!pane.channels.includes(channel)||pane.filter&&!text.toLowerCase().includes(pane.filter.toLowerCase()))continue;const entry=this.views.find(v=>v.pane.id===pane.id);if(tab.id!==this.layout.activeTab.id||!entry||!entry.view.isFollowing()||entry.view.pausedByHover()||entry.restore)pane.unread=Math.min(9999,pane.unread+1);}this.paintActive();}
  finishReaderRestore():void{for(const entry of this.views)if(entry.restore){entry.restore=false;entry.pane.reader=null;this.status.textContent='Some pane reader positions are no longer in retained history';}}
  private active():PaneView|undefined{return this.views.find(v=>v.pane.id===this.layout.activePane.id);}

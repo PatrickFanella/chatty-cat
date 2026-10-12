@@ -1,4 +1,4 @@
-export interface LogItem { key: string; channel?:string; text?:string; render: (scope?:string) => HTMLElement }
+export interface LogItem { key: string; channel?:string; text?:string; visible?:(rules:readonly string[])=>boolean; render: (scope?:string) => HTMLElement }
 
 // Variable-height rows retain their measured heights while outside the DOM.
 // Only the viewport and a small overscan are mounted, even with 100k records.

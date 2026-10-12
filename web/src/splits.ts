@@ -1,4 +1,4 @@
-export interface SplitPane {id:string;channels:string[];target:string;filter:string;reverse:boolean;pauseHover:boolean;weight:number;unread:number;reader:{key:string;offset:number}|null}
+export interface SplitPane {id:string;channels:string[];target:string;filter:string;rules?:string[];reverse:boolean;pauseHover:boolean;weight:number;unread:number;reader:{key:string;offset:number}|null}
 export interface SplitTab {id:string;name:string;active:string;panes:SplitPane[]}
 type ClosedSplit={kind:'pane';tab:string;pane:SplitPane}|{kind:'tab';tab:SplitTab};
 export interface SplitSnapshot {version:1;enabled:boolean;active:string;tabs:SplitTab[];closed:ClosedSplit[]}
@@ -12,7 +12,8 @@ function parsePane(value:unknown,joined:readonly string[]):SplitPane|null {
  if(typeof value.weight!=='number'||!Number.isFinite(value.weight)||value.weight<1||value.weight>4)return null;
  let reader:SplitPane['reader']=null;
  if(record(value.reader)&&typeof value.reader.key==='string'&&value.reader.key.length<=1000&&channels.includes(value.reader.key.split(':')[0]!)&&typeof value.reader.offset==='number'&&Number.isFinite(value.reader.offset)&&Math.abs(value.reader.offset)<=100000)reader={key:value.reader.key,offset:value.reader.offset};
- return {id:value.id,channels,target:value.target,filter:value.filter,reverse:value.reverse===true,pauseHover:value.pauseHover===true,weight:value.weight,unread:typeof value.unread==='number'&&Number.isInteger(value.unread)?Math.max(0,Math.min(9999,value.unread)):0,reader};
+ if(value.rules!==undefined&&(!Array.isArray(value.rules)||value.rules.length>32||value.rules.some(id=>!identity(id))))return null;
+ return {id:value.id,channels,target:value.target,filter:value.filter,rules:Array.isArray(value.rules)?[...new Set(value.rules as string[])]:[],reverse:value.reverse===true,pauseHover:value.pauseHover===true,weight:value.weight,unread:typeof value.unread==='number'&&Number.isInteger(value.unread)?Math.max(0,Math.min(9999,value.unread)):0,reader};
 }
 function parseTab(value:unknown,joined:readonly string[]):SplitTab|null {
  if(!record(value)||!identity(value.id)||typeof value.name!=='string'||!value.name.trim()||value.name.length>60||/[\x00-\x1f\x7f]/.test(value.name)||!Array.isArray(value.panes)||value.panes.length<1||value.panes.length>6)return null;
@@ -46,7 +47,7 @@ export function reconcileSplits(value:unknown,joined:readonly string[],previous?
  const model=new SplitLayout(joined,parsed);try{for(const channel of joined.filter(c=>!previous.includes(c))){const room=model.tabs.flatMap(t=>t.panes).find(p=>p.channels.length<6);if(room){room.channels.push(channel);continue;}const tab=model.tabs.find(t=>t.panes.length<6);if(tab)model.selectTab(tab.id);const next=tab?model.addPane():model.addTab('Chat').panes[0]!;model.configure(next.id,{channels:[channel],target:channel,filter:'',reverse:false,pauseHover:true});}}catch{return null;}
  if(joined.length>6)model.enable();return parseSplits(model.snapshot(),joined);
 }
-function pane(channels:readonly string[]):SplitPane {if(!channels.length)throw new Error('Join a channel first');return {id:crypto.randomUUID(),channels:[...channels],target:channels[0]!,filter:'',reverse:false,pauseHover:true,weight:1,unread:0,reader:null};}
+function pane(channels:readonly string[]):SplitPane {if(!channels.length)throw new Error('Join a channel first');return {id:crypto.randomUUID(),channels:[...channels],target:channels[0]!,filter:'',rules:[],reverse:false,pauseHover:true,weight:1,unread:0,reader:null};}
 export class SplitLayout {
  private state:SplitSnapshot;
  constructor(private joined:readonly string[],value?:unknown){const panes:SplitPane[]=[];for(let i=0;i<joined.length;i+=6)panes.push(pane(joined.slice(i,i+6)));const first=panes[0];if(!first||panes.length>4)throw new Error('Choose 1–24 workspace channels');const tab={id:crypto.randomUUID(),name:'Chat',active:first.id,panes};this.state=parseSplits(value,joined)??{version:1,enabled:joined.length>6,active:tab.id,tabs:[tab],closed:[]};}
@@ -66,7 +67,7 @@ export class SplitLayout {
  addPane():SplitPane{this.capacity();if(this.activeTab.panes.length>=6)throw new Error('Tab limit: 6 panes');const next=pane(this.joined.slice(0,6));this.activeTab.panes.push(next);this.activeTab.active=next.id;return next;}
  duplicatePane(id:string):SplitPane{const {pane:source,tab}=this.locate(id);this.capacity();if(tab.panes.length>=6)throw new Error('Tab limit: 6 panes');const next={...structuredClone(source),id:crypto.randomUUID(),unread:0};tab.panes.push(next);this.selectPane(next.id);return next;}
  duplicateTab(id:string):SplitTab{const source=this.tabs.find(t=>t.id===id);if(!source)throw new Error('Tab no longer exists');this.capacity(source.panes.length,1);const panes=source.panes.map(p=>({...structuredClone(p),id:crypto.randomUUID(),unread:0})),tab={id:crypto.randomUUID(),name:source.name,active:panes[0]!.id,panes};this.state.tabs.push(tab);this.state.active=tab.id;return tab;}
- configure(id:string,value:Pick<SplitPane,'channels'|'target'|'filter'|'reverse'|'pauseHover'>):void{const {pane:current}=this.locate(id);const valid=parsePane({...current,...value,reader:null},this.joined);if(!valid)throw new Error('Choose joined channels, a matching send target and a filter of at most 200 characters');Object.assign(current,valid);}
+ configure(id:string,value:Pick<SplitPane,'channels'|'target'|'filter'|'reverse'|'pauseHover'> & {rules?:string[]}):void{const {pane:current}=this.locate(id);const valid=parsePane({...current,...value,reader:null},this.joined);if(!valid)throw new Error('Choose joined channels, a matching send target and a filter of at most 200 characters');Object.assign(current,valid);}
  resize(id:string,weight:number):void{if(!Number.isFinite(weight)||weight<1||weight>4)throw new Error('Pane width must be between 1 and 4');this.locate(id).pane.weight=weight;}
  movePane(id:string,delta:number):void{const {tab,pane}=this.locate(id),index=tab.panes.indexOf(pane),next=Math.max(0,Math.min(tab.panes.length-1,index+delta));tab.panes.splice(index,1);tab.panes.splice(next,0,pane);}
  moveTab(id:string,delta:number):void{const index=this.state.tabs.findIndex(t=>t.id===id);if(index<0)return;const [tab]=this.state.tabs.splice(index,1);this.state.tabs.splice(Math.max(0,Math.min(this.state.tabs.length,index+delta)),0,tab!);}

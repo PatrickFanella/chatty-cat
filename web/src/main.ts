@@ -1,3 +1,5 @@
+import {RulePanel} from './rules-ui';
+import {SimilarMessages} from './similar';
 import {loadCapacity} from './capacity';
 import {RowCache} from './row-cache';
 import {reconcileSplits} from './splits';
@@ -74,6 +76,7 @@ document.documentElement.dataset.overlay=String(overlay);
 const log = element('log', HTMLElement);
 let rail:PanelRail|undefined;
 let inboxPanel:InboxPanel|undefined;
+let rulePanel:RulePanel|undefined;
 let inboxGeneration=0;
 let syncSources:(()=>void)|undefined;
 const pronouns = new Pronouns();
@@ -144,7 +147,7 @@ const composer = new Composer(element('composer', HTMLFormElement), channels, (i
 }, (result, text, requestID) => { if (result.whisper && result.recipient) { const match = /^\/w\s+\S+\s+(.+)$/i.exec(text.trim()); if (match) whispers.echo(result.recipient, match[1]!, requestID); } });
 const panePopout=workspaceQuery.get('pane')??'';
 const virtualLog = new SplitLog(log,element('splits-open',HTMLButtonElement),channels,{
- canChange:()=>!composer.sending,target:channel=>composer.setTarget(channel),changed:()=>{if(overlay)virtualLog.layout.enable(false);else if(virtualLog.layout.enabled){follow=true;pendingReaders=undefined;}syncSources?.();scheduleRender();},popout:pane=>{
+ rules:()=>rulePanel?.engine.rules.filter(r=>r.scope==='pane')??[],canChange:()=>!composer.sending,target:channel=>composer.setTarget(channel),changed:()=>{if(overlay)virtualLog.layout.enable(false);else if(virtualLog.layout.enabled){follow=true;pendingReaders=undefined;}syncSources?.();scheduleRender();},popout:pane=>{
   if(composer.sending){announcer.textContent='Wait for the current send outcome before opening a pane';return;}
   try{saveWorkspace();const url=new URL(location.href);url.search='';url.searchParams.set('workspace',currentWorkspaceID);url.searchParams.set('channel',channels.join(','));url.searchParams.set('pane',pane);url.searchParams.set('video','off');const opened=window.open(url.href,'_blank','popup,width=600,height=850');if(!opened)announcer.textContent='Allow popups to open this pane';}catch(error){announcer.textContent=error instanceof Error?error.message:'Could not save the pane';}
  }
@@ -163,7 +166,7 @@ const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message),(message,outgoing)=>inboxPanel?.whisper(message,outgoing));
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { accountAuth = auth;if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin) scheduleRender(); const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { accountAuth = auth;if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -216,9 +219,11 @@ const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElemen
 window.addEventListener('pagehide', () => historyFiles.stop());
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
+function ruleIDsFor(message:ChatMessage):string[]{return virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(t=>t.panes.filter(p=>p.channels.includes(message.channel)).flatMap(p=>p.rules??[])):[];}
 function observe(message: ChatMessage, live = false, countStats=false): void {
   if(live&&message.command==='PRIVMSG')virtualLog.observe(message.channel,message.text,messageKey(message));
-  inboxPanel?.observe(message);
+  const decision=rulePanel?.engine.observe(message,ruleIDsFor(message));const similar=rulePanel?.similarity.classify(message,selfLogin)??false;
+  if(!decision?.hidden)inboxPanel?.observe(message,!!decision?.inbox&&(!similar||!!rulePanel?.similarity.options.highlightSimilar));
   if(countStats)statsLedger.observe(message);else {statsLedger.attach(message);statsLedger.reconcile(message.channel);}
   rateTimeline.series.observe(message,live);
   if (roomStates.observe(message)) renderRoom();
@@ -265,16 +270,17 @@ function render(): void {
    // collecting at the live edge and disturbing scroll anchoring.
    for (const message of messages) {
      if (['ROOMSTATE', 'USERSTATE', 'GLOBALUSERSTATE'].includes(message.command)) continue;
-     const visibility = messageVisibility(message, display.options, selfLogin);
+     const visibility = messageVisibility(message, display.options, selfLogin);const rule=rulePanel?.engine.evaluate(message),similar=rulePanel?.similarity.classify(message,selfLogin)??false;
+     if(rule?.hidden||similar&&rulePanel?.similarity.options.behavior==='hide')continue;
      if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
      if(display.options.links){let fingerprint=fingerprints.get(message);if(fingerprint===undefined){fingerprint=linkFingerprint(message.text);fingerprints.set(message,fingerprint);}if(!fingerprint||seenLinks.has(fingerprint))continue;if(seenLinks.size>=20000)seenLinks.clear();seenLinks.add(fingerprint);}
      const key = messageKey(message);
      if (visibility.hiddenUser && display.options.hideMode === 'stub') {
        items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
      }
-     items.push({ key, channel:message.channel,text:message.text, render: (scope="default") => {
+     items.push({ key, channel:message.channel,text:message.text, visible:ids=>!rulePanel?.engine.evaluate(message,ids).hidden,render: (scope="default") => {
        const row=rowsByMessage.get(message,scope,visualRevision,()=>messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze));
-       row.classList.toggle('keyword-match', visibility.highlight); row.classList.toggle('user-ghost', visibility.hiddenUser);
+       const decision=rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope));const highlight=(visibility.highlight||!!decision?.highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar);row.classList.toggle('keyword-match',highlight);row.classList.toggle('similar-message',similar);if(decision?.color&&highlight)row.style.setProperty('--rule-color',decision.color);else row.style.removeProperty('--rule-color'); row.classList.toggle('user-ghost', visibility.hiddenUser);
        const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));
        row.classList.toggle('removed', removed); return row;
      } });
@@ -324,6 +330,7 @@ const inspector = new UserInspector(element('user-inspector', HTMLDialogElement)
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
 function zoomChat(delta:number):void{const index=FONT_SIZES.indexOf(display.options.size),size=FONT_SIZES[Math.max(0,Math.min(FONT_SIZES.length-1,index+delta))];if(size)display.setOptions({...display.options,size});}
+rulePanel=new RulePanel(()=>{visualRevision++;scheduleRender();});
 function channelStep(delta:number):void{const index=channels.indexOf(composer.target);virtualLog.focusChannel(channels[(index+delta+channels.length)%channels.length]!);}
 const hotkeyActions={
  palette:()=>element('actions-open',HTMLButtonElement).click(),shortcuts:()=>element('hotkeys-open',HTMLButtonElement).click(),
@@ -355,7 +362,7 @@ const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElem
 },!!panePopout);
 async function replayInbox():Promise<void>{
  const generation=++inboxGeneration,panel=inboxPanel;if(!panel||!accountAuth?.authenticated)return;const messages=[...store.messages],login=accountAuth.login?.toLowerCase();
- for(const own of [true,false])for(let index=0;index<messages.length;index+=500){if(generation!==inboxGeneration)return;for(const message of messages.slice(index,index+500))if((message.login.toLowerCase()===login)===own)panel.observe(message);if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));}
+ for(const own of [true,false])for(let index=0;index<messages.length;index+=500){if(generation!==inboxGeneration)return;for(const message of messages.slice(index,index+500))if((message.login.toLowerCase()===login)===own){const rule=rulePanel?.engine.evaluate(message,ruleIDsFor(message));if(!rule?.hidden)panel.observe(message,!!rule?.inbox);}if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));}
 }
 inboxPanel=new InboxPanel(channels,message=>{void showArchived(message);},login=>composer.prepareWhisper(login));
 if(accountAuth?.authenticated){inboxPanel.setAccount(accountAuth.userID??'',accountAuth.login??'');void replayInbox();}
@@ -367,7 +374,7 @@ const commandPanel=new CommandPanel(composer,()=>{
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {
@@ -408,8 +415,8 @@ const connection = new ChatConnection(liveSources(), (event) => {
   observe(event.message, !event.replay,true); refreshCandidates(); picker.refresh();
   if (!event.replay && event.message.command === 'PRIVMSG') {
     const visibility = messageVisibility(event.message, display.options, selfLogin);
-    attention.mention(event.message, visibility.highlight && !visibility.blocked && !visibility.hiddenUser, event.replay);
-    if (!visibility.blocked && !visibility.hiddenUser) announcer.textContent = `${event.message.login}: ${event.message.text}`;
+    const ids=ruleIDsFor(event.message);const rule=rulePanel?.engine.observe(event.message,ids),similar=rulePanel?.similarity.classify(event.message,selfLogin)??false;const native=visibility.highlight;const allowed=!visibility.blocked&&!visibility.hiddenUser&&!rule?.hidden&&(!similar||!!rulePanel?.similarity.options.highlightSimilar);attention.mention(event.message,(native||!!rule?.highlight)&&allowed,event.replay,{sound:(native||!!rule?.sound)&&(!rulePanel||rulePanel.alertsAllowed()),notify:(native||!!rule?.notify)&&(!rulePanel||rulePanel.alertsAllowed())});rulePanel?.counts();
+    if (allowed) announcer.textContent = `${event.message.login}: ${event.message.text}`;
   }
   scheduleRender();
 });

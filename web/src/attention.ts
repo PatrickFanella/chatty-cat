@@ -28,13 +28,13 @@ export class Attention {
     if(this.options().notify){await this.permission();if(typeof Notification!=='undefined'&&Notification.permission==='granted'){await this.notify('Chatty Cat test alert','Notifications are enabled','test','',true);reports.push('Test notification requested');}else reports.push('Notification permission unavailable');}
     return reports.join(' · ')||'Enable mention sound or notifications to test';
   }
-  mention(message: ChatMessage, highlight: boolean, replay = false): void {
+  mention(message: ChatMessage, highlight: boolean, replay = false,policy:{sound:boolean;notify:boolean}={sound:true,notify:true}): void {
     if (this.stopped || replay || !highlight || !message.id || message.command !== 'PRIVMSG' || (!document.hidden && document.hasFocus())) return;
     const key = message.channel + ':' + message.id;
     if (this.seen.has(key)) return;
     this.seen.add(key); while (this.seen.size > 2000) { const first = this.seen.values().next().value; if (first) this.seen.delete(first); else break; }
-    this.missed.push({ id: message.id, channel: message.channel }); if (this.missed.length > 500) this.missed.shift(); this.render(); this.sound();
-    if (Date.now() - this.lastNote >= 8000) { this.lastNote = Date.now(); void this.notify(`${message.tags['display-name'] || message.login} mentioned you`, message.text.slice(0, 140), 'mention', message.channel); }
+    this.missed.push({ id: message.id, channel: message.channel }); if (this.missed.length > 500) this.missed.shift(); this.render(); if(policy.sound)this.sound();
+    if (policy.notify && Date.now() - this.lastNote >= 8000) { this.lastNote = Date.now(); void this.notify(`${message.tags['display-name'] || message.login} mentioned you`, message.text.slice(0, 140), 'mention', message.channel); }
   }
   whisper(message: ChatMessage): void { if (document.hidden || !document.hasFocus()) { this.sound(); void this.notify(`${message.tags['display-name'] || message.login} whispered you`, message.text.slice(0, 140), 'whisper', ''); } }
   stream(channel: string, live: boolean, title: string): void {
