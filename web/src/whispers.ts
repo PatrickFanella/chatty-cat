@@ -12,7 +12,7 @@ export class Whispers {
   private floating:FloatingPanel;
   private log:HTMLElement;
   private status:HTMLElement;
-  constructor(private root:HTMLElement,private trigger:HTMLButtonElement,private answer:(login:string)=>void,private alert:(message:ChatMessage)=>void){
+  constructor(private root:HTMLElement,private trigger:HTMLButtonElement,private answer:(login:string)=>void,private alert:(message:ChatMessage)=>void,private observed:(message:ChatMessage,outgoing:boolean)=>void=()=>{}){
     this.log=root.querySelector<HTMLElement>('#whisper-log')!;this.status=root.querySelector<HTMLElement>('#whisper-status')!;
     this.floating=new FloatingPanel(root,root.querySelector<HTMLElement>('#whisper-handle')!,root.querySelector<HTMLButtonElement>('#whisper-pin')!,'chatthing:v1:whispers:geometry');
     trigger.addEventListener('click',this.toggle);root.addEventListener('click',this.click);root.addEventListener('keydown',this.key);this.paint();
@@ -37,6 +37,7 @@ export class Whispers {
   private append(message:ChatMessage,outgoing:boolean):void {
     const key=(outgoing?'out:':'in:')+message.id;if(message.id&&this.seen.has(key))return;
     if(message.id)this.seen.add(key);while(this.seen.size>2000){const first=this.seen.values().next().value;if(first)this.seen.delete(first);else break;}
+    this.observed(message,outgoing);
     const row=document.createElement('article');row.className='whisper-row';
     const time=document.createElement('time');time.dateTime=new Date(message.timestamp).toISOString();time.textContent=new Date(message.timestamp).toLocaleTimeString();
     const name=document.createElement('button');name.type='button';name.dataset.answer=message.login;name.textContent=(outgoing?'Requested → ':'← ')+(message.tags['display-name']||message.login);

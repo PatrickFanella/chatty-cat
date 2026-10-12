@@ -1,3 +1,4 @@
+import { InboxPanel } from './inbox-ui';
 import { CommandPanel } from './commands-ui';
 import { PrivacyControls } from './privacy-ui';
 import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
@@ -65,6 +66,8 @@ const overlay=new URL(location.href).searchParams.has('overlay')&&new URL(locati
 document.documentElement.dataset.overlay=String(overlay);
 const log = element('log', HTMLElement);
 let rail:PanelRail|undefined;
+let inboxPanel:InboxPanel|undefined;
+let inboxGeneration=0;
 const virtualLog = new ColumnLog(log);
 const pronouns = new Pronouns();
 const socialCards=new SocialCards(log);
@@ -133,10 +136,10 @@ let selfLogin = '';
 function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true,true); scheduleRender(); }
 const tabSync = new TabSync(acceptEcho);
 const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{follow=false;latest.hidden=false;},()=>latest.click());
-const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message));
+const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message),(message,outgoing)=>inboxPanel?.whisper(message,outgoing));
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { accountAuth = auth; whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin) scheduleRender(); const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { accountAuth = auth;if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin) scheduleRender(); const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -187,6 +190,7 @@ window.addEventListener('pagehide', () => historyFiles.stop());
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
 function observe(message: ChatMessage, live = false, countStats=false): void {
+  inboxPanel?.observe(message);
   if(countStats)statsLedger.observe(message);else {statsLedger.attach(message);statsLedger.reconcile(message.channel);}
   rateTimeline.series.observe(message,live);
   if (roomStates.observe(message)) renderRoom();
@@ -293,6 +297,12 @@ const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElem
  if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
  const url=new URL(location.href);url.search='';url.searchParams.set('workspace',workspace.id);url.searchParams.set('channel',workspace.channels.join(','));if(overlay)url.searchParams.set('overlay','1');location.assign(url.href);
 });
+async function replayInbox():Promise<void>{
+ const generation=++inboxGeneration,panel=inboxPanel;if(!panel||!accountAuth?.authenticated)return;const messages=[...store.messages],login=accountAuth.login?.toLowerCase();
+ for(const own of [true,false])for(let index=0;index<messages.length;index+=500){if(generation!==inboxGeneration)return;for(const message of messages.slice(index,index+500))if((message.login.toLowerCase()===login)===own)panel.observe(message);if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));}
+}
+inboxPanel=new InboxPanel(channels,message=>{void showArchived(message);},login=>composer.prepareWhisper(login));
+if(accountAuth?.authenticated){inboxPanel.setAccount(accountAuth.userID??'',accountAuth.login??'');void replayInbox();}
 const commandPanel=new CommandPanel(composer,()=>{
  const selected=inspector.selectedMessage,channel=selected?.channel??composer.target;
  const room=selected?.tags['room-id']??[...store.messages].reverse().find(message=>message.channel===channel&&message.tags['room-id'])?.tags['room-id']??'';
@@ -301,7 +311,7 @@ const commandPanel=new CommandPanel(composer,()=>{
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}workspacePanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {

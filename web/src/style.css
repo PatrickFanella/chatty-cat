@@ -345,3 +345,6 @@ html[data-privacy="true"] #video-panel,html[data-privacy="true"] #emote-picker,h
 
 html[data-privacy="true"] #commands-panel{display:none!important}
 #commands-panel label{display:block;margin:.4rem 0}#command-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-width:70ch}
+
+html[data-privacy="true"] #inbox-panel,html[data-privacy="true"] #inbox-open{display:none!important}
+#inbox-items{max-height:60vh;overflow:auto}.inbox-item{padding:.5rem;border-bottom:1px solid var(--line)}.inbox-item[data-read="false"]{border-left:3px solid var(--accent)}.inbox-item p{white-space:pre-wrap;overflow-wrap:anywhere}

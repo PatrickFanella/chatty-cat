@@ -148,3 +148,9 @@ it('previews a custom invocation without sending or replacing its unsent draft',
  ui.composer.configureCommands(['/greet'],preview);ui.edit('/greet chat');expect(ui.button.disabled).toBe(false);ui.submit();
  expect(preview).toHaveBeenCalledWith('/greet chat');expect(fetcher).not.toHaveBeenCalled();expect(ui.input.value).toBe('/greet chat');
 });
+it('does not echo a pending private send into a new account or retain its private draft',async()=>{
+ const ui=setup();ui.composer.setAuth(signedIn);const result=vi.fn();
+ let resolve:((response:Response)=>void)|undefined;vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(done=>{resolve=done;})));
+ const form=document.createElement('form');form.innerHTML=ui.form.innerHTML;const composer=new Composer(form,['hasanabi'],()=>{},result);stops.push(composer);composer.setAuth(signedIn);
+ const input=form.querySelector<HTMLTextAreaElement>('#message')!;input.value='/w alice private body';input.dispatchEvent(new Event('input'));form.dispatchEvent(new SubmitEvent('submit',{cancelable:true}));composer.setAuth({...signedIn,userID:'other',login:'other'});expect(input.value).toBe('');resolve?.(new Response(JSON.stringify({sent:true,command:true,whisper:true,recipient:'alice'})));await vi.waitFor(()=>expect(form.querySelector('#send-status')!.textContent).toContain('Account changed'));expect(result).not.toHaveBeenCalled();
+});

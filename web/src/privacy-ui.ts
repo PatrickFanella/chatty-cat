@@ -1,4 +1,4 @@
-import { PRIVACY_KEY, readPrivacy, savePrivacy, workspaceVisible, type PrivacyPolicy } from './privacy';
+import { PRIVACY_KEY, resetPrivacyFallback, readPrivacy, savePrivacy, workspaceVisible, type PrivacyPolicy } from './privacy';
 import type { WorkspaceStore } from './workspaces';
 export class PrivacyControls {
  private policy:PrivacyPolicy=readPrivacy();
@@ -25,13 +25,13 @@ export class PrivacyControls {
   if(this.policy.enabled){document.querySelectorAll<HTMLDialogElement>('dialog[open]').forEach(dialog=>dialog.close());this.toggle.focus({preventScroll:true});}
   document.dispatchEvent(new Event('privacychange'));
  }
- private commit(next:PrivacyPolicy):void{try{savePrivacy(next);this.policy=next;this.paint();}catch(error){this.policy={...next,enabled:true,panic:true};this.paint();this.status.textContent=error instanceof Error?error.message:'Privacy save failed; this tab is hidden';}}
+ private commit(next:PrivacyPolicy):void{try{savePrivacy(next);this.policy=next;this.paint();}catch(error){this.policy=readPrivacy();this.paint();this.status.textContent=error instanceof Error?error.message:'Privacy save failed; this tab is hidden';}}
  private change=():void=>{this.commit({...this.policy,enabled:!this.policy.enabled,panic:false});};
  private open=():void=>{if(this.policy.enabled)return;this.choices.replaceChildren();const legend=document.createElement('legend');legend.textContent='Visible workspaces';this.choices.append(legend);
   for(const workspace of this.workspaces.all()){const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.value=workspace.id;input.checked=this.policy.allowed.includes(workspace.id);label.append(input,document.createTextNode(workspace.name));this.choices.append(label);}this.dialog.showModal();
  };
  private saveAllowlist=():void=>{const allowed=[...this.choices.querySelectorAll<HTMLInputElement>('input:checked')].map(input=>input.value);this.dialog.close();this.commit({...this.policy,allowed});};
  private panic=(event:KeyboardEvent):void=>{if(event.isComposing||!event.altKey||!event.shiftKey||event.ctrlKey||event.metaKey||event.code!=='KeyP')return;event.preventDefault();this.commit({...this.policy,enabled:true,panic:true});};
- private storage=(event:StorageEvent):void=>{if(event.key===PRIVACY_KEY||event.key===null){this.policy=readPrivacy();this.paint();}};
+ private storage=(event:StorageEvent):void=>{if(event.key===PRIVACY_KEY||event.key===null){resetPrivacyFallback();this.policy=readPrivacy();this.paint();}};
  stop():void{window.removeEventListener('storage',this.storage);document.removeEventListener('keydown',this.panic,true);this.toggle.removeEventListener('click',this.change);this.configure.removeEventListener('click',this.open);this.toolbar.remove();this.dialog.remove();}
 }
