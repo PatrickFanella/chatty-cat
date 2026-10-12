@@ -98,6 +98,8 @@ export class Composer {
     this.input.value = '/w ' + login + ' '; this.reply = undefined; this.edit(); this.input.focus();
   }
   get target(): string { return this.channel.value; }
+  get sending(): boolean { return this.busy; }
+  setTarget(channel: string): void { if(this.busy || ![...this.channel.options].some(option=>option.value===channel))return;this.saveDraft();this.channel.value=channel;this.channel.dispatchEvent(new Event('change')); }
   setCandidates(names: readonly string[], emotes: readonly string[]): void { this.names = names; this.emotes = emotes; }
   private closeCompletion = (): void => {
     this.completion = undefined; this.suggestions.hidden = true;

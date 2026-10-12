@@ -1,3 +1,4 @@
+import { privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
 import type { DisplayOptions } from './display';
 
@@ -9,16 +10,18 @@ export class Attention {
   private lastSound = -Infinity;
   private streams = new Map<string, boolean>();
   private stopped = false;
+  private notes=new Set<Notification>();
   constructor(private button: HTMLButtonElement, private options: () => DisplayOptions,
     private jump: (id: string, channel: string) => void) {
-    button.addEventListener('click', this.click); document.addEventListener('pointerdown', this.unlock);
+    button.addEventListener('click', this.click); document.addEventListener('pointerdown', this.unlock); document.addEventListener('privacychange',this.clearPrivateAlerts);
   }
   async permission(): Promise<void> {
-    if (this.options().notify && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    if (!privacyEnabled() && this.options().notify && typeof Notification !== 'undefined' && Notification.permission === 'default') {
       try { await Notification.requestPermission(); } catch { /* browser denied or unavailable */ }
     }
   }
   async test():Promise<string>{
+    if(privacyEnabled())return 'Alerts are suppressed in privacy mode';
     this.unlock();if(this.audio?.state==='suspended')try{await this.audio.resume();}catch{/* report unavailable below */}
     this.sound();const reports:string[]=[];
     if(this.options().ping)reports.push(this.audio?.state==='running'?'Test sound requested':'Sound unavailable in this browser');
@@ -39,21 +42,22 @@ export class Attention {
     if (previous === false && live) void this.notify(`${channel} is live`, title.slice(0, 300), 'live-' + channel, channel);
   }
   private async notify(title: string, body: string, tag: string, channel: string,explicitTest=false): Promise<void> {
-    if (this.stopped || !this.options().notify || (!explicitTest&&!document.hidden) || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (privacyEnabled() || this.stopped || !this.options().notify || (!explicitTest&&!document.hidden) || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     const options = { body, tag, icon: '/icon-192.png', data: { channel } };
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
-      if (this.stopped) return;
+      if (this.stopped || privacyEnabled()) return;
       if (registration) await registration.showNotification(title, options);
-      else { const note = new Notification(title, options); note.onclick = () => { window.focus(); note.close(); }; }
+      else { const note = new Notification(title, options);this.notes.add(note);note.onclose=()=>this.notes.delete(note); note.onclick = () => { window.focus(); note.close(); }; }
     } catch { /* optional notifications must not interrupt chat */ }
   }
+  private clearPrivateAlerts=():void=>{if(!privacyEnabled())return;for(const note of this.notes)note.close();this.notes.clear();void navigator.serviceWorker?.getRegistration().then(registration=>registration?.getNotifications()).then(notes=>{for(const note of notes??[])note.close();}).catch(()=>{});};
   private unlock = (): void => {
-    if (!this.options().ping || this.stopped) return;
+    if (privacyEnabled() || !this.options().ping || this.stopped) return;
     try { this.audio ??= new AudioContext(); if (this.audio.state === 'suspended') void this.audio.resume().catch(() => {}); } catch { /* unsupported */ }
   };
   private sound(): void {
-    if (!this.options().ping || !this.audio || this.audio.state !== 'running' || Date.now() - this.lastSound < 250) return;
+    if (privacyEnabled() || !this.options().ping || !this.audio || this.audio.state !== 'running' || Date.now() - this.lastSound < 250) return;
     this.lastSound = Date.now();
     try {
       const time = this.audio.currentTime, oscillator = this.audio.createOscillator(), gain = this.audio.createGain();
@@ -73,5 +77,5 @@ export class Attention {
     this.button.setAttribute('aria-label', `${this.missed.length} missed mentions. Jump to next; Shift-click clears.`);
     this.button.title = 'Missed mentions · click to jump · Shift-click clears';
   }
-  stop(): void { this.stopped = true; this.button.removeEventListener('click', this.click); document.removeEventListener('pointerdown', this.unlock); void this.audio?.close().catch(() => {}); }
+  stop(): void { this.stopped = true;document.removeEventListener('privacychange',this.clearPrivateAlerts);for(const note of this.notes)note.close();this.notes.clear(); this.button.removeEventListener('click', this.click); document.removeEventListener('pointerdown', this.unlock); void this.audio?.close().catch(() => {}); }
 }

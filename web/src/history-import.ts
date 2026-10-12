@@ -1,3 +1,4 @@
+import { privacyEnabled } from './privacy';
 import { parseEvent, type ChatMessage } from './protocol';
 
 export interface HistoryImport { messages: ChatMessage[]; skipped: number }
@@ -106,6 +107,7 @@ export class HistoryFiles {
     finally { this.input.disabled = false; }
   };
   private export = (): void => {
+    if(privacyEnabled()){this.status.textContent='History export is disabled in privacy mode';return;}
     const blob = new Blob([JSON.stringify({ format: 'chatty-cat-history', version: 1, messages: this.messages() })], { type: 'application/json' });
     const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = 'chatty-cat-history-' + new Date().toISOString().slice(0, 10) + '.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };

@@ -1,3 +1,7 @@
+import { PrivacyControls } from './privacy-ui';
+import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
+import { WorkspacePanel } from './workspaces-ui';
+import { captureBundle, restoreBundle } from './settings-bundle';
 import { NitterLinks } from './nitter';
 import { GiphyTitles } from './giphy';
 import { ErrorReport } from './error-report';
@@ -87,8 +91,15 @@ let frozen = false;
 let borrowedFreeze=false;
 try { frozen = localStorage.getItem('chatthing:v1:frozen') === '1'; } catch { /* optional storage */ }
 animation.setAttribute('aria-pressed', String(frozen));
+const workspaceStore=new WorkspaceStore();
+const workspaceQuery=new URL(location.href).searchParams;
+const bootWorkspace=workspaceStore.get(workspaceQuery.get('workspace')??'')??workspaceStore.active;
+let currentWorkspaceID=bootWorkspace?.id??'';
+let pendingReaders:ReaderPosition[]|undefined=bootWorkspace?.readers.length?bootWorkspace.readers:undefined;
+let historyReady=false;
+let workspaceFocus=bootWorkspace?.focus??'log';
 let channels: string[];
-try { channels = parseChannels(new URL(location.href).searchParams.get('channel') || 'hasanabi'); }
+try { channels = workspaceQuery.has('workspace')&&bootWorkspace ? bootWorkspace.channels : workspaceQuery.has('channel') ? parseChannels(workspaceQuery.get('channel')!) : bootWorkspace?.channels??['hasanabi']; }
 catch { channels = ['hasanabi']; }
 input.value = channels.join(',');
 const store = new MessageStore(channels);
@@ -133,7 +144,7 @@ log.addEventListener('click', (event) => {
   if (message) composer.selectReply(message);
 });
 let renderQueued = false;
-let follow = true;
+let follow = !pendingReaders;
 let archiveView: ChatMessage[] | undefined;
 let archiveGeneration = 0;
 element('composer', HTMLFormElement).addEventListener('composerresize', () => { if (follow) log.scrollTop = display.options.rev?0:log.scrollHeight; });
@@ -239,6 +250,7 @@ function render(): void {
   virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split,display.options.pause);
   count.textContent = archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
   latest.hidden = follow && virtualLog.allFollowing();
+  if(pendingReaders){const restored=virtualLog.restoreReaders(pendingReaders);if(restored||historyReady){if(!restored)announcer.textContent='Some saved reader positions are no longer in retained history';pendingReaders=undefined;}}
   navigation.reveal();
 }
 
@@ -255,8 +267,8 @@ function hydrateHistory(): void {
       for(const message of messages.slice(index,index+500))observe(message,false);
       if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));
     }
-    if(signal.aborted)return;refreshCandidates(); picker.refresh(); scheduleRender();
-  }).catch(() => { if (!signal.aborted) element('archive-status', HTMLElement).textContent = 'Saved history unavailable; live chat continues'; });
+    if(signal.aborted)return;historyReady=true;refreshCandidates(); picker.refresh(); scheduleRender();
+  }).catch(() => { if (!signal.aborted) {historyReady=true;element('archive-status', HTMLElement).textContent = 'Saved history unavailable; live chat continues';scheduleRender();} });
 }
 hydrateHistory();
 element('display-panel', HTMLDialogElement).addEventListener('change', hydrateHistory);
@@ -272,6 +284,19 @@ element('alert-test',HTMLButtonElement).addEventListener('click',()=>{void atten
 const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, () => archiveView ?? store.messages, () => accountAuth, message => composer.selectReply(message), login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
+if(bootWorkspace){display.setOptions(bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(bootWorkspace.target);}
+function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
+function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
+if(!currentWorkspaceID&&!workspaceStore.error){try{const initial=workspaceStore.create('Watching',captureWorkspace());workspaceStore.activate(initial.id);currentWorkspaceID=initial.id;}catch(error){announcer.textContent=error instanceof Error?error.message:'Workspace storage unavailable';}}
+const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElement),element('workspace-open',HTMLButtonElement),workspaceStore,()=>currentWorkspaceID,captureWorkspace,saveWorkspace,workspace=>{
+ if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
+ const url=new URL(location.href);url.search='';url.searchParams.set('workspace',workspace.id);url.searchParams.set('channel',workspace.channels.join(','));if(overlay)url.searchParams.set('overlay','1');location.assign(url.href);
+});
+const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
+const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
+document.addEventListener('focusin',rememberFocus);
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}workspacePanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {
   if (!renderQueued) { renderQueued = true; requestAnimationFrame(render); }
