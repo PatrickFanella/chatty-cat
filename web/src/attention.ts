@@ -18,6 +18,13 @@ export class Attention {
       try { await Notification.requestPermission(); } catch { /* browser denied or unavailable */ }
     }
   }
+  async test():Promise<string>{
+    this.unlock();if(this.audio?.state==='suspended')try{await this.audio.resume();}catch{/* report unavailable below */}
+    this.sound();const reports:string[]=[];
+    if(this.options().ping)reports.push(this.audio?.state==='running'?'Test sound requested':'Sound unavailable in this browser');
+    if(this.options().notify){await this.permission();if(typeof Notification!=='undefined'&&Notification.permission==='granted'){await this.notify('Chatty Cat test alert','Notifications are enabled','test','',true);reports.push('Test notification requested');}else reports.push('Notification permission unavailable');}
+    return reports.join(' · ')||'Enable mention sound or notifications to test';
+  }
   mention(message: ChatMessage, highlight: boolean, replay = false): void {
     if (this.stopped || replay || !highlight || !message.id || message.command !== 'PRIVMSG' || (!document.hidden && document.hasFocus())) return;
     const key = message.channel + ':' + message.id;
@@ -31,8 +38,8 @@ export class Attention {
     const previous = this.streams.get(channel); this.streams.set(channel, live);
     if (previous === false && live) void this.notify(`${channel} is live`, title.slice(0, 300), 'live-' + channel, channel);
   }
-  private async notify(title: string, body: string, tag: string, channel: string): Promise<void> {
-    if (this.stopped || !this.options().notify || !document.hidden || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  private async notify(title: string, body: string, tag: string, channel: string,explicitTest=false): Promise<void> {
+    if (this.stopped || !this.options().notify || (!explicitTest&&!document.hidden) || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     const options = { body, tag, icon: '/icon-192.png', data: { channel } };
     try {
       const registration = await navigator.serviceWorker?.getRegistration();

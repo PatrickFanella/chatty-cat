@@ -268,6 +268,7 @@ const attention = new Attention(element('missed-mentions', HTMLButtonElement), (
 });
 element('display-panel', HTMLDialogElement).addEventListener('change', event => { if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked) void attention.permission(); });
 
+element('alert-test',HTMLButtonElement).addEventListener('click',()=>{void attention.test().then(result=>{element('alert-test-status',HTMLElement).textContent=result;});});
 const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, () => archiveView ?? store.messages, () => accountAuth, message => composer.selectReply(message), login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());

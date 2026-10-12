@@ -12,7 +12,7 @@ function setup() {
   const trigger = document.createElement('button'); document.body.append(trigger); panel = new VideoPanel(root, trigger, ['one', 'two']); return { root, trigger };
 }
 it('validates saved volume/channel and derives a domain-only parent', () => {
-  expect(parseVideo({ volume: 100, channel: 'unjoined', muted: false }, ['one'])).toEqual({ channel: 'one', volume: .5, muted: false, docked: false });
+  expect(parseVideo({ volume: 100, channel: 'unjoined', muted: false }, ['one'])).toEqual({ channel: 'one', volume: .5, muted: false, docked: false,rememberVolume:false });
   expect(twitchParent('chat.subcult.tv')).toBe('chat.subcult.tv'); expect(() => twitchParent('https://example.com/path')).toThrow();
 });
 it('uses the official iframe without requiring the failed SDK script', () => {

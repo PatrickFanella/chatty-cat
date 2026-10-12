@@ -35,3 +35,9 @@ it('notifies hidden-page mentions through the service worker and throttles burst
  attention.stream('hasanabi',true,'Already live');expect(showNotification).toHaveBeenCalledOnce();
  attention.stream('hasanabi',false,'');attention.stream('hasanabi',true,'New stream');await vi.waitFor(()=>expect(showNotification).toHaveBeenCalledTimes(2));attention.stop();
 });
+
+it('offers an explicit foreground notification check without creating a chat message',async()=>{
+ vi.stubGlobal('Notification',{permission:'granted'});const show=vi.fn(async()=>{});vi.stubGlobal('navigator',{serviceWorker:{getRegistration:async()=>({showNotification:show})}});
+ const attention=new Attention(document.createElement('button'),()=>({...defaultDisplay(),notify:true}),vi.fn());
+ expect(await attention.test()).toContain('Test notification requested');expect(show).toHaveBeenCalledWith('Chatty Cat test alert',expect.objectContaining({tag:'test'}));attention.stop();
+});

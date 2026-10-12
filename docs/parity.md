@@ -62,7 +62,7 @@ has been compared to the original and the evidence recorded. Completion evidence
 - [x] Stream uptime, viewers, title, last broadcast/VOD start/end and histories.
 - [x] Stats panel: user/emote/badge/link usage, time scopes, ordering, exclusions,
   per-day/hour buckets and retained samples.
-- [ ] Twitch video: parent-domain configuration, volume, visibility, movable/
+- [x] Twitch video: parent-domain configuration, volume, visibility, movable/
   resizable overlay, dock/rail modes and saved geometry.
 - [x] URL rendering/cleaning, bot-specific formatting, link icons, media cards,
   direct playable media, YouTube embeds and restored-media autoplay behavior.
@@ -73,7 +73,7 @@ has been compared to the original and the evidence recorded. Completion evidence
 
 ## Display and resources
 
-- [ ] Every preset and its aliases, palettes, shade axis, fonts, size, weight,
+- [x] Every preset and its aliases, palettes, shade axis, fonts, size, weight,
   spacing, line/zebra levels, nick effects, shadows and motion options.
 - [x] Multi-column page-flip layouts and rail configurations, reverse order,
   docking, resizing and preserved scroll positions.
@@ -83,7 +83,7 @@ has been compared to the original and the evidence recorded. Completion evidence
   settings slots, reset behavior and copy/share settings URL.
 - [ ] Keyword/blocked-word filters, hidden-user modes, bot visibility,
   own-name/keyword mentions, unread badges, sound and notifications.
-- [ ] All documented URL options, precedence, aliases and settings serialization.
+- [x] All documented URL options, precedence, aliases and settings serialization.
 
 ## Storage, accessibility and lifecycle
 
@@ -91,13 +91,13 @@ has been compared to the original and the evidence recorded. Completion evidence
   explicit compatible legacy import and recovery without overwriting originals.
 - [x] IndexedDB archive search, retention/pruning/cap and live search navigation.
 - [x] Cross-tab option/login sync and sent-message BroadcastChannel echoes.
-- [ ] Screen-reader announcements excluding replay, landmarks, dialog semantics,
+- [x] Screen-reader announcements excluding replay, landmarks, dialog semantics,
   keyboard navigation, focus, labels and reduced-motion behavior.
 - [x] PWA manifest/icons/install state, shell/fonts/image caching and offline
   banner/history without implying offline live chat.
 - [x] Update detection, reload cache behavior, error reporting and lifecycle
   handling including back/forward cache and long background/suspend periods.
-- [ ] Self-hosted HTTPS deployment, graceful shutdown, health/readiness,
+- [x] Self-hosted HTTPS deployment, graceful shutdown, health/readiness,
   bounded connections/caches, request limits and monitoring.
 - [x] Owner-controlled credentials/endpoints and attribution; analytics/presence
   disabled unless configured for the owner, with no original-service reporting.
@@ -1606,3 +1606,35 @@ are recorded with the release below.
 The owner confirmed actual recipient delivery to `subcult_tv`, completing the
 approved whisper check. Final validation passed 311 frontend tests, strict
 TypeScript/production build, full Go race tests, vet and lint.
+
+### Optional native Twitch volume memory
+
+The default iframe remains independent of the SDK. “Remember Twitch volume”
+opts into Twitch's official JavaScript API while retaining native Twitch
+controls. Failed script loading preserves the fallback frame; closing/changing
+channel cancels delayed work and polling. Saved slots include the opt-in state.
+Restoration pauses before setting sound preferences and keeps autoplay disabled.
+
+Twitch ignored volume changes while muted during the browser check. Applying
+volume between unmute/remute while paused restored 0.17 with mute=true and
+paused=true on the HTTPS embed. The integrated local controller saved a 0.23
+volume change. Initial checks accidentally used an offline channel; a current
+live channel and the HTTPS origin resolved that ambiguity. Playback/audibility
+are separate from these API state checks. Reference checked 2026-10-11:
+https://dev.twitch.tv/docs/embed/video-and-clips/ .
+
+The source-bearing Linux amd64 container built successfully on NUC and reached
+healthy status with zero restarts, UID/GID 10001, a ready response and a readable
+corresponding source archive. The isolated test container was stopped; the live
+native service remained running throughout.
+
+A Settings → Test alerts control now exercises the configured sound and
+notification paths without sending a Twitch message. It requests permission
+only when notifications are enabled, and reports unavailable browser support.
+Audibility and OS notification appearance remain owner-browser acceptance.
+
+Final frontend validation: 315 tests and strict production build passed. The
+remaining acceptance gates are GIPHY's approved cache/proxy boundary and owner
+confirmation of audible/OS alerts. GIPHY lookup itself, safe mode, request bounds,
+provider URL validation and pronouns already pass; the original media cache and
+proxy cannot be reproduced under current provider rules without approval.
