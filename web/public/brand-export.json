@@ -1,0 +1,76 @@
+{
+  "brand": "chat-thing",
+  "status": "local production pack v1; nothing here is approved for a post or a profile change",
+  "source": "subcult-tv studio/brands/chat-thing/product/",
+  "rule": "Regenerate in Studio and copy; do not edit these copies.",
+  "assets": [
+    {
+      "path": "favicon.svg",
+      "sha256": "dce1b3e841b3ad788e990a2f6ae47e2dfb807e8d95abc003a246b1a09f230fb7",
+      "bytes": 742,
+      "dimensions": {
+        "width": 24.0,
+        "height": 24.0
+      }
+    },
+    {
+      "path": "favicon.ico",
+      "sha256": "622d9d5a1f41ef1ca7a8e21edcde89a97268457a21f4f5fe0a644916e1536d55",
+      "bytes": 2300
+    },
+    {
+      "path": "icon-src.svg",
+      "sha256": "dce1b3e841b3ad788e990a2f6ae47e2dfb807e8d95abc003a246b1a09f230fb7",
+      "bytes": 742,
+      "dimensions": {
+        "width": 24.0,
+        "height": 24.0
+      }
+    },
+    {
+      "path": "icon-192.png",
+      "sha256": "118e002e16fa76072fda355f3f454b4fc5db1e9c40e6380a66f6b6732cd7674b",
+      "bytes": 4031,
+      "dimensions": {
+        "width": 192,
+        "height": 192
+      }
+    },
+    {
+      "path": "icon-512.png",
+      "sha256": "b83e679f7eb0141d529f2bbc55bf5b6996d96044e92570cad5aed9c9d45d06ee",
+      "bytes": 12757,
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "path": "icon-maskable-512.png",
+      "sha256": "372103ab0022d8509d6e9c306cbd9c2b3bbe2794fa63dcd429d1b39d2c04870f",
+      "bytes": 6157,
+      "dimensions": {
+        "width": 512,
+        "height": 512
+      }
+    },
+    {
+      "path": "apple-touch-icon.png",
+      "sha256": "9b8fdfb94df7384f275c09089722791e425110ae0c7b508eedbde0481ef9698a",
+      "bytes": 4100,
+      "dimensions": {
+        "width": 180,
+        "height": 180
+      }
+    },
+    {
+      "path": "og.png",
+      "sha256": "1c1d0d946d7981a112d004a83683b87380f4c3e7e4399e85916362c2a43961b1",
+      "bytes": 59587,
+      "dimensions": {
+        "width": 1200,
+        "height": 630
+      }
+    }
+  ]
+}
