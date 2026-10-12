@@ -1,3 +1,4 @@
+import { channelURL, CHANNEL_COLORS } from './channels';
 import {nativeGifTitle,gifTitleLink} from './gifs';
 import { appendLinks, readableColor, observeUserColor } from './links';
 import type { ChatMessage } from './protocol';
@@ -63,9 +64,11 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
     const mode = Number(document.documentElement.dataset.times ?? 2);
     time.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', ...(mode === 2 || mode === 4 ? { second: '2-digit' as const } : {}), hour12: mode === 3 || mode === 4 });
   }
-  const channel = document.createElement('span');
+  const channel = document.createElement('a');
   channel.className = 'channel';
   channel.textContent = '#' + message.channel;
+  const current = new URL(location.href), joined = [...new Set((current.searchParams.get('channel') ?? message.channel).toLowerCase().split(',').filter(name => /^[a-z0-9_]{1,25}$/.test(name)))].slice(0, 6);
+  if (joined.includes(message.channel)) { channel.href = channelURL(current, joined, { kind: 'focus', channel: message.channel }).href; channel.title = 'Focus #' + message.channel; channel.style.color = CHANNEL_COLORS[Math.max(0, joined.indexOf(message.channel))] ?? ''; }
   const name = document.createElement('a');
   if (/^[a-z0-9_]{1,25}$/i.test(message.login)) name.href = 'https://www.twitch.tv/' + message.login;
   name.target = '_blank'; name.rel = 'noopener noreferrer';

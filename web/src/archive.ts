@@ -1,6 +1,6 @@
 import { parseEvent, type ChatMessage } from './protocol';
 interface Archived { key: string; channel: string; timestamp: number; message: ChatMessage }
-export interface ArchiveQuery { text: string; channel?: string; login?: string; before?: number; after?: number; limit?: number }
+export interface ArchiveQuery { text: string; channel?: string; channels?: readonly string[]; login?: string; before?: number; after?: number; limit?: number }
 const MAX_ROWS = 100000;
 function validMessage(value: unknown): ChatMessage | undefined {
   const event = parseEvent(JSON.stringify({ type: 'message', message: value, replay: true }));
@@ -8,6 +8,7 @@ function validMessage(value: unknown): ChatMessage | undefined {
 }
 export function matchesArchive(message: ChatMessage, query: ArchiveQuery): boolean {
   return (!query.channel || message.channel === query.channel)
+    && (!query.channels || query.channels.includes(message.channel))
     && (!query.login || message.login.toLowerCase() === query.login.toLowerCase())
     && (query.before === undefined || message.timestamp <= query.before)
     && (query.after === undefined || message.timestamp >= query.after)

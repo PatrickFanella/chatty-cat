@@ -1,3 +1,6 @@
+import { ErrorReport } from './error-report';
+import { ChannelControls } from './channels';
+import { StreamHistory } from './stream-history';
 import {StatsLedger} from './stats-ledger';
 import {SocialCards} from './social-cards';
 import { RateTimeline } from './rate-timeline';
@@ -25,6 +28,7 @@ import { TabSync } from './tab-sync';
 import { DisplaySettings, messageVisibility } from './display';
 import { StatsPanel } from './stats';
 import { MessageArchive } from './archive';
+import { HistoryFiles } from './history-import';
 import { ArchiveSearch } from './archive-ui';
 import { RoomStates } from './room';
 import './style.css';
@@ -46,6 +50,7 @@ function element<T extends HTMLElement>(id: string, constructor: new () => T): T
   return found;
 }
 
+const errorReport = new ErrorReport(document.body);
 const stopLifecycle = mountLifecycle(element('offline', HTMLElement), element('app-update', HTMLButtonElement));
 // Each built bundle gets its matching archive, bypassing stale edge copies.
 element('source-download', HTMLAnchorElement).href = '/source.tar.gz?build=' + encodeURIComponent(new URL(import.meta.url).pathname);
@@ -88,7 +93,8 @@ const videoPanel = new VideoPanel(element('video-panel', HTMLElement), element('
 rail=new PanelRail(log,[{name:'video',root:element('video-panel',HTMLElement),show:open=>videoPanel.showRail(open),float:()=>videoPanel.float(),isOpen:()=>!element('video-panel',HTMLElement).hidden},{name:'emotes',root:element('emote-picker',HTMLElement),show:open=>picker.showRail(open),isOpen:()=>!element('emote-picker',HTMLElement).hidden},{name:'stats',root:element('stats-panel',HTMLDialogElement),show:open=>statsPanel.showRail(open),float:()=>statsPanel.float(),isOpen:()=>element('stats-panel',HTMLDialogElement).open}]);
 window.addEventListener('resize',scheduleRender);
 const statsLedger=new StatsLedger(channels,channel=>metadata.get(channel)?.emotes??{});statsLedger.bootstrap(store.messages);
-const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{});
+const streamHistory = new StreamHistory(channels);
+const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{},streamHistory);
 const archive = new MessageArchive((message) => { element('archive-status', HTMLElement).textContent = message; });
 for (const message of store.messages) archive.add(message);
 const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text) => {
@@ -139,7 +145,17 @@ async function showArchived(message: ChatMessage): Promise<void> {
     render(); window.dispatchEvent(new PopStateEvent('popstate'));
   } catch { element('archive-status', HTMLElement).textContent = 'Archived context unavailable'; }
 }
+const channelControls = new ChannelControls(element('joined-channels', HTMLElement), element('composer', HTMLFormElement), element('send-channel', HTMLSelectElement), channels);
+window.addEventListener('pagehide', () => channelControls.stop());
 const archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); });
+const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElement), () => channels[0]!, () => store.messages, async messages => {
+  for (let index = 0; index < messages.length; index += 500) {
+    for (const message of messages.slice(index, index + 500)) archive.add(message);
+    await archive.flush();
+  }
+  store.restore(messages.filter(message => channels.includes(message.channel))); store.save(); scheduleRender();
+});
+window.addEventListener('pagehide', () => historyFiles.stop());
 const initialID = new URL(location.href).searchParams.get('mid');
 if (initialID && !store.messages.some(message => message.id === initialID)) void archive.get(initialID, channels).then(message => { if (message) void showArchived(message); }).catch(() => {});
 const names = new Map<string, Map<string, true>>();
@@ -243,13 +259,13 @@ function scheduleRender(): void {
 const metadataClient = new MetadataClient(channels, (data) => {
   const previous = metadata.get(data.channel);
   if (JSON.stringify([previous?.emotes, previous?.badges]) !== JSON.stringify([data.emotes, data.badges])) visualRevision++;
-  metadata.set(data.channel, data);statsLedger.reconcile(data.channel);
+  metadata.set(data.channel, data);statsLedger.reconcile(data.channel);streamHistory.observe(data);
   pickerModel.setSeeds(data.channel,data.emoteUse??{});pickerModel.setMetadata(data.channel, data.emotes); picker.refresh();
   refreshCandidates();
   if (data.stream.uptime && !data.errors.includes('stream uptime')) attention.stream(data.channel, !/offline|not streaming|not live|not online|not found/i.test(data.stream.uptime), data.stream.title);
   if (data.channel === channels[0]) {
     streamInfo.textContent = [data.stream.uptime, /^\d+$/.test(data.stream.viewers) ? `${Number(data.stream.viewers).toLocaleString()} viewers` : '', data.stream.title].filter(Boolean).join(' · ');
-    if(data.lastVod){const archiveLink=document.createElement('a');archiveLink.href=data.lastVod.url;archiveLink.target='_blank';archiveLink.rel='noopener noreferrer';archiveLink.textContent='Latest archive · '+new Date(data.lastVod.start).toLocaleDateString();archiveLink.title=data.lastVod.title+' · '+Math.round((Date.parse(data.lastVod.end)-Date.parse(data.lastVod.start))/60000)+' minutes';streamInfo.append(' · ',archiveLink);}
+    if(data.lastVod){const archiveLink=document.createElement('a');archiveLink.href=data.lastVod.url;archiveLink.target='_blank';archiveLink.rel='noopener noreferrer';archiveLink.textContent='Latest archive · '+new Date(data.lastVod.start).toLocaleDateString();archiveLink.title=data.lastVod.title+' · '+new Date(data.lastVod.start).toLocaleString()+' → '+new Date(data.lastVod.end).toLocaleString()+' · '+Math.round((Date.parse(data.lastVod.end)-Date.parse(data.lastVod.start))/60000)+' minutes';streamInfo.append(' · ',archiveLink);}
     streamInfo.title = data.errors.length ? `Some metadata unavailable: ${data.errors.join(', ')}` : data.stream.title;
   }
   scheduleRender();
@@ -260,6 +276,7 @@ metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}},store.messages);
 const pageCoverage = new PageCoverage(channels, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
 window.addEventListener('pagehide', () => pageCoverage.stop());
+window.addEventListener('pagehide', () => { historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
 const connection = new ChatConnection(channels, (event) => {
   if (event.type === 'status') {
     rateTimeline.series.status(event);recovery.status(event);

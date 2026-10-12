@@ -1393,3 +1393,42 @@ production build, full Go race suite, vet and zero lint issues. The local built
 app connected and rendered chat under the Chatty Cat identity. This integration
 has not yet replaced the live release. Formal gates still require their final
 acceptance evidence.
+
+## History, channels, stream observations and lifecycle checkpoint
+
+Verified on 2026-10-11 in the isolated parity worktree:
+
+- Explicit legacy JSON import accepts original HTML history arrays, archived
+  records and channel-keyed localStorage dumps. Detached parsing produces
+  validated structured messages; scripts and embedded media are discarded.
+  Preview reports valid/skipped counts before import. Structured JSON export
+  preserves channel identity. Imports are bounded to 10 MB / 10,000 records,
+  deduplicated, and flushed in batches without overwriting original files.
+- Joined-channel links focus/add/remove rooms while retaining settings. Colored
+  send chips use the composer's existing target/draft/reply lifecycle. Archive
+  searches remain limited to joined rooms even with the All channels scope.
+- Seven days of stream observations and 30 VOD records survive scrollback
+  pruning. Stats show observed viewer peaks, title changes and live/offline
+  samples; VOD links disclose start and end. Failed metadata creates no false
+  offline observation. These records begin when this browser observes a stream.
+- Deliberate wheel scrolling while hovering a message retains its manual hold.
+  Rate graphs shade confirmed message gaps over 90 seconds, excluding socket,
+  timer and unwatched periods. Historical samples retain that distinction.
+- Runtime errors and rejected promises raise a dismissible, copyable local
+  report. Reports render as text, omit URL queries/credential fields, aggregate
+  repeated errors and send no external report.
+- Required frontend checks pass: 283 tests across 56 files, strict TypeScript
+  and production build. No backend sources changed after the integrated
+  backend's race/vet/lint checks.
+- Browser against the built Go preview: imported a legacy fixture and verified
+  its IndexedDB archive entry; chat remained connected. At 375 x 812 the
+  two-room header and composer had no horizontal overflow, and clicking the
+  patrick__eff chip selected that destination without sending. A synthetic
+  runtime error appeared with its query removed and dismissed correctly.
+
+Owner acceptance: subscriber emotes appear in picker and autocomplete; the
+approved test message and its reply appeared in patrick__eff. The owner accepts
+Twitch's embed session limitation: application OAuth cannot supply the Twitch
+website login to the official cross-origin player. Native player controls remain
+in use. Live whisper and moderation acceptance still require separately approved
+recipients/actions and an authenticated session.

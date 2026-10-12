@@ -1,5 +1,6 @@
 import {type StatsLedger,type StatKind} from './stats-ledger';
 import { isGlorp, type RateSeries } from './rate-timeline';
+import type { StreamHistory } from './stream-history';
 import type { ChatMessage } from './protocol';
 import { findLinks } from './links';
 import { tokenize, type Emote } from './tokens';
@@ -39,7 +40,7 @@ export class StatsPanel {
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
-  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries,private ledger?:StatsLedger,private seeds:(channel:string)=>Record<string,number>=()=>({})) {
+  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries,private ledger?:StatsLedger,private seeds:(channel:string)=>Record<string,number>=()=>({}),private streams?:StreamHistory) {
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!; this.channel = dialog.querySelector<HTMLSelectElement>('#stats-channel')!; this.exclusions = dialog.querySelector<HTMLInputElement>('#stats-exclusions')!;
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
     try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if(typeof data.channel==='string'&&[...this.channel.options].some(option=>option.value===data.channel))this.channel.value=data.channel; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if(data.windows&&typeof data.windows==='object')for(const select of dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const value=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof value==='string'&&[...select.options].some(option=>option.value===value))select.value=value;} if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
@@ -61,6 +62,20 @@ export class StatsPanel {
     const summary = this.dialog.querySelector<HTMLElement>('#stats-summary')!; summary.textContent = `${data.messages.toLocaleString()} messages · ${data.glorps.toLocaleString()} glorp/F · ${data.chatters.toLocaleString()} chatters · ${data.perMinute.toFixed(1)}/min · peak minute ${data.peakPerMinute}`;
     const graph = this.dialog.querySelector<HTMLElement>('#stats-graph')!; graph.replaceChildren(rateGraph(data.buckets, 'Message count over the selected time window', data.gaps, 'messages', data.pageGaps));
     const body = this.dialog.querySelector<HTMLElement>('#stats-lists')!; body.replaceChildren();
+    if (this.streams) {
+      const channels = this.channel.value ? [this.channel.value] : [...this.channel.options].map(option => option.value).filter(Boolean);
+      for (const channel of channels) {
+        const section = document.createElement('section'), heading = document.createElement('h3'); heading.textContent = 'Stream history · #' + channel; section.append(heading);
+        const samples = this.streams.samples(channel, now - windowMs), peak = this.streams.peak(channel, now - windowMs);
+        if (peak) { const value = document.createElement('p'); value.textContent = `Peak observed viewers: ${peak.viewers.toLocaleString()} at ${new Date(peak.at).toLocaleString()}`; section.append(value); }
+        const list = document.createElement('ol');
+        for (const sample of samples.slice(-30).reverse()) { const item = document.createElement('li'); item.textContent = new Date(sample.at).toLocaleString() + ' · ' + (sample.live ? 'Live' : 'Observed offline') + (sample.viewers === null ? '' : ' · ' + sample.viewers.toLocaleString() + ' viewers') + (sample.title ? ' · ' + sample.title : ''); list.append(item); }
+        if (!samples.length) { const item = document.createElement('li'); item.textContent = 'No stream observations in this window'; list.append(item); } section.append(list);
+        for (const vod of this.streams.archives(channel)) { const link = document.createElement('a'); link.href = vod.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = (vod.title || 'Archive') + ' · ' + new Date(vod.start).toLocaleString() + ' → ' + new Date(vod.end).toLocaleString(); const item = document.createElement('p'); item.append(link); section.append(item); }
+        body.append(section);
+      }
+      if (this.streams.storageFailed) { const note = document.createElement('p'); note.textContent = 'Stream history could not be saved in this browser'; body.append(note); }
+    }
     if(this.timeline){
       for(const kind of ['rate','glorps'] as const){
         const section=document.createElement('section'),heading=document.createElement('h3');

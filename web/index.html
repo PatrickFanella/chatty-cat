@@ -20,7 +20,7 @@
     <button id="video-open" type="button" aria-expanded="false" aria-controls="video-panel">Video</button><button id="whisper-open" type="button" aria-controls="whisper-panel" aria-expanded="false" disabled>Whispers</button><button id="resources-open" type="button" aria-controls="resources-panel" aria-expanded="false">Help &amp; resources</button><button id="display-open" type="button">Settings</button><button id="stats-open" type="button">Stats</button><span id="rate" aria-label="Message rate"></span>
     <button id="archive-open" type="button">Search archive</button>
     <button id="animation" type="button" aria-pressed="false">Freeze emotes</button>
-  </header>
+  <nav id="joined-channels" aria-label="Joined channels"></nav></header>
 <div id="offline" role="status" hidden>Offline · Saved history remains available; live chat and sending require a connection.</div><button id="app-update" type="button" hidden>Update ready · Reload</button>
   <aside>Migration preview. The original app remains available while its features are rebuilt.</aside>
   <div id="stream" class="stream" aria-label="Stream information">Loading stream information…</div>
@@ -52,6 +52,7 @@
 </fieldset><p>Rankings retain observed counts independently of scrollback; hour windows include the current hour bucket. The summary and graph cover retained chat, including loaded backfill. Earlier unobserved messages are unavailable.</p><div id="stats-summary" role="status"></div><div id="stats-graph"></div><div id="stats-lists"></div>
   </dialog>
   <dialog id="archive-search" aria-label="Search local chat archive">
+    <fieldset><legend>History files</legend><p>Import a copy of saved history from the original app or Chatty Cat. Original files and existing messages stay intact. Legacy media is restored as text.</p><label for="history-file">History JSON file</label><input id="history-file" type="file" accept=".json,application/json"><button id="history-import" type="button" disabled>Import selected file</button><button id="history-export" type="button">Export retained history</button><p id="history-status" role="status"></p></fieldset>
     <button id="archive-close" type="button">Close</button>
     <form><label for="archive-query">Message text</label><input id="archive-query" type="search" maxlength="500"><label for="archive-channel">Channel</label><select id="archive-channel"><option value="">All joined channels</option></select><button type="submit">Search</button></form>
     <p>Search messages saved by this browser. Up to 100,000 messages are retained. Earlier unsaved chat is unavailable.</p>
