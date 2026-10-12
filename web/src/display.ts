@@ -78,7 +78,7 @@ export class DisplaySettings {
   setOptions(value: unknown): void { this.options=parseDisplay(value); this.apply(); this.sync(); this.save(); this.changed(); }
   toggleTone(): void { this.options.shade = this.options.shade <= 3 ? 7 : 1; this.options.autoShade=false; this.apply(); this.sync(); this.save(); this.changed(); }
   private save(): void { try { localStorage.setItem('chatthing:v1:display', JSON.stringify(this.options)); } catch { /* optional storage */ } }
-  private open = (): void => this.dialog.showModal();
+  private open = (): void => {if(!privacyEnabled())this.dialog.showModal();};
   private close = (): void => { this.dialog.close(); this.trigger.focus(); };
   private submit = (event: Event): void => event.preventDefault();
   private change = (event: Event): void => {

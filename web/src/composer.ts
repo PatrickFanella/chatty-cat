@@ -36,6 +36,13 @@ function field<T extends HTMLElement>(form: HTMLFormElement, id: string, ctor: n
 }
 export class Composer {
   private blocked = '';
+  private commands:readonly string[]=[];
+  private commandPreview:((text:string)=>boolean)|undefined;
+  configureCommands(commands:readonly string[],preview:(text:string)=>boolean):void{this.commands=[...commands];this.commandPreview=preview;this.render();}
+  get draft():string{return this.input.value;}
+  draftFor(channel:string):string{try{return sessionStorage.getItem('chatthing:v1:draft:'+channel)??'';}catch{return '';}}
+  prepare(text:string):void{if(!this.canInsert)return;this.reply=undefined;this.input.value=text;this.edit();this.input.focus();}
+  private validation(text:string):string|undefined{const error=validateMessage(text);return error?.startsWith('Unsupported slash')&&this.commands.some(trigger=>trigger.toLowerCase()===text.split(/\s/)[0]?.toLowerCase())?undefined:error;}
   setBlock(reason: string): void { if (this.blocked === reason) return; this.blocked = reason; if (!this.busy) this.status.textContent = reason; this.render(); }
   private readonly input: HTMLTextAreaElement;
   private readonly suggestions: HTMLElement;
@@ -160,7 +167,7 @@ export class Composer {
     const signedIn = this.auth?.authenticated === true;
     this.input.disabled = this.busy || !signedIn;
     this.channel.disabled = this.busy;
-    this.button.disabled = this.busy || !signedIn || (!!this.blocked && !/^\s*\//.test(this.input.value)) || !!validateMessage(wireMessage(this.input.value));
+    this.button.disabled = this.busy || !signedIn || (!!this.blocked && !/^\s*\//.test(this.input.value)) || !!this.validation(wireMessage(this.input.value));
     this.button.textContent = this.busy ? 'Sending…' : 'Send';
     this.input.placeholder = signedIn ? 'Message' : 'Log in';
     const length = [...wireMessage(this.input.value)].length;
@@ -177,7 +184,7 @@ export class Composer {
     this.form.dispatchEvent(new Event('channelstatechange'));
   }
   private edit = (): void => { this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
-    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes);
+    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,this.commands);
     this.completionIndex = 0; this.paintCompletion();
   };
   private clearReply = (): void => { this.reply = undefined; this.requestID = undefined; this.render(); };
@@ -222,6 +229,7 @@ export class Composer {
     event.preventDefault();
     if (this.busy || !this.auth?.authenticated || !this.auth.csrf) return;
     if (this.blocked && !/^\s*\//.test(this.input.value)) { this.status.textContent = this.blocked; return; }
+    try{if(this.commandPreview?.(wireMessage(this.input.value)))return;}catch(error){this.status.textContent=error instanceof Error?error.message:'Command preview failed';return;}
     const error = validateMessage(wireMessage(this.input.value));
     if (error) { this.status.textContent = error; return; }
     this.busy = true; this.status.textContent = 'Sending…'; this.render();

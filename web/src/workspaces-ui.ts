@@ -18,7 +18,7 @@ export class WorkspacePanel {
  private paint():void {const selected=this.selected.value||this.currentID();this.selected.replaceChildren();for(const workspace of this.store.all()){const option=document.createElement('option');option.value=workspace.id;option.textContent=workspace.name+(workspace.id===this.currentID()?' · active':'');this.selected.append(option);}this.selected.value=this.store.get(selected)?selected:this.currentID();this.name.value=this.store.get(this.selected.value)?.name??'';this.trigger.textContent='Workspace: '+(this.store.get(this.currentID())?.name??'unsaved');}
  private invalidate=():void=>{this.pending=undefined;this.apply.disabled=true;this.generation++;};
  private select=():void=>{this.invalidate();this.name.value=this.store.get(this.selected.value)?.name??'';};
- private open=():void=>{this.paint();this.root.showModal();this.selected.focus();};
+ private open=():void=>{if(privacyEnabled())return;this.paint();this.root.showModal();this.selected.focus();};
  private closed=():void=>{this.invalidate();this.trigger.focus();};
  private preview(plan:Preview):void {
   this.pending=plan;this.apply.disabled=false;

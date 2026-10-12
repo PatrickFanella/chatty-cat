@@ -20,3 +20,7 @@ it('bounds suggestions and converts multiline drafts into a single chat line', (
   expect(completions('@v', 2, 2, Array.from({ length: 50 }, (_, i) => 'viewer' + i), [])?.items).toHaveLength(30);
   expect(wireMessage('  one\ntwo\r\nthree  ')).toBe('one two three');
 });
+it('completes custom triggers only at the beginning and keeps caret insertion safe',()=>{
+ const result=completions('/gre',4,4,[],[],false,['/greet','/good']);expect(result?.items[0]).toEqual({value:'/greet',kind:'command'});
+ expect(insertCompletion('/gre after',result!,0).text).toBe('/greet after');expect(completions('hi /gre',7,7,[],[],false,['/greet'])).toBeUndefined();
+});

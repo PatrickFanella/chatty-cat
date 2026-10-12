@@ -342,3 +342,6 @@ html[data-privacy="true"][data-workspace-visible="false"] body>:not(#privacy-too
 html[data-privacy="true"] #privacy-settings{display:none!important}
 
 html[data-privacy="true"] #video-panel,html[data-privacy="true"] #emote-picker,html[data-privacy="true"] .error-report,html[data-privacy="true"] #missed-mentions{display:none!important}
+
+html[data-privacy="true"] #commands-panel{display:none!important}
+#commands-panel label{display:block;margin:.4rem 0}#command-preview{white-space:pre-wrap;overflow-wrap:anywhere;max-width:70ch}

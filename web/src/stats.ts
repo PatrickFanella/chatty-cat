@@ -1,3 +1,4 @@
+import { privacyEnabled } from './privacy';
 import {badgeGroups,renderBadgeReference} from './stats-badges';
 import type {ChannelMetadata} from './metadata';
 import {registerSettings} from './settings-bundle';
@@ -56,7 +57,7 @@ export class StatsPanel {
   }
   float():void {this.dialog.removeAttribute('open');this.open();}
   showRail(open:boolean):void {if(open){if(this.dialog.open)this.dialog.close();this.dialog.setAttribute('open','');this.paint();}else this.dialog.removeAttribute('open');}
-  private open = (): void => { this.dialog.showModal(); this.paint(); };
+  private open = (): void => { if(privacyEnabled())return; this.dialog.showModal(); this.paint(); };
   private close = (): void => this.dialog.close();
   private closed = (): void => { this.trigger.focus(); };
   private change = (): void => { try { localStorage.setItem('chatthing:v1:stats', JSON.stringify({ badgeOrder:this.badgeOrder.value,scope: this.scope.value, channel:this.channel.value, excluded: this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value])) })); } catch { /* optional storage */ } this.paint(); };

@@ -19,3 +19,11 @@ Implemented manual privacy mode with a workspace allowlist and Alt+Shift+P panic
 Full check after integration: 67 frontend files / 327 tests passed, strict TypeScript/service-worker checks and production build passed. Vite retains its existing >500 KB bundle warning. No deployment or provider write was performed.
 
 Privacy browser demo: allowlisted Watching stayed visible with account/composer hidden; history export reported disabled. Alt+Shift+P hid the app header and content while the privacy toolbar stayed usable. A same-session window.open popout inherited panic mode and responded to privacy off/on storage changes; separately created T3 incognito tabs have isolated storage and were not used as propagation evidence; no account/provider write was used.
+
+## Custom commands and message actions (#12)
+
+Implemented up to 50 grouped definitions / 64 KB, one-word triggers, named/positional placeholders, literal brace escaping, completion and explicit expansion previews. Expansion stops at 500 code points and rejects nested custom commands, unknown placeholders and unsupported native slash commands. A selected-message action retains its original public channel/user/message context, checks the current account before staging and preserves drafts in other channels. Staging fills the composer; only a separate normal Send action can contact Twitch. Unknown channel IDs/title/category are reported as unavailable; the current metadata service does not expose a game/category field.
+
+Browser demo: saved a Community greeting and expanded `/greet friendly chat` to `Hello friendly chat in patrick__eff`; the signed-out preview could not stage/send. The signed-in fixture exercised a selected-user timeout in its original channel while retaining another channel's draft and making no fetch call. Privacy checks also confirmed that clicking masked Settings/Stats/Workspace/Archive/Commands controls opened no hidden modal.
+
+Full frontend suite after template and privacy-dialog integration passed 69 files / 334 tests, strict checks and production build. No provider write or deployment was performed.
