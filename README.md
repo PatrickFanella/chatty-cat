@@ -8,6 +8,7 @@ The original app remains the reference; this conversion is still in progress.
 
 [Parity checklist](docs/parity.md) records release gates and checkpoint evidence.
 [Architecture](docs/architecture.md) describes ownership and deployment boundaries.
+[Design system](docs/design-system.md) records the identity, brand roles and interface rules.
 
 ## Run locally
 

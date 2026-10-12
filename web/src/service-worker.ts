@@ -10,7 +10,7 @@ worker.addEventListener('install', event => {
     const cache = await caches.open(SHELL); const response = await fetch('/', { cache: 'reload' }); if (!response.ok) throw new Error('Shell unavailable');
     const html = await response.clone().text(); await cache.put('/', response);
     const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"\s]+)"/g)].flatMap(match => match[1] ? [match[1]] : []);
-    await cache.addAll([...new Set([...assets, '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/favicon.ico'])]);
+    await cache.addAll([...new Set([...assets, '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/apple-touch-icon.png', '/favicon.ico', '/favicon.svg'])]);
   })());
 });
 worker.addEventListener('activate', event => {
