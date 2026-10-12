@@ -29,6 +29,12 @@ it('anchors a paused reader when old rows are evicted or new rows arrive',()=>{
  view.set(items(1000,100),false);expect(log.scrollTop).toBe(oldTop-3200);expect(log.querySelector('[data-virtual-key="500"]')).not.toBeNull();
  view.set(items(1100,100),false);expect(log.scrollTop).toBe(oldTop-3200);view.stop();
 });
+it('anchors the visible DOM row when unmeasured heights disagree with estimated offsets',()=>{
+ const {log,view}=setup();view.set(items(1000),false);view.reveal('500');
+ vi.spyOn(log,'getBoundingClientRect').mockReturnValue(new DOMRect(0,100,400,640));
+ for(const row of log.querySelectorAll<HTMLElement>('.row')){const index=Number(row.dataset.virtualKey);vi.spyOn(row,'getBoundingClientRect').mockReturnValue(new DOMRect(0,90+(index-500)*32,400,32));}
+ view.set(items(1000,100),false);expect(log.scrollTop).toBe(400*32+10);view.stop();
+});
 it('does not build offscreen DOM nodes or repaint after disposal',()=>{
  const {log,view}=setup();const render=vi.fn(()=>document.createElement('article'));
  view.set(Array.from({length:10000},(_,i)=>({key:String(i),render})),false);expect(render.mock.calls.length).toBeLessThan(100);

@@ -28,6 +28,7 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	GiphyAPIKey       string
 	Auth              *auth.Service
 	Assets            string
 	IRCURL            string
@@ -92,6 +93,15 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := io.WriteString(w, `{"status":"ok","stage":"migration-foundation"}`); err != nil {
 			slog.Debug("health response closed", "error", err)
+		}
+	})
+	mux.HandleFunc("GET /api/public-config", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		if err := json.NewEncoder(w).Encode(struct {
+			GiphyAPIKey string `json:"giphyApiKey"`
+		}{s.cfg.GiphyAPIKey}); err != nil {
+			slog.Debug("public configuration response closed", "error", err)
 		}
 	})
 	mux.HandleFunc("GET /api/chat", s.chat)

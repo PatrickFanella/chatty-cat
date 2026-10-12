@@ -1477,3 +1477,32 @@ column layout. At 375 x 812 the popup fit in 351 pixels with no document overflo
 or runtime error. These checks do not assert that every external curated URL is
 currently reachable. The owner's forge returned HTTP 403 to a direct public
 metadata probe; the unavailable fallback remains necessary.
+
+## GIF lookup and mobile/permalink corrections
+
+GIF title links can resolve the first GIPHY search result using the owner's
+configured browser API key. Search is direct from the browser, keeps the exact
+returned media URL and displays GIPHY attribution. The gifsafe URL/settings
+option limits results to PG-13. Requests are spaced by at least 1.2 seconds,
+limited to 80 per hour across reloads and paused for five minutes after 429.
+Changing safe mode removes old results and discards pending unrestricted results.
+Only request-budget timestamps persist; no GIPHY media URL or asset is cached.
+This replaces the legacy cache/proxy behavior because current GIPHY requirements
+prohibit it without approval: https://developers.giphy.com/docs/api/ .
+Public configuration exposes only the browser GIPHY key, never Twitch secrets.
+
+The browser fixture check also exposed two defects: a tall mobile header could
+collapse chat, and estimated row heights could move a permalink target after
+measurement. Small screens now have a bounded scrollable header and compact
+controls; anonymous mode hides disabled sending fields. Obsolete migration
+messages were removed. Navigation status sits above the workspace, preserving
+chat width. Permalinks pin an archived context while live ingestion continues;
+Jump to live clears the permalink and pending navigation. Virtual scroll anchors
+use actual visible row geometry when available and restore after spacer updates.
+
+Verification: 298 frontend tests pass; strict production build, full Go race
+suite, vet and golangci-lint pass. The built browser at 375 x 812 found and retained
+the imported GIF permalink, displayed an actual loaded GIF from the configured
+key and preserved all 375 pixels of chat width. No Twitch message was sent by this
+fixture check. Jump to live cleared mid and its navigation label. The private
+temporary configuration file used by the isolated preview was removed afterward.

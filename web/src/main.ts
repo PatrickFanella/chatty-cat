@@ -1,3 +1,4 @@
+import { GiphyTitles } from './giphy';
 import { ErrorReport } from './error-report';
 import { ChannelControls } from './channels';
 import { StreamHistory } from './stream-history';
@@ -61,6 +62,7 @@ let rail:PanelRail|undefined;
 const virtualLog = new ColumnLog(log);
 const pronouns = new Pronouns();
 const socialCards=new SocialCards(log);
+const giphyTitles=new GiphyTitles(log);
 const linkPreview = new LinkPreview(log, element('link-preview', HTMLElement));
 const status = element('status', HTMLElement);
 const count = element('count', HTMLElement);
@@ -133,7 +135,19 @@ let follow = true;
 let archiveView: ChatMessage[] | undefined;
 let archiveGeneration = 0;
 element('composer', HTMLFormElement).addEventListener('composerresize', () => { if (follow) log.scrollTop = display.options.rev?0:log.scrollHeight; });
-const navigation = new MessageNavigation(log, () => { follow = false; latest.hidden = false; }, id => { const message = (archiveView ?? store.messages).find(item => item.id === id); if (message) virtualLog.reveal(messageKey(message)); });
+const linkedLookups = new Set<string>();
+const missingLinks = new Map<string, number>();
+const navigation = new MessageNavigation(log, () => { follow = false; latest.hidden = false; }, id => {
+  const message = (archiveView ?? store.messages).find(item => item.id === id);
+  if (message) virtualLog.reveal(messageKey(message));
+  if (archiveView && message || linkedLookups.has(id) || !message && Date.now() - (missingLinks.get(id) ?? 0) < 5000) return;
+  linkedLookups.add(id);
+  const generation = archiveGeneration;
+  void (message ? Promise.resolve(message) : archive.get(id, channels)).then(found => {
+    if (found && generation === archiveGeneration && new URL(location.href).searchParams.get('mid') === id) return showArchived(found);
+    if (!found) { missingLinks.set(id, Date.now()); if (missingLinks.size > 100) missingLinks.delete(missingLinks.keys().next().value!); }
+  }).catch(() => { missingLinks.set(id, Date.now()); }).finally(() => { linkedLookups.delete(id); });
+});
 async function showArchived(message: ChatMessage): Promise<void> {
   const generation = ++archiveGeneration;
   try {
@@ -156,8 +170,6 @@ const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElemen
   store.restore(messages.filter(message => channels.includes(message.channel))); store.save(); scheduleRender();
 });
 window.addEventListener('pagehide', () => historyFiles.stop());
-const initialID = new URL(location.href).searchParams.get('mid');
-if (initialID && !store.messages.some(message => message.id === initialID)) void archive.get(initialID, channels).then(message => { if (message) void showArchived(message); }).catch(() => {});
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
 function observe(message: ChatMessage, live = false, countStats=false): void {
@@ -276,7 +288,7 @@ metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}},store.messages);
 const pageCoverage = new PageCoverage(channels, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
 window.addEventListener('pagehide', () => pageCoverage.stop());
-window.addEventListener('pagehide', () => { historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
+window.addEventListener('pagehide', () => { giphyTitles.stop(); historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
 const connection = new ChatConnection(channels, (event) => {
   if (event.type === 'status') {
     rateTimeline.series.status(event);recovery.status(event);
@@ -303,7 +315,7 @@ log.addEventListener('scroll', (event) => {
   follow = virtualLog.trackScroll(event.target,follow);
   latest.hidden = follow && !virtualLog.hasManualPause();
 },{capture:true});
-latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
+latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; linkedLookups.clear(); const url = new URL(location.href); url.searchParams.delete('mid'); history.replaceState(null, '', url); window.dispatchEvent(new PopStateEvent('popstate')); follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {

@@ -41,7 +41,7 @@ export class VirtualLog {
     if (revision !== this.revision) { this.heights.clear(); this.revision = revision; }
     this.items = items; this.indexes = new Map(items.map((item, index) => [item.key, index]));
     for (const key of this.heights.keys()) if (!this.indexes.has(key)) this.heights.delete(key);
-    this.prefix(); this.restore(anchor); this.paint();
+    this.prefix(); this.restore(anchor); this.paint(); this.restore(anchor);
   }
   private prefix(): void {
     this.offsets = new Float64Array(this.items.length + 1);
@@ -53,6 +53,12 @@ export class VirtualLog {
     return Math.min(low, Math.max(0, this.items.length - 1));
   }
   private anchor(): { key: string; offset: number } | undefined {
+    const edge = this.log.getBoundingClientRect().top + this.log.clientTop + (parseFloat(getComputedStyle(this.log).paddingTop) || 0);
+    for (const row of this.log.children) {
+      if (!(row instanceof HTMLElement) || !row.dataset.virtualKey) continue;
+      const rect = row.getBoundingClientRect();
+      if (rect.height > 0 && rect.bottom > edge) return { key: row.dataset.virtualKey, offset: edge - rect.top };
+    }
     const index = this.indexAt(this.log.scrollTop), item = this.items[index];
     return item ? { key: item.key, offset: this.log.scrollTop - (this.offsets[index] ?? 0) } : undefined;
   }

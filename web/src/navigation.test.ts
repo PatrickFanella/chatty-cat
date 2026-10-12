@@ -26,3 +26,7 @@ it('parent jumps update the URL while retaining channels, and popstate clears th
   history.replaceState(null, '', '/?channel=hasanabi'); window.dispatchEvent(new PopStateEvent('popstate'));
   expect(row.classList.contains('target-message')).toBe(false);
 });
+it('keeps navigation status above the workspace instead of stealing a chat column', () => {
+  const workspace=document.createElement('div');workspace.className='chat-workspace';const log=document.createElement('main');workspace.append(log);document.body.append(workspace);navigation=new MessageNavigation(log,vi.fn());
+  expect(workspace.children).toHaveLength(1);expect(workspace.previousElementSibling?.className).toBe('message-navigation');
+});
