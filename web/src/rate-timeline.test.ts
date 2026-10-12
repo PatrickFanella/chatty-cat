@@ -31,3 +31,4 @@ it('shades confirmed quiet intervals but never unwatched socket or timer periods
  const restored=new RateSeries(['one'],303000);restored.restore(series.snapshot(302000),303000);
  expect(restored.samples(303000,204).some(sample=>sample.quiet)).toBe(true);
 });
+it('persists source-specific coverage atomically with counts and leaves legacy counts with unknown comparison coverage',()=>{const old=new RateSeries(['one','two'],100000);old.coverage.setSources(['one'],100000);old.status({type:'status',state:'connected',detail:''},100000);for(let second=100;second<=105;second++)old.tick(second*1000);const snapshot=old.snapshot(105000),current=new RateSeries(['one','two'],110000);current.restore(snapshot,110000);expect(current.coverage.snapshot(110000)).toEqual([{channel:'one',from:100,to:105}]);const legacy=new RateSeries(['one','two'],110000);legacy.restore({...snapshot,coverage:undefined},110000);expect(legacy.coverage.snapshot(110000)).toEqual([]);});

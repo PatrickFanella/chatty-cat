@@ -30,7 +30,7 @@ provider request was made. No M2 deployment is recorded yet.
 
 ## Remaining order and dependencies
 
-- #19/#20: observation comparison and portable logs from the merged baseline.
+- #20: portable logs from the merged baseline.
 - #48: account-isolated user notes after #27 account profiles.
 
 ## Public message/conversation bookmarks — #16
@@ -101,7 +101,7 @@ Reproducible browser fixture: [reply-thread demo](reply-thread-demo.md).
 
 ## Verified VOD context — #18
 
-Implemented for review. Archive results and saved bookmarks open VOD context
+Merged in [PR #67](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/67). Archive results and saved bookmarks open VOD context
 without replacing the chat reader. It shows message time in UTC and the browser's
 named local timezone. Candidate ranges come only from previously observed public
 archive metadata (up to 30 per channel); gaps, absent ranges and missing/private/
@@ -132,3 +132,51 @@ stale account reads, note exclusion and frame release. This is fixture evidence;
 real Twitch media playback and production deployment remain unverified.
 
 Reproducible demo and provider references: [VOD-context demo](vod-context-demo.md).
+
+## Observation comparison — #19
+
+Implemented for review. Compare activity opens aligned message-rate and viewer
+plots for one to six joined channels and a chosen window of up to 24 hours.
+Rates use receipt-time five-second means, averaged into at most 240 chart
+buckets per channel. Viewer points use actual polls and retain the poll's source
+timestamp; they are never interpolated. Each metric has one shared scale across
+channels, with separate units between plots. Empty or partially observed rate
+buckets and missing viewer polls are gaps, not zero activity.
+
+Per-channel connected-source coverage is now saved atomically with the rate
+snapshot. Source changes, disconnects, timer pauses and closed pages never
+create inferred coverage. Counts from legacy or invalid coverage snapshots
+remain unknown in comparison. The first four seconds after a coverage boundary
+stay unknown because the rolling rate needs five observed seconds. Rate data
+retains 24 hours and viewer samples seven days; older selected windows explicitly
+show unavailable portions. Coverage intervals are capped at 24,000.
+
+Source-timestamp marks identify observed title changes, retained raid notices
+and admitted spikes (at least four messages/s; up to three per channel, separated
+by more than ten seconds). Title changes following long poll gaps are labelled
+first seen after a gap. Failed title/viewer reads are missing. The event list
+is capped at its last 100 marks, with an explicit limit notice. Raid scans use
+cancellable channel cursors and the existing bounded public archive. Nearby
+chat opens a retained message within five seconds, or reports that context is
+missing; VOD actions use the existing verified-range preview.
+
+A sandboxed export preview enables a separate HTML download. The standalone
+aggregate table includes coverage, missing samples, source poll timestamps and
+escaped public annotations, with no raw chat, sender fields, account IDs,
+credentials, notes, device links or active resources. Changes to filters,
+account status and privacy invalidate results and the reviewed export. Public
+retained comparisons remain usable when login status is unavailable/offline.
+
+Verification: all 485 frontend tests and strict production build pass; the
+pinned 515-row inventory remains valid. Native Chromium/IndexedDB restored two
+channels with different observation intervals, displayed rates and viewers on
+separate scales, marked title/raid/spike timestamps and distinguished observed
+zeroes from gaps. Nearby raid chat and matching VOD preview opened successfully;
+VOD navigation kept the paused reader's identity and offset unchanged. A native
+56,037-byte HTML download contained 450 aggregate rows plus a header, no active
+resources and none of the fixture's private/sender/token/raw-chat sentinels.
+Privacy clears graphs and srcdoc and disables download; account changes cancel
+pending work and clear the same content. A delayed 24-hour preset remains valid.
+These are local fixture checks; no M2 production deployment is recorded.
+
+Reproducible demo: [observation comparison](observation-comparison-demo.md).

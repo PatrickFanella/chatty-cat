@@ -1,12 +1,14 @@
+import {ObservationCoverage,type ObservationSpan} from './observation-coverage';
 import type { ChatMessage, ServerEvent } from './protocol';
 export type GapCause='not observed'|'connecting'|'socket dropped'|'page closed'|'timer paused';
 export interface RateGap {from:number;to:number;cause:GapCause}
 export interface RateSample {second:number;rate:number;glorps:number;gap:GapCause|undefined;quiet?:boolean}
 interface Count {messages:number;glorps:number}
-export interface RateSnapshot {at:number;from:number;rows:[string,number,number,number][];gaps:RateGap[]}
+export interface RateSnapshot {at:number;from:number;rows:[string,number,number,number][];gaps:RateGap[];coverage?:ObservationSpan[]}
 const KEEP=86400;
 export function isGlorp(message:Pick<ChatMessage,'text'|'login'>):boolean{return /\b(?:glorp|florp)\b/i.test(message.text)||/^f$/i.test(message.text.trim())||message.login.toLowerCase()==='fossabot'&&/trigger is pulled.*bullet fired/i.test(message.text);}
 export class RateSeries {
+ readonly coverage:ObservationCoverage;
  private rows=new Map<string,Map<number,Count>>();
  private seen=new Set<string>();
  private gaps:RateGap[]=[];
@@ -14,14 +16,14 @@ export class RateSeries {
  private lastTick:number;
  private watchFrom:number;
  readonly started:number;
- constructor(private channels:readonly string[],now=Date.now()){this.started=Math.floor(now/1000);this.lastTick=this.started;this.watchFrom=this.started;this.active={from:this.started,cause:'connecting'};}
+ constructor(private channels:readonly string[],now=Date.now()){this.coverage=new ObservationCoverage(channels,now);this.started=Math.floor(now/1000);this.lastTick=this.started;this.watchFrom=this.started;this.active={from:this.started,cause:'connecting'};}
  observe(message:ChatMessage,live:boolean,now=Date.now()):void {
   if(!live||message.command!=='PRIVMSG'||!this.channels.includes(message.channel))return;
   const key=message.channel+':'+message.id;if(message.id&&this.seen.has(key))return;if(message.id)this.seen.add(key);while(this.seen.size>20000){const first=this.seen.values().next().value;if(first)this.seen.delete(first);else break;}
   const second=Math.floor(now/1000),rows=this.rows.get(message.channel)??new Map<number,Count>(),count=rows.get(second)??{messages:0,glorps:0};count.messages=Math.min(10000,count.messages+1);if(isGlorp(message))count.glorps=Math.min(10000,count.glorps+1);rows.set(second,count);this.rows.set(message.channel,rows);
  }
- status(event:Extract<ServerEvent,{type:'status'}>,now=Date.now()):void {const second=Math.floor(now/1000);if(event.state==='connected'){if(this.active){this.addGap(this.active.from,second,this.active.cause);this.active=undefined;}}else if(!this.active)this.active={from:second,cause:'socket dropped'};}
- tick(now=Date.now()):void {const second=Math.floor(now/1000);if(second-this.lastTick>5&&!this.active)this.addGap(this.lastTick+1,second,'timer paused');this.lastTick=second;for(const rows of this.rows.values())for(const stamp of rows.keys())if(stamp<second-KEEP)rows.delete(stamp);this.gaps=this.gaps.filter(gap=>gap.to>=second-KEEP).slice(-1000);}
+ status(event:Extract<ServerEvent,{type:'status'}>,now=Date.now()):void {this.coverage.status(event.state==='connected',now);const second=Math.floor(now/1000);if(event.state==='connected'){if(this.active){this.addGap(this.active.from,second,this.active.cause);this.active=undefined;}}else if(!this.active)this.active={from:second,cause:'socket dropped'};}
+ tick(now=Date.now()):void {this.coverage.tick(now);const second=Math.floor(now/1000);if(second-this.lastTick>5&&!this.active)this.addGap(this.lastTick+1,second,'timer paused');this.lastTick=second;for(const rows of this.rows.values())for(const stamp of rows.keys())if(stamp<second-KEEP)rows.delete(stamp);this.gaps=this.gaps.filter(gap=>gap.to>=second-KEEP).slice(-1000);}
  private addGap(from:number,to:number,cause:GapCause):void {if(to<=from)return;this.gaps.push({from,to,cause});if(this.gaps.length>1000)this.gaps.shift();}
  observationGaps(now=Date.now()):{from:number;to:number}[] {const end=Math.floor(now/1000);return [...this.gaps,...(this.active?[{...this.active,to:end+1}]:[]),...(this.watchFrom>end-KEEP?[{from:end-KEEP,to:this.watchFrom}]:[])].map(gap=>({from:gap.from*1000,to:gap.to*1000}));}
  samples(now=Date.now(),seconds=240,channel=''):RateSample[]{
@@ -42,13 +44,14 @@ export class RateSeries {
   }
   return picks;
  }
- snapshot(now=Date.now()):RateSnapshot {this.tick(now);const rows:RateSnapshot['rows']=[];for(const [channel,counts] of this.rows)for(const [second,count] of counts)rows.push([channel,second,count.messages,count.glorps]);return {at:Math.floor(now/1000),from:Math.max(Math.floor(now/1000)-KEEP,this.watchFrom),rows,gaps:[...this.gaps.map(gap=>({...gap})),...(this.active&&Math.floor(now/1000)>this.active.from?[{...this.active,to:Math.floor(now/1000)}]:[])]};}
+ snapshot(now=Date.now()):RateSnapshot {this.tick(now);const rows:RateSnapshot['rows']=[];for(const [channel,counts] of this.rows)for(const [second,count] of counts)rows.push([channel,second,count.messages,count.glorps]);return {at:Math.floor(now/1000),from:Math.max(Math.floor(now/1000)-KEEP,this.watchFrom),rows,coverage:this.coverage.snapshot(now),gaps:[...this.gaps.map(gap=>({...gap})),...(this.active&&Math.floor(now/1000)>this.active.from?[{...this.active,to:Math.floor(now/1000)}]:[])]};}
  restore(value:unknown,now=Date.now()):void {
   if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>,end=Math.floor(now/1000);if(typeof data.at!=='number'||!Number.isSafeInteger(data.at)||data.at>end+5||data.at<end-KEEP||!Array.isArray(data.rows)||!Array.isArray(data.gaps))return;
   if(typeof data.from==='number'&&Number.isSafeInteger(data.from)&&data.from>=end-KEEP&&data.from<=this.started)this.watchFrom=data.from;
   for(const entry of data.rows.slice(-KEEP*6)){if(!Array.isArray(entry)||entry.length!==4||typeof entry[0]!=='string'||!this.channels.includes(entry[0])||!entry.slice(1).every(v=>typeof v==='number'&&Number.isSafeInteger(v))||entry[1]<end-KEEP||entry[1]>=this.started||entry[2]<0||entry[2]>10000||entry[3]<0||entry[3]>entry[2])continue;const rows=this.rows.get(entry[0])??new Map<number,Count>();rows.set(entry[1],{messages:entry[2],glorps:entry[3]});this.rows.set(entry[0],rows);}
   const causes:GapCause[]=['not observed','connecting','socket dropped','page closed','timer paused'];for(const raw of data.gaps.slice(-1000)){if(!raw||typeof raw!=='object')continue;const gap=raw as Record<string,unknown>;if(typeof gap.from==='number'&&typeof gap.to==='number'&&Number.isSafeInteger(gap.from)&&Number.isSafeInteger(gap.to)&&gap.from>=end-KEEP&&gap.to<=this.started&&gap.to>gap.from&&causes.includes(gap.cause as GapCause))this.addGap(gap.from,gap.to,gap.cause as GapCause);}
   if(this.started-data.at>2)this.addGap(data.at+1,this.started,'page closed');
+  if(data.rows.length<=KEEP*6&&data.rows.every(entry=>Array.isArray(entry)&&entry.length===4&&typeof entry[0]==='string'&&this.channels.includes(entry[0])&&entry.slice(1).every(v=>typeof v==='number'&&Number.isSafeInteger(v))&&entry[2]>=0&&entry[2]<=10000&&entry[3]>=0&&entry[3]<=entry[2]))this.coverage.restore(data.coverage,now);
  }
 }
 export function timelineGraph(samples:readonly RateSample[]):SVGSVGElement {
@@ -61,13 +64,14 @@ export function timelineGraph(samples:readonly RateSample[]):SVGSVGElement {
 }
 export class RateTimeline {
  readonly series:RateSeries;
+ readonly ready:Promise<void>;
  private timer:ReturnType<typeof setInterval>;
  private saving=false;
  private database:Promise<IDBDatabase|undefined>;
  private stopped=false;
  constructor(private header:HTMLElement,channels:readonly string[]){
   this.series=new RateSeries(channels);this.database=new Promise(resolve=>{let abandoned=false;try{const request=indexedDB.open('chatthing:v1:rates',1);request.onupgradeneeded=()=>request.result.createObjectStore('snapshots');request.onerror=()=>resolve(undefined);request.onblocked=()=>{abandoned=true;resolve(undefined);};request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>db.close();if(this.stopped||abandoned){db.close();resolve(undefined);return;}resolve(db);};}catch{resolve(undefined);}});
-  void this.database.then(db=>{if(!db||this.stopped)return;const request=db.transaction('snapshots').objectStore('snapshots').get(channels.join(','));request.onsuccess=()=>{if(!this.stopped){this.series.restore(request.result);this.paint();}};}).catch(()=>{/* optional aggregate storage may close during navigation */});
+  this.ready=this.database.then(db=>{if(!db||this.stopped)return;return new Promise<void>(resolve=>{try{const request=db.transaction('snapshots').objectStore('snapshots').get(channels.join(','));request.onsuccess=()=>{if(!this.stopped){this.series.restore(request.result);this.paint();}resolve();};request.onerror=()=>resolve();}catch{resolve();}});}).catch(()=>{});
   let ticks=0;this.timer=setInterval(()=>{this.series.tick();this.paint();if(++ticks%30===0)void this.save(channels.join(','));},1000);this.key=channels.join(',');this.paint();
  }
  private key:string;
