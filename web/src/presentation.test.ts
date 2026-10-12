@@ -1,0 +1,4 @@
+import {expect,it} from 'vitest';
+import {parsePresentation,formatTimestamp,usernameLabel} from './presentation';
+it('validates bounded values, preserves supported preferences and ignores unknown private data',()=>{const p=parsePresentation({collapseLines:999,deletedLength:-1,scrollMultiplier:Infinity,usernameMode:'bad',token:'secret'});expect(p.collapseLines).toBe(20);expect(p.deletedLength).toBe(0);expect(p.scrollMultiplier).toBe(1);expect(p.usernameMode).toBe('both');expect(JSON.stringify(p)).not.toContain('secret');});
+it('formats documented timestamp tokens and username/localized-name modes as plain text',()=>{const d=new Date(2026,0,1,13,2,3);expect(formatTimestamp(d,'HH:mm:ss')).toBe('13:02:03');expect(formatTimestamp(d,'h:mm AP')).toBe('1:02 PM');expect(usernameLabel('alice','Alice','both')).toBe('Alice');expect(usernameLabel('alice','艾丽丝','both')).toBe('alice (艾丽丝)');expect(usernameLabel('alice','艾丽丝','login')).toBe('alice');});

@@ -1,3 +1,5 @@
+import {PresentationPanel} from './presentation-ui';
+import {getPresentation} from './presentation';
 import {LocalTargets,dispatchLocal,LOCAL_COMMANDS} from './local-commands';
 import {privacyEnabled} from './privacy';
 import {RulePanel} from './rules-ui';
@@ -58,7 +60,7 @@ import { MessageNavigation } from './navigation';
 import { tokenize, nativeEmoteTag } from './tokens';
 import { ChatConnection } from './connection';
 import { parseWorkspaceChannels, type ChatMessage } from './protocol';
-import { messageRow } from './render';
+import { messageRow,decoratePresentation } from './render';
 import { MessageStore } from './store';
 import { MetadataClient, type ChannelMetadata } from './metadata';
 
@@ -70,6 +72,7 @@ function element<T extends HTMLElement>(id: string, constructor: new () => T): T
 
 const capacity=await loadCapacity();
 const localTargets=new LocalTargets();
+const liveObserved=new WeakSet<ChatMessage>();
 const localCleared=new Map<string,number>();
 const errorReport = new ErrorReport(document.body);
 const stopLifecycle = mountLifecycle(element('offline', HTMLElement), element('app-update', HTMLButtonElement));
@@ -226,6 +229,7 @@ const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
 function ruleIDsFor(message:ChatMessage):string[]{return virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(t=>t.panes.filter(p=>p.channels.includes(message.channel)).flatMap(p=>p.rules??[])):[];}
 function observe(message: ChatMessage, live = false, countStats=false): void {
+  if(live){liveObserved.add(message);if(getPresentation().pulseSelf&&message.login.toLowerCase()===selfLogin){const form=element('composer',HTMLFormElement);form.classList.remove('composer-pulse');void form.offsetWidth;form.classList.add('composer-pulse');}}
   if(live&&message.command==='PRIVMSG')virtualLog.observe(message.channel,message.text,messageKey(message));
   const decision=rulePanel?.engine.observe(message,ruleIDsFor(message));const similar=rulePanel?.similarity.classify(message,selfLogin)??false;
   if(!decision?.hidden)inboxPanel?.observe(message,!!decision?.inbox&&(!similar||!!rulePanel?.similarity.options.highlightSimilar));
@@ -280,15 +284,14 @@ function render(): void {
      if(rule?.hidden||similar&&rulePanel?.similarity.options.behavior==='hide')continue;
      if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
      if(display.options.links){let fingerprint=fingerprints.get(message);if(fingerprint===undefined){fingerprint=linkFingerprint(message.text);fingerprints.set(message,fingerprint);}if(!fingerprint||seenLinks.has(fingerprint))continue;if(seenLinks.size>=20000)seenLinks.clear();seenLinks.add(fingerprint);}
-     const key = messageKey(message);
+     const key = messageKey(message);const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));const p=getPresentation();if(p.hideModerated&&removed||p.hideModerationActions&&message.command==='CLEARCHAT'||p.hideDeletionActions&&message.command==='CLEARMSG')continue;
      if (visibility.hiddenUser && display.options.hideMode === 'stub') {
        items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
      }
-     items.push({ key, channel:message.channel,text:message.text, visible:ids=>!rulePanel?.engine.evaluate(message,ids).hidden,render: (scope="default") => {
-       const row=rowsByMessage.get(message,scope,visualRevision,()=>messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze));
+     items.push({ key, channel:message.channel,text:message.text, highlight:scope=>(visibility.highlight||!!rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope)).highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar),visible:ids=>!rulePanel?.engine.evaluate(message,ids).hidden,render: (scope="default") => {
+       const row=rowsByMessage.get(message,scope,visualRevision*2+(removed?1:0),()=>{const row=messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze||getPresentation().animateOnlyFocused&&!document.hasFocus());decoratePresentation(row,message,removed,!liveObserved.has(message));return row;});
        const decision=rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope));const highlight=(visibility.highlight||!!decision?.highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar);row.classList.toggle('keyword-match',highlight);row.classList.toggle('similar-message',similar);if(decision?.color&&highlight)row.style.setProperty('--rule-color',decision.color);else row.style.removeProperty('--rule-color'); row.classList.toggle('user-ghost', visibility.hiddenUser);
-       const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));
-       row.classList.toggle('removed', removed); return row;
+       row.classList.toggle('history-message',!liveObserved.has(message));row.classList.toggle('removed', removed); return row;
      } });
    }
     return items;
@@ -305,6 +308,7 @@ function render(): void {
   navigation.reveal();
 }
 
+const displaySearch=document.createElement('input');displaySearch.type='search';displaySearch.placeholder='Search display settings';displaySearch.setAttribute('aria-label','Search display settings');element('display-panel',HTMLDialogElement).prepend(displaySearch);displaySearch.addEventListener('input',()=>{for(const label of element('display-panel',HTMLDialogElement).querySelectorAll<HTMLLabelElement>('label'))label.hidden=!label.textContent?.toLowerCase().includes(displaySearch.value.toLowerCase());});
 const display = new DisplaySettings(element('display-panel', HTMLDialogElement), element('display-open', HTMLButtonElement), () => { visualRevision++; picker.refresh(true); scheduleRender(); });
 let hydratedCap = 0;
 let hydrationAbort = new AbortController();
@@ -336,6 +340,7 @@ const inspector = new UserInspector(element('user-inspector', HTMLDialogElement)
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
 function zoomChat(delta:number):void{const index=FONT_SIZES.indexOf(display.options.size),size=FONT_SIZES[Math.max(0,Math.min(FONT_SIZES.length-1,index+delta))];if(size)display.setOptions({...display.options,size});}
+const presentationPanel=new PresentationPanel(()=>{visualRevision++;scheduleRender();renderRoom();const data=metadata.get(channels[0]!);if(data)paintStreamInfo(data);});
 rulePanel=new RulePanel(()=>{visualRevision++;scheduleRender();});
 function channelStep(delta:number):void{const index=channels.indexOf(composer.target);virtualLog.focusChannel(channels[(index+delta+channels.length)%channels.length]!);}
 const hotkeyActions={
@@ -380,12 +385,17 @@ const commandPanel=new CommandPanel(composer,()=>{
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {
   if (!renderQueued) { renderQueued = true; requestAnimationFrame(render); }
 }
+function paintStreamInfo(data:ChannelMetadata):void{const p=getPresentation();
+    streamInfo.textContent = [p.headerUptime?data.stream.uptime:'',p.headerViewers&&/^\d+$/.test(data.stream.viewers) ? `${Number(data.stream.viewers).toLocaleString()} viewers` : '',p.headerTitle?data.stream.title:''].filter(Boolean).join(' · ');
+    if(data.lastVod){const archiveLink=document.createElement('a');archiveLink.href=data.lastVod.url;archiveLink.target='_blank';archiveLink.rel='noopener noreferrer';archiveLink.textContent='Latest archive · '+new Date(data.lastVod.start).toLocaleDateString();archiveLink.title=data.lastVod.title+' · '+new Date(data.lastVod.start).toLocaleString()+' → '+new Date(data.lastVod.end).toLocaleString()+' · '+Math.round((Date.parse(data.lastVod.end)-Date.parse(data.lastVod.start))/60000)+' minutes';streamInfo.append(' · ',archiveLink);}
+    streamInfo.title = data.errors.length ? `Some metadata unavailable: ${data.errors.join(', ')}` : data.stream.title;
+  }
 const metadataClient = new MetadataClient(channels, (data) => {
   const previous = metadata.get(data.channel);
   if (JSON.stringify([previous?.emotes, previous?.badges]) !== JSON.stringify([data.emotes, data.badges])) visualRevision++;
@@ -393,11 +403,7 @@ const metadataClient = new MetadataClient(channels, (data) => {
   pickerModel.setSeeds(data.channel,data.emoteUse??{});pickerModel.setMetadata(data.channel, data.emotes); picker.refresh();
   refreshCandidates();
   if (data.stream.uptime && !data.errors.includes('stream uptime')) attention.stream(data.channel, !/offline|not streaming|not live|not online|not found/i.test(data.stream.uptime), data.stream.title);
-  if (data.channel === channels[0]) {
-    streamInfo.textContent = [data.stream.uptime, /^\d+$/.test(data.stream.viewers) ? `${Number(data.stream.viewers).toLocaleString()} viewers` : '', data.stream.title].filter(Boolean).join(' · ');
-    if(data.lastVod){const archiveLink=document.createElement('a');archiveLink.href=data.lastVod.url;archiveLink.target='_blank';archiveLink.rel='noopener noreferrer';archiveLink.textContent='Latest archive · '+new Date(data.lastVod.start).toLocaleDateString();archiveLink.title=data.lastVod.title+' · '+new Date(data.lastVod.start).toLocaleString()+' → '+new Date(data.lastVod.end).toLocaleString()+' · '+Math.round((Date.parse(data.lastVod.end)-Date.parse(data.lastVod.start))/60000)+' minutes';streamInfo.append(' · ',archiveLink);}
-    streamInfo.title = data.errors.length ? `Some metadata unavailable: ${data.errors.join(', ')}` : data.stream.title;
-  }
+  if(data.channel===channels[0])paintStreamInfo(data);
   scheduleRender();
 }, (channel) => {
   if (channel === channels[0]) streamInfo.title = 'Stream metadata unavailable; chat continues';
@@ -428,6 +434,7 @@ const connection = new ChatConnection(liveSources(), (event) => {
 });
 syncSources=()=>{const sources=liveSources(),closed=channels.filter(channel=>!sources.includes(channel));pickerModel.connection(closed,'reconnecting');connection.setChannels(sources);personalChat.setChannels(sources);metadataClient.setChannels(sources);pageCoverage.setChannels(sources);};
 syncSources();connection.start();
+const usernameContext=(event:MouseEvent):void=>{if(privacyEnabled()||composer.sending||!(event.target instanceof Element))return;const name=event.target.closest<HTMLElement>('a.name,a.mention'),row=name?.closest<HTMLElement>('.row');if(!name||!row)return;const p=getPresentation(),modified=({shift:event.shiftKey,ctrl:event.ctrlKey,alt:event.altKey,meta:event.metaKey})[p.rightClickModifier as 'shift'|'ctrl'|'alt'|'meta'],action=modified?p.modifiedRightClick:p.rightClick;if(action==='ignore')return;event.preventDefault();if(!composer.canInsert){announcer.textContent='Log in to stage a mention or reply';return;}const message=viewMessages().find(m=>m.id===row.dataset.id&&m.channel===row.dataset.channel);if(!message)return;if(action==='reply'){localTargets.reply(message);composer.selectReply(message);}else composer.mention(name.dataset.mention||message.login,p.mentionAt,p.mentionComma);};log.addEventListener('contextmenu',usernameContext);window.addEventListener('pagehide',()=>log.removeEventListener('contextmenu',usernameContext));
 const localHelp=document.createElement('dialog');localHelp.setAttribute('aria-label','Local command help');const heading=document.createElement('h2');heading.textContent='Local commands';const helpText=document.createElement('p');helpText.textContent=LOCAL_COMMANDS.join(' · ');const details=document.createElement('p');details.textContent='Context is the selected send channel. /reply stages the selected public thread. /r stages a private whisper to the last selected or observed whisper recipient; it never means a public reply. /whisper, /msg and .w are aliases that stage /w. Review staged messages and press Send separately. /requests opens the channel-points queue. /ignore only hides a user locally; /block changes Twitch blocking. Follow actions open Twitch. /clearmessages hides retained rows locally while preserving the archive. /disconnect pauses public, personal and whisper streams until /reconnect. Raw, debug and native commands are unavailable.';const closeHelp=document.createElement('button');closeHelp.type='button';closeHelp.textContent='Close';closeHelp.addEventListener('click',()=>localHelp.close());localHelp.append(heading,helpText,details,closeHelp);document.body.append(localHelp);
 composer.configureLocal(text=>{if(privacyEnabled())throw new Error('Local commands are unavailable in privacy mode');return dispatchLocal(text,{channel:composer.target,uptime:metadata.get(composer.target)?.stream.uptime??'',targets:localTargets,
  open:url=>{const opened=window.open('about:blank','_blank');if(!opened)return false;opened.opener=null;opened.location.href=url;return true;},copy:async value=>{await navigator.clipboard.writeText(value);},

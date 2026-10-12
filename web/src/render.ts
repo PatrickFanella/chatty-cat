@@ -1,3 +1,4 @@
+import {getPresentation,formatTimestamp,usernameLabel} from './presentation';
 import { channelURL, CHANNEL_COLORS } from './channels';
 import {nativeGifTitle,gifTitleLink} from './gifs';
 import { appendLinks, readableColor, observeUserColor } from './links';
@@ -52,6 +53,7 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
 
 export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, frozen = false): HTMLElement {
   observeUserColor(message.login,message.tags.color??'');
+  const p=getPresentation();
   const row = document.createElement('article');
   row.className = 'row';
   row.dataset.id = message.id; row.dataset.timestamp = String(message.timestamp); row.dataset.command = message.command;
@@ -62,7 +64,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
     const date = new Date(message.timestamp);
     time.dateTime = date.toISOString();
     const mode = Number(document.documentElement.dataset.times ?? 2);
-    time.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', ...(mode === 2 || mode === 4 ? { second: '2-digit' as const } : {}), hour12: mode === 3 || mode === 4 });
+    time.textContent = p.timestampFormat!=='legacy'?formatTimestamp(date,p.timestampFormat):date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', ...(mode === 2 || mode === 4 ? { second: '2-digit' as const } : {}), hour12: mode === 3 || mode === 4 });
   }
   const channel = document.createElement('a');
   channel.className = 'channel';
@@ -74,8 +76,8 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   name.target = '_blank'; name.rel = 'noopener noreferrer';
   name.className = 'name';
   if (['fossabot','blammobot'].includes(message.login.toLowerCase())) name.classList.add('shimmer');
-  name.textContent = message.tags['display-name'] || message.login || message.command.toLowerCase();
-  name.style.color = readableColor(message.tags.color ?? '', document.documentElement.dataset.theme === 'light');
+  name.textContent = usernameLabel(message.login,message.tags['display-name']??'',p.usernameMode)||message.command.toLowerCase();
+  name.style.color = p.colorUsernames?readableColor(message.tags.color ?? '', document.documentElement.dataset.theme === 'light'):'';
   const text = messageText(message, metadata, frozen);
   if (message.command !== 'PRIVMSG') { row.classList.add('notice'); const label=document.createElement('span');label.className='notice-label rainbow';label.textContent='['+(message.tags['msg-id']||message.command.toLowerCase())+']';row.append(label); }
   if (message.text.startsWith('\x01ACTION ') && message.text.endsWith('\x01')) {
@@ -138,6 +140,8 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   }
   if (message.command === 'CLEARCHAT') text.textContent = message.text ? `${message.text} ${message.tags['ban-duration'] ? 'timed out for ' + message.tags['ban-duration'] + 's' : 'banned'}` : 'Chat cleared';
   if (message.command === 'CLEARMSG') text.textContent = 'Message deleted';
+  text.classList.add('message-body');
+  if(p.collapseLines>0&&message.command==='PRIVMSG'&&message.text.length>80){text.classList.add('collapsed-message');const expand=document.createElement('button');expand.type='button';expand.className='expand-message';expand.textContent='Expand message';expand.setAttribute('aria-expanded','false');expand.addEventListener('click',()=>{const collapsed=text.classList.toggle('collapsed-message');expand.textContent=collapsed?'Expand message':'Collapse message';expand.setAttribute('aria-expanded',String(!collapsed));});row.append(expand);}
   row.append(text);
   if (message.command === 'PRIVMSG' && message.id) {
     const reply = document.createElement('button');
@@ -151,3 +155,5 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   }
   return row;
 }
+
+export function decoratePresentation(row:HTMLElement,message:ChatMessage,removed:boolean,historical:boolean):void{row.classList.toggle('removed',removed);row.classList.toggle('history-message',historical);if(removed){const body=row.querySelector('.message-body');if(body){const limit=getPresentation().deletedLength;body.textContent=[...message.text].slice(0,limit).join('')+([...message.text].length>limit?'…':'');}}}

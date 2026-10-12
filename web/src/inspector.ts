@@ -1,3 +1,4 @@
+import {getPresentation} from './presentation';
 import { privacyEnabled } from './privacy';
 import type { AuthStatus } from './auth';
 import type { ChatMessage } from './protocol';
@@ -42,7 +43,7 @@ export class UserInspector {
   private click=(event:MouseEvent):void=>{
     if(!(event.target instanceof Element))return;const button=event.target.closest<HTMLButtonElement>('button');if(!button||this.busy)return;
     if(button.hasAttribute('data-close'))this.dialog.close();
-    else if(button.hasAttribute('data-reply')&&this.message){const message=this.message;this.dialog.close();this.reply(message);}
+    else if(button.hasAttribute('data-reply')&&this.message){const message=this.message;if(getPresentation().autoCloseUserPopup)this.dialog.close();this.reply(message);}
     else if(button.dataset.command&&this.message){
       const action=button.dataset.command, message=this.message;
       if(!['timeout','ban','delete'].includes(action))return;
