@@ -55,3 +55,31 @@ it('borrows animation freeze over the grid without saving it or replacing cells'
  const freeze=root.querySelector<HTMLInputElement>('#picker-frozen')!;freeze.checked=true;freeze.dispatchEvent(new Event('change',{bubbles:true}));grid.dispatchEvent(new Event('pointerenter'));grid.dispatchEvent(new Event('pointerleave'));expect(grid.querySelector('img')?.src).toBe('https://example.com/a.png');expect(new PickerModel().options.frozen).toBe(true);
 });
 it('validates shared picker geometry before fitting it to the viewport',async()=>{const {parsePickerGeometry}=await import('./picker');expect(parsePickerGeometry('876x625,646,173')).toEqual({width:876,height:625,left:646,top:173});for(const value of ['NaNx400','10x20','300x199','Infinityx300','400x300,1,evil'])expect(parsePickerGeometry(value)).toBeUndefined();});
+it('discloses interrupted age windows while held and never calls an offline crossing observed', async () => {
+  vi.setSystemTime(1000000);
+  const { root, model, find } = setup(); model.connection(['hasanabi'], 'connected'); find('kappa');
+  model.observe({ id: 'use', command: 'PRIVMSG', channel: 'hasanabi', login: 'user', text: 'Kappa', timestamp: Date.now(), tags: {} }, true);
+  picker?.refresh(true);
+  vi.setSystemTime(1005000); model.connection(['hasanabi'], 'reconnecting');
+  root.dispatchEvent(new Event('pointerenter'));
+  await vi.advanceTimersByTimeAsync(40000);
+  const marker = root.querySelector<HTMLElement>('.picker-age[data-age="60"]')!;
+  expect(marker.classList.contains('missed')).toBe(true);
+  expect(marker.title).toContain('Chat was not being logged');
+  root.dispatchEvent(new Event('pointerleave')); picker?.refresh(true);
+  expect(root.querySelector('.picker-age[data-age="20"]')?.classList.contains('crossed')).toBe(false);
+  model.connection(['hasanabi'], 'connected');
+  await vi.advanceTimersByTimeAsync(60000);
+  expect(root.querySelector('.picker-age[data-age="60"]')?.classList.contains('missed')).toBe(false);
+});
+it('derives gold from the freshest eligible crossing, including time with the picker closed', async () => {
+  vi.setSystemTime(1000000);
+  const { root, trigger, model, find } = setup(); model.connection(['hasanabi'], 'connected'); find('kappa');
+  const use = (id: string) => model.observe({ id, command: 'PRIVMSG', channel: 'hasanabi', login: 'user', text: 'Kappa', timestamp: Date.now(), tags: {} }, true);
+  use('first'); root.querySelector<HTMLButtonElement>('#picker-close')!.click();
+  await vi.advanceTimersByTimeAsync(15000); trigger.click();
+  expect(root.querySelector('.picker-age[data-age="10"]')?.classList.contains('crossed')).toBe(true);
+  use('fresh'); model.connection(['hasanabi'], 'reconnecting');
+  await vi.advanceTimersByTimeAsync(15000); picker?.refresh(true);
+  expect(root.querySelector('.picker-age[data-age="10"]')?.classList.contains('crossed')).toBe(false);
+});

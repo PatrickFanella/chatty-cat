@@ -8,6 +8,16 @@ function setup() {
 }
 function items(count:number,start=0):LogItem[]{return Array.from({length:count},(_,i)=>({key:String(start+i),render:()=>{const row=document.createElement('article');row.className='row';row.textContent=String(start+i);return row;}}));}
 afterEach(()=>{document.body.replaceChildren();vi.restoreAllMocks();});
+it('pauses only over message rows and resumes on leaving without losing deliberate scroll',()=>{
+ const {log,view}=setup();view.set(items(100),true,0,false,true);log.scrollTop=log.scrollHeight-log.clientHeight;const liveTop=log.scrollTop;
+ log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+ view.set(items(110),true,0,false,true);expect(log.scrollTop).toBe(liveTop);
+ log.dispatchEvent(new MouseEvent('mouseleave'));expect(log.scrollTop).toBeGreaterThan(liveTop);
+ log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+ log.dispatchEvent(new WheelEvent('wheel'));log.scrollTop=100;log.dispatchEvent(new Event('scroll'));
+ log.dispatchEvent(new MouseEvent('mouseleave'));view.set(items(120),true,0,false,true);expect(log.scrollTop).toBe(100);
+ view.resume();view.set(items(120),true,0,false,true);expect(log.scrollTop).toBeGreaterThan(100);view.stop();
+});
 it('mounts a bounded window for 100,000 records and navigates to distant rows',()=>{
  const {log,view}=setup();const records=items(100000);view.set(records,true);
  expect(log.querySelectorAll('.row').length).toBeLessThan(100);expect(log.textContent).toContain('99999');

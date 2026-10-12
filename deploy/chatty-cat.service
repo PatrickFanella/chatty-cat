@@ -1,0 +1,32 @@
+[Unit]
+Description=Chatty Cat live testing service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/srv/apps/projects/chatty-cat/current
+ExecStart=/srv/apps/projects/chatty-cat/current/chatthing
+EnvironmentFile=/srv/apps/projects/chatty-cat/shared/app.env
+Environment=CHATTHING_ADDR=10.0.0.56:3075
+Environment=CHATTHING_ASSETS=web/dist
+Environment=CHATTHING_ENV_FILE=/dev/null
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+UMask=0077
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

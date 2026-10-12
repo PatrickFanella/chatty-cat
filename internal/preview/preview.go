@@ -222,6 +222,9 @@ func (s *Service) LoadFor(ctx context.Context, raw, caller string) (Card, error)
 	ttl := time.Minute
 	if err == nil {
 		ttl = 24 * time.Hour
+		if card.TTL >= 60 && card.TTL <= 86400 {
+			ttl = time.Duration(card.TTL) * time.Second
+		}
 	}
 	value := entry{card: card, err: err, until: time.Now().Add(ttl)}
 	s.mu.Lock()
@@ -271,6 +274,9 @@ func asset(base *url.URL, raw string) string {
 func (s *Service) fetch(ctx context.Context, u *url.URL) (Card, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	if card, ok := s.provider(ctx, u); ok {
+		return card, nil
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
 		return Card{}, err

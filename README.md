@@ -55,7 +55,8 @@ Open `http://127.0.0.1:8080`. Choose channels using the input or
 `CHATTHING_ADDR` overrides the default loopback listener.
 `CHATTHING_ASSETS` overrides `web/dist` (relative to the working directory).
 Keep the public site behind an HTTPS reverse proxy with WebSocket forwarding.
-No production service has been deployed.
+The current build is deployed for owner-authorized live testing at
+https://chat.subcult.tv. See [verification and rollback](docs/live-testing-deployment.md).
 
 For frontend development, keep Go running and run `npm run dev` in `web`.
 Vite proxies `/api` including WebSockets to Go on port 8080.
@@ -80,8 +81,9 @@ Open the configured public origin to start login. The reverse proxy must preserv
 its Host header. The local preview's login button targets the configured public
 origin; it cannot complete a production callback until that origin serves Go.
 For local real-account testing, register an additional callback
-`http://127.0.0.1:8080/api/auth/callback` in Twitch and start Go with
-`CHATTHING_PUBLIC_URL=http://127.0.0.1:8080`. Use that exact host and port in the
+`http://localhost:8080/api/auth/callback` in Twitch and start Go with
+`CHATTHING_PUBLIC_URL=http://localhost:8080`. Twitch's HTTP development exception
+uses the literal `localhost` hostname, rather than `127.0.0.1`. Use that exact host and port in the
 browser, including when testing a built frontend rather than Vite's other port.
 The application must be registered as a Confidential client for this server flow.
 
@@ -96,8 +98,9 @@ task.
 
 The fake-provider tests exercise consent denial, callback replay, browser state
 binding, incorrect client/scopes, refresh encoding, identity changes, capacity
-limits, and origin/CSRF protection. Real consent at the public domain has not
-been verified. No public deployment or cutover has been performed.
+limits, and origin/CSRF protection. The owner confirmed that public login worked
+in their regular browser. The public build is available for live testing;
+full parity has not been accepted.
 
 ## Sending checkpoint
 

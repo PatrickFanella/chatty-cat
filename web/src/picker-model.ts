@@ -1,7 +1,8 @@
-import { familyCompare } from './picker-order';
+import { AGE_SECONDS, familyCompare } from './picker-order';
+import { PickerCoverage } from './picker-coverage';
 import { EMOJIS, EMOJI_KW } from './emoji';
 import { tokenize, type Emote } from './tokens';
-import type { ChatMessage } from './protocol';
+import type { ChatMessage, ConnectionState } from './protocol';
 
 export const SOURCES = ['Twitch', '7TV', 'BTTV', 'FFZ', 'Emoji'] as const;
 export type Source = typeof SOURCES[number];
@@ -38,6 +39,25 @@ export class PickerModel {
   private recents = new Map<string, string[]>();
   private seen = new Map<string, Set<string>>();
   private loaded = new Set<string>();
+  private coverages = new Map<string, PickerCoverage>();
+  coverage(channel: string): PickerCoverage {
+    this.load(channel);
+    const existing = this.coverages.get(channel);
+    if (existing) return existing;
+    const coverage = new PickerCoverage(undefined); this.coverages.set(channel, coverage); return coverage;
+  }
+  connection(channels: readonly string[], state: ConnectionState): void {
+    for (const channel of channels) this.coverage(channel).connected(state === 'connected');
+  }
+  crossedAges(channel: string, now = Date.now()): Set<number> {
+    this.load(channel);
+    const timestamps = [...(this.uses.get(channel)?.values() ?? [])].map(use => use.last).sort((a, b) => b - a);
+    const coverage = this.coverage(channel);
+    return new Set(AGE_SECONDS.filter(seconds => {
+      const last = timestamps.find(timestamp => timestamp <= now - seconds * 1000);
+      return last !== undefined && coverage.observed(last + seconds * 1000, now);
+    }));
+  }
   constructor() {
     try { this.options = parseOptions(JSON.parse(localStorage.getItem('chatthing:v1:picker:options') ?? 'null')); } catch { /* optional storage */ }
     this.options=pickerFromURL(this.options,new URL(location.href).searchParams);
@@ -101,9 +121,10 @@ export class PickerModel {
   }
   saveAll(): void { for (const channel of this.loaded) this.save(channel); }
   save(channel: string): void {
+    this.load(channel);
     try {
       localStorage.setItem('chatthing:v1:picker:options', JSON.stringify(this.options));
-      localStorage.setItem('chatthing:v1:picker:' + channel, JSON.stringify({ recent: this.recents.get(channel) ?? [], uses: [...(this.uses.get(channel) ?? [])].slice(-1000) }));
+      localStorage.setItem('chatthing:v1:picker:' + channel, JSON.stringify({ recent: this.recents.get(channel) ?? [], uses: [...(this.uses.get(channel) ?? [])].slice(-1000), coverage: this.coverage(channel).snapshot() }));
     } catch { /* optional storage */ }
   }
   private load(channel: string): void {
@@ -112,6 +133,7 @@ export class PickerModel {
       const data: unknown = JSON.parse(localStorage.getItem('chatthing:v1:picker:' + channel) ?? 'null');
       if (!data || typeof data !== 'object') return;
       const record = data as Record<string, unknown>;
+      this.coverages.set(channel, new PickerCoverage(record.coverage));
       if (Array.isArray(record.recent)) this.recents.set(channel, [...new Set(record.recent.filter((item): item is string => typeof item === 'string' && item.length <= 100))].slice(0, 24));
       if (Array.isArray(record.uses)) {
         const uses = new Map<string, Usage>();

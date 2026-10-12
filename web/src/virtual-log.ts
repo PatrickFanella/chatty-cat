@@ -16,7 +16,12 @@ export class VirtualLog {
   private following = false;
   private reverse = false;
   private allowFollow = false;
+  private hoverHeld = false;
+  private pauseOnText = false;
+  private manuallyPaused = false;
+  private wheelDuringHold = false;
   constructor(private log: HTMLElement) {
+    log.addEventListener('mouseover', this.hover); log.addEventListener('mouseleave', this.leave); log.addEventListener('wheel', this.wheel, { passive: true }); log.addEventListener('touchstart', this.wheel, { passive: true });
     log.addEventListener('scroll', this.scroll, { passive: true }); window.addEventListener('resize', this.schedule);
     if (typeof ResizeObserver !== 'undefined') this.observer = new ResizeObserver(entries => {
       let changed = false;
@@ -28,8 +33,8 @@ export class VirtualLog {
       if (changed) { const anchor = this.anchor(); this.prefix(); this.restore(anchor); this.schedule(); this.log.dispatchEvent(new Event('logmetrics',{bubbles:true})); }
     });
   }
-  set(items: readonly LogItem[], following: boolean, revision = 0, reverse = false): void {
-    const anchor = this.anchor(); this.following = following; this.allowFollow = following;this.reverse=reverse;
+  set(items: readonly LogItem[], following: boolean, revision = 0, reverse = false, pauseOnText = false): void {
+    const anchor = this.anchor(); this.allowFollow = following;this.reverse=reverse;this.pauseOnText=pauseOnText;if(!pauseOnText)this.hoverHeld=false;this.following=following&&!this.manuallyPaused&&!this.hoverHeld;
     if (revision !== this.revision) { this.heights.clear(); this.revision = revision; }
     this.items = items; this.indexes = new Map(items.map((item, index) => [item.key, index]));
     for (const key of this.heights.keys()) if (!this.indexes.has(key)) this.heights.delete(key);
@@ -52,7 +57,13 @@ export class VirtualLog {
     if (this.following) this.log.scrollTop = this.reverse?0:Math.max(0, (this.offsets.at(-1) ?? 0) - this.log.clientHeight);
     else if (anchor) { const index = this.indexes.get(anchor.key); if (index !== undefined) this.log.scrollTop = (this.offsets[index] ?? 0) + anchor.offset; }
   }
-  private scroll = (): void => { this.following = this.allowFollow && (this.reverse?this.log.scrollTop<48:this.log.scrollHeight - this.log.clientHeight - this.log.scrollTop < 48); this.schedule(); };
+  private scroll = (): void => { if(!this.pausedByHover())this.manuallyPaused=!(this.reverse?this.log.scrollTop<48:this.log.scrollHeight-this.log.clientHeight-this.log.scrollTop<48);this.following=this.allowFollow&&!this.manuallyPaused&&!this.hoverHeld;this.schedule(); };
+  private hover = (event:MouseEvent):void => {const row=event.target instanceof Element?event.target.closest('.row'):null;const held=this.pauseOnText&&!!row&&this.log.contains(row);if(held===this.hoverHeld)return;this.hoverHeld=held;this.wheelDuringHold=false;this.following=this.allowFollow&&!this.manuallyPaused&&!held;if(this.following)this.restore(undefined);this.schedule();};
+  private leave = ():void => {this.hoverHeld=false;this.wheelDuringHold=false;this.following=this.allowFollow&&!this.manuallyPaused;if(this.following)this.restore(undefined);this.schedule();};
+  private wheel = ():void => {this.wheelDuringHold=true;};
+  pausedByHover():boolean {return this.hoverHeld&&!this.wheelDuringHold;}
+  isFollowing():boolean {return this.allowFollow&&!this.manuallyPaused;}
+  resume():void {this.manuallyPaused=false;this.following=this.allowFollow&&!this.hoverHeld;if(this.following)this.restore(undefined);this.schedule();}
   private schedule = (): void => {
     if (!this.frame && !this.stopped) this.frame = requestAnimationFrame(() => { this.frame = 0; this.paint(); });
   };
@@ -85,5 +96,5 @@ export class VirtualLog {
     const index = this.indexes.get(key); if (index === undefined) return false;
     this.following = false; this.allowFollow = false; this.log.scrollTop = Math.max(0, (this.offsets[index] ?? 0) - this.log.clientHeight / 2); this.paint(); return true;
   }
-  stop(): void { this.stopped = true; cancelAnimationFrame(this.frame); this.observer?.disconnect(); this.log.removeEventListener('scroll', this.scroll); window.removeEventListener('resize', this.schedule); }
+  stop(): void { this.stopped = true; cancelAnimationFrame(this.frame); this.observer?.disconnect(); this.log.removeEventListener('mouseover',this.hover);this.log.removeEventListener('mouseleave',this.leave);this.log.removeEventListener('wheel',this.wheel);this.log.removeEventListener('touchstart',this.wheel);this.log.removeEventListener('scroll', this.scroll); window.removeEventListener('resize', this.schedule); }
 }

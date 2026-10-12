@@ -15,3 +15,12 @@ it('freezes paused normal pages, re-deals on resume and drains reverse pages int
  const root=setup();view?.set(records(1000),true,0,false,2);const text=root.textContent;view?.set(records(1100),false,0,false,2);expect(root.textContent).toBe(text);view?.set(records(1100),true,1,false,2);expect(root.textContent).toContain('1099');
  view?.set(records(1100).reverse(),true,2,true,2);expect(root.firstElementChild?.getAttribute('data-active')).toBe('true');expect(root.firstElementChild?.textContent).toContain('1099');expect(view?.reveal('100')).toBe(true);expect(root.querySelector('[data-virtual-key="100"]')).not.toBeNull();
 });
+it('keeps hover pauses local to a column and resumes all deliberate pauses on Latest',()=>{
+ const root=setup();view?.set(records(1000),true,0,true,2,true);
+ const first=root.firstElementChild!,last=root.lastElementChild!;
+ first.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));
+ expect(view?.pausedByHover(first)).toBe(true);expect(view?.pausedByHover(last)).toBe(false);
+ first.dispatchEvent(new MouseEvent('mouseleave'));expect(view?.pausedByHover(first)).toBe(false);
+ first.dispatchEvent(new WheelEvent('wheel'));first.scrollTop=100;first.dispatchEvent(new Event('scroll'));
+ expect(view?.allFollowing()).toBe(false);view?.resume();expect(view?.allFollowing()).toBe(true);
+});

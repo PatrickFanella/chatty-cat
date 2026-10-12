@@ -4,6 +4,7 @@ import { IdentityCards } from './identity-cards';
 import { Pronouns } from './pronouns';
 import { PanelRail } from './rail';
 import { ChatRecovery } from './recovery';
+import { PageCoverage } from './page-coverage';
 import { LogKeyboard } from './log-keyboard';
 import { Whispers } from './whispers';
 import { PersonalChat, PersonalState } from './personal';
@@ -43,6 +44,8 @@ function element<T extends HTMLElement>(id: string, constructor: new () => T): T
 }
 
 const stopLifecycle = mountLifecycle(element('offline', HTMLElement), element('app-update', HTMLButtonElement));
+// Each built bundle gets its matching archive, bypassing stale edge copies.
+element('source-download', HTMLAnchorElement).href = '/source.tar.gz?build=' + encodeURIComponent(new URL(import.meta.url).pathname);
 const overlay=new URL(location.href).searchParams.has('overlay')&&new URL(location.href).searchParams.get('overlay')!=='0';
 document.documentElement.dataset.overlay=String(overlay);
 const log = element('log', HTMLElement);
@@ -195,9 +198,9 @@ function render(): void {
       row.classList.toggle('removed', removed); return row;
     } });
   }
-  virtualLog.set(display.options.rev?items.reverse():items, follow && !(display.options.pause && log.matches(':hover')), visualRevision, display.options.rev, overlay?1:display.options.split);
+  virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split, display.options.pause);
   count.textContent = archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
-  latest.hidden = follow;
+  latest.hidden = follow && virtualLog.allFollowing();
   navigation.reveal();
 }
 
@@ -246,10 +249,13 @@ const metadataClient = new MetadataClient(channels, (data) => {
   if (channel === channels[0]) streamInfo.title = 'Stream metadata unavailable; chat continues';
 });
 metadataClient.start();
-const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
+const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}},store.messages);
+const pageCoverage = new PageCoverage(channels, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
+window.addEventListener('pagehide', () => pageCoverage.stop());
 const connection = new ChatConnection(channels, (event) => {
   if (event.type === 'status') {
     recovery.status(event);
+    pickerModel.connection(channels, event.state); picker.refresh();
     status.textContent = event.detail || event.state;
     status.dataset.state = event.state;
     return;
@@ -266,16 +272,13 @@ const connection = new ChatConnection(channels, (event) => {
 });
 connection.start();
 
-let hoverFollow = false;
-log.addEventListener('pointerenter', () => { hoverFollow = display.options.pause && follow; });
-log.addEventListener('wheel', () => { hoverFollow = false; }, { passive: true });
-log.addEventListener('pointerleave', () => { if (hoverFollow) { follow = true; log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; } hoverFollow = false; });
 log.addEventListener('scroll', (event) => {
   if (archiveView) { follow = false; latest.hidden = false; return; }
-  follow = virtualLog.isAtLive(event.target);
-  latest.hidden = follow;
+  if(virtualLog.pausedByHover(event.target))return;
+  // Capture listeners run before the column's scroll handler.
+  queueMicrotask(()=>{follow=true;latest.hidden=virtualLog.allFollowing();});
 },{capture:true});
-latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
+latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {

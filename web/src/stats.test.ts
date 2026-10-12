@@ -19,3 +19,12 @@ it('uses accessible SVG labels and handles an empty graph', () => {
   expect(graph.querySelectorAll('rect')).toHaveLength(3); expect(graph.querySelector('rect')?.getAttribute('height')).toBe('0');
   expect(rateGraph([], 'No messages').querySelectorAll('rect')).toHaveLength(0);
 });
+it('discloses partial connection windows without discarding recovered counts', () => {
+  const gap: ChatMessage = { ...message, id: 'gap-start', command: 'NOTICE', login: '', timestamp: 90000, tags: { 'client-notice': '1', 'gap-state': 'start', 'gap-start': '90000' } };
+  const data = summarize([message, gap], 120000, 60000, 'one', new Set(), emotes);
+  expect(data.messages).toBe(1); expect(data.gaps.filter(Boolean)).toHaveLength(30);
+  const graph = rateGraph(data.buckets, 'Activity', data.gaps);
+  expect(graph.getAttribute('aria-label')).toContain('counts may be incomplete');
+  expect(graph.querySelectorAll('.graph-gap')).toHaveLength(30);
+  expect(graph.querySelector('.graph-gap title')?.textContent).toContain('Connection interrupted');
+});

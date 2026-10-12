@@ -851,3 +851,204 @@ normalize for duplicates, and case-sensitive paths/IDs remain distinct.
 
 Validation: 198 frontend tests/build pass. Fixtures cover bare domains, email
 exclusion, tracking/host normalization and preserving YouTube ID case.
+
+### Picker reorder motion checkpoint
+
+Picker rebuilds now slide existing cells from their old positions over 350ms
+with the original easing. Recent copies and main-grid copies retain separate
+positions. Inline age markers move with cells; row-layout markers stay still.
+Layout reads finish before animations begin, held updates remain deferred, and
+scroll restoration precedes measurement. Reduced-motion skips the slides.
+Finished animations release their tracking entries; close, rail hide and shutdown
+cancel active slides.
+
+Validation: 201 frontend tests, strict TypeScript and production build pass.
+Regression fixtures cover moved and unchanged cells, duplicate copies, inline
+versus row age markers, reduced-motion and cancellation. Browser search with
+live metadata started 150 animations at 350ms, settled to zero, and closing
+cancelled all active animations without desktop horizontal overflow. Age-gap
+markings and exhaustive picker comparison remain open.
+
+### Picker interruption-age checkpoint
+
+Age markers now disclose incomplete usage when a connection interruption or
+closed-page interval overlaps more than 30 seconds or one eighth of that age
+window, matching the original threshold. Purple dotted markers explain the gap
+in their tooltip and accessible label. They update while the grid is held without
+replacing cells. Short reloads do not trigger the incomplete-window treatment.
+
+Coverage persists per channel in the rebuild namespace, with validated timestamps
+and at most 50 windows covering the 12-hour ladder. Excess windows merge
+conservatively. Existing records without coverage timestamps remain readable.
+Gold now derives from the freshest eligible crossing in this page session,
+including time with the picker closed; crossings during an interruption cannot
+earn gold. Backfill does not claim to restore complete usage coverage.
+
+Validation: 207 frontend tests, strict TypeScript and production build pass.
+Fixtures cover overlap boundaries, active interruptions, reload restoration,
+channel isolation, invalid storage, bounded retention, held-marker updates and
+gold crossing changes. A browser fixture rendered a saved closed-page gap as a
+purple dotted 2m marker with the accessible explanation, without gold or desktop
+horizontal overflow. Exhaustive picker visual comparison remains open.
+
+### Rail divider and column hover checkpoint
+
+The docked emote/statistics divider now trades their available area proportionally,
+bounded to 8–92%. Pointer capture supports drag, with cancellation on mode change;
+Up/Down and Home/End provide keyboard adjustment. The validated proportion saves
+in the rebuild namespace. Floating a pane hides the divider and restores its
+original flex style. Short rails retain a scrollable 500px combined pane area
+under video so the divider still changes actual pane sizes. Stats shed lists below
+240px and retain the graph below 160px.
+
+Hover pause now holds only the column containing the hovered message row.
+Empty column space keeps following. Leaving resumes a previously following column;
+wheel/touch scrolling stays paused until the reader scrolls to live or selects
+Latest. Each virtual column retains this state across incoming updates, and
+Latest resumes every column.
+
+Validation: 210 frontend tests, strict TypeScript and production build pass.
+Fixtures cover divider bounds, saved proportions, floating restoration, local
+hover state, deliberate scroll and Latest. Browser keyboard resize changed actual
+pane heights from 40/460px to 460/40px without horizontal overflow. Browser hover
+held scrollTop at 2900px during new rows and advanced to 3060px on leave. Broad
+layout transition and live account acceptance gates remain open.
+
+### Live authentication acceptance blocker
+
+The October 11 continuation restored the local Go service after the T3 restart.
+Its session endpoint reports login enabled, no signed-in session, and the login
+URL `https://chat.subcult.tv/api/auth/login`. The configured public origin's
+`/api/auth/session` rendered `not found` in the browser. It therefore cannot
+complete acceptance against this local build through the registered public
+callback. A registered local callback or a separate routed preview origin is
+required before real consent, sending, account emotes, whisper and moderator
+acceptance. Public cutover remains separate from this verification step.
+
+Go race/coverage tests and vet passed again. No live Twitch message or moderation
+action was performed.
+
+The local development callback instructions were corrected to the literal
+`http://localhost:8080/api/auth/callback`, which Twitch's own CLI documentation
+uses for its HTTP development exception. The local process now uses
+`CHATTHING_PUBLIC_URL=http://localhost:8080` without changing the credential file
+or public service. Session and authorization-redirect checks confirm that host
+and callback. Console registration and real consent are still pending.
+
+### Owner-authorized live testing deployment
+
+After the owner registered the local callback, Twitch reached its login form but
+rejected the preview browser as unsupported. The owner authorized public testing.
+Release `20261011T232722Z` is now on NUC behind Almaz at https://chat.subcult.tv.
+The public browser rendered live chat; health, auth-session, source download and
+the registered public OAuth callback were checked. Real consent, sending and
+full parity acceptance remain pending. See [deployment evidence and rollback](live-testing-deployment.md).
+
+The owner subsequently confirmed that public login worked in their regular
+browser. This is owner-confirmed login/consent evidence; logout, expiry recovery,
+real sending, account entitlements and moderator/whisper acceptance remain open.
+
+### Rate-graph connection gaps checkpoint
+
+Header and statistics graphs now shade time bins that intersect a recorded
+connection interruption. Accessible labels and band tooltips disclose incomplete
+observation, while recovered message counts remain visible. Structured local gap
+notices retain the start time on reconnect, so end evidence remains useful after
+start-row eviction. A saved open interruption closes when the reloaded page
+connects. Gap flags apply to the shared connection across selected channels and
+are independent of excluded chatter names.
+
+Validation: 214 frontend tests and strict production build pass. Fixtures cover
+open/closed intervals, exact bin boundaries, zero-length gaps, eviction,
+duplicates, invalid evidence and reload closure. A browser fixture marked ten
+one-second bins for a ten-second interruption, with the incomplete-count label.
+Older notices without structured gap tags are not upgraded into invented data.
+Closed-page periods without an interruption notice and quiet-gap/burst graph
+behavior remain separate acceptance work. This change is locally verified and
+has not yet replaced the public frontend.
+
+### Provider preview checkpoint
+
+GitHub repository and Hacker News item links now use their public metadata APIs
+before falling back to HTML previews. GitHub cards include repository descriptions
+and star counts; Hacker News cards include scores, comments and linked domains.
+Provider responses are bounded, checked against the requested identity and cached
+for ten minutes. Failed, malformed, deleted or mismatched results fall back to the
+existing public-address-checked HTML fetch.
+
+Validation: preview race tests pass with 95.2% coverage and golangci-lint reports
+no issues. Live local API checks returned both provider cards. These backend
+changes are local and have not replaced the public release.
+
+### Approved sending destination and browser access blocker
+
+The owner approved `patrick__eff` for one visible `Chatty Cat parity test` message
+and a reply. No message has been sent. The public T3 preview session reports
+authentication enabled but unauthenticated. The regular-browser automation
+inventory contains no connected browser, so the owner's working authenticated
+session cannot be used for this acceptance test. Sending and reply acceptance
+remain blocked on access to that session or owner-run testing.
+
+The owner subsequently reported completing the test. The independent public
+preview observed `Chatty Cat parity test` from `patrick__eff`, message ID
+`c5f19012-99a1-474f-bc58-f307f809adcd`, at 2026-10-11T23:53:18.164Z.
+It rendered the broadcaster/subscriber badges, name color and reply control.
+This verifies live delivery and rendering of the parent message. The reply has
+not yet been independently observed; local-echo adoption and error behavior are
+still separate acceptance checks.
+
+The owner explicitly confirmed that the reply appeared after sending it through
+the rebuild. Sending and replying are therefore owner-confirmed live acceptance;
+the independent observer verified the parent delivery only.
+
+### Wikipedia, YouTube and rate detail checkpoint
+
+Wikipedia article links now load public REST summaries and safe thumbnails,
+including encoded Unicode/subpage titles. Same-wiki canonical redirects are
+disclosed by the preview. YouTube watch, short, live, embedded and music-video
+links load public oEmbed titles, authors and thumbnails. Returned embed HTML is
+discarded; the existing player remains opt-in with autoplay disabled. Unsupported
+routes, missing metadata and provider errors retain the HTML fallback. Both
+providers use the existing bounded public-address-checked client and ten-minute
+cache. Endpoint reference: [Wikimedia REST API](https://www.mediawiki.org/wiki/Wikimedia_REST_API/en).
+
+The header now covers four minutes with one-second bins of five-second rolling
+message rates, clock-aligned ten-second/minute ticks, a current five-second rate
+and last-hour chatter count. Statistics list up to three distinct bursts at
+4+ messages/s, using the original ten-second separation and thirty-second
+sustained-peak suppression. Scoped/excluded/deduplicated messages determine
+rankings, and recorded observation gaps exclude incomplete burst windows.
+
+Per-channel observation timestamps now record closed/inactive page intervals
+on reload, separately from the age of the last chat message. Ten-second heartbeats
+and a pagehide save retain observation through quiet chat. Valid gaps longer
+than thirty seconds produce a local notice and violet graph bands; a recent
+heartbeat from another tab prevents a false closure. Storage failure does not
+block live chat. Older periods without observation timestamps remain unknown.
+
+Validation: 229 frontend tests and strict production build pass; full Go race
+tests, vet and golangci-lint pass, with preview coverage at 96.1%. Live local
+requests returned Wikipedia's Earth summary and a YouTube video title/author/
+thumbnail. A browser fixture rendered a 5.0 messages/s burst. The built browser
+rendered a closed-page notice with violet bands, 240 rate bars and 24 clock ticks,
+with no horizontal overflow at 1280px. These changes are local, not deployed.
+
+Still open in these families: quiet-gap and glorp-specific graph marks, fully
+recovered-gap proof, session-long rate samples beyond retained chat, YouTube
+channel/playlist cards and view/publication enrichment, and remaining provider
+adapters. Broader parity gates remain unchecked.
+
+### Updated live preview
+
+The above continuation is now deployed as release `20261012T000818Z`, with
+frontend revision `20261012T001230Z`. The public browser loaded the new bundle,
+connected to chat and returned provider cards. Its footer's source archive
+matches the staged SHA-256. The previous release and frontend snapshot are
+retained for rollback. The backend activation invalidated old in-memory sessions;
+the final frontend correction preserved the running process. Narrow local layout
+was also checked at 375×812 without horizontal overflow.
+
+Account emotes, logout/expiry, whisper and moderation acceptance still require
+the owner's authenticated session. Browser automation has no access to that
+regular-browser session; this is a live-acceptance blocker, not evidence that
+the remaining implementation gates have passed.

@@ -7,7 +7,16 @@ export function parsePreview(value: unknown): PreviewCard {
   return { url: String(d.url).slice(0, 2048), title: String(d.title).slice(0, 300), description: String(d.description).slice(0, 1000), site: String(d.site).slice(0, 100), image: String(d.image).slice(0, 2048), icon: String(d.icon).slice(0, 2048), author: String(d.author).slice(0, 200), published: String(d.published).slice(0, 100), contentType: String(d.contentType).slice(0, 100), ttl: d.ttl };
 }
 export function youtubeID(raw: string): string | undefined {
-  try { const url = new URL(raw); if (!['https:', 'http:'].includes(url.protocol)) return undefined; const id = url.hostname === 'youtu.be' ? url.pathname.slice(1) : ['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(url.hostname) ? url.searchParams.get('v') || url.pathname.match(/^\/(?:shorts|embed)\/([\w-]+)/)?.[1] : undefined; return id && /^[\w-]{11}$/.test(id) ? id : undefined; } catch { return undefined; }
+  try {
+    const url = new URL(raw);
+    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) return undefined;
+    let id: string | null | undefined;
+    if (url.hostname === 'youtu.be') id = url.pathname.slice(1);
+    else if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(url.hostname)) {
+      id = url.pathname === '/watch' ? url.searchParams.get('v') : url.pathname.match(/^\/(?:shorts|live|embed)\/([\w-]{11})$/)?.[1];
+    }
+    return id && /^[\w-]{11}$/.test(id) ? id : undefined;
+  } catch { return undefined; }
 }
 export function previewMode(): number { const value=Number(document.documentElement.dataset.peek??2);return [0,1,2,3].includes(value)?value:2; }
 export class LinkPreview {
