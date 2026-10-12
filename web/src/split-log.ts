@@ -41,7 +41,7 @@ export class SplitLog {
  private captureReaders():void{for(const entry of this.views)entry.pane.reader=entry.view.readerPosition()??null;}
  private canChange():boolean{if(this.actions.canChange?.()===false){this.status.textContent='Wait for the current send outcome before changing panes';return false;}return true;}
  private run(action:()=>void):void{if(!this.canChange())return;this.captureReaders();const previous=this.layout.activePane.id;try{action();if(previous!==this.layout.activePane.id)this.actions.target(this.layout.activePane.target);this.status.textContent='';this.rebuild();this.actions.changed();}catch(error){this.status.textContent=error instanceof Error?error.message:'Layout change failed';}}
- private toggleLayout=():void=>{if(this.popoutID)return;this.run(()=>this.layout.enable(!this.layout.enabled));};
+ private toggleLayout=():void=>{if(this.popoutID)return;if(this.joined.length>6&&this.layout.enabled){this.status.textContent='A merged feed supports six channels; leave channels before disabling independent panes';return;}this.run(()=>this.layout.enable(!this.layout.enabled));};
  private rebuild():void{this.signature='';}
  private clear():void{this.legacy?.stop();this.legacy=undefined;for(const entry of this.views)entry.view.stop();this.views=[];this.root.replaceChildren();this.root.classList.remove('page-columns');}
  private paintLayout():void {
@@ -122,6 +122,7 @@ export class SplitLog {
  finishReaderRestore():void{for(const entry of this.views)if(entry.restore){entry.restore=false;entry.pane.reader=null;this.status.textContent='Some pane reader positions are no longer in retained history';}}
  private active():PaneView|undefined{return this.views.find(v=>v.pane.id===this.layout.activePane.id);}
  manageKeyboard():void{this.keyboardManaged=true;}
+ sources():string[]{return this.layout.enabled?[...new Set(this.layout.tabs.flatMap(tab=>tab.panes.flatMap(p=>p.channels)))].sort():[...this.joined];}
  hold():void{this.active()?.view.hold();}
  selectPane(id:string):void{this.activate(id,true);if(this.layout.activePane.id===id)this.views.find(v=>v.pane.id===id)?.root.focus();}
  selectTab(id:string):void{this.run(()=>this.layout.selectTab(id));}

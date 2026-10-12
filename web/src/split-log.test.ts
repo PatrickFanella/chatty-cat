@@ -58,3 +58,6 @@ it('changing send target preserves the existing reader node and its hold',()=>{
 it('reapplies display visibility to archive context without losing its original source keys',()=>{
  const {root}=setup();view!.set(records(200),true);view!.showContext(records(6));view!.refreshContexts(()=>[]);view!.set(records(200),true);expect(root.querySelectorAll('.split-reader .row')).toHaveLength(0);expect(view!.contextKeys().size).toBe(6);view!.refreshContexts(keys=>records(6).filter(item=>keys.includes(item.key)));view!.set(records(200),true);expect(root.textContent).toContain('message 4');
 });
+it('uses the unique source union and drops subscriptions only after the last pane/tab closes',()=>{
+ setup();view!.layout.configure(view!.layout.activePane.id,{channels:['alice'],target:'alice',filter:'',reverse:false,pauseHover:false});const alice=view!.layout.activePane,copy=view!.layout.duplicatePane(alice.id),bob=view!.layout.addPane();view!.layout.configure(bob.id,{channels:['bob'],target:'bob',filter:'',reverse:false,pauseHover:false});expect(view!.sources()).toEqual(['alice','bob']);view!.layout.closePane(alice.id);expect(view!.sources()).toEqual(['alice','bob']);view!.layout.closePane(copy.id);expect(view!.sources()).toEqual(['bob']);view!.layout.reopen();expect(view!.sources()).toEqual(['alice','bob']);
+});

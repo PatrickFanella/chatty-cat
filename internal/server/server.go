@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -16,9 +17,11 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
@@ -30,6 +33,8 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	WorkspaceChannels int
+	Subscriptions     int
 	GiphyAPIKey       string
 	Auth              *auth.Service
 	Assets            string
@@ -41,6 +46,7 @@ type Config struct {
 // Server owns the bounded active connection set and its shutdown context.
 type Server struct {
 	cfg           Config
+	budget        *chatlimits.Budget
 	ctx           context.Context
 	cancel        context.CancelFunc
 	client        *http.Client
@@ -56,6 +62,11 @@ type Server struct {
 
 // New creates a service. Call Close during shutdown to cancel WebSocket sessions.
 func New(cfg Config) *Server {
+	if cfg.Subscriptions == 0 {
+		cfg.Subscriptions = chatlimits.MaxSubscriptions
+	}
+	cfg.Subscriptions = max(1, min(cfg.Subscriptions, chatlimits.MaxSubscriptions))
+	cfg.WorkspaceChannels = min(chatlimits.Capacity(cfg.WorkspaceChannels), cfg.Subscriptions)
 	if cfg.IRCURL == "" {
 		cfg.IRCURL = "wss://irc-ws.chat.twitch.tv:443"
 	}
@@ -68,7 +79,7 @@ func New(cfg Config) *Server {
 	if cfg.Auth != nil && cfg.Auth.HasAppCredentials() {
 		read = cfg.Auth.PublicRead
 	}
-	return &Server{cfg: cfg, ctx: ctx, cancel: cancel, client: client, slots: make(chan struct{}, 32), metadata: metadata.New(client, cfg.MetadataEndpoints, read), metadataSlots: make(chan struct{}, 16), previews: preview.New(nil, preview.PublicReader(read)), previewSlots: make(chan struct{}, 16)}
+	return &Server{cfg: cfg, budget: chatlimits.New(cfg.Subscriptions, 1), ctx: ctx, cancel: cancel, client: client, slots: make(chan struct{}, 32), metadata: metadata.New(client, cfg.MetadataEndpoints, read), metadataSlots: make(chan struct{}, 16), previews: preview.New(nil, preview.PublicReader(read)), previewSlots: make(chan struct{}, 16)}
 }
 
 // Close cancels and waits for all active chat handlers.
@@ -117,12 +128,16 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		if err := json.NewEncoder(w).Encode(struct {
-			GiphyAPIKey string `json:"giphyApiKey"`
-		}{s.cfg.GiphyAPIKey}); err != nil {
+			GiphyAPIKey       string `json:"giphyApiKey"`
+			PaneChannels      int    `json:"paneChannels"`
+			WorkspaceChannels int    `json:"workspaceChannels"`
+			Subscriptions     int    `json:"subscriptions"`
+		}{s.cfg.GiphyAPIKey, chatlimits.PaneChannels, s.cfg.WorkspaceChannels, s.cfg.Subscriptions}); err != nil {
 			slog.Debug("public configuration response closed", "error", err)
 		}
 	})
 	mux.HandleFunc("GET /api/chat", s.chat)
+	mux.HandleFunc("GET /api/chat-admission", s.admission)
 	mux.HandleFunc("GET /api/channels/{channel}", s.channelMetadata)
 	mux.HandleFunc("GET /api/preview", s.linkPreview)
 	mux.HandleFunc("GET /api/nitter", func(w http.ResponseWriter, r *http.Request) {
@@ -277,27 +292,39 @@ func (s *Server) userProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func channels(raw string) ([]string, error) {
+func channels(raw string) ([]string, error) { return workspaceChannels(raw, chatlimits.PaneChannels) }
+func workspaceChannels(raw string, limit int) ([]string, error) {
 	if raw == "" {
 		raw = "hasanabi"
 	}
-	parts := strings.Split(strings.ToLower(raw), ",")
-	if len(parts) > 6 {
-		return nil, errors.New("choose at most six channels")
+	return chatlimits.Parse(raw, limit)
+}
+func (s *Server) admission(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	want, err := workspaceChannels(r.URL.Query().Get("channels"), s.cfg.WorkspaceChannels)
+	status, detail, retry := http.StatusOK, "Capacity available", 0
+	s.mu.Lock()
+	closing := s.closing
+	s.mu.Unlock()
+	if err != nil {
+		status, detail = http.StatusBadRequest, err.Error()
+	} else if closing {
+		status, detail, retry = http.StatusServiceUnavailable, "Service shutting down", 5
+	} else if len(s.slots) >= cap(s.slots) || !s.budget.Available(len(want)) {
+		status, detail, retry = http.StatusTooManyRequests, "Chat capacity reached; close another view and retry", 5
 	}
-	seen := make(map[string]bool)
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if !channelName.MatchString(part) {
-			return nil, errors.New("invalid channel name")
-		}
-		if !seen[part] {
-			seen[part] = true
-			result = append(result, part)
-		}
+	if retry > 0 {
+		w.Header().Set("Retry-After", fmt.Sprint(retry))
 	}
-	return result, nil
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(struct {
+		Allowed bool   `json:"allowed"`
+		Detail  string `json:"detail"`
+		Retry   int    `json:"retryAfter"`
+	}{status == http.StatusOK, detail, retry}); err != nil {
+		slog.Debug("admission response closed", "error", err)
+	}
 }
 
 type event struct {
@@ -309,7 +336,7 @@ type event struct {
 }
 
 func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
-	want, err := channels(r.URL.Query().Get("channels"))
+	want, err := workspaceChannels(r.URL.Query().Get("channels"), s.cfg.WorkspaceChannels)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -327,9 +354,17 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 	case s.slots <- struct{}{}:
 		defer func() { <-s.slots }()
 	default:
-		http.Error(w, "chat capacity reached", http.StatusServiceUnavailable)
+		w.Header().Set("Retry-After", "5")
+		http.Error(w, "chat capacity reached; close another view and retry", http.StatusServiceUnavailable)
 		return
 	}
+	lease, err := s.budget.Acquire("public", len(want))
+	if err != nil {
+		w.Header().Set("Retry-After", "5")
+		http.Error(w, err.Error(), http.StatusTooManyRequests)
+		return
+	}
+	defer lease.Release()
 	conn, err := websocket.Accept(w, r, nil) // Same-origin verification is enabled.
 	if err != nil {
 		return
@@ -401,17 +436,56 @@ func (s *Server) relay(ctx context.Context, want []string, write func(event) err
 		defer stop()
 		return upstream.Write(writeCtx, websocket.MessageText, []byte(text+"\r\n"))
 	}
+	if err := s.budget.Wait(ctx, "public", chatlimits.Authenticate, func(delay time.Duration) error {
+		return write(event{Type: "status", State: "connecting", Detail: fmt.Sprintf("Waiting for IRC login capacity; retrying in %d seconds", int(math.Ceil(delay.Seconds())))})
+	}); err != nil {
+		return err
+	}
 	for _, command := range []string{"CAP REQ :twitch.tv/tags twitch.tv/commands", "PASS justinfan", fmt.Sprintf("NICK justinfan%d", time.Now().UnixNano()%99999)} {
 		if err := send(command); err != nil {
 			return fmt.Errorf("authenticate IRC: %w", err)
 		}
 	}
-	for _, channel := range want {
-		if err := send("JOIN #" + channel); err != nil {
-			return fmt.Errorf("join IRC: %w", err)
+	var welcome, joined atomic.Bool
+	var readyOnce sync.Once
+	notifyReady := func() {
+		if !welcome.Load() || !joined.Load() || ctx.Err() != nil {
+			return
 		}
+		readyOnce.Do(func() {
+			if err := write(event{Type: "status", State: "connected"}); err != nil {
+				stop()
+				return
+			}
+			for _, channel := range want {
+				background.Add(1)
+				go func(channel string) {
+					defer background.Done()
+					if err := s.backfill(ctx, channel, write); err != nil {
+						stop()
+					}
+				}(channel)
+			}
+		})
 	}
-	ready := false
+	background.Add(1)
+	go func() {
+		defer background.Done()
+		for _, channel := range want {
+			if err := s.budget.Wait(ctx, "public", chatlimits.Join, func(delay time.Duration) error {
+				return write(event{Type: "status", State: "connecting", Detail: fmt.Sprintf("Waiting for channel join capacity; retrying in %d seconds", int(math.Ceil(delay.Seconds())))})
+			}); err != nil {
+				stop()
+				return
+			}
+			if err := send("JOIN #" + channel); err != nil {
+				stop()
+				return
+			}
+		}
+		joined.Store(true)
+		notifyReady()
+	}()
 	allowed := make(map[string]bool, len(want))
 	for _, channel := range want {
 		allowed[channel] = true
@@ -434,23 +508,8 @@ func (s *Server) relay(ctx context.Context, want []string, write func(event) err
 			case "RECONNECT":
 				return errors.New("IRC requested reconnect")
 			case "001":
-				if !ready {
-					ready = true
-					if err := write(event{Type: "status", State: "connected"}); err != nil {
-						return err
-					}
-					// Fetch history without delaying live reads or Twitch PINGs.
-					// Each worker is cancelled and joined when this session ends.
-					for _, channel := range want {
-						background.Add(1)
-						go func(channel string) {
-							defer background.Done()
-							if err := s.backfill(ctx, channel, write); err != nil {
-								stop()
-							}
-						}(channel)
-					}
-				}
+				welcome.Store(true)
+				notifyReady()
 			default:
 				if allowed[msg.Channel] && displayCommand(msg.Command) {
 					if msg.Timestamp == 0 {

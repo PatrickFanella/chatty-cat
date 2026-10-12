@@ -38,9 +38,12 @@ export function parseEvent(raw: string): ServerEvent | null {
 }
 
 export function parseChannels(raw: string): string[] {
+  return parseWorkspaceChannels(raw,6);
+}
+export function parseWorkspaceChannels(raw:string,limit=24):string[] {
   const parts = raw.toLowerCase().split(',').map((part) => part.trim());
-  if (parts.length > 6 || parts.some((part) => !/^[a-z0-9_]{1,25}$/.test(part))) {
-    throw new Error('Enter one to six Twitch channel names, separated by commas.');
+  if (!Number.isInteger(limit)||limit<1||limit>24||parts.length > limit || parts.some((part) => !/^[a-z0-9_]{1,25}$/.test(part))) {
+    throw new Error('Enter one to '+limit+' Twitch channel names, separated by commas.');
   }
   return [...new Set(parts)];
 }

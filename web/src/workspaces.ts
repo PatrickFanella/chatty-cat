@@ -1,6 +1,6 @@
 import { parseDisplay } from './display';
 import type { SettingsBundle } from './settings-bundle';
-import { parseChannels } from './protocol';
+import { parseWorkspaceChannels } from './protocol';
 import {parseSplits} from './splits';
 import {parseHotkeys} from './hotkeys';
 
@@ -44,7 +44,7 @@ function publicExtras(value:unknown,channels:readonly string[]):Record<string,un
 }
 export function parseSnapshot(value:unknown):WorkspaceSnapshot {
  if(!object(value)||!Array.isArray(value.channels)||!value.channels.every(v=>typeof v==='string'))throw new Error('Workspace channels are invalid');
- const channels=parseChannels(value.channels.join(','));
+ const channels=parseWorkspaceChannels(value.channels.join(','));
  if(!channels.includes(String(value.target)))throw new Error('The send target must be a joined channel');
  if(!object(value.settings)||value.settings.version!==1||!object(value.settings.display))throw new Error('Workspace settings are invalid');
  const readers:ReaderPosition[]=[];

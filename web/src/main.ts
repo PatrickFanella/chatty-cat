@@ -1,3 +1,6 @@
+import {loadCapacity} from './capacity';
+import {RowCache} from './row-cache';
+import {reconcileSplits} from './splits';
 import {HotkeyPanel} from './hotkeys-ui';
 import {ACTIONS,type ActionID} from './hotkeys';
 import {FONT_SIZES} from './display-data';
@@ -50,7 +53,7 @@ import { EmotePicker } from './picker';
 import { MessageNavigation } from './navigation';
 import { tokenize, nativeEmoteTag } from './tokens';
 import { ChatConnection } from './connection';
-import { parseChannels, type ChatMessage } from './protocol';
+import { parseWorkspaceChannels, type ChatMessage } from './protocol';
 import { messageRow } from './render';
 import { MessageStore } from './store';
 import { MetadataClient, type ChannelMetadata } from './metadata';
@@ -61,6 +64,7 @@ function element<T extends HTMLElement>(id: string, constructor: new () => T): T
   return found;
 }
 
+const capacity=await loadCapacity();
 const errorReport = new ErrorReport(document.body);
 const stopLifecycle = mountLifecycle(element('offline', HTMLElement), element('app-update', HTMLButtonElement));
 // Each built bundle gets its matching archive, bypassing stale edge copies.
@@ -71,6 +75,7 @@ const log = element('log', HTMLElement);
 let rail:PanelRail|undefined;
 let inboxPanel:InboxPanel|undefined;
 let inboxGeneration=0;
+let syncSources:(()=>void)|undefined;
 const pronouns = new Pronouns();
 const socialCards=new SocialCards(log);
 const nitterLinks=new NitterLinks(log);
@@ -91,7 +96,7 @@ const roomInfo = element('room-state', HTMLElement);
 function renderRoom(): void { roomInfo.textContent = [...roomStates.labels(composer.target), ...personalState.labels(composer.target)].join(' · '); composer.setBlock(personalState.block(composer.target, roomStates.slow(composer.target))); roomInfo.hidden = !roomInfo.textContent || document.documentElement.dataset.cmodes === 'false'; }
 const metadata = new Map<string, ChannelMetadata>();
 const fingerprints=new WeakMap<ChatMessage,string>();
-const rowsByMessage = new WeakMap<ChatMessage, Map<string,{ revision: number; row: HTMLElement }>>();
+const rowsByMessage = new RowCache();
 let visualRevision = 0;
 let frozen = false;
 let borrowedFreeze=false;
@@ -105,9 +110,18 @@ let pendingReaders:ReaderPosition[]|undefined=bootWorkspace?.readers.length?boot
 let historyReady=false;
 let workspaceFocus=bootWorkspace?.focus??'log';
 let channels: string[];
-try { channels = workspaceQuery.has('workspace')&&bootWorkspace ? bootWorkspace.channels : workspaceQuery.has('channel') ? parseChannels(workspaceQuery.get('channel')!) : bootWorkspace?.channels??['hasanabi']; }
-catch { channels = ['hasanabi']; }
+let channelNotice='';
+try { channels = workspaceQuery.has('workspace')&&bootWorkspace ? bootWorkspace.channels : workspaceQuery.has('channel') ? parseWorkspaceChannels(workspaceQuery.get('channel')!) : bootWorkspace?.channels??['hasanabi']; }
+catch { channels = bootWorkspace?.channels??['hasanabi'];channelNotice='Invalid channel list. Use one to '+capacity.workspaceChannels+' Twitch channel names.'; }
+if(bootWorkspace?.settings.extras.splits&&bootWorkspace.channels.join(',')!==channels.join(',')){
+ const mapped=reconcileSplits(bootWorkspace.settings.extras.splits,channels,bootWorkspace.channels);
+ if(mapped)bootWorkspace.settings.extras.splits=mapped;
+ else{channels=[...bootWorkspace.channels];channelNotice='The saved layout has no room for that channel change. Close a pane or tab before retrying.';const url=new URL(location.href);url.searchParams.set('channel',channels.join(','));history.replaceState(null,'',url);}
+}
+const capacityNotice=document.createElement('span');capacityNotice.className='capacity-notice';capacityNotice.setAttribute('role','status');element('joined-channels',HTMLElement).append(capacityNotice);capacityNotice.textContent=channelNotice;
 input.value = channels.join(',');
+const capacityRefused=channels.length>capacity.workspaceChannels;
+if(capacityRefused){capacityNotice.textContent=status.textContent=announcer.textContent='This workspace has '+channels.length+' channels; the server allows '+capacity.workspaceChannels+'. Edit Channels to continue.';status.dataset.state='reconnecting';}
 const store = new MessageStore(channels);
 const rateTimeline=new RateTimeline(element('rate',HTMLElement),channels);
 const videoPanel = new VideoPanel(element('video-panel', HTMLElement), element('video-open', HTMLButtonElement), channels);
@@ -130,7 +144,7 @@ const composer = new Composer(element('composer', HTMLFormElement), channels, (i
 }, (result, text, requestID) => { if (result.whisper && result.recipient) { const match = /^\/w\s+\S+\s+(.+)$/i.exec(text.trim()); if (match) whispers.echo(result.recipient, match[1]!, requestID); } });
 const panePopout=workspaceQuery.get('pane')??'';
 const virtualLog = new SplitLog(log,element('splits-open',HTMLButtonElement),channels,{
- canChange:()=>!composer.sending,target:channel=>composer.setTarget(channel),changed:()=>{if(overlay)virtualLog.layout.enable(false);else if(virtualLog.layout.enabled){follow=true;pendingReaders=undefined;}scheduleRender();},popout:pane=>{
+ canChange:()=>!composer.sending,target:channel=>composer.setTarget(channel),changed:()=>{if(overlay)virtualLog.layout.enable(false);else if(virtualLog.layout.enabled){follow=true;pendingReaders=undefined;}syncSources?.();scheduleRender();},popout:pane=>{
   if(composer.sending){announcer.textContent='Wait for the current send outcome before opening a pane';return;}
   try{saveWorkspace();const url=new URL(location.href);url.search='';url.searchParams.set('workspace',currentWorkspaceID);url.searchParams.set('channel',channels.join(','));url.searchParams.set('pane',pane);url.searchParams.set('video','off');const opened=window.open(url.href,'_blank','popup,width=600,height=850');if(!opened)announcer.textContent='Allow popups to open this pane';}catch(error){announcer.textContent=error instanceof Error?error.message:'Could not save the pane';}
  }
@@ -189,7 +203,7 @@ async function showArchived(message: ChatMessage): Promise<void> {
     render(); window.dispatchEvent(new PopStateEvent('popstate'));
   } catch { element('archive-status', HTMLElement).textContent = 'Archived context unavailable'; }
 }
-const channelControls = new ChannelControls(element('joined-channels', HTMLElement), element('composer', HTMLFormElement), element('send-channel', HTMLSelectElement), channels);
+const channelControls = new ChannelControls(element('joined-channels', HTMLElement), element('composer', HTMLFormElement), element('send-channel', HTMLSelectElement), channels,capacity.workspaceChannels);
 window.addEventListener('pagehide', () => channelControls.stop());
 const archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); });
 const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElement), () => channels[0]!, () => store.messages, async messages => {
@@ -238,7 +252,7 @@ function render(): void {
   rail?.set(overlay?1:display.options.split);
   document.documentElement.style.setProperty('--composer-bottom',element('composer',HTMLFormElement).getBoundingClientRect().bottom+'px');
   store.setCap(display.options.scrollback);
-  const messages = virtualLog.layout.enabled?store.messages:archiveView ?? store.messages;
+  const messages = overlay?(archiveView??store.messages).filter(message=>channels.slice(0,6).includes(message.channel)):virtualLog.layout.enabled?store.messages:archiveView ?? store.messages;
   const makeItems=(messages:readonly ChatMessage[]):LogItem[]=>{
    const cleared = new Map<string, number>();
    const deleted = new Set<string>();
@@ -259,10 +273,7 @@ function render(): void {
        items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
      }
      items.push({ key, channel:message.channel,text:message.text, render: (scope="default") => {
-       let cache=rowsByMessage.get(message);if(!cache){cache=new Map();rowsByMessage.set(message,cache);}
-       const previous = cache.get(scope);
-       const row = previous?.revision === visualRevision ? previous.row : messageRow(message, metadata.get(message.channel), frozen||borrowedFreeze);
-       cache.set(scope, { revision: visualRevision, row });
+       const row=rowsByMessage.get(message,scope,visualRevision,()=>messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze));
        row.classList.toggle('keyword-match', visibility.highlight); row.classList.toggle('user-ghost', visibility.hiddenUser);
        const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));
        row.classList.toggle('removed', removed); return row;
@@ -332,10 +343,11 @@ const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element(
  ...virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(tab=>[{id:'tab:'+tab.id,label:'Tab: '+tab.name,context:'chat',run:()=>virtualLog.selectTab(tab.id)},...tab.panes.map((pane,index)=>({id:'pane:'+pane.id,label:'Pane: '+tab.name+' / '+(index+1)+' '+pane.channels.join(', '),context:'chat',run:()=>{virtualLog.selectTab(tab.id);virtualLog.selectPane(pane.id);}}))]):[],
 ],id=>ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled);
 virtualLog.manageKeyboard();
+
 if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
 if(['off','0'].includes(workspaceQuery.get('video')??''))videoPanel.showRail(false);
 function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
-function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
+function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout&&!overlay&&!capacityRefused)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
 if(!currentWorkspaceID&&!workspaceStore.error){try{const initial=workspaceStore.create('Watching',captureWorkspace());workspaceStore.activate(initial.id);currentWorkspaceID=initial.id;}catch(error){announcer.textContent=error instanceof Error?error.message:'Workspace storage unavailable';}}
 const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElement),element('workspace-open',HTMLButtonElement),workspaceStore,()=>currentWorkspaceID,captureWorkspace,saveWorkspace,workspace=>{
  if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
@@ -379,13 +391,14 @@ const metadataClient = new MetadataClient(channels, (data) => {
 });
 metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}},store.messages);
-const pageCoverage = new PageCoverage(channels, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
+function liveSources():string[]{return capacityRefused?[]:overlay?channels.slice(0,6):virtualLog.sources();}
+const pageCoverage = new PageCoverage(liveSources(), message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
 window.addEventListener('pagehide', () => pageCoverage.stop());
 window.addEventListener('pagehide', () => { nitterLinks.stop(); giphyTitles.stop(); historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
-const connection = new ChatConnection(channels, (event) => {
+const connection = new ChatConnection(liveSources(), (event) => {
   if (event.type === 'status') {
-    rateTimeline.series.status(event);recovery.status(event);
-    pickerModel.connection(channels, event.state); picker.refresh();
+    rateTimeline.series.status(event);if(liveSources().includes(channels[0]!))recovery.status(event);
+    pickerModel.connection(liveSources(), event.state); picker.refresh();
     status.textContent = event.detail || event.state;
     status.dataset.state = event.state;
     return;
@@ -400,7 +413,8 @@ const connection = new ChatConnection(channels, (event) => {
   }
   scheduleRender();
 });
-connection.start();
+syncSources=()=>{const sources=liveSources(),closed=channels.filter(channel=>!sources.includes(channel));pickerModel.connection(closed,'reconnecting');connection.setChannels(sources);personalChat.setChannels(sources);metadataClient.setChannels(sources);pageCoverage.setChannels(sources);};
+syncSources();connection.start();
 
 log.addEventListener('scroll', (event) => {
   if(virtualLog.hoverPaused(event.target))return;
@@ -412,9 +426,10 @@ latest.addEventListener('click', () => { archiveGeneration++; archiveView = unde
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {
-    const next = parseChannels(input.value);
+    if(composer.sending)throw new Error('Wait for the current send outcome before changing channels');
+    const next = parseWorkspaceChannels(input.value,capacity.workspaceChannels);
     const url = new URL(location.href);
-    url.searchParams.set('channel', next.join(','));
+    url.searchParams.set('channel', next.join(','));url.searchParams.delete('workspace');url.searchParams.delete('mid');
     location.assign(url);
   } catch (error) { status.textContent = error instanceof Error ? error.message : 'Invalid channels'; }
 });

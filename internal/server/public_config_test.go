@@ -17,11 +17,15 @@ func TestPublicConfiguration(t *testing.T) {
 			if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "no-store" {
 				t.Fatalf("status or cache policy: %d", response.Code)
 			}
-			var data map[string]string
+			var data map[string]json.RawMessage
 			if err := json.Unmarshal(response.Body.Bytes(), &data); err != nil {
 				t.Fatal(err)
 			}
-			if len(data) != 1 || data["giphyApiKey"] != key {
+			var got string
+			if err := json.Unmarshal(data["giphyApiKey"], &got); err != nil {
+				t.Fatal(err)
+			}
+			if len(data) != 4 || got != key || string(data["paneChannels"]) != "6" || string(data["workspaceChannels"]) != "12" || string(data["subscriptions"]) != "96" {
 				t.Fatal("unexpected public configuration fields")
 			}
 		})

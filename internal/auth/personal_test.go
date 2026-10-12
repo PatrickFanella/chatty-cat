@@ -13,6 +13,18 @@ import (
 	"github.com/coder/websocket/wsjson"
 )
 
+func TestPersonalChatWorkspaceLimit(t *testing.T) {
+	f := setup(t)
+	f.service.cfg.WorkspaceChannels = 12
+	request := httptest.NewRequest(http.MethodGet, "https://chat.subcult.tv/api/auth/chat?channels=a,b,c,d,e,f,g,h,i,j,k,l,m", nil)
+	request.Header.Set("Origin", "https://chat.subcult.tv")
+	response := httptest.NewRecorder()
+	f.handler.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatal(response.Code)
+	}
+}
+
 func TestPersonalChat(t *testing.T) {
 	f := setup(t)
 	cookies, csrf := f.signin(t)
@@ -132,7 +144,7 @@ func TestPersonalChatRequestGuards(t *testing.T) {
 		cookies      []*http.Cookie
 		status       int
 	}{
-		{"?channels=hasanabi", "https://evil.test", cookies, 403}, {"?channels=bad!", "https://chat.subcult.tv", cookies, 400}, {"?channels=a,b,c,d,e,f,g", "https://chat.subcult.tv", cookies, 400}, {"?channels=hasanabi", "https://chat.subcult.tv", nil, 401}, {"?channels=hasanabi", "https://chat.subcult.tv", cookies, 403},
+		{"?channels=hasanabi", "https://evil.test", cookies, 403}, {"?channels=bad!", "https://chat.subcult.tv", cookies, 400}, {"?channels=a,b,c,d,e,f,g,h,i,j,k,l,m", "https://chat.subcult.tv", cookies, 400}, {"?channels=hasanabi", "https://chat.subcult.tv", nil, 401}, {"?channels=hasanabi", "https://chat.subcult.tv", cookies, 403},
 	} {
 		res := f.request("GET", "/api/auth/chat"+tc.path, tc.cookies, map[string]string{"Origin": tc.origin})
 		if res.Code != tc.status {
