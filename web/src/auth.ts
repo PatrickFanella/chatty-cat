@@ -5,6 +5,8 @@ export type AuthStatus = {
   login?: string;
   userID?: string;
   csrf?: string;
+  followsEnabled?: boolean;
+  chattersEnabled?: boolean;
   emotesEnabled?: boolean;
   personalChatEnabled?: boolean;
   whispersEnabled?: boolean;
@@ -22,6 +24,8 @@ export function parseAuthStatus(value: unknown): AuthStatus {
     || (url.protocol !== 'https:' && !(loopback && url.protocol === 'http:'))) throw new Error('Invalid login URL');
   const result: AuthStatus = { enabled: data['enabled'], authenticated: data['authenticated'], loginURL: url.href };
   if (result.authenticated) {
+    result.followsEnabled = data["followsEnabled"] === true;
+    result.chattersEnabled = data["chattersEnabled"] === true;
     result.whispersEnabled = data["whispersEnabled"] === true;
     result.personalChatEnabled = data["personalChatEnabled"] === true;
     result.emotesEnabled = data["emotesEnabled"] === true;

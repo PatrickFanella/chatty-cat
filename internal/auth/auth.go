@@ -55,19 +55,21 @@ type identity struct {
 	Expires  int64    `json:"expires_in"`
 }
 type session struct {
-	mu                  sync.Mutex
-	tokens              tokens
-	user                identity
-	csrf                string
-	expires, validated  time.Time
-	invalid             bool
-	lastSend            time.Time
-	emoteWindow         time.Time
-	emoteRequests       int
-	personalConnections int
-	personalPeers       []*personalPeer
-	receipts            map[string]receipt
-	receiptOrder        []string
+	mu                                sync.Mutex
+	tokens                            tokens
+	user                              identity
+	csrf                              string
+	expires, validated                time.Time
+	invalid                           bool
+	lastSend                          time.Time
+	emoteWindow                       time.Time
+	emoteRequests                     int
+	discoveryWindow, discoveryRetryAt time.Time
+	discoveryRequests                 int
+	personalConnections               int
+	personalPeers                     []*personalPeer
+	receipts                          map[string]receipt
+	receiptOrder                      []string
 }
 
 // Service keeps credentials in bounded memory. Restarting signs all users out.
@@ -174,6 +176,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("POST /api/auth/logout", s.limit(s.logout))
 	mux.Handle("POST /api/chat/send", s.limit(s.send))
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
+	mux.Handle("GET /api/auth/discovery", s.limit(s.discovery))
 	mux.HandleFunc("GET /api/auth/chat", s.personalChat)
 	mux.HandleFunc("GET /api/auth/chat-admission", s.personalAdmission)
 	mux.HandleFunc("GET /api/auth/whispers", s.whisperChat)
@@ -228,6 +231,27 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "open the configured public origin to log in", 400)
 		return
 	}
+	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
+	switch r.URL.Query().Get("discovery") {
+	case "follows":
+		scopes += " user:read:follows"
+	case "chatters":
+		scopes += " moderator:read:chatters"
+	case "":
+	default:
+		http.Error(w, "Invalid discovery consent", 400)
+		return
+	}
+	if p := s.lookup(r); p != nil {
+		p.mu.Lock()
+		for _, scope := range []string{"user:read:follows", "moderator:read:chatters"} {
+			if slices.Contains(p.user.Scopes, scope) && !slices.Contains(strings.Fields(scopes), scope) {
+				scopes += " " + scope
+			}
+		}
+		p.mu.Unlock()
+	}
+
 	// Only a channel query is retained; never accept an arbitrary redirect target.
 	returnTo := "/"
 	if channel := r.URL.Query().Get("channel"); len(channel) <= 155 && channel != "" {
@@ -253,7 +277,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	q.Set("client_id", s.cfg.ClientID)
 	q.Set("redirect_uri", s.origin+"/api/auth/callback")
 	q.Set("response_type", "code")
-	q.Set("scope", "user:write:chat user:read:emotes chat:read chat:edit "+commandScopes)
+	q.Set("scope", scopes)
 	q.Set("state", state)
 	u.RawQuery = q.Encode()
 	http.Redirect(w, r, u.String(), http.StatusFound)
@@ -428,6 +452,8 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["csrf"] = p.csrf
 			result["whispersEnabled"] = slices.Contains(p.user.Scopes, "user:manage:whispers")
 			result["personalChatEnabled"] = slices.Contains(p.user.Scopes, "chat:read") && slices.Contains(p.user.Scopes, "chat:edit")
+			result["followsEnabled"] = slices.Contains(p.user.Scopes, "user:read:follows")
+			result["chattersEnabled"] = slices.Contains(p.user.Scopes, "moderator:read:chatters")
 			result["emotesEnabled"] = slices.Contains(p.user.Scopes, "user:read:emotes")
 			permissions := []string{}
 			for _, scope := range strings.Fields(commandScopes) {
