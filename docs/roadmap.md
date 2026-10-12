@@ -1,6 +1,6 @@
 # Feature roadmap
 
-Delivery is tracked in the [Gitea roadmap](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3) and [project board](https://git.subcult.tv/subculture-collective/chatty-cat/projects/2). The parity implementation is reviewed in [PR #2](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/2).
+Delivery is tracked in the [Gitea roadmap](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3) and [project board](https://git.subcult.tv/subculture-collective/chatty-cat/projects/2). The parity implementation was merged in [PR #2](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/2).
 
 The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatterino2/tree/v2.5.6), reviewed on 2026-10-11 against the [official wiki](https://wiki.chatterino.com/) and [release notes](https://chatterino.com/changelog). This is a delivery plan, not a claim that Chatty Cat already implements every Chatterino feature. The coverage audit accounts for gaps beyond the initial catalog.
 
@@ -56,7 +56,7 @@ The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatt
 
 ## Operating the board
 
-- The coverage audit can start now. Named workspaces and the conversation inbox are the first implementation priorities after PR #2 merges.
+- PR #2 is merged. The coverage audit is Ready; named workspaces #6 and the conversation inbox #9 are the first implementation priorities.
 - Internal dependencies remain Backlog until their blockers are satisfied. Move the next available tickets to Ready and apply `ready-for-agent`; a closed but unmerged PR does not satisfy the baseline.
 - Use In Progress for owned work, Review for an attached PR, Blocked for external impediments, and Done after acceptance evidence is recorded.
 - Each issue has a demoable outcome, acceptance criteria and native dependency links. Issues remain unassigned; milestone dates are unset until an owner commits to delivery.
