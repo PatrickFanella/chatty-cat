@@ -6,6 +6,19 @@ const auth:AuthStatus={enabled:true,authenticated:true,loginURL:'https://chat.su
 const page={kind:'live',channel:'',accountID:'42',items:[{id:'100',login:'alice',name:'Alice',title:'Live title',category:'Music',viewers:10}],after:'next',total:0,observedAt:Date.now()};
 let panel:DiscoveryPanel|undefined;afterEach(()=>{panel?.stop();localStorage.clear();document.body.replaceChildren();vi.restoreAllMocks();});
 const flush=async()=>{await new Promise(r=>setTimeout(r,0));};
+it('distinguishes an unknown login status from disabled login and clears stale notices when authorized',()=>{
+ panel=new DiscoveryPanel(['bob'],vi.fn());
+ const status=()=>panel!.root.querySelector('[role="status"]')?.textContent;
+ expect(status()).toBe('Waiting for Twitch login status');
+ panel.setAuth({...auth,enabled:false,authenticated:false});
+ expect(status()).toBe('Twitch login is not configured');
+ panel.setAuth(auth);
+ expect(status()).toBe('Ready; load one page');
+ expect(panel.root.querySelector<HTMLButtonElement>('button')!.disabled).toBe(false);
+ panel.setAuth(undefined);
+ expect(status()).toBe('Waiting for Twitch login status');
+ expect(panel.root.querySelector<HTMLButtonElement>('button')!.disabled).toBe(true);
+});
 it('calls the default browser fetch without the panel as its receiver',async()=>{
  const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async function(this:unknown){
   if(this!==undefined&&this!==globalThis)throw new TypeError('Illegal invocation');
