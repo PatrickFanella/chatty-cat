@@ -5,7 +5,7 @@ export interface ChannelMetadata {
   channel: string;
   emotes: Record<string, Emote>;
   badges: Record<string, Record<string, Badge>>;
-  stream: { uptime: string; viewers: string; title: string };
+  stream: { uptime: string; viewers: string; title: string; game?:string };
   errors: string[];
   lastVod?:{start:string;end:string;url:string;title:string};
   emoteUse?:Record<string,number>;
@@ -45,8 +45,8 @@ export function parseMetadata(value: unknown): ChannelMetadata | null {
   const emoteUse:Record<string,number>=Object.create(null) as Record<string,number>;if(value.emoteUse!==undefined){if(!object(value.emoteUse))return null;for(const [code,count] of Object.entries(value.emoteUse).slice(0,4096)){if(code.length>100||typeof count!=='number'||!Number.isSafeInteger(count)||count<0)return null;emoteUse[code]=count;}}
   let lastVod:ChannelMetadata['lastVod'];if(value.lastVod!==undefined){const vod=value.lastVod;if(!object(vod)||typeof vod.start!=='string'||typeof vod.end!=='string'||typeof vod.url!=='string'||typeof vod.title!=='string'||!/^https:\/\/www\.twitch\.tv\/videos\/[0-9]{1,30}$/.test(vod.url))return null;const start=Date.parse(vod.start),end=Date.parse(vod.end);if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||end-start>604800000)return null;lastVod={start:vod.start,end:vod.end,url:vod.url,title:vod.title.slice(0,300)};}
   const stream = value.stream;
-  if (typeof stream.uptime !== 'string' || typeof stream.viewers !== 'string' || typeof stream.title !== 'string') return null;
-  return { channel: value.channel, emotes, badges, emoteUse, ...(lastVod?{lastVod}:{}), stream: { uptime: stream.uptime, viewers: stream.viewers, title: stream.title }, errors: value.errors as string[] };
+  if (typeof stream.uptime !== 'string' || typeof stream.viewers !== 'string' || typeof stream.title !== 'string' || stream.game!==undefined&&(typeof stream.game!=='string'||stream.game.length>500)) return null;
+  return { channel: value.channel, emotes, badges, emoteUse, ...(lastVod?{lastVod}:{}), stream: { uptime: stream.uptime, viewers: stream.viewers, title: stream.title, ...(typeof stream.game==='string'?{game:stream.game}:{}) }, errors: value.errors as string[] };
 }
 
 export class MetadataClient {

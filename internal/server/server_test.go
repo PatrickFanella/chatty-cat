@@ -193,7 +193,7 @@ func TestBackfillFailureDoesNotStopChat(t *testing.T) {
 			defer host.Close()
 			s := New(Config{RecentURL: host.URL + "/"})
 			defer s.Close()
-			if err := s.backfill(context.Background(), "room", func(event) error { t.Error("unexpected event"); return nil }); err != nil {
+			if err := s.backfill(context.Background(), "room", 200, func(event) error { t.Error("unexpected event"); return nil }); err != nil {
 				t.Fatal(err)
 			}
 		})

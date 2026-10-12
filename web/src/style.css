@@ -405,3 +405,5 @@ html[data-privacy="true"] #inbox-panel,html[data-privacy="true"] #inbox-open{dis
 [data-presentation-bold-usernames=true] .row .name{font-size:calc(1em * var(--bold-scale,1))}
 
 #discovery-panel{max-width:800px;max-height:85vh} #discovery-panel label{display:block;margin:.5rem 0} #discovery-panel section{max-height:45vh;overflow:auto} #discovery-panel section button{margin-left:.6rem}
+
+.chat-pronouns{color:var(--muted);font-size:.85em;margin-inline:.3em}

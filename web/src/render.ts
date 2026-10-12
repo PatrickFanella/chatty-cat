@@ -139,6 +139,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
     appendLinks(system, value); row.append(system); if (value && message.text) row.append(' — ');
   }
   if (message.command === 'CLEARCHAT') text.textContent = message.text ? `${message.text} ${message.tags['ban-duration'] ? 'timed out for ' + message.tags['ban-duration'] + 's' : 'banned'}` : 'Chat cleared';
+  if (message.command==='JOIN'||message.command==='PART')text.textContent=message.login+(message.command==='JOIN'?' joined the channel':' left the channel');
   if (message.command === 'CLEARMSG') text.textContent = 'Message deleted';
   text.classList.add('message-body');
   if(p.collapseLines>0&&message.command==='PRIVMSG'&&message.text.length>80){text.classList.add('collapsed-message');const expand=document.createElement('button');expand.type='button';expand.className='expand-message';expand.textContent='Expand message';expand.setAttribute('aria-expanded','false');expand.addEventListener('click',()=>{const collapsed=text.classList.toggle('collapsed-message');expand.textContent=collapsed?'Expand message':'Collapse message';expand.setAttribute('aria-expanded',String(!collapsed));});row.append(expand);}
