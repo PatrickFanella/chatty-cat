@@ -1,3 +1,4 @@
+import {getPresentation} from './presentation';
 import {isLocalCommand,LOCAL_COMMANDS} from './local-commands';
 import { completions, insertCompletion, wireMessage, type Completion } from './completion';
 import type { AuthStatus } from './auth';
@@ -36,6 +37,9 @@ function field<T extends HTMLElement>(form: HTMLFormElement, id: string, ctor: n
   return node;
 }
 export class Composer {
+  mention(login:string,at:boolean,comma:boolean):void{if(!this.canInsert)return;this.input.setRangeText((at?'@':'')+login+(comma?', ':' '),this.input.selectionStart,this.input.selectionEnd,'end');this.edit();this.input.focus();}
+  private presentationChanged=():void=>{if(this.blocked&&!this.busy)this.status.textContent=!getPresentation().showWait&&this.blocked.startsWith('Slow mode:')?'Slow mode active; wait before sending':this.blocked;this.render();};
+  private outgoing():string{const text=wireMessage(this.input.value);if(!this.reply||!getPresentation().stripReplyMention||text.trimStart().startsWith('/'))return text;const login=this.reply.login.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return text.replace(new RegExp('^@?'+login+'[, :]?\\s+','i'),'');}
   private composing=false;
   private compositionStart=():void=>{this.composing=true;};
   private compositionEnd=():void=>{this.composing=false;};
@@ -49,8 +53,8 @@ export class Composer {
   get draft():string{return this.input.value;}
   draftFor(channel:string):string{try{return sessionStorage.getItem('chatthing:v1:draft:'+channel)??'';}catch{return '';}}
   prepare(text:string):void{if(!this.canInsert)return;this.reply=undefined;this.input.value=text;this.edit();this.input.focus();}
-  private validation(text:string):string|undefined{const error=validateMessage(text);if(this.localDispatch&&isLocalCommand(text))return undefined;return error?.startsWith('Unsupported slash')&&this.commands.some(trigger=>trigger.toLowerCase()===text.split(/\s/)[0]?.toLowerCase())?undefined:error;}
-  setBlock(reason: string): void { if (this.blocked === reason) return; this.blocked = reason; if (!this.busy) this.status.textContent = reason; this.render(); }
+  private validation(text:string):string|undefined{const error=validateMessage(text);if(getPresentation().overflow==='truncate'&&[...text].length>500&&!text.trimStart().startsWith('/')&&!/[\x00-\x1f\x7f-\x9f]/.test(text))return undefined;if(this.localDispatch&&isLocalCommand(text))return undefined;return error?.startsWith('Unsupported slash')&&this.commands.some(trigger=>trigger.toLowerCase()===text.split(/\s/)[0]?.toLowerCase())?undefined:error;}
+  setBlock(reason: string): void { if (this.blocked === reason) return; this.blocked = reason; if (!this.busy) this.status.textContent = !getPresentation().showWait&&reason.startsWith('Slow mode:')?'Slow mode active; wait before sending':reason; this.render(); }
   private readonly input: HTMLTextAreaElement;
   private readonly suggestions: HTMLElement;
   private completion: Completion | undefined;
@@ -85,7 +89,7 @@ export class Composer {
     this.cancelReply = field(form, 'cancel-reply', HTMLButtonElement);
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
     this.restoreDraft();
-    form.addEventListener('submit', this.submit);
+    document.addEventListener('presentationchange',this.presentationChanged);form.addEventListener('submit', this.submit);
     this.input.addEventListener('input', this.edit);this.input.addEventListener('compositionstart',this.compositionStart);this.input.addEventListener('compositionend',this.compositionEnd);
     this.input.addEventListener('keydown', this.key);
     this.input.addEventListener('click', this.closeCompletion);
@@ -182,7 +186,7 @@ export class Composer {
     this.input.placeholder = signedIn ? 'Message' : this.localDispatch?'Local command (/help) or log in to send':'Log in';
     const length = [...wireMessage(this.input.value)].length;
     this.count.textContent = `${length}/500`;
-    this.count.classList.toggle('warn', length >= 460);
+    this.count.hidden=!getPresentation().showLength;this.form.dataset.empty=String(!this.input.value);this.count.classList.toggle('warn', getPresentation().overflow==='highlight'&&length >= 460);
     this.count.title = length > 500 ? 'Message exceeds Twitch’s 500-character limit' : length >= 460 ? 'Approaching Twitch’s message limit' : '';
     this.input.style.height = 'auto';
     this.input.style.height = Math.max(34, Math.min(this.input.scrollHeight + 2, 160)) + 'px';
@@ -240,13 +244,14 @@ export class Composer {
     if(this.busy||this.composing)return;
     if(this.localDispatch&&isLocalCommand(wireMessage(this.input.value))){const generation=this.authGeneration;try{const report=await this.localDispatch(wireMessage(this.input.value));if(generation===this.authGeneration)this.status.textContent=report??'Local command unavailable';}catch(error){if(generation===this.authGeneration)this.status.textContent=error instanceof Error?error.message:'Local command failed';}this.render();return;}
     if (!this.auth?.authenticated || !this.auth.csrf) return;
+    if(getPresentation().overflow==='truncate'&&[...this.outgoing()].length>500&&!this.input.value.trimStart().startsWith('/')){this.input.value=[...this.outgoing()].slice(0,500).join('');this.edit();this.status.textContent='Truncated to 500 characters; review and press Send';return;}
     if (this.blocked && !/^\s*\//.test(this.input.value)) { this.status.textContent = this.blocked; return; }
     try{if(this.commandPreview?.(wireMessage(this.input.value)))return;}catch(error){this.status.textContent=error instanceof Error?error.message:'Command preview failed';return;}
-    const error = validateMessage(wireMessage(this.input.value));
+    const error = validateMessage(this.outgoing());
     if (error) { this.status.textContent = error; return; }
     const sendingAccount=this.auth.userID??this.auth.login,sendingGeneration=this.authGeneration;
     this.busy = true; this.status.textContent = 'Sending…'; this.render();
-    const text = wireMessage(this.input.value);
+    const text = this.outgoing();
     this.closeCompletion();
     try {
       this.requestID ??= crypto.randomUUID();
@@ -279,7 +284,7 @@ export class Composer {
   };
   stop(): void {
     this.disposed = true; this.saveDraft(); this.abort.abort();
-    this.form.removeEventListener('submit', this.submit); this.input.removeEventListener('input', this.edit);this.input.removeEventListener('compositionstart',this.compositionStart);this.input.removeEventListener('compositionend',this.compositionEnd);
+    document.removeEventListener('presentationchange',this.presentationChanged);this.form.removeEventListener('submit', this.submit); this.input.removeEventListener('input', this.edit);this.input.removeEventListener('compositionstart',this.compositionStart);this.input.removeEventListener('compositionend',this.compositionEnd);
     this.input.removeEventListener('keydown', this.key); this.input.removeEventListener('click', this.closeCompletion); this.input.removeEventListener('blur', this.closeCompletion); this.suggestions.removeEventListener('mousedown', this.pickCompletion); this.channel.removeEventListener('change', this.changeChannel);
     this.cancelReply.removeEventListener('click', this.clearReply);
   }

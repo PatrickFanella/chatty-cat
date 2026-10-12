@@ -383,3 +383,23 @@ html[data-privacy="true"] #inbox-panel,html[data-privacy="true"] #inbox-open{dis
 .row.similar-message{opacity:.45}
 .row.keyword-match{background-color:color-mix(in srgb,var(--rule-color,var(--accent)) 18%,transparent)}
 #rules-panel{max-width:700px} #rules-panel label{display:block;margin:.4rem 0} #rules-panel input:not([type=checkbox]),#rules-panel select{margin-left:.5rem;max-width:100%}
+
+:root{zoom:var(--presentation-scale,1)}
+#presentation-panel{max-width:760px;max-height:85vh} #presentation-panel label{display:block;margin:.45rem 0} #presentation-panel label[hidden]{display:none} #presentation-panel input,#presentation-panel select{max-width:100%}
+[data-presentation-show-timestamps=false] .row time,[data-presentation-hide-reply-context=true] .row blockquote,[data-presentation-show-reply-button=false] .row .reply,[data-presentation-show-send-button=false] #send,[data-presentation-hide-settings=true] #display-open,[data-presentation-hide-account=true] #login,[data-presentation-hide-account=true] #account{display:none}
+[data-presentation-separators=off] .row{border-bottom-color:transparent} [data-presentation-separators=on] .row{border-bottom:1px solid var(--line)}
+[data-presentation-alternating=off] .row{background-color:transparent} [data-presentation-alternating=on] .row[data-position]:nth-child(even){background-color:var(--panel)}
+[data-presentation-fade-history=true] .row.history-message{opacity:.7} [data-presentation-fade-history=true] .row.history-message.similar-message{opacity:.315}
+[data-presentation-last-message=true] .row.last-message{border-bottom:2px var(--last-message-pattern) var(--last-message-color)}
+[data-presentation-bold-usernames=false] .row .name{font-weight:normal} [data-presentation-color-mentions=false] .row .mention{color:inherit!important}
+.collapsed-message{display:-webkit-box;-webkit-line-clamp:var(--collapse-lines);-webkit-box-orient:vertical;overflow:hidden} .expand-message{float:right;font-size:.75em}
+[data-presentation-show-empty-input=false] #composer[data-empty=true] #message:not(:focus){height:12px!important;min-height:12px;opacity:.35}
+.composer-pulse{animation:composer-pulse .5s ease-out} @keyframes composer-pulse{50%{box-shadow:inset 0 0 0 2px var(--accent)}}
+[data-presentation-hide-scrollbar=true] .split-reader,[data-presentation-hide-scrollbar=true] #log{scrollbar-width:none} [data-presentation-hide-scrollbar=true] .split-reader::-webkit-scrollbar,[data-presentation-hide-scrollbar=true] #log::-webkit-scrollbar{width:0}
+.scroll-markers{position:fixed;width:8px;z-index:5;pointer-events:none} .scroll-markers[hidden]{display:none} .scroll-markers button{position:absolute;height:3px;min-height:3px;width:8px;padding:0;border:0;background:var(--accent);pointer-events:auto} .scroll-markers button:focus{height:8px;outline:2px solid var(--fg)}
+@media(prefers-reduced-motion:reduce){.composer-pulse{animation:none}}
+
+[data-presentation-bold-usernames=true] .row .name{font-weight:bold}
+[data-presentation-show-timestamps=true]:not([data-presentation-timestamp-format=legacy]) .row time{display:inline}
+
+[data-presentation-bold-usernames=true] .row .name{font-size:calc(1em * var(--bold-scale,1))}
