@@ -1,3 +1,5 @@
+import {badgeGroups,renderBadgeReference} from './stats-badges';
+import type {ChannelMetadata} from './metadata';
 import {registerSettings} from './settings-bundle';
 import {type StatsLedger,type StatKind} from './stats-ledger';
 import { isGlorp, type RateSeries } from './rate-timeline';
@@ -42,12 +44,14 @@ export class StatsPanel {
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
-  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries,private ledger?:StatsLedger,private seeds:(channel:string)=>Record<string,number>=()=>({}),private streams?:StreamHistory) {
+  private badgeOrder:HTMLSelectElement;
+  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries,private ledger?:StatsLedger,private seeds:(channel:string)=>Record<string,number>=()=>({}),private streams?:StreamHistory,private badges:(channel:string)=>ChannelMetadata['badges']=()=>({})) {
+    this.badgeOrder=dialog.querySelector<HTMLSelectElement>('#stats-badge-order')!;
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!; this.channel = dialog.querySelector<HTMLSelectElement>('#stats-channel')!; this.exclusions = dialog.querySelector<HTMLInputElement>('#stats-exclusions')!;
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
-    try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if(typeof data.channel==='string'&&[...this.channel.options].some(option=>option.value===data.channel))this.channel.value=data.channel; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if(data.windows&&typeof data.windows==='object')for(const select of dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const value=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof value==='string'&&[...select.options].some(option=>option.value===value))select.value=value;} if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
+    try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if(data.badgeOrder==='versions'||data.badgeOrder==='name')this.badgeOrder.value=data.badgeOrder; if(typeof data.channel==='string'&&[...this.channel.options].some(option=>option.value===data.channel))this.channel.value=data.channel; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if(data.windows&&typeof data.windows==='object')for(const select of dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const value=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof value==='string'&&[...select.options].some(option=>option.value===value))select.value=value;} if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
     trigger.addEventListener('click', this.open); dialog.querySelector('#stats-close')?.addEventListener('click', this.close); dialog.addEventListener('close', this.closed); dialog.addEventListener('change', this.change);
-    this.bundleDispose=registerSettings('stats',()=>({scope:this.scope.value,channel:this.channel.value,excluded:this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value]))}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;for(const [select,key] of [[this.scope,'scope'],[this.channel,'channel']] as const){if(typeof data[key]==='string'&&[...select.options].some(option=>option.value===data[key]))select.value=data[key];}if(typeof data.excluded==='string')this.exclusions.value=data.excluded.slice(0,500);if(data.windows&&typeof data.windows==='object')for(const select of this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const choice=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof choice==='string'&&[...select.options].some(option=>option.value===choice))select.value=choice;}this.change();});
+    this.bundleDispose=registerSettings('stats',()=>({badgeOrder:this.badgeOrder.value,scope:this.scope.value,channel:this.channel.value,excluded:this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value]))}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(data.badgeOrder==='versions'||data.badgeOrder==='name')this.badgeOrder.value=data.badgeOrder;for(const [select,key] of [[this.scope,'scope'],[this.channel,'channel']] as const){if(typeof data[key]==='string'&&[...select.options].some(option=>option.value===data[key]))select.value=data[key];}if(typeof data.excluded==='string')this.exclusions.value=data.excluded.slice(0,500);if(data.windows&&typeof data.windows==='object')for(const select of this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const choice=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof choice==='string'&&[...select.options].some(option=>option.value===choice))select.value=choice;}this.change();});
     let ticks=0;this.timer = setInterval(()=>{this.paint();if(++ticks%6===0)this.ledger?.save();}, 5000); this.paint();
   }
   float():void {this.dialog.removeAttribute('open');this.open();}
@@ -55,7 +59,7 @@ export class StatsPanel {
   private open = (): void => { this.dialog.showModal(); this.paint(); };
   private close = (): void => this.dialog.close();
   private closed = (): void => { this.trigger.focus(); };
-  private change = (): void => { try { localStorage.setItem('chatthing:v1:stats', JSON.stringify({ scope: this.scope.value, channel:this.channel.value, excluded: this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value])) })); } catch { /* optional storage */ } this.paint(); };
+  private change = (): void => { try { localStorage.setItem('chatthing:v1:stats', JSON.stringify({ badgeOrder:this.badgeOrder.value,scope: this.scope.value, channel:this.channel.value, excluded: this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value])) })); } catch { /* optional storage */ } this.paint(); };
   private paint = (): void => {
     const now = Date.now(); const excluded = new Set(this.exclusions.value.toLowerCase().split(/[\s,]+/).filter(Boolean));
     const stats = this.timeline?undefined:summarize(this.messages(), now, 60000, '', excluded, this.emotes);
@@ -64,7 +68,10 @@ export class StatsPanel {
     const windowMs = Number(this.scope.value); const data = summarize(this.messages(), now, windowMs, this.channel.value, excluded, this.emotes);
     const summary = this.dialog.querySelector<HTMLElement>('#stats-summary')!; summary.textContent = `${data.messages.toLocaleString()} messages · ${data.glorps.toLocaleString()} glorp/F · ${data.chatters.toLocaleString()} chatters · ${data.perMinute.toFixed(1)}/min · peak minute ${data.peakPerMinute}`;
     const graph = this.dialog.querySelector<HTMLElement>('#stats-graph')!; graph.replaceChildren(rateGraph(data.buckets, 'Message count over the selected time window', data.gaps, 'messages', data.pageGaps));
-    const body = this.dialog.querySelector<HTMLElement>('#stats-lists')!; body.replaceChildren();
+    const body = this.dialog.querySelector<HTMLElement>('#stats-lists')!;
+    // Keep keyboard focus stable while an expanded badge reference is being read.
+    if(body.contains(document.activeElement))return;
+    const expanded=new Set([...body.querySelectorAll<HTMLDetailsElement>('details[open][data-badge-set]')].map(details=>details.dataset.badgeSet!)); body.replaceChildren();
     if (this.streams) {
       const channels = this.channel.value ? [this.channel.value] : [...this.channel.options].map(option => option.value).filter(Boolean);
       for (const channel of channels) {
@@ -101,6 +108,15 @@ export class StatsPanel {
       const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent={users:'Top chatters',emotes:'Top emotes',badges:'Badge versions',links:'Top links'}[kind];section.append(heading);const list=document.createElement('ol');for(const row of rows){const item=document.createElement('li');if(kind==='links'){const link=document.createElement('a');link.href=row.name;link.textContent=row.name;link.target='_blank';link.rel='noopener noreferrer';item.append(link,' · '+row.count.toLocaleString());}else item.textContent=row.name+' · '+row.count.toLocaleString();list.append(item);}if(!rows.length){const item=document.createElement('li');item.textContent='None recorded';list.append(item);}section.append(list);body.append(section);
      }
     }
+    if(this.ledger){
+      for(const unit of ['hours','days'] as const){
+        const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent=unit==='hours'?'Hourly messages (7 days, UTC)':'Daily messages (31 days, UTC)';section.append(heading);
+        const list=document.createElement('ol');for(const row of this.ledger.buckets(unit,this.channel.value,excluded,now)){const item=document.createElement('li');item.textContent=new Date(row.at).toISOString().slice(0,unit==='hours'?13:10)+(unit==='hours'?':00':'')+' · '+row.count.toLocaleString();list.append(item);}if(!list.childElementCount){const item=document.createElement('li');item.textContent='None recorded';list.append(item);}section.append(list);body.append(section);
+      }
+    }
+    const badgeChannels=this.channel.value?[this.channel.value]:[...this.channel.options].map(option=>option.value).filter(Boolean);
+    const badgeHours=Number(this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="badges"]')?.value??3);
+    body.append(renderBadgeReference(badgeGroups(badgeChannels.map(channel=>this.badges(channel)),this.ledger?.ranks('badges',Number.isFinite(badgeHours)?badgeHours:0,this.channel.value,excluded,now,20000)??[],this.badgeOrder.value==='name'?'name':'versions'),expanded));
     for (const [title, rows] of [['Users', data.users], ['Top glorpers',data.glorpers], ['Emotes', data.emotes], ['Badges', data.badges], ['Link domains', data.links], ['Hours', data.hours], ['Days', data.days]] as const) {
       const section = document.createElement('section'); const heading = document.createElement('h3'); heading.textContent = this.ledger?title+' (retained rows)':title; section.append(heading); const list = document.createElement('ol');
       for (const row of rows) { const item = document.createElement('li'); item.textContent = `${row.name} · ${row.count.toLocaleString()}`; list.append(item); } section.append(list); body.append(section);

@@ -11,6 +11,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -91,10 +93,26 @@ func (s *Server) Handler() http.Handler {
 	}
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := io.WriteString(w, `{"status":"ok","stage":"migration-foundation"}`); err != nil {
+		if _, err := io.WriteString(w, `{"status":"ok"}`); err != nil {
 			slog.Debug("health response closed", "error", err)
 		}
 	})
+	mux.HandleFunc("GET /api/ready", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		s.mu.Lock()
+		closing := s.closing
+		s.mu.Unlock()
+		info, err := os.Stat(filepath.Join(s.cfg.Assets, "index.html"))
+		if closing || err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			http.Error(w, `{"status":"unavailable"}`, http.StatusServiceUnavailable)
+			return
+		}
+		if _, err := io.WriteString(w, `{"status":"ready"}`); err != nil {
+			slog.Debug("readiness response closed", "error", err)
+		}
+	})
+
 	mux.HandleFunc("GET /api/public-config", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")

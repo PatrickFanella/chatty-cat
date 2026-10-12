@@ -39,6 +39,7 @@ through the process environment. Keep this file out of Git.
 | `CHATTHING_PUBLIC_URL` | `https://chat.subcult.tv`; HTTPS origin, loopback HTTP allowed |
 | `TWITCH_CLIENT_ID` | Server-side Twitch application ID |
 | `TWITCH_CLIENT_SECRET` | Server-side Twitch application secret |
+| `GIPHY_API_KEY` | Optional browser integration key for explicit GIF title searches |
 
 Register `https://chat.subcult.tv/api/auth/callback` on the Twitch developer app.
 For local OAuth, register the exact loopback callback and use that loopback
@@ -50,8 +51,9 @@ users out. Authenticated sending uses Twitch's API and server-held user tokens;
 credentials never enter browser storage. Public VOD and Twitch emote metadata
 use a separate server-held app token. Scope/account permission checks, bounded
 request receipts and explicit handling of uncertain sends apply to commands,
-replies, actions and whispers. Tests use fake Twitch services; real user consent,
-posting and moderation acceptance remain release gates.
+replies, actions and whispers. Tests use fake Twitch services. The owner also confirmed live consent, posting,
+replies, subscriber emotes, whisper sending and the approved test-message deletion
+on the hosted build. See [acceptance evidence](docs/parity.md).
 
 ## Self-hosting
 
@@ -88,7 +90,8 @@ npm --prefix web run build
 
 Use the local browser preview for layout and live anonymous chat checks.
 `GET /api/health` checks the service process; it does not prove Twitch, OAuth,
-external providers or video playback are working.
+external providers or video playback are working. `GET /api/ready` returns 503
+during shutdown or when the application shell is missing, and 200 when ready.
 
 ## Regenerate curated resources
 

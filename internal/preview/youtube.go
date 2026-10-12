@@ -27,3 +27,8 @@ func youtubeID(u *url.URL) string {
 	}
 	return id
 }
+
+func youtubeHost(host string) bool {
+	host = strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(strings.ToLower(host), "www."), "m."), "music.")
+	return host == "youtube.com" || host == "youtube-nocookie.com" || host == "youtu.be"
+}

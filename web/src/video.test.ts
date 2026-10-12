@@ -52,3 +52,10 @@ it('restores video channel, visibility and docking from a settings slot without 
   restoreBundle(bundle); expect(root.hidden).toBe(false); expect(root.classList.contains('video-docked')).toBe(true);
   const frame = new URL(root.querySelector('iframe')!.src); expect(frame.searchParams.get('channel')).toBe('two'); expect(frame.searchParams.get('autoplay')).toBe('false');
 });
+
+it('applies explicit video visibility and shares dock/float/off without autoplay',()=>{
+ vi.stubGlobal('location',new URL('https://chat.example.com/?video=off'));
+ const {root}=setup();expect(root.hidden).toBe(true);expect(root.querySelector('iframe')).toBeNull();
+ const url=new URL('https://chat.example.com');document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));expect(url.searchParams.get('video')).toBe('off');
+ panel!.showRail(true);root.querySelector<HTMLButtonElement>('#video-dock')!.click();document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));expect(url.searchParams.get('video')).toBe('dock');expect(new URL(root.querySelector('iframe')!.src).searchParams.get('autoplay')).toBe('false');
+});

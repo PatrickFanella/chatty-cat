@@ -19,6 +19,9 @@ func TestProviderCards(t *testing.T) {
 			calls := 0
 			service := New(&http.Client{Transport: roundTrip(func(r *http.Request) (*http.Response, error) {
 				calls++
+				if tc.site == "YouTube" && r.URL.Path == "/watch" {
+					return response(r, `<title>Page</title>`, "text/html"), nil
+				}
 				if r.URL.String() != tc.endpoint {
 					t.Fatalf("unexpected request %s", r.URL)
 				}
@@ -35,7 +38,12 @@ func TestProviderCards(t *testing.T) {
 			if card.URL != tc.target || card.Site != tc.site || card.Title != tc.title || card.Description != tc.description {
 				t.Fatalf("unexpected card %+v", card)
 			}
-			if _, err := service.Load(context.Background(), tc.target); err != nil || calls != 1 {
+			if _, err := service.Load(context.Background(), tc.target); err != nil || calls != func() int {
+				if tc.site == "YouTube" {
+					return 2
+				}
+				return 1
+			}() {
 				t.Fatal("provider result was not cached")
 			}
 		})

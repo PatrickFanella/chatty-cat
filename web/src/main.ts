@@ -98,7 +98,7 @@ rail=new PanelRail(log,[{name:'video',root:element('video-panel',HTMLElement),sh
 window.addEventListener('resize',scheduleRender);
 const statsLedger=new StatsLedger(channels,channel=>metadata.get(channel)?.emotes??{});statsLedger.bootstrap(store.messages);
 const streamHistory = new StreamHistory(channels);
-const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{},streamHistory);
+const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{},streamHistory,channel=>metadata.get(channel)?.badges??{});
 const archive = new MessageArchive((message) => { element('archive-status', HTMLElement).textContent = message; });
 for (const message of store.messages) archive.add(message);
 const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text) => {
@@ -166,10 +166,10 @@ window.addEventListener('pagehide', () => channelControls.stop());
 const archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); });
 const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElement), () => channels[0]!, () => store.messages, async messages => {
   for (let index = 0; index < messages.length; index += 500) {
-    for (const message of messages.slice(index, index + 500)) archive.add(message);
+    for (const message of messages.slice(index, index + 500)) { archive.add(message); statsLedger.observe(message,message.timestamp); }
     await archive.flush();
   }
-  store.restore(messages.filter(message => channels.includes(message.channel))); store.save(); scheduleRender();
+  store.restore(messages.filter(message => channels.includes(message.channel))); store.save(); statsLedger.save(); scheduleRender();
 });
 window.addEventListener('pagehide', () => historyFiles.stop());
 const names = new Map<string, Map<string, true>>();
@@ -248,9 +248,14 @@ let hydrationAbort = new AbortController();
 function hydrateHistory(): void {
   const cap = display.options.scrollback; if (cap === hydratedCap) return; hydratedCap = cap;
   hydrationAbort.abort(); hydrationAbort = new AbortController(); const signal = hydrationAbort.signal;
-  void archive.recent(channels, cap, signal).then(messages => {
+  void archive.recent(channels, cap, signal).then(async messages => {
     if (signal.aborted) return; store.setCap(display.options.scrollback); store.restore(messages);
-    for (const message of messages) observe(message, false); refreshCandidates(); picker.refresh(); scheduleRender();
+    for(let index=0;index<messages.length;index+=500){
+      if(signal.aborted)return;
+      for(const message of messages.slice(index,index+500))observe(message,false);
+      if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));
+    }
+    if(signal.aborted)return;refreshCandidates(); picker.refresh(); scheduleRender();
   }).catch(() => { if (!signal.aborted) element('archive-status', HTMLElement).textContent = 'Saved history unavailable; live chat continues'; });
 }
 hydrateHistory();

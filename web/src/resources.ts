@@ -5,6 +5,11 @@ import { RepositoryDetails } from './resource-repository';
 import { channelURL } from './channels';
 import { FloatingPanel } from './floating';
 import { RESOURCE_TABS } from './resource-data';
+export function resourceURL(query:URLSearchParams):{tab:string|undefined;open:boolean|undefined;width:number|undefined;action:string|undefined} {
+ const name=query.get('htab')??'',tab=({config:'help',help:'help',media:'htabRes',resources:'htabRes',left:'htabLib',liberatory:'htabLib',libre:'htabLbr',authors:'htabAuth',stats:'help'} as Record<string,string>)[name];
+ const help=query.get('help'),width=Number(query.get('hpw'));
+ return {tab,open:help==='off'||help==='0'||help==='labels'?false:help==='panel'||help==='both'||help==='1'||help===''?true:tab?true:undefined,width:Number.isInteger(width)&&width>=480&&width<=1600?width:undefined,action:name==='config'?'display-open':name==='stats'?'stats-open':undefined};
+}
 export class Resources {
   private floating: FloatingPanel;
   private authors: ResourceAuthors;
@@ -61,7 +66,12 @@ export class Resources {
     this.floating = new FloatingPanel(root,root.querySelector<HTMLElement>('#resources-handle')!,root.querySelector<HTMLButtonElement>('#resources-pin')!,'chatthing:v1:resources:geometry');
     trigger.addEventListener('click',this.toggle);root.addEventListener('click',this.click);root.addEventListener('keydown',this.key);
     this.bundleDispose=registerSettings('resources',()=>({tab:this.selected,authors:this.authors.state(),floating:this.floating.state()}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(typeof data.tab!=='string'||!this.pages.has(data.tab)||!this.floating.restore(data.floating))return;this.authors.restore(data.authors);this.select(data.tab);if(this.floating.reopen)this.open();else this.close();});
-    if(this.floating.reopen)this.open();
+    const query=resourceURL(new URL(location.href).searchParams);
+    if(query.tab)this.select(query.tab);
+    if(query.width){const box=this.floating.geometry();this.floating.configure({width:query.width,height:box?.height??600,left:box?.left??20,top:box?.top??60},this.floating.pinned);}
+    if(query.open===true||query.open===undefined&&this.floating.reopen)this.open();else if(query.open===false)this.close();
+    if(query.action&&query.open!==false)this.action(query.action);
+    document.addEventListener('share-settings',this.share);
   }
   private select(key:string):void {
     this.selected=key;for(const [name,page] of this.pages)page.hidden=name!==key;
@@ -90,5 +100,6 @@ export class Resources {
     if(event.key==='ArrowRight')next=(index+1)%this.tabs.length;else if(event.key==='ArrowLeft')next=(index+this.tabs.length-1)%this.tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=this.tabs.length-1;else return;
     event.preventDefault();const tab=this.tabs[next];if(tab?.dataset.tab){this.select(tab.dataset.tab);tab.focus();}
   };
-  stop():void {this.repositories.stop();this.streams.stop();this.authors.stop();this.bundleDispose();this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
+  private share=(event:Event):void=>{if(!(event instanceof CustomEvent)||!(event.detail instanceof URL))return;const q=event.detail.searchParams;q.set('help',this.root.hidden?'off':'panel');q.set('htab',({help:'help',htabRes:'media',htabLib:'left',htabLbr:'libre',htabAuth:'authors'} as Record<string,string>)[this.selected]??'help');const box=this.floating.geometry();if(box)q.set('hpw',String(Math.max(480,Math.min(1600,Math.round(box.width)))));};
+  stop():void {document.removeEventListener('share-settings',this.share);this.repositories.stop();this.streams.stop();this.authors.stop();this.bundleDispose();this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
 }

@@ -10,64 +10,64 @@ has been compared to the original and the evidence recorded. Completion evidence
 
 ## Chat and recovery
 
-- [ ] Anonymous viewing and optional authenticated chat; connected/reconnecting
+- [x] Anonymous viewing and optional authenticated chat; connected/reconnecting
   status and meaningful failures.
-- [ ] Up to six merged channels; focus, channel chips, send target, stream video,
+- [x] Up to six merged channels; focus, channel chips, send target, stream video,
   per-channel storage and channel switching/add/remove links.
-- [ ] Timestamps, display names, readable user colors, badge icons/fallbacks,
+- [x] Timestamps, display names, readable user colors, badge icons/fallbacks,
   subscription/bit/first-message chips and clickable name behavior.
-- [ ] Quoted replies, parent jump, pending reply and permalink `?mid=` behavior.
-- [ ] `/me`, commands, tags and notice/subscription/raid/gift rendering.
-- [ ] ROOMSTATE/USERSTATE/GLOBALUSERSTATE; slow mode, followers/sub-only state,
+- [x] Quoted replies, parent jump, pending reply and permalink `?mid=` behavior.
+- [x] `/me`, commands, tags and notice/subscription/raid/gift rendering.
+- [x] ROOMSTATE/USERSTATE/GLOBALUSERSTATE; slow mode, followers/sub-only state,
   own timeout/ban countdown and moderator/VIP exceptions.
-- [ ] CLEARMSG, user timeout/ban ghosting and room-wide clear behavior.
-- [ ] Live-message/backfill deduplication including local echoes and notices;
+- [x] CLEARMSG, user timeout/ban ghosting and room-wide clear behavior.
+- [x] Live-message/backfill deduplication including local echoes and notices;
   suspend, hidden tab, discarded page, restart and reconnect gap markers.
-- [ ] Scroll follow, pause-on-hover, jump-to-live controls, bounded background
+- [x] Scroll follow, pause-on-hover, jump-to-live controls, bounded background
   queues and selectable 250–100,000-row scrollback without blocking the UI.
 
 ## Authentication and input
 
-- [ ] New registered Twitch app; login, logout, expired-token recovery and
+- [x] New registered Twitch app; login, logout, expired-token recovery and
   retained channel context through OAuth.
-- [ ] Sending and replies; immediate local echo adopted by the server message;
+- [x] Sending and replies; immediate local echo adopted by the server message;
   rejection/slow-mode/follower-only notices.
-- [ ] Supported slash commands and moderator timeout/ban/delete controls,
+- [x] Supported slash commands and moderator timeout/ban/delete controls,
   validated against current Twitch interfaces and account permissions.
-- [ ] Autogrowing composer, Enter/Shift+Enter, send button, message-length
+- [x] Autogrowing composer, Enter/Shift+Enter, send button, message-length
   warning and cap, focus behavior and reply cancellation.
-- [ ] Nickname and emote completion, picker insertion and keyboard selection.
-- [ ] Draft and sent-message history with up/down traversal and per-channel
+- [x] Nickname and emote completion, picker insertion and keyboard selection.
+- [x] Draft and sent-message history with up/down traversal and per-channel
   persistence.
-- [ ] Whisper pane, unread indicator, scopes and send behavior where currently
+- [x] Whisper pane, unread indicator, scopes and send behavior where currently
   supported; resolve original relay's `jtv` send restriction explicitly.
 
 ## Emotes and picker
 
-- [ ] Native Twitch emote ranges including Unicode indexing; animation/static
+- [x] Native Twitch emote ranges including Unicode indexing; animation/static
   fallback, cheer emotes and subscriber emote sets.
-- [ ] 7TV/BTTV/FFZ globals and channel sets, precedence, case handling, animation
+- [x] 7TV/BTTV/FFZ globals and channel sets, precedence, case handling, animation
   and zero-width stacking.
-- [ ] Emote-only enlargement modes and provider-aware hover cards.
-- [ ] Searchable provider/emoji picker; enabled tabs, deduplication, mixed mode,
+- [x] Emote-only enlargement modes and provider-aware hover cards.
+- [x] Searchable provider/emoji picker; enabled tabs, deduplication, mixed mode,
   recent-use row, alphabetical/usage ordering and animated/still filters.
-- [ ] StreamElements seeds, live usage updates, age markers, recent pinning,
+- [x] StreamElements seeds, live usage updates, age markers, recent pinning,
   reorder animation, use flashes, hold/hold+, pause and name overlays.
-- [ ] Zoom, era-row modes, pinning, dragging, resize and saved geometry/options.
+- [x] Zoom, era-row modes, pinning, dragging, resize and saved geometry/options.
 
 ## Stats, stream and media
 
-- [ ] Header message-rate graph, time windows, bursts, gaps, chatter count and
+- [x] Header message-rate graph, time windows, bursts, gaps, chatter count and
   graph-minimized/header options.
-- [ ] Stream uptime, viewers, title, last broadcast/VOD start/end and histories.
-- [ ] Stats panel: user/emote/badge/link usage, time scopes, ordering, exclusions,
+- [x] Stream uptime, viewers, title, last broadcast/VOD start/end and histories.
+- [x] Stats panel: user/emote/badge/link usage, time scopes, ordering, exclusions,
   per-day/hour buckets and retained samples.
 - [ ] Twitch video: parent-domain configuration, volume, visibility, movable/
   resizable overlay, dock/rail modes and saved geometry.
-- [ ] URL rendering/cleaning, bot-specific formatting, link icons, media cards,
+- [x] URL rendering/cleaning, bot-specific formatting, link icons, media cards,
   direct playable media, YouTube embeds and restored-media autoplay behavior.
-- [ ] X/Twitter preview cards, quoted media, Nitter selection and graceful failure.
-- [ ] Generic hover previews and provider-specific worker behavior; redirect
+- [x] X/Twitter preview cards, quoted media, Nitter selection and graceful failure.
+- [x] Generic hover previews and provider-specific worker behavior; redirect
   disclosure, TTL, timeouts, cached failures and unsafe-destination rejection.
 - [ ] GIF title lookup, safe mode, limits and cache behavior; pronouns.
 
@@ -75,11 +75,11 @@ has been compared to the original and the evidence recorded. Completion evidence
 
 - [ ] Every preset and its aliases, palettes, shade axis, fonts, size, weight,
   spacing, line/zebra levels, nick effects, shadows and motion options.
-- [ ] Multi-column page-flip layouts and rail configurations, reverse order,
+- [x] Multi-column page-flip layouts and rail configurations, reverse order,
   docking, resizing and preserved scroll positions.
-- [ ] Help/configuration popup, tabs, resource lists, authors, media, left/libre
+- [x] Help/configuration popup, tabs, resource lists, authors, media, left/libre
   links, channel links, tooltips and repository metadata.
-- [ ] Help and picker drag/resize/pin geometry; header labels/minimization,
+- [x] Help and picker drag/resize/pin geometry; header labels/minimization,
   settings slots, reset behavior and copy/share settings URL.
 - [ ] Keyword/blocked-word filters, hidden-user modes, bot visibility,
   own-name/keyword mentions, unread badges, sound and notifications.
@@ -87,19 +87,19 @@ has been compared to the original and the evidence recorded. Completion evidence
 
 ## Storage, accessibility and lifecycle
 
-- [ ] Structured local history, reload persistence and safe schema upgrades;
+- [x] Structured local history, reload persistence and safe schema upgrades;
   explicit compatible legacy import and recovery without overwriting originals.
-- [ ] IndexedDB archive search, retention/pruning/cap and live search navigation.
-- [ ] Cross-tab option/login sync and sent-message BroadcastChannel echoes.
+- [x] IndexedDB archive search, retention/pruning/cap and live search navigation.
+- [x] Cross-tab option/login sync and sent-message BroadcastChannel echoes.
 - [ ] Screen-reader announcements excluding replay, landmarks, dialog semantics,
   keyboard navigation, focus, labels and reduced-motion behavior.
-- [ ] PWA manifest/icons/install state, shell/fonts/image caching and offline
+- [x] PWA manifest/icons/install state, shell/fonts/image caching and offline
   banner/history without implying offline live chat.
-- [ ] Update detection, reload cache behavior, error reporting and lifecycle
+- [x] Update detection, reload cache behavior, error reporting and lifecycle
   handling including back/forward cache and long background/suspend periods.
 - [ ] Self-hosted HTTPS deployment, graceful shutdown, health/readiness,
   bounded connections/caches, request limits and monitoring.
-- [ ] Owner-controlled credentials/endpoints and attribution; analytics/presence
+- [x] Owner-controlled credentials/endpoints and attribution; analytics/presence
   disabled unless configured for the owner, with no original-service reporting.
 
 ## Verification record for the foundation
@@ -1538,3 +1538,71 @@ paths, cached cards, native frames, signed MP4 preservation, unsafe video reject
 Reddit comment selection, malformed-feed fallback, Imgur fallback and mirror
 validation/probe caching. Real rich-card availability remains a live deployment
 check; fixture coverage is not recorded as live provider success.
+
+## Live whisper and moderation acceptance, 2026-10-11
+
+The owner signed in to release `20261012T021500Z` and reported success notices
+for `/w subcult_tv Chatty Cat parity test` and deletion of the approved parent
+message `c5f19012-99a1-474f-bc58-f307f809adcd` in `patrick__eff`. The public
+rebuild independently marked that message removed and received a `clearmsg`
+notice reading “Message deleted” at 21:23:54 local time. The owner subsequently confirmed that the whisper arrived in `subcult_tv`.
+Recipient receipt is owner-verified; deletion is also independently observed. No additional live sends or moderation actions were performed.
+
+The stats panel now displays persisted UTC hour/day message buckets separately
+from retained-row summaries and offers channel-scoped badge reference sets,
+version ordering, lazy images and observed version counts. Expanded sets survive
+refresh; refresh preserves keyboard focus inside the reference. History imports
+are counted once with their original timestamps. Focused ledger and badge
+regression checks cover scope, exclusions, reload, expiry, deduplication and safe
+upstream labels.
+
+## Remaining stats, public YouTube metadata and readiness checks
+
+The stats browser check rendered 415 badge sets; expanding the subscriber set
+loaded seven lazy images and retained focused summary across refresh. All 308
+frontend tests pass. YouTube video cards retain oEmbed title/channel/thumbnail
+when optional public-page enrichment fails. A two-second bounded page read adds
+publication date and view count where exposed. Channel/playlist public page
+cards use safe text/image metadata; no borrowed service key or private API is
+used. Fixtures cover these paths, missing data and cached requests.
+
+`/api/health` reports process liveness. `/api/ready` reports 503 while closing or
+when the app shell is absent/empty, and 200 otherwise. Neither endpoint promises
+Twitch/provider availability. Race tests cover missing assets, ready and closing.
+
+An isolated incognito browser archive seeded 100,000 synthetic records locally,
+without Twitch sends. The complete app restored all 100,000, mounted 35 rows and
+showed the last fixture. Steady frames peaked at 18 ms. Initial restoration had a
+279 ms task, so history observation now yields between 500-row batches and
+honors cancellation. The follow-up full restoration kept 35 mounted rows and reported no buffered
+long tasks (tasks of 50 ms or more). This is desktop synthetic-load evidence; it
+does not claim identical performance on every device.
+
+### Preset and shared URL completion
+
+First visits and display reset now apply the original `nightshade` preset;
+existing saved display settings remain authoritative. Header label controls and
+preset link weights are restored. The original source sets `old-default.lbls=0`,
+which differs from its README statement; the rebuild follows the source value.
+Legacy `help=labels/both` flags still turn labels on unless `lbls` overrides.
+Help visibility/tab aliases, bounded popup width and video off/dock/float now
+apply from shared URLs and are emitted by the share control. Config/stats tabs
+open the corresponding rebuild dialogs. Rainbow modes include pulse/flicker.
+
+## Acceptance audit after the continuation
+
+Checked family gates above now refer to the accumulated implementation, fixture
+and browser evidence in this record, including owner-run account checks. Older
+checkpoint statements describe their historical state. They are not current
+blocker lists. Gates with unresolved platform behavior or full runtime coverage
+remain open; checkbox status is the current acceptance record.
+
+The latest local browser restored `htab=authors&hpw=900&video=off&lbls=0`,
+selected Authors at 900 px, loaded no video iframe and emitted the same values
+through Share settings. `/api/ready` returned ready. The complete checks passed
+310 frontend tests before the additional video URL regression test; final totals
+are recorded with the release below.
+
+The owner confirmed actual recipient delivery to `subcult_tv`, completing the
+approved whisper check. Final validation passed 311 frontend tests, strict
+TypeScript/production build, full Go race tests, vet and lint.

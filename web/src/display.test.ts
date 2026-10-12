@@ -45,3 +45,9 @@ it('restores composer autohide including bare bauto flag',()=>{expect(displayFro
 it('maps the original minimal preset header follow sentinel to automatic size',()=>{
  const saved=defaultDisplay();saved.hfs=18;const minimal=displayFromURL(saved,new URLSearchParams('theme=minimal'));expect(minimal.hfs).toBe(0);expect(displayFromURL(saved,new URLSearchParams('theme=minimal&hfs=13')).hfs).toBe(13);
 });
+
+it('preserves preset labels and link weights with explicit URL overrides',()=>{
+ expect(displayFromURL(defaultDisplay(),new URLSearchParams('theme=old-default'))).toMatchObject({lbls:false,lw:400});
+ expect(displayFromURL(defaultDisplay(),new URLSearchParams('theme=nightshade'))).toMatchObject({lbls:false,size:18,split:4});
+ expect(displayFromURL(defaultDisplay(),new URLSearchParams('theme=nightshade&lbls=1&lw=700'))).toMatchObject({lbls:true,lw:700});
+});

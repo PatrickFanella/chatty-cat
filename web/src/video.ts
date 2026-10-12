@@ -38,7 +38,9 @@ export class VideoPanel {
       if (this.root.dataset.rail === 'true') { if (!this.root.hidden) this.open(); }
       else if (this.floating.reopen) this.open(); else this.hide();
     });
-    if (this.floating.reopen) this.open();
+    const query=new URL(location.href).searchParams,mode=query.get('video');
+    if(query.has('video')){this.options.docked=mode==='dock';this.root.classList.toggle('video-docked',this.options.docked);this.paint();if(mode==='off'||mode==='0')this.hide();else this.open();}else if(this.floating.reopen)this.open();
+    document.addEventListener('share-settings',this.share);
   }
   private paint(): void { this.dock.textContent = this.options.docked ? 'Float' : 'Dock'; }
   private save(): void { try { localStorage.setItem('chatthing:v1:video', JSON.stringify(this.options)); } catch { /* optional storage */ } }
@@ -67,5 +69,6 @@ export class VideoPanel {
     if (!this.root.hidden) this.open();
   };
   private changeDock = (): void => { this.options.docked = !this.options.docked; this.root.classList.toggle('video-docked', this.options.docked); this.paint(); this.save(); };
-  stop(): void { this.bundleDispose(); this.container.replaceChildren(); this.floating.stop(); this.trigger.removeEventListener('click', this.toggle); this.root.querySelector('#video-close')?.removeEventListener('click', this.close); this.channel.removeEventListener('change', this.changeChannel); this.dock.removeEventListener('click', this.changeDock); }
+  private share=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)event.detail.searchParams.set('video',this.root.hidden?'off':this.root.dataset.rail==='true'||this.options.docked?'dock':'float');};
+  stop(): void {document.removeEventListener('share-settings',this.share); this.bundleDispose(); this.container.replaceChildren(); this.floating.stop(); this.trigger.removeEventListener('click', this.toggle); this.root.querySelector('#video-close')?.removeEventListener('click', this.close); this.channel.removeEventListener('change', this.changeChannel); this.dock.removeEventListener('click', this.changeDock); }
 }

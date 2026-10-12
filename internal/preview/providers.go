@@ -183,7 +183,21 @@ func (s *Service) youtube(ctx context.Context, u *url.URL, id string) (Card, boo
 	if author != "" {
 		description = "by " + author
 	}
-	return Card{URL: u.String(), Site: "YouTube", Title: clean(data.Title, 300), Description: description, Author: author, Image: asset(u, data.Thumbnail), ContentType: "text/html", TTL: 600}, true
+	card := Card{URL: u.String(), Site: "YouTube", Title: clean(data.Title, 300), Description: description, Author: author, Image: asset(u, data.Thumbnail), ContentType: "text/html", TTL: 600}
+	pageURL, _ := url.Parse("https://www.youtube.com/watch?v=" + id)
+	pageCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if page, err := s.page(pageCtx, pageURL); err == nil {
+		card.Published = page.Published
+		card.Views = page.Views
+		if card.Views > 0 {
+			if card.Description != "" {
+				card.Description += " · "
+			}
+			card.Description += countText(card.Views) + " views"
+		}
+	}
+	return card, true
 }
 
 func (s *Service) providerJSON(ctx context.Context, raw string, target any) error {

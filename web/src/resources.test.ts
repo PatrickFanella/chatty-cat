@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
-import { Resources } from './resources';
+import { Resources,resourceURL } from './resources';
 import { RESOURCE_TABS } from './resource-data';
 afterEach(()=>{document.body.replaceChildren();localStorage.clear();vi.unstubAllGlobals();});
 it('retains all curated tabs while excluding executable markup and unsafe links',()=>{
@@ -23,4 +23,12 @@ it('supports tab keyboard navigation, linked help actions and close focus restor
  tabs[0]?.dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true,cancelable:true}));expect(tabs[4]?.getAttribute('aria-selected')).toBe('true');expect(document.activeElement).toBe(tabs[4]);
  tabs[4]?.dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true,cancelable:true}));root.querySelector<HTMLButtonElement>('[data-help-action="display-open"]')?.click();expect(action).toHaveBeenCalledWith('display-open');
  root.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));expect(root.hidden).toBe(true);expect(document.activeElement).toBe(trigger);panel.stop();
+});
+
+it('restores resource URL aliases, visibility precedence and bounded widths',()=>{
+ expect(resourceURL(new URLSearchParams('htab=resources&hpw=900'))).toEqual({tab:'htabRes',open:true,width:900,action:undefined});
+ expect(resourceURL(new URLSearchParams('htab=authors&help=off&hpw=999999')).open).toBe(false);
+ expect(resourceURL(new URLSearchParams('htab=config')).action).toBe('display-open');
+ expect(resourceURL(new URLSearchParams('htab=stats')).action).toBe('stats-open');
+ expect(resourceURL(new URLSearchParams('htab=liberatory')).tab).toBe('htabLib');
 });

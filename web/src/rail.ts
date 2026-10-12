@@ -29,7 +29,7 @@ export class PanelRail {
   const entering=this.mode===0&&effective!==0;this.mode=effective;this.rail.hidden=!effective;
   for(const entry of this.panels){
    if(entering){entry.wasOpen=entry.panel.isOpen();entry.floating=false;}
-   const included=effective!==0&&(entry.panel.name==='emotes'||entry.panel.name==='video'&&effective<=5||entry.panel.name==='stats'&&effective===4);
+   const included=effective!==0&&(entry.panel.name==='emotes'||entry.panel.name==='video'&&effective<=5&&!['off','0'].includes(new URL(location.href).searchParams.get('video')??'')&&!(effective===4&&new URL(location.href).searchParams.get('video')==='float')||entry.panel.name==='stats'&&effective===4);
    entry.button.hidden=!included;
    if(included&&!entry.floating)this.dock(entry);
    else if(entry.panel.root.dataset.rail==='true')this.restore(entry,entry.wasOpen);

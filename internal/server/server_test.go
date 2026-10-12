@@ -393,3 +393,25 @@ func TestSlowBackfillDoesNotDelayLive(t *testing.T) {
 		t.Fatal("PING delayed by history")
 	}
 }
+
+func TestReadiness(t *testing.T) {
+	assets := t.TempDir()
+	s := New(Config{Assets: assets})
+	check := func(path string, want int) {
+		t.Helper()
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != want {
+			t.Fatalf("%s: %d, want %d: %s", path, w.Code, want, w.Body.String())
+		}
+	}
+	check("/api/health", http.StatusOK)
+	check("/api/ready", http.StatusServiceUnavailable)
+	if err := os.WriteFile(filepath.Join(assets, "index.html"), []byte("app"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	check("/api/ready", http.StatusOK)
+	s.Close()
+	check("/api/ready", http.StatusServiceUnavailable)
+	check("/api/health", http.StatusOK)
+}

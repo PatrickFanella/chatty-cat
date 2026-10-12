@@ -13,6 +13,7 @@ import (
 	"net/netip"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 
 // Card is safe textual metadata. HTML from upstream is never returned.
 type Card struct {
+	Views       int64        `json:"views,omitempty"`
 	Social      *SocialMedia `json:"social,omitempty"`
 	URL         string       `json:"url"`
 	Title       string       `json:"title"`
@@ -359,6 +361,9 @@ func (s *Service) page(ctx context.Context, u *url.URL) (Card, error) {
 			if key == "" {
 				key = attributes["name"]
 			}
+			if key == "" {
+				key = attributes["itemprop"]
+			}
 			key = strings.ToLower(key)
 			if values[key] == "" {
 				values[key] = attributes["content"]
@@ -389,9 +394,23 @@ func (s *Service) page(ctx context.Context, u *url.URL) (Card, error) {
 		}
 	}
 	card.Author = clean(first("author", "article:author"), 200)
-	card.Published = clean(first("article:published_time", "date"), 100)
+	card.Published = clean(first("article:published_time", "date", "datepublished", "uploaddate"), 100)
 	if site := clean(values["og:site_name"], 100); site != "" {
 		card.Site = site
+	}
+	if youtubeHost(final.Hostname()) {
+		card.Site = "YouTube"
+		if views, err := strconv.ParseInt(values["interactioncount"], 10, 64); err == nil && views >= 0 {
+			card.Views = views
+			if views > 0 {
+				description := countText(views) + " views"
+				if card.Description != "" {
+					description += " · " + card.Description
+				}
+				card.Description = description
+			}
+		}
+		card.TTL = 600
 	}
 	return card, nil
 }
