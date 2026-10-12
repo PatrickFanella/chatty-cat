@@ -42,7 +42,7 @@ export class StreamHistory {
     const number = Number(data.stream.viewers);
     const viewers = !data.errors.includes('stream viewers') && /^\d+$/.test(data.stream.viewers) && Number.isSafeInteger(number) && number <= 1000000000 ? number : null;
     const rows = this.rows.get(data.channel) ?? [], previous = rows.at(-1);
-    const next = { at: now, live: !offline, viewers, title: data.stream.title.slice(0, 500) };
+    const next = { at: now, live: !offline, viewers, title: data.errors.includes('stream title')?'':data.stream.title.slice(0, 500) };
     if (previous?.at === now) rows[rows.length - 1] = next; else rows.push(next);
     this.rows.set(data.channel, rows.filter(row => row.at >= now - keep).slice(-10080));
     while (this.rows.size > 30) { const oldest = this.rows.keys().next().value; if (oldest === undefined) break; this.rows.delete(oldest); this.vods.delete(oldest); }

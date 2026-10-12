@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Observation comparison fixture</title><h1>Local comparison fixture</h1><p>Use a fresh browser profile. Seeding replaces this fixture origin's public archive, rate snapshot and stream history with synthetic data.</p><button id="seed">Seed and open comparison demo</button><p id="status"></p><script>
+document.querySelector('#seed').onclick=async()=>{
+ const status=document.querySelector('#status');status.textContent='Seeding…';
+ const end=Math.floor(Date.now()/1000)-2,base=end-600;
+ const range=await fetch('/fixture/range').then(r=>r.json());
+ const samples=channel=>Array.from({length:9},(_,i)=>({at:(base+(i+1)*60)*1000,live:true,viewers:channel==='one'?(i===2?0:i===6?null:100+i*20):200+i*10,title:i<5?'First public title':'Second public title'}));
+ localStorage.setItem('chatthing:v1:stream-history',JSON.stringify({version:1,samples:[['one',samples('one')],['two',samples('two')]],archives:[['one',[range]]]}));
+ localStorage.setItem('fixture-private-note','sentinel_private_note');
+ const open=(name,store)=>new Promise((resolve,reject)=>{const q=indexedDB.open(name,1);q.onupgradeneeded=()=>{if(store==='messages'){const s=q.result.createObjectStore(store,{keyPath:'key'});s.createIndex('timestamp','timestamp');s.createIndex('channel-time',['channel','timestamp']);}else q.result.createObjectStore(store);};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+ const save=async(name,store,write)=>{const db=await open(name,store),tx=db.transaction(store,'readwrite');write(tx.objectStore(store));await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();};
+ await save('chatthing:v1:rates','snapshots',s=>s.put({at:end,from:base,rows:[['one',base+300,30,0],['two',base+360,25,0]],gaps:[],coverage:[{channel:'one',from:base,to:end},{channel:'two',from:base,to:base+200},{channel:'two',from:base+260,to:end}]},'one,two'));
+ await save('chatthing-archive','messages',s=>{s.clear();for(let i=0;i<61;i++){const message={id:'fixture-'+i,channel:'one',command:'PRIVMSG',login:'fixture_sender',text:'Sentinel chat body omitted from export '+i,timestamp:(base+280+i)*1000,tags:{}};if(i===40){message.command='USERNOTICE';message.tags={'msg-id':'raid',access_token:'sentinel_token'};message.id='fixture-raid';}s.put({key:'one:'+message.id,channel:'one',timestamp:message.timestamp,message});}});
+ location.assign('/?channel=one,two&video=off&mid=fixture-30');
+};
+</script></html>

@@ -426,3 +426,9 @@ html[data-privacy="true"] #threads-panel,html[data-privacy="true"] #threads-open
 html[data-privacy="true"] #vod-context { display:none!important; }
 
 #vod-context .vod-player iframe { display:block;border:0;width:100%;height:300px;min-height:300px; }
+
+#comparison-panel { width:min(980px,95vw); }
+#comparison-panel fieldset label { display:inline-flex;margin-right:12px; }
+#comparison-panel svg { width:100%;height:auto;min-height:120px; }
+#comparison-panel iframe { width:100%;height:300px; }
+html[data-privacy="true"] #comparison-panel { display:none!important; }

@@ -26,3 +26,4 @@ it('retains exact VOD timing and safe links, deduplicating archive metadata', ()
   localStorage.setItem('chatthing:v1:stream-history', JSON.stringify({ version: 1, samples: [['one', [{ at: 1, live: true, viewers: -1, title: 'bad' }]]], archives: [] }));
   expect(new StreamHistory(['one']).samples('one', 0)).toEqual([]);
 });
+it('treats failed title/viewer reads as missing instead of copying fallback values into comparison observations',()=>{const history=new StreamHistory(['one']);history.observe({...data,errors:['stream title','stream viewers']},1000);expect(history.samples('one',0)[0]).toMatchObject({title:'',viewers:null});});
