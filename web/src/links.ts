@@ -1,10 +1,18 @@
+import {getPresentation} from './presentation';
 import {youtubeVideo} from './youtube';
 import { twitterMirror } from './nitter';
 const userColors = new Map<string,string>();
 export function observeUserColor(login:string,color:string):void { if(!/^[a-z0-9_]{1,25}$/i.test(login)||!/^#[0-9a-f]{6}$/i.test(color))return;userColors.delete(login.toLowerCase());userColors.set(login.toLowerCase(),color);while(userColors.size>2000){const first=userColors.keys().next().value;if(first)userColors.delete(first);else break;} }
-function appendMentions(root:HTMLElement,text:string):void {
- const pattern=/(^|[^\w@])@([a-z0-9_]{1,25})(?!\w)/gi;let start=0;
- for(const match of text.matchAll(pattern)){const offset=match.index+match[1]!.length;root.append(document.createTextNode(text.slice(start,offset)));const login=match[2]!.toLowerCase();const link=document.createElement('a');link.className='mention';link.dataset.mention=login;link.href='https://www.twitch.tv/'+login;link.target='_blank';link.rel='noopener noreferrer';link.textContent='@'+match[2];link.style.color=readableColor(userColors.get(login)??'',document.documentElement.dataset.theme==='light');if(login==='hasanabi')link.classList.add('rainbow');root.append(link);start=offset+match[2]!.length+1;}
+function appendMentions(root:HTMLElement,text:string,users?:ReadonlyMap<string,boolean>):void {
+ const pattern=/(^|[^\w@])@([a-z0-9_]{1,25})(?!\w)|(^|\s)([a-z0-9_]{1,25})(?=[.,!?;:]*(?:\s|$))/gi;let start=0;
+ for(const match of text.matchAll(pattern)){
+  const explicit=match[2]!==undefined,name=match[2]??match[4]!;
+  const login=name.toLowerCase();
+  if(!explicit&&(!getPresentation().findAllUsernames||!users?.has(login)))continue;
+  const offset=match.index+(match[1]??match[3]??'').length;
+  root.append(document.createTextNode(text.slice(start,offset)));
+  const link=document.createElement('a');link.className='mention';link.dataset.mention=login;link.href='https://www.twitch.tv/'+login;link.target='_blank';link.rel='noopener noreferrer';link.textContent=(explicit?'@':'')+name;link.style.color=readableColor(userColors.get(login)??'',document.documentElement.dataset.theme==='light');if(login==='hasanabi')link.classList.add('rainbow');root.append(link);start=offset+name.length+(explicit?1:0);
+ }
  root.append(document.createTextNode(text.slice(start)));
 }
 const TRACKING = /^(utm_.+|fbclid|gclid|dclid|mc_cid|mc_eid)$/i;
@@ -39,16 +47,16 @@ export function inlineImageSource(raw:string):string|undefined {
   url.hash='';url.pathname=url.pathname.replace(/\.gifv$/i,'.gif');return url.href;
  }catch{return undefined;}
 }
-export function appendLinks(root: HTMLElement, text: string): void {
+export function appendLinks(root: HTMLElement, text: string, users?:ReadonlyMap<string,boolean>): void {
  let start=0;for(const {index,raw,href} of findLinks(text)){
-  appendMentions(root,text.slice(start,index));
+  appendMentions(root,text.slice(start,index),users);
   const source=inlineImageSource(href);
   if(source){const imageLink=document.createElement('a');imageLink.className='chat-image-link';imageLink.href=href;imageLink.target='_blank';imageLink.rel='noopener noreferrer';const image=document.createElement('img');image.src=source;image.alt='Image from '+new URL(href).hostname;image.className='chat-image';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>imageLink.remove(),{once:true});imageLink.append(image);root.append(imageLink);}
 
     const link = document.createElement('a'); link.href = twitterMirror(href) ?? href; link.dataset.canonicalURL = href; link.dataset.preview = href; link.textContent = document.documentElement.dataset.clean==='true' ? raw.replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/(?:index\.html?)?$/i,'') : raw;
     link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'chat-link'; if(document.documentElement.dataset.lkico==='true'){const icon=document.createElement('img');icon.className='link-icon';icon.src='https://icons.duckduckgo.com/ip3/'+encodeURIComponent(new URL(href).hostname)+'.ico';icon.alt='';icon.loading='lazy';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});link.prepend(icon);}root.append(link); const preview = document.createElement('button'); preview.type = 'button'; preview.className = 'preview-button'; preview.dataset.preview = href; preview.setAttribute('aria-label', 'Preview ' + urlLabel(href)); root.append(preview);if(document.documentElement.dataset.yt!=='false'&&youtubeVideo(href)){const play=document.createElement('button');play.type='button';play.className='youtube-play';play.dataset.youtube=href;play.textContent='▶';play.setAttribute('aria-label','Load YouTube player');play.setAttribute('aria-expanded','false');root.append(play);} start=index+raw.length;
  }
- appendMentions(root,text.slice(start));
+ appendMentions(root,text.slice(start),users);
 }
 export function readableColor(color: string, light: boolean): string {
   if (!/^#[0-9a-f]{6}$/i.test(color)) return light ? '#365a96' : '#9bbfff';

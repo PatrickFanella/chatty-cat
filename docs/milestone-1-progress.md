@@ -94,7 +94,7 @@ Searchable presentation preferences support temporary Preview, Apply, Cancel and
 
 Browser fixture: `http://127.0.0.1:5173/presentation-demo.html`. Preview and Cancel retained `fixture-46` at exactly -20px; a synthetic arrival retained its anchor. Deleted text displayed `Delet…` with limit 5, the long row expanded from about 55px to 216px, replay opacity was 0.7 and live opacity 1, with 39 mounted rows. Preview made no storage write; Apply persisted the settings. Fixtures cover IME, Unicode overflow staging, original deletion records, modifier release after input focus, wheel/reduced-motion behavior and style-revision reader anchoring. No provider send or deployment occurred.
 
-Category headers, membership join/part notices, bare-name detection and duplicate-send bypass remain unavailable and are disclosed in the panel. Existing font, history/resource and pronoun settings remain separate; audited rows without verified controls remain partial/planned. Sending retains the supported API and transport deduplication. This checkpoint does not claim every Chatterino inventory row is implemented.
+Category headers, membership join/part notices and duplicate-send bypass remain unavailable and are disclosed in the panel. Existing font, history/resource and pronoun settings remain separate; audited rows without verified controls remain partial/planned. Sending retains the supported API and transport deduplication. This checkpoint does not claim every Chatterino inventory row is implemented.
 
 ## Channel discovery and chatter lists (#14)
 
@@ -110,3 +110,10 @@ Discovery checkpoint: 88 frontend files / 411 tests and the production build pas
 
 
 Reader-position follow-up: a padded-viewport regression reproduced an 8px drift across presentation revisions. Capture now uses the same viewport edge as restoration. The new regression failed before the fix and passed afterward; all 89 frontend files / 412 tests, strict TypeScript/service-worker checks and production build passed. A settled synthetic browser reader retained fixture-44 across 1.2× interface scaling (16px before, 16.1953125px during preview, 16px after Cancel). PRs #56–58 are now merged; this fix follows on main. No production deployment or provider write occurred.
+
+
+## Bare username detection (#43)
+
+The default-off findAllUsernames control links known bare login names from the existing bounded channel author index (at most 1,000 recently observed authors). Matching ignores case, accepts trailing punctuation and leaves unknown names, URLs, emails and provider emotes intact. It uses observed message authors rather than loading a complete Twitch chatter list. New authors invalidate cached rows when detection is enabled. Explicit @mentions retain their existing behavior.
+
+Synthetic presentation browser verification: before preview only @bob was linked; preview added Alice while unknown stayed plain. Preview made no storage write. Cancel removed the bare-name link and retained fixture-46 at exactly 12px before, during and after preview, with 56 mounted rows. Apply persisted true and Cancel retained it; Reset to defaults followed by Apply persisted false. Tests verify default-off behavior, channel isolation, token boundaries, punctuation, safe markup, URL/email/emote precedence and validated preference round trips. All 90 frontend files / 416 tests, strict TypeScript/service-worker checks and the production build passed. The existing Vite bundle-size advisory remains. No provider write or production deployment occurred.
