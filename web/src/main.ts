@@ -241,7 +241,7 @@ function observe(message: ChatMessage, live = false, countStats=false): void {
   const used=pickerModel.observe(message, live);if(message.channel===composer.target)pickerLighting.use(used);
   if (message.command !== 'PRIVMSG') return;
   const users = names.get(message.channel) ?? new Map<string, true>();
-  if (message.login) { users.delete(message.login); users.set(message.login, true); }
+  if (/^[a-z0-9_]{1,25}$/i.test(message.login)) { const login=message.login.toLowerCase();if(!users.has(login)&&getPresentation().findAllUsernames)visualRevision++;users.delete(login); users.set(login, true); }
   while (users.size > 1000) { const first = users.keys().next().value; if (first) users.delete(first); else break; }
   names.set(message.channel, users);
   const codes = nativeCodes.get(message.channel) ?? new Set<string>();
@@ -291,7 +291,7 @@ function render(): void {
        items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
      }
      items.push({ key, channel:message.channel,text:message.text, highlight:scope=>(visibility.highlight||!!rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope)).highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar),visible:ids=>!rulePanel?.engine.evaluate(message,ids).hidden,render: (scope="default") => {
-       const row=rowsByMessage.get(message,scope,visualRevision*2+(removed?1:0),()=>{const row=messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze||getPresentation().animateOnlyFocused&&!document.hasFocus());decoratePresentation(row,message,removed,!liveObserved.has(message));return row;});
+       const row=rowsByMessage.get(message,scope,visualRevision*2+(removed?1:0),()=>{const row=messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze||getPresentation().animateOnlyFocused&&!document.hasFocus(),names.get(message.channel));decoratePresentation(row,message,removed,!liveObserved.has(message));return row;});
        const decision=rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope));const highlight=(visibility.highlight||!!decision?.highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar);row.classList.toggle('keyword-match',highlight);row.classList.toggle('similar-message',similar);if(decision?.color&&highlight)row.style.setProperty('--rule-color',decision.color);else row.style.removeProperty('--rule-color'); row.classList.toggle('user-ghost', visibility.hiddenUser);
        row.classList.toggle('history-message',!liveObserved.has(message));row.classList.toggle('removed', removed); return row;
      } });

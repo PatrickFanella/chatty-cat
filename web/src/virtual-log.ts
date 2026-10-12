@@ -67,7 +67,7 @@ export class VirtualLog {
     return Math.min(low, Math.max(0, this.items.length - 1));
   }
   private anchor(): { key: string; offset: number } | undefined {
-    const edge = this.log.getBoundingClientRect().top + this.log.clientTop + (parseFloat(getComputedStyle(this.log).paddingTop) || 0);
+    const edge = this.log.getBoundingClientRect().top;
     for (const row of this.log.children) {
       if (!(row instanceof HTMLElement) || !row.dataset.virtualKey) continue;
       const rect = row.getBoundingClientRect();
