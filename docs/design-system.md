@@ -1,7 +1,7 @@
 # Chatty Cat design system
 
 Status: direction B, Pixel cat, selected by the owner on October 11, 2026 from four
-candidates; palette system added the same day. This document is the editing source for
+candidates, with the palette system added and the identity approved the same day. This document is the editing source for
 the product's interface rules and identity. The SUBCULT Studio pack in
 `subcult-tv/studio/brands/chatty-cat/` holds the mark masters, the palette table, the
 promotional artwork and the web-asset generator, and copies this file with hashes. Edit
