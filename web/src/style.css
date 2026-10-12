@@ -419,3 +419,10 @@ html[data-privacy="true"] #inbox-panel,html[data-privacy="true"] #inbox-open{dis
 .thread-panel pre { white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto; }
 html[data-privacy="true"] #threads-panel,html[data-privacy="true"] #threads-open,html[data-privacy="true"] .thread-open,html[data-overlay="true"] #threads-panel { display:none!important; }
 @media(max-width:650px) { .thread-panel { position:fixed;right:0;top:10vh;bottom:15vh;max-width:80vw;background:var(--bg);z-index:5; } }
+
+#vod-context { position:fixed;inset:8vh 12px auto auto;width:min(650px,90vw);max-height:80vh;overflow:auto;z-index:20; }
+#vod-context .vod-player:has(iframe) { min-width:400px;min-height:300px; }
+#vod-context select { max-width:100%; }
+html[data-privacy="true"] #vod-context { display:none!important; }
+
+#vod-context .vod-player iframe { display:block;border:0;width:100%;height:300px;min-height:300px; }
