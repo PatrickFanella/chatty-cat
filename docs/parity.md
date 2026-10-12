@@ -1665,3 +1665,9 @@ Final frontend checks passed 316 tests and strict production build. Public sourc
 archive size: 477769 bytes; SHA-256
 `5e5751d0575e073fe9eda1e90f229a877cfa9dd34de24798e954def24db5994c`.
 No additional Twitch sends or moderation actions were performed.
+
+The final Linux amd64 image (`local/chatty-cat:parity-f8427de`) also built and
+passed isolated readiness/health, non-root identity and source-archive checks
+with zero restarts; its test container was stopped. The public 320×568 check
+kept 320 px body/chat width, 227 px chat height, one chat column in rail mode,
+no video iframe with `video=off` and connected chat.
