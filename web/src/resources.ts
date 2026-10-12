@@ -9,7 +9,7 @@ export class Resources {
     const nav = root.querySelector<HTMLElement>('[role=tablist]')!;
     const content = root.querySelector<HTMLElement>('.resource-content')!;
     const help = document.createElement('section'); help.id = 'resources-help'; help.role = 'tabpanel'; help.tabIndex = 0;
-    const title = document.createElement('h2'); title.textContent = 'Chat Thing'; help.append(title);
+    const title = document.createElement('h2'); title.textContent = 'Chatty Cat'; help.append(title);
     const instructions = [
       'Watch up to six Twitch chats together. Enter channel names separated by commas, then choose a send destination in the composer.',
       'Log in with Twitch to send. Enter sends; Shift+Enter adds a draft line break. Up and Down at the ends of the draft recall sent messages. Use @ for names, : for emotes, or Tab to complete a word.',

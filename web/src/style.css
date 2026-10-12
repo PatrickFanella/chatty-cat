@@ -4,6 +4,11 @@
 body { margin:0; height:100dvh; display:flex; flex-direction:column }
 header { display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:12px 20px; border-bottom:1px solid var(--line); background:var(--panel) }
 header strong { color:var(--accent) }
+/* the header cat follows the active palette: face = accent, cursor = good; override --cat-face/--cat-cursor to retheme */
+.brand { display:inline-flex; align-items:center; gap:8px }
+.brand-mark { flex:none; display:block }
+.cat-face { fill:var(--cat-face,var(--accent)) }
+.cat-cursor { fill:var(--cat-cursor,var(--good,var(--muted))) }
 .stage { margin-left:12px; font-size:11px; color:var(--muted) }
 form { display:flex; flex-wrap:wrap; gap:8px; align-items:center }
 input,button { font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:5px 10px }
