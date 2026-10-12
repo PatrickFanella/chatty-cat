@@ -42,3 +42,15 @@ it('restores large scrollback in chronological order only for joined channels',a
  expect((await a.recent(['one'],250)).map(m=>m.timestamp)).toEqual(records.slice(-250).map(m=>m.timestamp));
  expect(await a.recent([],1000)).toEqual([]);const controller=new AbortController();controller.abort();await expect(a.recent(['one'],1000,controller.signal)).rejects.toHaveProperty('name','AbortError');
 });
+it('pages equal-time rows without repeats and reports retained archive boundaries',async()=>{
+ const a=archive();for(let i=0;i<7;i++)a.add({...message,id:String(i),timestamp:100,channel:i===0?'two':'one'});
+ const seen:string[]=[];let cursor;
+ do{const page=await a.searchPage({text:'',channels:['one'],limit:2},cursor);seen.push(...page.messages.map(m=>m.id));cursor=page.next;expect(page.bounds).toEqual({rows:7,oldest:100,newest:100});}while(cursor);
+ expect(seen).toEqual(['6','5','4','3','2','1']);
+});
+it('cancels an active selective cursor scan and leaves storage usable',async()=>{
+ const a=archive();for(let i=0;i<1000;i++)a.add({...message,id:String(i),timestamp:i});await a.flush();
+ const controller=new AbortController();
+ await expect(a.searchPage({text:'absent',limit:2},undefined,controller.signal,()=>controller.abort())).rejects.toHaveProperty('name','AbortError');
+ expect((await a.searchPage({text:'hello',limit:1})).messages).toHaveLength(1);
+});

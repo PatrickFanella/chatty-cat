@@ -32,7 +32,7 @@ Each CSV row records its exact upstream path/action, location, current state, im
 | Companion-only | Native behavior needs explicit pairing with an installed integration; linked issues remain open. |
 | Platform-limited | Native/debug behavior has no supported direct browser equivalent; the limitation is recorded. |
 
-Declaration totals are 58 implemented, 49 partial, 359 planned, 16 companion-only and 33 platform-limited. These are **not feature-parity percentages**. For example, fonts and timestamp display work, but exact Chatterino controls/defaults remain partial. The implemented declaration rows are supported slash commands, including repeated completion entries; the matrix separately records working features that have no equivalent command or setting declaration.
+Declaration totals are 139 implemented, 37 partial, 285 planned, 16 companion-only and 38 platform-limited. These are **not feature-parity percentages**. Counts include supported web adaptations and repeated source declarations. Exact native defaults and platform limitations remain separate from adaptation acceptance; the matrix also records working features without an equivalent declaration.
 
 ## Feature coverage and acceptance
 

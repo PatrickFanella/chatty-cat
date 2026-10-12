@@ -167,6 +167,7 @@ if(overlay)element('splits-open',HTMLButtonElement).hidden=true;
 const pickerModel = new PickerModel();
 const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();},()=>rateTimeline.series.observationGaps());
 let discoveryPanel:DiscoveryPanel|undefined;
+let archiveSearch:ArchiveSearch|undefined;
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
@@ -178,7 +179,7 @@ const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;discoveryPanel?.setAuth(auth);if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -220,7 +221,8 @@ async function showArchived(message: ChatMessage): Promise<void> {
 }
 const channelControls = new ChannelControls(element('joined-channels', HTMLElement), element('composer', HTMLFormElement), element('send-channel', HTMLSelectElement), channels,capacity.workspaceChannels);
 window.addEventListener('pagehide', () => channelControls.stop());
-const archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); });
+archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); });
+archiveSearch.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
 const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElement), () => channels[0]!, () => store.messages, async messages => {
   for (let index = 0; index < messages.length; index += 500) {
     for (const message of messages.slice(index, index + 500)) { archive.add(message); statsLedger.observe(message,message.timestamp); }
@@ -358,7 +360,7 @@ const hotkeyActions={
  'tab-right':()=>virtualLog.rearrange('tab',1),'tab-left':()=>virtualLog.rearrange('tab',-1),
  reconnect:()=>connection.reconnect(),'zoom-in':()=>zoomChat(1),'zoom-out':()=>zoomChat(-1),
  pause:()=>{if(virtualLog.layout.enabled)virtualLog.hold();else follow=false;latest.hidden=false;},live:()=>latest.click(),
- history:()=>element('archive-open',HTMLButtonElement).click(),emotes:()=>element('picker-open',HTMLButtonElement).click(),video:()=>element('video-open',HTMLButtonElement).click(),stats:()=>element('stats-open',HTMLButtonElement).click(),settings:()=>element('display-open',HTMLButtonElement).click(),inbox:()=>inboxPanel?.show(),commands:()=>commandPanel.openPanel(),
+ history:()=>archiveSearch?.show(composer.target),'history-global':()=>archiveSearch?.show(),emotes:()=>element('picker-open',HTMLButtonElement).click(),video:()=>element('video-open',HTMLButtonElement).click(),stats:()=>element('stats-open',HTMLButtonElement).click(),settings:()=>element('display-open',HTMLButtonElement).click(),inbox:()=>inboxPanel?.show(),commands:()=>commandPanel.openPanel(),
 } satisfies Record<ActionID,()=>void>;
 const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element('hotkeys-open',HTMLButtonElement),id=>hotkeyActions[id](),()=>[
  ...(panePopout?virtualLog.layout.activePane.channels:channels).map(channel=>({id:'channel:'+channel,label:'Send channel: '+channel,context:'chat',run:()=>virtualLog.focusChannel(channel)})),
