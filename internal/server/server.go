@@ -155,6 +155,7 @@ func (s *Server) Handler() http.Handler {
 		}
 	})
 	mux.HandleFunc("GET /api/users/{login}", s.userProfile)
+	mux.HandleFunc("GET /api/channels/{channel}/vod/{id}", s.verifyVod)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unknown API route", http.StatusNotFound) })
 	mux.Handle("/", http.FileServer(http.Dir(s.cfg.Assets)))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -284,6 +285,51 @@ func (s *Server) userProfile(w http.ResponseWriter, r *http.Request) {
 	data, err := s.metadata.Profile(ctx, channel)
 	if err != nil {
 		http.Error(w, "metadata temporarily unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		slog.Debug("metadata response closed", "error", err)
+	}
+}
+
+var vodID = regexp.MustCompile(`^[0-9]{1,30}$`)
+
+func (s *Server) verifyVod(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	channel := strings.ToLower(r.PathValue("channel"))
+	if !channelName.MatchString(channel) || !vodID.MatchString(r.PathValue("id")) {
+		http.Error(w, "invalid VOD channel or ID", http.StatusBadRequest)
+		return
+	}
+	s.mu.Lock()
+	if s.closing {
+		s.mu.Unlock()
+		http.Error(w, "service shutting down", http.StatusServiceUnavailable)
+		return
+	}
+	s.wg.Add(1)
+	s.mu.Unlock()
+	defer s.wg.Done()
+	select {
+	case s.metadataSlots <- struct{}{}:
+		defer func() { <-s.metadataSlots }()
+	default:
+		http.Error(w, "metadata capacity reached", http.StatusServiceUnavailable)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+	stop := context.AfterFunc(s.ctx, cancel)
+	defer stop()
+	data, err := s.metadata.VerifyVod(ctx, channel, r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "VOD verification temporarily unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	if data == nil {
+		http.Error(w, "VOD missing or no longer public", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

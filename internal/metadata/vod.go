@@ -1,8 +1,10 @@
 package metadata
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"net/url"
 	"regexp"
 	"strconv"
 	"time"
@@ -51,4 +53,37 @@ func parseVod(data []byte, userID string) (*Vod, error) {
 	}
 	title := []rune(v.Title)
 	return &Vod{Start: start.Format(time.RFC3339), End: start.Add(duration).Format(time.RFC3339), URL: "https://www.twitch.tv/videos/" + v.ID, Title: string(title[:min(len(title), 300)])}, nil
+}
+
+// VerifyVod rechecks a retained archive against public Helix metadata. Unlike
+// presentation metadata, errors never accept the cache's stale-data fallback.
+func (s *Service) VerifyVod(ctx context.Context, channel, id string) (*Vod, error) {
+	if !channelPattern.MatchString(channel) || !videoID.MatchString(id) || s.publicRead == nil {
+		return nil, errors.New("VOD verification unavailable")
+	}
+	data, err := s.get(ctx, "helix:/users?login="+url.QueryEscape(channel), time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	var users struct {
+		Data []struct {
+			ID    string `json:"id"`
+			Login string `json:"login"`
+		} `json:"data"`
+	}
+	if json.Unmarshal(data, &users) != nil || len(users.Data) != 1 || users.Data[0].Login != channel || !idPattern.MatchString(users.Data[0].ID) {
+		return nil, errors.New("invalid VOD channel")
+	}
+	data, err = s.get(ctx, "helix:/videos?id="+url.QueryEscape(id), time.Minute)
+	if err != nil {
+		return nil, err
+	}
+	vod, err := parseVod(data, users.Data[0].ID)
+	if err != nil {
+		return nil, err
+	}
+	if vod != nil && vod.URL != "https://www.twitch.tv/videos/"+id {
+		return nil, errors.New("wrong VOD ID")
+	}
+	return vod, nil
 }

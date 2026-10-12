@@ -31,7 +31,6 @@ provider request was made. No M2 deployment is recorded yet.
 ## Remaining order and dependencies
 
 - #19/#20: observation comparison and portable logs from the merged baseline.
-- #18: verified VOD context; #15/#16 are merged.
 - #48: account-isolated user notes after #27 account profiles.
 
 ## Public message/conversation bookmarks — #16
@@ -68,7 +67,7 @@ local fixture evidence; no M2 production deployment is recorded.
 
 ## Persistent public reply threads — #17
 
-Implemented for review. Thread buttons open an independent sidebar beside chat.
+Merged in [PR #66](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/66). Thread buttons open an independent sidebar beside chat.
 Up to eight channel/root views and 500 messages per thread stay in the same
 account/workspace across reload. Explicit Mark thread read records message IDs,
 so late replies and equal-time replay do not depend on a timestamp watermark.
@@ -99,3 +98,37 @@ invalidation, moderation and authoritative echo replacement. No M2 production
 deployment or live Twitch-send acceptance is recorded.
 
 Reproducible browser fixture: [reply-thread demo](reply-thread-demo.md).
+
+## Verified VOD context — #18
+
+Implemented for review. Archive results and saved bookmarks open VOD context
+without replacing the chat reader. It shows message time in UTC and the browser's
+named local timezone. Candidate ranges come only from previously observed public
+archive metadata (up to 30 per channel); gaps, absent ranges and missing/private/
+deleted archives never produce a guessed offset.
+
+Verify archive checks the exact video ID, broadcaster ownership, archive type,
+creation time and duration through server-only public Helix reads. Provider data
+is cached/coalesced for up to one minute with the existing request and cache
+bounds. Errors refuse stale fallback data; the response excludes raw provider
+fields and uses no-store. A separate Load action rechecks metadata before loading
+the official iframe at a whole-second estimated offset. Timing uses archive
+creation time; broadcast/chat delay and recording gaps remain explicit uncertainty.
+
+The player uses native Twitch controls, a validated parent hostname, a v-prefixed
+video ID, time, autoplay=false and muted=true. Closing, privacy and account
+changes remove the frame and cancel pending verification. Private bookmark notes
+never enter the VOD preview or request. The preview takes only a saved public
+channel and timestamp; unsaved bookmarks require Save first.
+
+Verification: all 470 frontend tests, strict build, full Go race suite, vet and
+zero-issue golangci-lint pass; the pinned 515-row inventory remains valid.
+Chromium/native IndexedDB checks cover archive-result and saved-bookmark entry,
+UTC/local conversion, a 1m2s offset, explicit verification/loading, the official
+620×300 iframe, reader identity/offset preservation, missing-VOD refusal and
+privacy cleanup. Regression tests cover half-open time ranges, timezone offsets,
+wrong video/owner/type, changed timing, stale provider fallback, capacity/shutdown,
+stale account reads, note exclusion and frame release. This is fixture evidence;
+real Twitch media playback and production deployment remain unverified.
+
+Reproducible demo and provider references: [VOD-context demo](vod-context-demo.md).
