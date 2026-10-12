@@ -55,3 +55,13 @@ it('round-trips picker provider and animation preferences in original URL aliase
  expect(pickerFromURL(parsed,new URLSearchParams('ephold&epanim=still')).holdPlus).toBe(false);
 });
 it('shares disabled sources and age rows without widening the restored filter',async()=>{const {pickerFromURL,pickerURL}=await import('./picker-model');const options=parseOptions({enabled:[],ages:false,ageRows:2});const url=new URL('https://chat.subcult.tv/');pickerURL(options,url);expect(pickerFromURL(parseOptions(null),url.searchParams)).toEqual(options);});
+it('resetting order preserves catalog, seeds and recents while clearing persisted live usage',()=>{
+ const model=new PickerModel();model.setMetadata('hasanabi',{A:make('A'),B:make('B')});model.options.enabled=['BTTV'];model.setSeeds('hasanabi',{B:100});model.select('hasanabi','A');model.observe(msg('A',100,'live'),true);expect(model.query('hasanabi','')[0]?.code).toBe('A');
+ model.resetOrder('hasanabi');expect(model.query('hasanabi','')[0]?.code).toBe('B');expect(model.lastUse('hasanabi','A')).toBe(0);expect(model.recent('hasanabi')[0]?.code).toBe('A');
+ const restored=new PickerModel();restored.setMetadata('hasanabi',{A:make('A')});expect(restored.lastUse('hasanabi','A')).toBe(0);
+});
+it('applies preset picker defaults before explicit URL overrides',async()=>{
+ const {pickerPreset,pickerPresetGeometry,pickerFromURL,defaultOptions}=await import('./picker-model');const original=defaultOptions();original.zoom=2;original.mixed=false;original.hold=false;
+ const preset=pickerPreset(original,'default');expect(preset.mixed).toBe(true);expect(preset.hold).toBe(true);expect(preset.holdPlus).toBe(true);expect(pickerPresetGeometry('default')).toBe('876x625,646,173');expect(pickerPreset(original,'nightshade').zoom).toBe(.75);expect(pickerPresetGeometry('nightshade')).toBeUndefined();
+ const explicit=pickerFromURL(original,new URLSearchParams('theme=default&epmix=0&ephold=0&epzoom=big'));expect(explicit.mixed).toBe(false);expect(explicit.hold).toBe(false);expect(explicit.zoom).toBe(2);expect(original.mixed).toBe(false);
+});

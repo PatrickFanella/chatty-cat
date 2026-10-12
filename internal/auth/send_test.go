@@ -166,7 +166,7 @@ func TestSendAuthorizationAndInput(t *testing.T) {
 		{"empty", sendBody(" ", "request-1234567890"), "https://chat.subcult.tv", "use", false, 400},
 		{"length", sendBody(strings.Repeat("😀", 501), "request-1234567890"), "https://chat.subcult.tv", "use", false, 400},
 		{"newline", sendBody("a\nb", "request-1234567890"), "https://chat.subcult.tv", "use", false, 400},
-		{"slash", sendBody(" /raid viewer", "request-1234567890"), "https://chat.subcult.tv", "use", false, 400},
+		{"slash", sendBody(" /unsupported viewer", "request-1234567890"), "https://chat.subcult.tv", "use", false, 400},
 		{"impersonation", `{"channel":"hasanabi","message":"hi","requestID":"request-1234567890","sender_id":"other"}`, "https://chat.subcult.tv", "use", false, 400},
 		{"channel", `{"channel":"bad/path","message":"hi","requestID":"request-1234567890"}`, "https://chat.subcult.tv", "use", false, 400},
 		{"multiple-json", sendBody("hi", "request-1234567890") + `{}`, "https://chat.subcult.tv", "use", false, 400},

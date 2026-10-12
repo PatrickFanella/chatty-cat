@@ -1,3 +1,6 @@
+import {StatsLedger} from './stats-ledger';
+import {SocialCards} from './social-cards';
+import { RateTimeline } from './rate-timeline';
 import { linkFingerprint } from './links';
 import { PickerLighting } from './picker-lighting';
 import { IdentityCards } from './identity-cards';
@@ -49,6 +52,7 @@ const log = element('log', HTMLElement);
 let rail:PanelRail|undefined;
 const virtualLog = new ColumnLog(log);
 const pronouns = new Pronouns();
+const socialCards=new SocialCards(log);
 const linkPreview = new LinkPreview(log, element('link-preview', HTMLElement));
 const status = element('status', HTMLElement);
 const count = element('count', HTMLElement);
@@ -76,10 +80,12 @@ try { channels = parseChannels(new URL(location.href).searchParams.get('channel'
 catch { channels = ['hasanabi']; }
 input.value = channels.join(',');
 const store = new MessageStore(channels);
+const rateTimeline=new RateTimeline(element('rate',HTMLElement),channels);
 const videoPanel = new VideoPanel(element('video-panel', HTMLElement), element('video-open', HTMLButtonElement), channels);
 rail=new PanelRail(log,[{name:'video',root:element('video-panel',HTMLElement),show:open=>videoPanel.showRail(open),float:()=>videoPanel.float(),isOpen:()=>!element('video-panel',HTMLElement).hidden},{name:'emotes',root:element('emote-picker',HTMLElement),show:open=>picker.showRail(open),isOpen:()=>!element('emote-picker',HTMLElement).hidden},{name:'stats',root:element('stats-panel',HTMLDialogElement),show:open=>statsPanel.showRail(open),float:()=>statsPanel.float(),isOpen:()=>element('stats-panel',HTMLDialogElement).open}]);
 window.addEventListener('resize',scheduleRender);
-const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels);
+const statsLedger=new StatsLedger(channels,channel=>metadata.get(channel)?.emotes??{});statsLedger.bootstrap(store.messages);
+const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{});
 const archive = new MessageArchive((message) => { element('archive-status', HTMLElement).textContent = message; });
 for (const message of store.messages) archive.add(message);
 const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text) => {
@@ -93,13 +99,13 @@ const composer = new Composer(element('composer', HTMLFormElement), channels, (i
   picker.refresh();
 }, (result, text, requestID) => { if (result.whisper && result.recipient) { const match = /^\/w\s+\S+\s+(.+)$/i.exec(text.trim()); if (match) whispers.echo(result.recipient, match[1]!, requestID); } });
 const pickerModel = new PickerModel();
-const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();});
+const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();},()=>rateTimeline.series.observationGaps());
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
 const accountEmotes = new AccountEmotes(emotes => { pickerModel.setAccount(emotes); refreshCandidates(); picker.refresh(true); }, element('account-emotes', HTMLElement));
 let selfLogin = '';
-function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true); scheduleRender(); }
+function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true,true); scheduleRender(); }
 const tabSync = new TabSync(acceptEcho);
 const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{follow=false;latest.hidden=false;},()=>latest.click());
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message));
@@ -135,7 +141,9 @@ const initialID = new URL(location.href).searchParams.get('mid');
 if (initialID && !store.messages.some(message => message.id === initialID)) void archive.get(initialID, channels).then(message => { if (message) void showArchived(message); }).catch(() => {});
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
-function observe(message: ChatMessage, live = false): void {
+function observe(message: ChatMessage, live = false, countStats=false): void {
+  if(countStats)statsLedger.observe(message);else {statsLedger.attach(message);statsLedger.reconcile(message.channel);}
+  rateTimeline.series.observe(message,live);
   if (roomStates.observe(message)) renderRoom();
   const used=pickerModel.observe(message, live);if(message.channel===composer.target)pickerLighting.use(used);
   if (message.command !== 'PRIVMSG') return;
@@ -195,7 +203,7 @@ function render(): void {
       row.classList.toggle('removed', removed); return row;
     } });
   }
-  virtualLog.set(display.options.rev?items.reverse():items, follow && !(display.options.pause && log.matches(':hover')), visualRevision, display.options.rev, overlay?1:display.options.split);
+  virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split,display.options.pause);
   count.textContent = archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
   latest.hidden = follow;
   navigation.reveal();
@@ -232,7 +240,7 @@ function scheduleRender(): void {
 const metadataClient = new MetadataClient(channels, (data) => {
   const previous = metadata.get(data.channel);
   if (JSON.stringify([previous?.emotes, previous?.badges]) !== JSON.stringify([data.emotes, data.badges])) visualRevision++;
-  metadata.set(data.channel, data);
+  metadata.set(data.channel, data);statsLedger.reconcile(data.channel);
   pickerModel.setSeeds(data.channel,data.emoteUse??{});pickerModel.setMetadata(data.channel, data.emotes); picker.refresh();
   refreshCandidates();
   if (data.stream.uptime && !data.errors.includes('stream uptime')) attention.stream(data.channel, !/offline|not streaming|not live|not online|not found/i.test(data.stream.uptime), data.stream.title);
@@ -249,14 +257,14 @@ metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
 const connection = new ChatConnection(channels, (event) => {
   if (event.type === 'status') {
-    recovery.status(event);
+    rateTimeline.series.status(event);recovery.status(event);
     status.textContent = event.detail || event.state;
     status.dataset.state = event.state;
     return;
   }
   if (!store.add(event.message)) return;
   archive.add(event.message);
-  observe(event.message, !event.replay); refreshCandidates(); picker.refresh();
+  observe(event.message, !event.replay,true); refreshCandidates(); picker.refresh();
   if (!event.replay && event.message.command === 'PRIVMSG') {
     const visibility = messageVisibility(event.message, display.options, selfLogin);
     attention.mention(event.message, visibility.highlight && !visibility.blocked && !visibility.hiddenUser, event.replay);
@@ -266,16 +274,13 @@ const connection = new ChatConnection(channels, (event) => {
 });
 connection.start();
 
-let hoverFollow = false;
-log.addEventListener('pointerenter', () => { hoverFollow = display.options.pause && follow; });
-log.addEventListener('wheel', () => { hoverFollow = false; }, { passive: true });
-log.addEventListener('pointerleave', () => { if (hoverFollow) { follow = true; log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; } hoverFollow = false; });
 log.addEventListener('scroll', (event) => {
+  if(virtualLog.hoverPaused(event.target))return;
   if (archiveView) { follow = false; latest.hidden = false; return; }
-  follow = virtualLog.isAtLive(event.target);
-  latest.hidden = follow;
+  follow = virtualLog.trackScroll(event.target,follow);
+  latest.hidden = follow && !virtualLog.hasManualPause();
 },{capture:true});
-latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
+latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {
@@ -301,6 +306,6 @@ animation.addEventListener('click', () => {
   scheduleRender();
 });
 setInterval(() => store.save(), 15000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) store.save(); });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });

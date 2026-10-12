@@ -1,6 +1,7 @@
-import { AGE_SECONDS, ageLabel, crossedAges } from './picker-order';
+import {capturePicker,animatePicker} from './picker-motion';
+import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
-import { PickerModel, pickerURL, SOURCES, type PickerItem } from './picker-model';
+import { PickerModel, pickerURL, pickerPreset, pickerPresetGeometry, SOURCES, type PickerItem } from './picker-model';
 
 function get<T extends HTMLElement>(root: HTMLElement, id: string, ctor: new () => T): T {
   const node = root.querySelector('#' + id); if (!(node instanceof ctor)) throw new Error('Missing picker control: ' + id); return node;
@@ -13,6 +14,7 @@ export class EmotePicker {
   private readonly tabs: HTMLElement;
   private readonly more: HTMLButtonElement;
   private readonly settings: HTMLElement;
+  private movement:Animation[]=[];
   private held = false;
   private gridHeld=false;
   private borrowed=false;
@@ -27,7 +29,7 @@ export class EmotePicker {
   private readonly saveTimer: ReturnType<typeof setInterval>;
   constructor(private readonly root: HTMLElement, private readonly trigger: HTMLButtonElement,
     private readonly model: PickerModel, private readonly channel: () => string,
-    private readonly canInsert: () => boolean, private readonly insert: (code: string) => void, private readonly temporaryFreeze:(on:boolean)=>void=()=>{}) {
+    private readonly canInsert: () => boolean, private readonly insert: (code: string) => void, private readonly temporaryFreeze:(on:boolean)=>void=()=>{}, private readonly observationGaps:()=>readonly {from:number;to:number}[]=()=>[]) {
     this.search = get(root, 'picker-search', HTMLInputElement); this.grid = get(root, 'picker-grid', HTMLElement);
     this.ageObserver=new ResizeObserver(()=>this.paintAgeRows());this.ageObserver.observe(this.grid);
     this.recent = get(root, 'picker-recent', HTMLElement); this.count = get(root, 'picker-count', HTMLElement);
@@ -44,13 +46,15 @@ export class EmotePicker {
     for (const key of ['mixed', 'names', 'hold', 'holdPlus', 'frozen', 'seenOnly', 'ages'] as const) get(root, 'picker-' + key, HTMLInputElement).checked = model.options[key];
     this.grid.addEventListener('pointerenter',this.gridEnter);this.grid.addEventListener('pointerleave',this.gridLeave);
     trigger.addEventListener('click', this.toggle); root.addEventListener('click', this.click);
-    document.addEventListener('keydown', this.key, true); root.addEventListener('pointerenter', this.enter); root.addEventListener('pointerleave', this.leave);
+    document.addEventListener('displaypreset',this.preset);document.addEventListener('keydown', this.key, true); root.addEventListener('pointerenter', this.enter); root.addEventListener('pointerleave', this.leave);
+    get(root,'picker-reset-order',HTMLButtonElement).addEventListener('click',this.resetOrder);
+    get(root,'picker-sort',HTMLSelectElement).addEventListener('auxclick',this.resetMiddle);
     this.tabs.addEventListener('change', this.change); this.settings.addEventListener('change', this.change);
     this.search.addEventListener('input', this.searchChange); this.search.addEventListener('keydown', this.searchKey); this.more.addEventListener('click', this.showMore);
     this.timer = setInterval(() => { if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold)) this.refresh(true); }, 1000);
     this.saveTimer = setInterval(() => this.model.saveAll(), 15000);
     this.floating = new FloatingPanel(root, get(root, 'picker-handle', HTMLElement), get(root, 'picker-pin', HTMLButtonElement), 'chatthing:v1:picker:geometry');
-    const query=new URL(location.href).searchParams;const geometry=parsePickerGeometry(query.get('epgeo'));if(geometry)this.floating.configure(geometry,query.get('epgeo')?.includes(',')??false);
+    const query=new URL(location.href).searchParams;const presetGeo=pickerPresetGeometry(query.get('theme')??'');const rawGeo=query.get('epgeo')??presetGeo??null;const geometry=parsePickerGeometry(rawGeo);if(geometry)this.floating.configure(geometry,rawGeo?.includes(',')??false);
     if(query.has('epopen'))this.floating.reopen=query.get('epopen')!=='0';
     if (this.floating.reopen) this.open();
   }
@@ -61,10 +65,12 @@ export class EmotePicker {
     const items = this.model.query(this.channel(), this.search.value);
     const displayed = items.slice(0, this.page);
     const oldTop = this.grid.scrollTop;
+    const positions=capturePicker(this.root,this.model.options.ageRows);
+    for(const animation of this.movement)animation.cancel();
     this.grid.replaceChildren();
     let source = '';
     const channel=this.channel(),crossed=this.ageCrossed.get(channel)??new Set<number>();this.ageCrossed.set(channel,crossed);
-    const nowAge=Date.now();for(const item of displayed){const last=this.model.lastUse(channel,item.code);if(!last)continue;const key=channel+'/'+item.code,age=Math.max(0,nowAge-last),old=this.ageHistory.get(key);if(old?.last===last)for(const seconds of crossedAges(old.age,age))crossed.add(seconds);this.ageHistory.delete(key);this.ageHistory.set(key,{last,age});}while(this.ageHistory.size>10000){const first=this.ageHistory.keys().next().value;if(first)this.ageHistory.delete(first);else break;}
+    const nowAge=Date.now(),gaps=this.observationGaps();for(const item of displayed){const last=this.model.lastUse(channel,item.code);if(!last)continue;const key=channel+'/'+item.code,age=Math.max(0,nowAge-last),old=this.ageHistory.get(key);if(old?.last===last)for(const seconds of crossedAges(old.age,age))crossed.add(seconds);this.ageHistory.delete(key);this.ageHistory.set(key,{last,age});}while(this.ageHistory.size>10000){const first=this.ageHistory.keys().next().value;if(first)this.ageHistory.delete(first);else break;}
     const oldestAge=Math.max(0,...displayed.map(item=>this.model.lastUse(channel,item.code)).filter(Boolean).map(last=>Math.max(0,nowAge-last)));
     const freshness=new Map<string,number>();for(const item of items)freshness.set(item.source,Math.max(freshness.get(item.source)??0,this.model.lastUse(channel,item.code)));
 
@@ -81,13 +87,14 @@ export class EmotePicker {
       }
       if (this.model.options.ages && this.model.options.sort === 'use') {
         for (const seconds of crossedAges(previousAge, age)) {
-          const marker = document.createElement('span'); marker.className = 'picker-age';marker.dataset.age=String(seconds);marker.classList.toggle('soon',seconds*1000>oldestAge);marker.classList.toggle('crossed',crossed.has(seconds));marker.title=seconds*1000>oldestAge?'No used emote has reached this age yet':crossed.has(seconds)?'An emote crossed this age while this picker was open':'Emotes below were last used over '+ageLabel(seconds)+' ago'; marker.textContent = ageLabel(seconds); this.grid.append(marker);
+          if(!this.model.options.mixed&&seconds*1000>oldestAge)continue;
+          const marker = document.createElement('span'); marker.className = 'picker-age';marker.dataset.age=String(seconds);marker.classList.toggle('soon',seconds*1000>oldestAge);marker.classList.toggle('crossed',crossed.has(seconds));marker.classList.toggle('missed',missedAge(seconds,nowAge,gaps));marker.title=seconds*1000>oldestAge?'No used emote has reached this age yet':crossed.has(seconds)?'An emote crossed this age while this picker was open':'Emotes below were last used over '+ageLabel(seconds)+' ago'; if(marker.classList.contains('missed'))marker.title+=' · Chat was not observed for part of this age window';marker.textContent = ageLabel(seconds); this.grid.append(marker);
         }
         previousAge = age;
       }
       this.grid.append(this.cell(item));
     }
-    if(this.model.options.ages&&this.model.options.sort==='use'&&displayed.length){const printed=new Set([...this.grid.querySelectorAll<HTMLElement>('.picker-age')].map(marker=>Number(marker.dataset.age)));for(const seconds of AGE_SECONDS)if(seconds*1000>oldestAge&&!printed.has(seconds)){const marker=document.createElement('span');marker.className='picker-age soon';marker.dataset.age=String(seconds);marker.textContent=ageLabel(seconds);marker.title='No used emote has reached this age yet';this.grid.append(marker);}}
+    if(this.model.options.ages&&this.model.options.sort==='use'&&displayed.length){const printed=new Set([...this.grid.querySelectorAll<HTMLElement>('.picker-age')].map(marker=>Number(marker.dataset.age)));for(const seconds of AGE_SECONDS)if(seconds*1000>oldestAge&&!printed.has(seconds)){const marker=document.createElement('span');marker.className='picker-age soon';marker.dataset.age=String(seconds);marker.textContent=ageLabel(seconds);marker.title='No used emote has reached this age yet';marker.classList.toggle('missed',missedAge(seconds,nowAge,gaps));if(marker.classList.contains('missed'))marker.title+=' · Chat was not observed for part of this age window';this.grid.append(marker);}}
     this.root.dataset.ageRows=String(this.model.options.sort==='use'?this.model.options.ageRows:0);this.paintAgeRows();
     this.grid.scrollTop = oldTop;
     this.recent.replaceChildren();
@@ -97,7 +104,11 @@ export class EmotePicker {
     this.more.hidden = items.length <= this.page;
     this.root.classList.toggle('show-names', this.model.options.names);
     this.root.style.setProperty('--picker-cell', 64 * this.model.options.zoom + 'px');
+    this.movement=animatePicker(this.root,this.model.options.ageRows,positions);
   }
+  private preset=(event:Event):void=>{if(!(event instanceof CustomEvent)||typeof event.detail!=='string')return;this.model.options=pickerPreset(this.model.options,event.detail);const raw=pickerPresetGeometry(event.detail),geometry=parsePickerGeometry(raw??null);if(geometry)this.floating.configure(geometry,raw?.includes(',')??false);
+   get(this.root,'picker-zoom',HTMLSelectElement).value=String(this.model.options.zoom);get(this.root,'picker-sort',HTMLSelectElement).value=this.model.options.sort;get(this.root,'picker-ageRows',HTMLSelectElement).value=String(this.model.options.ageRows);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];this.reconcileFreeze();this.model.save(this.channel());this.refresh(true);
+  };
   private paintAgeRows():void {if(this.model.options.ageRows!==2||this.model.options.sort!=='use')return;const markers=[...this.grid.querySelectorAll<HTMLElement>('.picker-age')];for(let pass=0;pass<5;pass++){const ends=new Set<HTMLElement>();let previous:HTMLElement|undefined;for(const marker of markers){if(previous&&previous.offsetTop!==marker.offsetTop)ends.add(previous);previous=marker;}if(previous)ends.add(previous);let changed=false;for(const marker of markers){const end=ends.has(marker);if(marker.classList.contains('row-end')!==end){marker.classList.toggle('row-end',end);changed=true;}}if(!changed)break;}}
   private cell(item: PickerItem): HTMLButtonElement {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.insert = item.code;
@@ -127,6 +138,8 @@ export class EmotePicker {
     const code = event.target.closest<HTMLButtonElement>('button[data-insert]')?.dataset.insert;
     if (code && this.canInsert()) { this.insert(code); this.model.select(this.channel(), code); this.dirty = true; }
   };
+  private resetOrder=():void=>{const channel=this.channel();this.model.resetOrder(channel);this.ageCrossed.delete(channel);for(const key of this.ageHistory.keys())if(key.startsWith(channel+'/'))this.ageHistory.delete(key);this.refresh(true);};
+  private resetMiddle=(event:MouseEvent):void=>{if(event.button===1){event.preventDefault();this.resetOrder();}};
   private change = (): void => {
     const options = this.model.options;options.ageRows=Number(get(this.root,'picker-ageRows',HTMLSelectElement).value)||0;
     options.enabled = [...this.tabs.querySelectorAll<HTMLInputElement>('input:checked')].flatMap((input) => SOURCES.includes(input.value as typeof SOURCES[number]) ? [input.value as typeof SOURCES[number]] : []);
@@ -146,7 +159,10 @@ export class EmotePicker {
   private searchChange = (): void => { this.page = 200; this.grid.scrollTop = 0; this.refresh(true); };
   private showMore = (): void => { this.page += 200; this.refresh(true); };
   stop(): void {
-    this.ageObserver.disconnect();this.gridLeave();this.grid.removeEventListener('pointerenter',this.gridEnter);this.grid.removeEventListener('pointerleave',this.gridLeave);
+    for(const animation of this.movement)animation.cancel();this.movement=[];
+    get(this.root,'picker-reset-order',HTMLButtonElement).removeEventListener('click',this.resetOrder);
+    get(this.root,'picker-sort',HTMLSelectElement).removeEventListener('auxclick',this.resetMiddle);
+    document.removeEventListener('displaypreset',this.preset);this.ageObserver.disconnect();this.gridLeave();this.grid.removeEventListener('pointerenter',this.gridEnter);this.grid.removeEventListener('pointerleave',this.gridLeave);
     clearInterval(this.timer); clearInterval(this.saveTimer); this.floating.stop(); this.model.saveAll();
     this.trigger.removeEventListener('click', this.toggle); this.root.removeEventListener('click', this.click); document.removeEventListener('keydown', this.key, true);
     this.root.removeEventListener('pointerenter', this.enter); this.root.removeEventListener('pointerleave', this.leave);

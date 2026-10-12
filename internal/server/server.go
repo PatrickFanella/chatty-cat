@@ -16,10 +16,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/auth"
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/irc"
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/metadata"
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/preview"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )

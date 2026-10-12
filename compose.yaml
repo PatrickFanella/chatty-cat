@@ -1,0 +1,43 @@
+services:
+  chat:
+    build: .
+    image: ${CHATTHING_IMAGE:-chatty-cat:local}
+    restart: unless-stopped
+    environment:
+      CHATTHING_PUBLIC_URL: ${CHATTHING_PUBLIC_URL:-https://chat.subcult.tv}
+      CHATTHING_ADDR: 0.0.0.0:8080
+      CHATTHING_ASSETS: /app/web/dist
+      CHATTHING_ENV_FILE: /app/no-env-file
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
+      GIPHY_API_KEY: ${GIPHY_API_KEY:-}
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [https]
+    restart: unless-stopped
+    depends_on:
+      chat:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

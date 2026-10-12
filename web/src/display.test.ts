@@ -42,3 +42,6 @@ it('maps preset subscriber chips and header/help sizing',()=>{
 it('restores preview modes and media flags from shared URLs with validated bounds',()=>{const value=displayFromURL(defaultDisplay(),new URLSearchParams('peek=3&yt=0&lkico=0'));expect(value.peek).toBe(3);expect(value.yt).toBe(false);expect(value.lkico).toBe(false);expect(parseDisplay({peek:4,yt:'yes'}).peek).toBe(2);});
 
 it('restores composer autohide including bare bauto flag',()=>{expect(displayFromURL(defaultDisplay(),new URLSearchParams('bauto')).bauto).toBe(1);expect(displayFromURL(defaultDisplay(),new URLSearchParams('bauto=2')).bauto).toBe(2);expect(parseDisplay({bauto:9}).bauto).toBe(0);});
+it('maps the original minimal preset header follow sentinel to automatic size',()=>{
+ const saved=defaultDisplay();saved.hfs=18;const minimal=displayFromURL(saved,new URLSearchParams('theme=minimal'));expect(minimal.hfs).toBe(0);expect(displayFromURL(saved,new URLSearchParams('theme=minimal&hfs=13')).hfs).toBe(13);
+});

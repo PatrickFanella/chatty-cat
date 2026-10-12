@@ -1,3 +1,4 @@
+import {PRESETS} from './display-data';
 import { familyCompare } from './picker-order';
 import { EMOJIS, EMOJI_KW } from './emoji';
 import { tokenize, type Emote } from './tokens';
@@ -99,6 +100,7 @@ export class PickerModel {
     while (uses.size > 4096) { const first = uses.keys().next().value; if (first) uses.delete(first); else break; }
     this.uses.set(message.channel, uses);return [...new Set(used)];
   }
+  resetOrder(channel:string):void {this.load(channel);this.uses.set(channel,new Map());this.save(channel);}
   saveAll(): void { for (const channel of this.loaded) this.save(channel); }
   save(channel: string): void {
     try {
@@ -126,8 +128,19 @@ export class PickerModel {
   }
 }
 const ZOOMS:Record<string,number>={sm:.5,q:.75,th:4/3,hf:1.5,tw:5/3,big:2};
+export function pickerPreset(saved:PickerOptions,name:string):PickerOptions {
+ const preset=PRESETS[name==='default'?'old-default':name];if(!preset)return parseOptions(saved);const data={...saved,enabled:[...saved.enabled]};
+ if(typeof preset.epmix==='number')data.mixed=preset.epmix>0;
+ if(typeof preset.epnames==='number')data.names=preset.epnames>0;
+ if(typeof preset.ephold==='number'&&[0,1,2].includes(preset.ephold)){data.hold=preset.ephold>0;data.holdPlus=preset.ephold===2;}
+ if(typeof preset.epzoom==='string')data.zoom=ZOOMS[preset.epzoom]??data.zoom;
+ if(typeof preset.epage==='number')data.ageRows=preset.epage;
+ if(typeof preset.epsort==='string'){data.sort=preset.epsort==='az'?'az':'use';data.seenOnly=preset.epsort==='useseen';}
+ return parseOptions(data);
+}
+export function pickerPresetGeometry(name:string):string|undefined {const box=PRESETS[name==='default'?'old-default':name]?.epgeo;if(!box||typeof box!=='object')return undefined;return box.w+'x'+box.h+(typeof box.left==='number'&&typeof box.top==='number'?','+box.left+','+box.top:'');}
 export function pickerFromURL(saved:PickerOptions,query:URLSearchParams):PickerOptions {
- const data={...saved,enabled:[...saved.enabled]};
+ const data=pickerPreset(saved,query.get('theme')??'');
  for(const [param,key] of [['epmix','mixed'],['epnames','names'],['epmarkers','ages']] as const)if(query.has(param))data[key]=query.get(param)!=='0';
  if(query.has('epzoom'))data.zoom=ZOOMS[query.get('epzoom')??'']??1;
  if(query.has('epsort')){data.sort=query.get('epsort')==='az'?'az':'use';data.seenOnly=query.get('epsort')==='useseen';}

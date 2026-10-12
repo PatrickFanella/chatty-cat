@@ -851,3 +851,306 @@ normalize for duplicates, and case-sensitive paths/IDs remain distinct.
 
 Validation: 198 frontend tests/build pass. Fixtures cover bare domains, email
 exclusion, tracking/host normalization and preserving YouTube ID case.
+
+### Standalone repository and public Twitch metadata checkpoint
+
+The owner moved conversion work to the standalone `rebuild/` Git repository
+(`chatty-cat`) and created its `init` baseline on 2026-10-11. Earlier chronological
+checkpoint entries describe work from the former parent repository. Subsequent
+commits use this standalone repository; the original source remains alongside it.
+The module path now matches the Gitea repository, and AGPL license/attribution
+and current run instructions are included. The resource generator accepts an
+explicit original HTML path and writes into this repository.
+
+Public Twitch reads use an allowlisted GET helper and a separate in-memory app
+token. Token acquisition coalesces, validates client binding, rejects a user token,
+revalidates before reuse after 30 minutes and refreshes once on explicit 401.
+Credential rejection has a one-minute cooldown; shutdown cancels reads.
+No app credentials or raw token responses are forwarded to the browser.
+
+The original relay's GraphQL VOD lookup is replaced by documented Helix archive
+reads. Returned channel ID, duration, type, timestamp and video ID are validated;
+latest archive links appear in the stream bar. Public global/channel emote
+catalogs add native precedence and animated/still URLs for anonymous viewing.
+Helix user lookup can recover the channel ID if the public IVR lookup fails.
+Public catalog visibility does not imply subscriber entitlement to send an emote.
+
+Validation: 199 frontend tests/build; Go race/coverage, vet and lint pass. Auth
+coverage 87.3%, metadata 90.2%, server 86.3%. Live reads verified the configured
+app credentials, a real latest VOD and 357 native emotes (14 animated).
+Fixtures cover shared token acquisition, credential mismatch/revocation cooldown,
+once-only read retry, VOD validation and native precedence. Stream-history
+statistics and complete live account acceptance remain open.
+
+### Observed rate timeline checkpoint
+
+The header now tracks arrival-time live messages separately from retained chat,
+with a rolling five-second messages/second rate, glorp/F markers and time ticks.
+Replay and hydration do not add live traffic. Channel-scoped snapshots retain
+24 hours of aggregate counts in IndexedDB; scope keys and outage history are
+bounded. Closed-page, socket and timer gaps stay distinct from observed silence.
+The statistics panel lists observed peaks from the last 30 minutes.
+
+Validation: 204 frontend tests and strict production build pass. Fixtures cover
+deduplication, channel isolation, replay exclusion, outage bands, malformed
+snapshots and startup overlap. Browser verification observed the live graph and
+its persisted aggregate snapshot (27 occupied seconds at the first save).
+Complete burst statistics, backfilled-band reconciliation and visual parity
+remain open.
+
+### Glorp and distinct burst statistics checkpoint
+
+Statistics now count glorp/F messages and top glorpers within the selected
+retained-message window, channel and exclusions. Link-domain counts use the
+same bare-domain parser as chat. Observed rate peaks cover the recorded 24-hour
+aggregate history, selecting three distinct bursts with the original 10-second
+suppression and 30-second similar-rate rule. Glorp spikes rank separately above
+two per second. Channel-scoped bursts link their UTC day in the public chat logs.
+
+Validation: 207 frontend tests; production build and targeted fixtures pass.
+Browser verification confirmed the tally, separate burst/spike sections and
+channel/day links. Earlier saved rate samples survived reload. Emote source
+windows, grouped badge reference and full session counters remain open.
+
+### Picker movement and ordering reset checkpoint
+
+Picker rebuilds animate matching emote cells from their previous positions over
+220 ms. Duplicate recent/home cells retain separate positions; inline age squares
+participate while separate age rows do not. Destination measurements are batched,
+movement is bounded and previous animations are canceled. System reduced motion
+and disabled app motion suppress slides. Existing hover hold still prevents
+automatic grid replacement.
+
+Reset order clears recorded local usage and age-crossing state for the current
+channel, preserving catalog, recents and channel usage seeds. The button and
+original middle-click shortcut both persist the reset. Retained-message statistics
+remain separate.
+
+Validation: 211 frontend tests and strict production build pass. Fixtures cover
+repeated-cell positions, motion suppression, reset persistence and both controls.
+Browser verification observed 220 ms picker animations and reset followed by
+new live usage. Full age-gap packing and preset integration remain open.
+
+### Broadcaster and account commands checkpoint
+
+Added /raid, /unraid, /mod, /unmod, /vip, /unvip, /block, /unblock and /shoutout
+through documented Helix APIs. Login requests their scopes, and session responses
+expose only the granted permission names. The actor always comes from the
+server-held session. Broadcaster-only commands reject a different selected
+channel before mutation. Targets resolve by validated login; self-targeting,
+missing targets and missing scopes fail before mutation.
+
+Raids require a valid pending-raid confirmation and the composer reports a
+request rather than completed delivery. Other new commands require the specified
+204 response. Explicit 422/425 role rejections remain confirmed failures;
+unexpected successes remain uncertain and are not automatically retried.
+Help lists the commands and account requirements.
+
+Reference: https://dev.twitch.tv/docs/api/reference/ (raid, moderator/VIP,
+user block and shoutout endpoints checked 2026-10-11).
+Validation: Go race tests, vet and lint pass; auth coverage 87.8%. All 212 frontend
+tests and production build pass with one test worker. The large fake IndexedDB
+fixture timed out at five seconds under parallel load and passed in isolation
+and in the serial full suite. Fixtures check exact HTTP/query bindings,
+ownership, scopes, self/missing targets and malformed/unexpected confirmations.
+No live role, raid, block or shoutout mutation was performed; account acceptance
+remains a release gate.
+
+### Docked rail pane divider checkpoint
+
+Mode 4 includes a horizontal separator between docked emotes and statistics.
+Dragging or Arrow Up/Down adjusts their shared height; Shift uses larger steps
+and Home/End select bounded extremes. The ratio persists and ARIA exposes its
+value. Floating either pane or leaving the combined rail hides the separator.
+Restored floating panels regain their original flex sizing. Dock order keeps
+emotes above statistics when either returns.
+
+Validation: 213 frontend tests and production build pass. Fixtures check docking,
+restoration, bounds, keyboard adjustment and saved ratio. Browser verification
+with video floated changed the pane heights from 80/302 to 302/80 pixels. A short
+rail with docked video retains minimum pane heights and scrolls rather than
+claiming the entire layout can fit. Responsive minimum-height behavior and
+column-local hover pause remain open.
+
+### Inline image links and GIF-title fallback checkpoint
+
+Public HTTPS image links now show a bounded lazy image beside the readable URL,
+with no-referrer requests and a URL fallback if loading fails. Giphy page links
+resolve recognized IDs, and gifv links use their GIF form. Page anchors ending in
+an image filename remain pages; credentialed, local/numeric-host and non-HTTPS
+image loads are excluded. Native bracketed GIF-title posts produce safe Giphy
+search links, normalizing the original GIF-by connector and retaining their label.
+
+Validation: 217 frontend tests and production build pass. Fixtures cover URL/ID
+recognition, anchors, unsafe media URLs, lazy/error fallback, title normalization,
+query bounds and escaping. Giphy assets bypass service-worker media caching;
+activation removes earlier Giphy entries from that optional cache.
+
+GIF-title search resolution remains a compatibility dependency. Current Giphy
+API documentation requires direct client requests and does not allow media URL
+or asset caching without specific approval. The original relay uses a shared
+upstream integration key, proxy and persistent caches. This conversion needs its
+own integration configuration and a confirmed supported caching approach before
+claiming that behavior as parity. Independent conversion work continues.
+Reference: https://developers.giphy.com/docs/api/#best-practices and
+https://developers.giphy.com/docs/api/endpoint/#search (checked 2026-10-11).
+
+### Column-local message hover pause checkpoint
+
+Hover pause now engages over actual message rows and applies to the column under
+the pointer. Empty column space does not pause. Other columns continue live
+pagination; page rotation avoids overwriting the held column. Leaving a row or
+disabling pause restores its follow state. Keyboard reveal clears the hover hold.
+The former outer-log hover guard no longer pauses every column at once.
+
+Validation: 218 frontend tests and strict production build pass. Fixtures cover
+column isolation, continued updates, empty space and disabling pause. Browser
+verification held the middle column's scroll position and tail message while a
+different column's tail advanced on the live Twitch stream. Deliberate manual
+scroll navigation still uses the existing global follow state; independently
+retaining manual scroll positions in each column remains open.
+
+### X/Twitter inline card checkpoint
+
+Recognized public status links use a fixed FxTwitter status endpoint with the
+shared preview request budget, cache and fetch capacity. Responses validate the
+requested ID and author, bound payloads and normalize plain text, dates, quoted
+text and up to four photos/videos. Media uses approved Twitter CDN hosts; raw
+upstream HTML is never forwarded. Successes cache for ten minutes and failures
+for one minute. Cancellation retains its context error.
+
+Visible rows show up to four distinct cards and coalesce repeated URLs. Preview
+modes control text/images, and disabled previews remove cards on later mounts.
+Players load only on selection, in sandboxed no-referrer frames without autoplay,
+with an original media link fallback. Unavailable posts retain readable links.
+
+Validation: 223 frontend tests and strict production build pass; the additional
+multi-post/coalescing fixture passes. Go race/coverage, vet and lint pass, with
+preview coverage 95.0%. Live service and browser reads rendered the public
+jack/status/20 post while chat remained connected. An unavailable public sample
+returned the expected failure and retained its URL. Quoted media and player
+controls are fixture-verified; actual video playback is not yet verified.
+Nitter selection, profile routing and external quoted-media thumbnails remain
+open. Reference: https://github.com/FxEmbed/FxEmbed/wiki/Status-Fetch-API
+(checked 2026-10-11).
+
+### Independent manual column holds and picker gap checkpoint
+
+Manual scrolling in a page layout now holds that column while other pages
+continue live. Page dealing and rotation preserve held pages, including reverse
+layouts; holding every column stops page replacement. Returning a column to its
+live edge releases its hold, and Jump to live releases all holds and redeals the
+newest retained data. Explicit global history/navigation pauses remain global.
+
+Picker age markers now share the rate timeline's socket, timer, closed-page and
+unobserved windows. A missing overlap must exceed 30 seconds or one eighth of
+the age window before dimming the rung, matching the original threshold. Grouped
+provider grids defer pending thresholds to one shared tail.
+
+Validation: 230 frontend tests and strict production build pass. Fixtures cover
+held/active/all-held pages, reverse updates, release, observation windows and
+shared pending markers. Browser verification retained exactly the same visible
+row and -10.796875px offset while another column's tail advanced; Jump to live
+restored the column edges and hid its button. Picker gap visuals are fixture
+verified. Full keyboard focus isolation and age-square packing remain open.
+
+### Inline YouTube metadata and stable player checkpoint
+
+Public YouTube watch, short, live, embed and music links now use a fixed oEmbed
+endpoint for normalized title/channel/thumbnail cards. The shared preview cache,
+request budget, response bound and public-network restrictions apply. Upstream
+HTML is discarded. Unavailable metadata leaves the readable link and play control.
+
+Inline glyphs and thumbnails load a YouTube player only on selection, preserving
+validated start offsets with autoplay disabled. The control toggles the player,
+and disabling YouTube removes open inline players. Fossabot's Fear&/HasanAbi
+Gaming card suppression follows the original rule. Virtual updates preserve
+unchanged row subtrees instead of detaching every row, so open media survives
+ordinary live append/viewport changes; unmounted rows still release players.
+Column scroll paints notify the media controller when older rows mount.
+
+Validation: 233 frontend tests and strict production build pass. Go race/coverage,
+vet and lint pass; preview coverage 93.6%. Fixtures verify URL/time handling,
+bounded malformed upstream responses, explicit player loading/closing, disabled
+preferences and unchanged subtree retention. DOM tests disable child-frame
+network navigation. Live Go and browser reads displayed a Google for Developers
+video title/channel card and selected a 560x315 player with start=90 and autoplay=0
+while chat stayed connected. This proves creation and configuration, not playback
+or audibility. YouTube view/date enrichment and channel/playlist cards remain
+open. Reference: https://developers.google.com/youtube/player_parameters
+(checked 2026-10-11).
+
+### Retained aggregate rankings and independent windows checkpoint
+
+Top chatters, emotes, badge versions and normalized links now retain aggregate
+totals separately from scrollback. Each family has its own all/24/12/6/3/1-hour
+control; emotes can instead use the channel's StreamElements totals. Channel
+scope and windows persist. Chatters exclude the original two bots and selected
+logins; link rankings omit the original evergreen promotions. Case-sensitive
+URL paths survive normalization, and repeated URLs/badge versions count once
+per message while repeated emotes count each use.
+
+Hour buckets retain seven days and day buckets 31 days; lifetime totals remain.
+Snapshots restore atomically after validation, retain bounded message-ID dedup
+and preserve unfinished emote classification for retained/archive rows until
+metadata returns. Saving occurs every 30 seconds and on pagehide. Capacity and
+storage failures are disclosed, with limits of 20,000 aggregate keys, 200,000
+buckets and 100,000 dedup/pending entries. The initial migration seeds available
+retained messages; it cannot recover counts for previously unobserved rows.
+The existing summary/time graph remains explicitly based on retained rows.
+
+Validation: 240 frontend tests and strict production build pass. Fixtures cover
+windows, channel isolation, duplicate links/badges/emotes, malformed snapshot
+rejection, bucket pruning, reload dedup after row eviction, delayed catalog
+classification and storage failure. Browser verification showed independent
+controls, current provider seed rankings, and preserved start time/window choice
+on reload (1,357 then 1,394 persisted message uses as live traffic continued).
+Grouped badge reference, complete daily/hourly presentation, rate scope controls
+and stream/viewer histories remain open.
+
+### Self-hosting package checkpoint
+
+A multi-stage Dockerfile builds the TypeScript frontend and static Go service
+into one image with CA certificates, timezone data, license and attribution.
+The app runs as UID 10001; Compose uses a read-only root filesystem, dropped
+capabilities, bounded temporary storage and loopback publishing. Named runtime
+configuration supplies Twitch credentials and optional Giphy integration.
+Environment files, Git history, local binaries and dependencies are excluded
+from the build context. Optional Caddy HTTPS routing has container and host
+examples, certificate volumes and a health dependency.
+
+Deployment instructions cover callbacks, WebSocket routing, credential handling,
+immutable release tags, rollback and source availability. The help panel links
+the rebuilt source while retaining upstream credit. No cutover was performed.
+
+Validation: Compose with/without HTTPS profile and both Caddy examples validate.
+The Linux arm64 image built (about 8 MB), became healthy, served the built assets
+and connected/rendered live HasanAbi messages at loopback port 18080. Inspection
+confirmed UID 10001, a read-only root, license/static files, and absence of an
+environment file or frontend dependencies. Its temporary container stopped and
+was removed. Docker Desktop had been stopped, was started for these checks, and
+was unavailable again during the separate amd64 build, which ended with an RPC
+EOF. The Dockerfile uses native builder stages and target Go cross-compilation;
+the amd64 image/runtime check remains open. Public TLS routing, real login and
+production acceptance remain separate gates. Resource tests and strict frontend
+build pass. References: https://docs.docker.com/reference/compose-file/services/,
+https://caddyserver.com/docs/caddyfile/directives/reverse_proxy and
+https://caddyserver.com/docs/quick-starts/https (checked 2026-10-11).
+
+### Picker preset integration checkpoint
+
+Theme presets now apply their picker fields on initial URL load and selection
+in display settings. The old-default/default alias restores mixed grids, Hold+
+and its fitted pinned geometry; Nightshade restores quarter-step zoom. Explicit
+picker URL parameters override preset fields. Runtime selection updates controls
+and saved options while retaining unspecified preferences. The original header
+font follow sentinel in the Minimal preset maps to automatic header sizing.
+
+Validation: the full frontend suite passed 247 tests and the strict production
+build. Subsequent targeted picker/display checks passed 21 tests, including
+preset/default aliases, explicit overrides, saved controls/pinning and header
+follow sizing. Live preset verification could not run: T3 returned
+"The calling provider no longer owns an active thread run." Concurrent edits
+to statistics, Giphy and server configuration were preserved separately.
+Complete settings-slot bundles and exhaustive preset visual comparison remain
+open.

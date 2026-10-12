@@ -10,9 +10,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
-const commandScopes = "moderator:manage:banned_users moderator:manage:chat_messages moderator:manage:chat_settings moderator:manage:announcements user:manage:chat_color user:manage:whispers"
+const commandScopes = "moderator:manage:banned_users moderator:manage:chat_messages moderator:manage:chat_settings moderator:manage:announcements user:manage:chat_color user:manage:whispers channel:manage:raids channel:manage:moderators channel:manage:vips user:manage:blocked_users moderator:manage:shoutouts"
 
 type chatCommand struct {
 	name, scope, target, reason, text string
@@ -50,6 +51,29 @@ func parseCommand(text string) (chatCommand, error) {
 		return nil
 	}
 	switch c.name {
+	case "/raid", "/mod", "/unmod", "/vip", "/unvip", "/block", "/unblock", "/shoutout":
+		if len(args) != 1 {
+			return c, errors.New("use " + c.name + " username")
+		}
+		c.target = strings.ToLower(strings.TrimPrefix(args[0], "@"))
+		if !channelPattern.MatchString(c.target) {
+			return c, errors.New("invalid Twitch username")
+		}
+		switch c.name {
+		case "/raid":
+			c.scope = "channel:manage:raids"
+		case "/mod", "/unmod":
+			c.scope = "channel:manage:moderators"
+		case "/vip", "/unvip":
+			c.scope = "channel:manage:vips"
+		case "/block", "/unblock":
+			c.scope = "user:manage:blocked_users"
+		case "/shoutout":
+			c.scope = "moderator:manage:shoutouts"
+		}
+	case "/unraid":
+		c.scope = "channel:manage:raids"
+		return c, noArgs()
 	case "/w":
 		c.scope = "user:manage:whispers"
 		if len(args) < 2 {
@@ -181,18 +205,71 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 	params := url.Values{}
 	method, path := http.MethodPatch, "/chat/settings"
 	payload := map[string]any{}
-	if c.name == "/color" {
+	switch c.name {
+	case "/color":
 		method, path = http.MethodPut, "/chat/color"
 		params.Set("user_id", p.user.UserID)
 		params.Set("color", c.text)
-	} else {
+	case "/block", "/unblock":
+		target, ok := s.resolveUser(ctx, p, c.target)
+		if !ok {
+			return sendResult{Error: "User not found; command was not sent"}, http.StatusNotFound
+		}
+		if target == p.user.UserID {
+			return sendResult{Error: "Choose another user"}, http.StatusBadRequest
+		}
+		method, path = http.MethodPut, "/users/blocks"
+		if c.name == "/unblock" {
+			method = http.MethodDelete
+		}
+		params.Set("target_user_id", target)
+	default:
 		broadcaster, ok := s.resolveUser(ctx, p, input.Channel)
 		if !ok {
 			return sendResult{Error: "Channel lookup failed; command was not sent"}, http.StatusBadGateway
 		}
+		if strings.HasPrefix(c.scope, "channel:manage:") && broadcaster != p.user.UserID {
+			return sendResult{Error: "This command requires the selected channel's broadcaster account"}, http.StatusForbidden
+		}
 		params.Set("broadcaster_id", broadcaster)
 		params.Set("moderator_id", p.user.UserID)
 		switch c.name {
+		case "/raid", "/mod", "/unmod", "/vip", "/unvip", "/shoutout":
+			target, ok := s.resolveUser(ctx, p, c.target)
+			if !ok {
+				return sendResult{Error: "User not found; command was not sent"}, http.StatusNotFound
+			}
+			if target == broadcaster {
+				return sendResult{Error: "Choose another user"}, http.StatusBadRequest
+			}
+			method = http.MethodPost
+			switch c.name {
+			case "/raid":
+				path = "/raids"
+				params.Del("broadcaster_id")
+				params.Del("moderator_id")
+				params.Set("from_broadcaster_id", broadcaster)
+				params.Set("to_broadcaster_id", target)
+			case "/shoutout":
+				path = "/chat/shoutouts"
+				params.Del("broadcaster_id")
+				params.Set("from_broadcaster_id", broadcaster)
+				params.Set("to_broadcaster_id", target)
+			default:
+				params.Del("moderator_id")
+				params.Set("user_id", target)
+				if c.name == "/mod" || c.name == "/unmod" {
+					path = "/moderation/moderators"
+				} else {
+					path = "/channels/vips"
+				}
+				if c.name == "/unmod" || c.name == "/unvip" {
+					method = http.MethodDelete
+				}
+			}
+		case "/unraid":
+			method, path = http.MethodDelete, "/raids"
+			params.Del("moderator_id")
 		case "/ban", "/timeout", "/unban":
 			target, ok := s.resolveUser(ctx, p, c.target)
 			if !ok {
@@ -257,7 +334,7 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 	}
 	if status != http.StatusOK && status != http.StatusNoContent {
 		code := status
-		if code != 400 && code != 401 && code != 403 && code != 404 && code != 409 && code != 429 {
+		if code != 400 && code != 401 && code != 403 && code != 404 && code != 409 && code != 422 && code != 425 && code != 429 {
 			code = http.StatusBadGateway
 		}
 		if code == http.StatusBadGateway {
@@ -265,10 +342,30 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 		}
 		return sendResult{Error: "Twitch rejected the command; check channel permissions and arguments"}, code
 	}
+	if slices.Contains([]string{"/raid", "/unraid", "/mod", "/unmod", "/vip", "/unvip", "/block", "/unblock", "/shoutout"}, c.name) {
+		expected := http.StatusNoContent
+		if c.name == "/raid" {
+			expected = http.StatusOK
+		}
+		if status != expected {
+			return sendResult{Error: "Command result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+		}
+	}
 	if status == http.StatusOK {
 		var confirmation struct{ Data []json.RawMessage }
 		if json.Unmarshal(response, &confirmation) != nil || len(confirmation.Data) != 1 {
 			return sendResult{Error: "Command result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+		}
+		if c.name == "/raid" {
+			var raid struct {
+				CreatedAt string `json:"created_at"`
+			}
+			if json.Unmarshal(confirmation.Data[0], &raid) != nil {
+				return sendResult{Error: "Raid request could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
+			if _, err := time.Parse(time.RFC3339, raid.CreatedAt); err != nil {
+				return sendResult{Error: "Raid request could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
 		}
 	}
 	return sendResult{Sent: true, Command: true}, http.StatusOK

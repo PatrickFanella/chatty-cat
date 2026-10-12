@@ -13,7 +13,7 @@ export function parseDisplay(value: unknown): DisplayOptions {
 }
 export function displayFromURL(saved: DisplayOptions, query: URLSearchParams): DisplayOptions {
   let data: Record<string, unknown> = { ...saved }; const theme = query.get('theme'); const preset = PRESETS[theme === 'default' ? 'old-default' : theme ?? ''];
-  if (preset) { data = { ...data, ...preset, autoShade:false, size: preset.px ?? saved.size, lh: preset.lhv ?? saved.lh, weight: preset.wv ?? 400, sub: ['right','num-right','left','num-left','hidden'][typeof preset.subMode==='number'?preset.subMode:3], hfs: preset.hfspx ?? saved.hfs, hpfs: preset.hpfs ?? saved.hpfs, zebra: preset.zebra === true ? 2 : preset.zebra === false ? 0 : preset.zebra }; }
+  if (preset) { data = { ...data, ...preset, autoShade:false, size: preset.px ?? saved.size, lh: preset.lhv ?? saved.lh, weight: preset.wv ?? 400, sub: ['right','num-right','left','num-left','hidden'][typeof preset.subMode==='number'?preset.subMode:3], hfs: preset.hfspx === -1 ? 0 : preset.hfspx ?? saved.hfs, hpfs: preset.hpfs ?? saved.hpfs, zebra: preset.zebra === true ? 2 : preset.zebra === false ? 0 : preset.zebra }; }
   const colour = query.get('colour') || query.get('color') || query.get('style') || (!preset ? theme : null);
   if (colour) { const legacy = LEGACY_THEME[colour]; data.colour = legacy?.[0] ?? colour; data.variant = legacy?.[1] ?? 'standard'; data.shade = LEGACY_SHADE[colour] ?? COLOUR_SHADE[String(data.colour)] ?? data.shade; }
   for (const key of ['font', 'variant', 'keywords', 'blocked', 'hidden', 'hideMode', 'sub']) if (query.has(key)) data[key] = query.get(key);
@@ -77,7 +77,7 @@ export class DisplaySettings {
   private close = (): void => { this.dialog.close(); this.trigger.focus(); };
   private submit = (event: Event): void => event.preventDefault();
   private change = (event: Event): void => {
-    if (event.target instanceof HTMLSelectElement && event.target.name === 'preset' && event.target.value) { this.options = displayFromURL(this.options, new URLSearchParams({ theme: event.target.value })); this.sync(); }
+    if (event.target instanceof HTMLSelectElement && event.target.name === 'preset' && event.target.value) { this.options = displayFromURL(this.options, new URLSearchParams({ theme: event.target.value })); this.sync();document.dispatchEvent(new CustomEvent('displaypreset',{detail:event.target.value})); }
     else { const values: Record<string, unknown> = {}; for (const [key, current] of Object.entries(this.options)) { const input = this.form.elements.namedItem(key); if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) values[key] = typeof current === 'number' ? Number(input.value) : typeof current === 'boolean' && input instanceof HTMLInputElement ? input.checked : input.value; } if(event.target instanceof HTMLSelectElement&&event.target.name==='shade')values.autoShade=false; this.options = parseDisplay(values); }
     this.apply(); this.save(); this.changed();
   };
