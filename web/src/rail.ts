@@ -1,6 +1,8 @@
+import {registerSettings} from './settings-bundle';
 export interface RailPanel { name:'video'|'emotes'|'stats'; root:HTMLElement; show:(open:boolean)=>void; isOpen:()=>boolean; float?:()=>void }
 interface Parked {panel:RailPanel;parent:Node;next:Node|null;wasOpen:boolean;floating:boolean;button:HTMLButtonElement;flexGrow:string}
 export class PanelRail {
+ private bundleDispose:()=>void;
  private mode=0;
  private rail:HTMLElement;
  private panels:Parked[];
@@ -11,6 +13,11 @@ export class PanelRail {
  constructor(log:HTMLElement,panels:RailPanel[]){
   const workspace=document.createElement('div');workspace.className='chat-workspace';log.before(workspace);workspace.append(log);this.rail=document.createElement('aside');this.rail.id='panel-rail';this.rail.hidden=true;this.rail.setAttribute('aria-label','Video, emotes and statistics rail');workspace.append(this.rail);
   this.panels=panels.map(panel=>{const button=document.createElement('button');button.type='button';button.className='rail-float';button.textContent='Float';button.hidden=true;panel.root.prepend(button);return {panel,parent:panel.root.parentNode!,next:panel.root.nextSibling,wasOpen:panel.isOpen(),floating:false,button,flexGrow:panel.root.style.flexGrow};});
+  this.bundleDispose=registerSettings('rail',()=>({fraction:this.proportion,floating:this.panels.filter(entry=>entry.floating).map(entry=>entry.panel.name)}),value=>{
+   if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;
+   if(typeof data.fraction==='number'&&Number.isFinite(data.fraction))this.resize(data.fraction);
+   if(this.mode&&Array.isArray(data.floating)){for(const entry of this.panels){const floating=data.floating.includes(entry.panel.name);if(floating&&entry.panel.root.dataset.rail==='true'){this.restore(entry,true);entry.panel.float?.();entry.floating=true;}else if(!floating&&entry.floating)this.dock(entry);}this.syncSplit();}
+  });
   for(const entry of this.panels)entry.button.addEventListener('click',this.toggle);
   try{const saved:unknown=JSON.parse(localStorage.getItem('chatthing:v1:rail:split')??'null');if(typeof saved==='number'&&Number.isFinite(saved)&&saved>=.08&&saved<=.92)this.proportion=saved;}catch{/* optional storage */}
   this.splitter.className='rail-splitter';this.splitter.hidden=true;this.splitter.tabIndex=0;this.splitter.setAttribute('role','separator');this.splitter.setAttribute('aria-orientation','horizontal');this.splitter.setAttribute('aria-label','Resize emote and statistics panes');this.splitter.setAttribute('aria-valuemin','8');this.splitter.setAttribute('aria-valuemax','92');this.rail.append(this.splitter);
@@ -40,5 +47,5 @@ export class PanelRail {
  private end=():void=>{const drag=this.drag;this.drag=null;if(drag&&this.splitter.hasPointerCapture(drag.id))this.splitter.releasePointerCapture(drag.id);};
  private key=(event:KeyboardEvent):void=>{if(this.splitter.hidden||event.altKey||event.ctrlKey||event.metaKey)return;const value=event.key==='Home'?.08:event.key==='End'?.92:event.key==='ArrowUp'?this.proportion-.05:event.key==='ArrowDown'?this.proportion+.05:undefined;if(value===undefined)return;event.preventDefault();this.resize(value);};
  private compact=():void=>{const stats=this.panels.find(entry=>entry.panel.name==='stats')?.panel.root;if(!stats)return;const height=stats.parentNode===this.rail?stats.getBoundingClientRect().height:0;stats.classList.toggle('stats-low',height>0&&height<240);stats.classList.toggle('stats-min',height>0&&height<160);};
- stop():void {this.end();this.observer?.disconnect();this.splitter.removeEventListener('pointerdown',this.down);this.splitter.removeEventListener('pointermove',this.move);this.splitter.removeEventListener('pointerup',this.end);this.splitter.removeEventListener('pointercancel',this.end);this.splitter.removeEventListener('lostpointercapture',this.end);this.splitter.removeEventListener('keydown',this.key);this.splitter.remove();for(const entry of this.panels){entry.button.removeEventListener('click',this.toggle);entry.button.remove();if(entry.panel.root.dataset.rail==='true')this.restore(entry,entry.wasOpen);}}
+ stop():void {this.bundleDispose();this.end();this.observer?.disconnect();this.splitter.removeEventListener('pointerdown',this.down);this.splitter.removeEventListener('pointermove',this.move);this.splitter.removeEventListener('pointerup',this.end);this.splitter.removeEventListener('pointercancel',this.end);this.splitter.removeEventListener('lostpointercapture',this.end);this.splitter.removeEventListener('keydown',this.key);this.splitter.remove();for(const entry of this.panels){entry.button.removeEventListener('click',this.toggle);entry.button.remove();if(entry.panel.root.dataset.rail==='true')this.restore(entry,entry.wasOpen);}}
 }

@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import { parseVideo, twitchParent, VideoPanel } from './video';
+import { captureBundle, restoreBundle } from './settings-bundle';
+import { defaultDisplay } from './display';
 let panel: VideoPanel | undefined;
 afterEach(() => { panel?.stop(); panel = undefined; vi.unstubAllGlobals(); localStorage.clear(); document.body.replaceChildren(); });
 function setup() {
@@ -41,4 +43,12 @@ it('stops hidden rail video and restores one frame when reopened', () => {
 it('uses the external link on narrow screens without loading a player', () => {
   vi.stubGlobal('innerWidth', 375); const { root, trigger } = setup(); trigger.click();
   expect(root.querySelector('iframe')).toBeNull(); expect(root.querySelector('#video-status')?.textContent).toContain('narrow'); expect(root.querySelector<HTMLAnchorElement>('#video-external')?.href).toBe('https://www.twitch.tv/one');
+});
+it('restores video channel, visibility and docking from a settings slot without autoplay', () => {
+  const { root, trigger } = setup(); trigger.click();
+  const channel = root.querySelector<HTMLSelectElement>('#video-channel')!; channel.value = 'two'; channel.dispatchEvent(new Event('change'));
+  root.querySelector<HTMLButtonElement>('#video-dock')!.click(); const bundle = captureBundle(defaultDisplay());
+  root.querySelector<HTMLButtonElement>('#video-close')!.click(); channel.value = 'one'; channel.dispatchEvent(new Event('change'));
+  restoreBundle(bundle); expect(root.hidden).toBe(false); expect(root.classList.contains('video-docked')).toBe(true);
+  const frame = new URL(root.querySelector('iframe')!.src); expect(frame.searchParams.get('channel')).toBe('two'); expect(frame.searchParams.get('autoplay')).toBe('false');
 });

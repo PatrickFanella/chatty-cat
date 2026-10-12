@@ -1,7 +1,9 @@
+import {registerSettings} from './settings-bundle';
 import { FloatingPanel } from './floating';
 import { RESOURCE_TABS } from './resource-data';
 export class Resources {
   private floating: FloatingPanel;
+  private bundleDispose:()=>void;
   private tabs: HTMLButtonElement[] = [];
   private pages = new Map<string, HTMLElement>();
   private selected = 'help';
@@ -39,6 +41,7 @@ export class Resources {
     this.select(this.selected);
     this.floating = new FloatingPanel(root,root.querySelector<HTMLElement>('#resources-handle')!,root.querySelector<HTMLButtonElement>('#resources-pin')!,'chatthing:v1:resources:geometry');
     trigger.addEventListener('click',this.toggle);root.addEventListener('click',this.click);root.addEventListener('keydown',this.key);
+    this.bundleDispose=registerSettings('resources',()=>({tab:this.selected,floating:this.floating.state()}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(typeof data.tab!=='string'||!this.pages.has(data.tab)||!this.floating.restore(data.floating))return;this.select(data.tab);if(this.floating.reopen)this.open();else this.close();});
     if(this.floating.reopen)this.open();
   }
   private select(key:string):void {
@@ -64,5 +67,5 @@ export class Resources {
     if(event.key==='ArrowRight')next=(index+1)%this.tabs.length;else if(event.key==='ArrowLeft')next=(index+this.tabs.length-1)%this.tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=this.tabs.length-1;else return;
     event.preventDefault();const tab=this.tabs[next];if(tab?.dataset.tab){this.select(tab.dataset.tab);tab.focus();}
   };
-  stop():void {this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
+  stop():void {this.bundleDispose();this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
 }

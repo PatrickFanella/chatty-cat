@@ -1,3 +1,4 @@
+import { registerSettings } from './settings-bundle';
 import { FloatingPanel } from './floating';
 
 export interface VideoPreferences { channel: string; volume: number; muted: boolean; docked: boolean }
@@ -10,6 +11,7 @@ export function parseVideo(value: unknown, channels: readonly string[]): VideoPr
 export function twitchParent(hostname: string): string { if (!/^[a-z0-9.-]+$/i.test(hostname)) throw new Error('Invalid Twitch parent domain'); return hostname; }
 
 export class VideoPanel {
+  private bundleDispose: () => void;
   private floating: FloatingPanel;
   private options: VideoPreferences;
   private container: HTMLElement;
@@ -25,6 +27,17 @@ export class VideoPanel {
     this.floating = new FloatingPanel(root, root.querySelector<HTMLElement>('#video-handle')!, root.querySelector<HTMLButtonElement>('#video-pin')!, 'chatthing:v1:video:geometry');
     root.classList.toggle('video-docked', this.options.docked); this.paint();
     trigger.addEventListener('click', this.toggle); root.querySelector('#video-close')?.addEventListener('click', this.close); this.channel.addEventListener('change', this.changeChannel); this.dock.addEventListener('click', this.changeDock);
+    this.bundleDispose = registerSettings('video', () => ({ options: this.options, floating: this.floating.state() }), value => {
+      if (!value || typeof value !== 'object') return;
+      const data = value as Record<string, unknown>;
+      if (!data.options || typeof data.options !== 'object' || !this.floating.restore(data.floating)) return;
+      this.options = parseVideo(data.options, channels); this.channel.value = this.options.channel;
+      this.container.replaceChildren(); this.root.classList.toggle('video-docked', this.options.docked);
+      this.root.querySelector<HTMLAnchorElement>('#video-external')!.href = 'https://www.twitch.tv/' + this.options.channel;
+      this.paint(); this.save();
+      if (this.root.dataset.rail === 'true') { if (!this.root.hidden) this.open(); }
+      else if (this.floating.reopen) this.open(); else this.hide();
+    });
     if (this.floating.reopen) this.open();
   }
   private paint(): void { this.dock.textContent = this.options.docked ? 'Float' : 'Dock'; }
@@ -54,5 +67,5 @@ export class VideoPanel {
     if (!this.root.hidden) this.open();
   };
   private changeDock = (): void => { this.options.docked = !this.options.docked; this.root.classList.toggle('video-docked', this.options.docked); this.paint(); this.save(); };
-  stop(): void { this.container.replaceChildren(); this.floating.stop(); this.trigger.removeEventListener('click', this.toggle); this.root.querySelector('#video-close')?.removeEventListener('click', this.close); this.channel.removeEventListener('change', this.changeChannel); this.dock.removeEventListener('click', this.changeDock); }
+  stop(): void { this.bundleDispose(); this.container.replaceChildren(); this.floating.stop(); this.trigger.removeEventListener('click', this.toggle); this.root.querySelector('#video-close')?.removeEventListener('click', this.close); this.channel.removeEventListener('change', this.changeChannel); this.dock.removeEventListener('click', this.changeDock); }
 }

@@ -4,6 +4,7 @@ export function fitBox(box: Box, width: number, height: number): Box {
   const h = Math.max(1, Math.min(box.height, height - 32));
   return { width: w, height: h, left: Math.max(12, Math.min(box.left, width - w - 12)), top: Math.max(16, Math.min(box.top, height - h - 16)) };
 }
+export interface FloatingState {box?:Box;pinned:boolean;open:boolean}
 export class FloatingPanel {
   pinned = false;
   reopen = false;
@@ -29,6 +30,11 @@ export class FloatingPanel {
     window.addEventListener('resize', this.resize);
     this.observer = new ResizeObserver(() => { if (!root.hidden && root.dataset.rail!=='true') { this.capture(); this.apply(); this.save(); } });
     this.observer.observe(root);
+  }
+  state():FloatingState {if(!this.root.hidden&&this.root.dataset.rail!=='true')this.capture();return {...(this.box?{box:{...this.box}}:{}),pinned:this.pinned,open:!this.root.hidden};}
+  restore(value:unknown):boolean {if(!value||typeof value!=='object')return false;const data=value as Record<string,unknown>;if(typeof data.pinned!=='boolean'||typeof data.open!=='boolean')return false;let box:Box|undefined;
+   if(data.box!==undefined){if(!data.box||typeof data.box!=='object')return false;const raw=data.box as Record<string,unknown>;if(!['left','top','width','height'].every(key=>typeof raw[key]==='number'&&Number.isFinite(raw[key]))||Number(raw.width)<=0||Number(raw.height)<=0||Number(raw.width)>10000||Number(raw.height)>10000)return false;box=fitBox({left:Number(raw.left),top:Number(raw.top),width:Number(raw.width),height:Number(raw.height)},innerWidth,innerHeight);}
+   this.box=box;this.pinned=data.pinned;this.reopen=data.open;if(!box){this.root.style.width='';this.root.style.height='';}this.apply();this.updatePin();this.save();return true;
   }
   geometry():Box|undefined {return this.box?{...this.box}:undefined;}
   configure(box:Box,pinned:boolean):void {this.box=fitBox(box,innerWidth,innerHeight);this.pinned=pinned;this.apply();this.updatePin();this.save();}

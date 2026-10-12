@@ -1432,3 +1432,22 @@ Twitch's embed session limitation: application OAuth cannot supply the Twitch
 website login to the official cross-origin player. Native player controls remain
 in use. Live whisper and moderation acceptance still require separately approved
 recipients/actions and an authenticated session.
+
+## Complete settings-slot state checkpoint
+
+Slots now store a versioned display/panel bundle: picker options and geometry,
+resource tab and geometry, video channel/docking/visibility, stats scopes and
+exclusions, and rail split/floated panes. Legacy display-only slots remain
+readable. Optional parts are size-bounded, captured as detached JSON and validated
+by each controller. Recall waits for display layout to settle; native Twitch
+frames are replaced with autoplay disabled. Panel listeners are removed at
+teardown. Other worktrees were read for existing settings work and left untouched.
+
+Verification: 287 frontend tests, strict checking and production build pass.
+Browser recall restored picker zoom from 1 to 1.5 and captured picker, resources,
+video, stats and rail parts with no runtime error. Video regression verifies
+channel/docking/visibility recall and autoplay=false.
+
+The owner approved one whisper to subcult_tv and deletion of the original
+Chatty Cat parity test message in patrick__eff. Approval is recorded; neither
+live action has been performed in this checkpoint.

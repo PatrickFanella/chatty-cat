@@ -1,3 +1,4 @@
+import {registerSettings} from './settings-bundle';
 import {type StatsLedger,type StatKind} from './stats-ledger';
 import { isGlorp, type RateSeries } from './rate-timeline';
 import type { StreamHistory } from './stream-history';
@@ -36,6 +37,7 @@ export function rateGraph(buckets: readonly number[], label: string, gaps: reado
   const peak = Math.max(1, ...buckets); buckets.forEach((count, i) => { const bar = document.createElementNS(ns, 'rect'); const height = count / peak * 36; bar.setAttribute('x', String(i * 300 / buckets.length)); bar.setAttribute('y', String(40 - height)); bar.setAttribute('width', String(Math.max(1, 300 / buckets.length - 1))); bar.setAttribute('height', String(height)); bar.setAttribute('fill', 'currentColor'); const title = document.createElementNS(ns, 'title'); title.textContent = `${count} ${unit}`; bar.append(title); svg.append(bar); }); return svg;
 }
 export class StatsPanel {
+  private bundleDispose:()=>void;
   private timer: ReturnType<typeof setInterval>;
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
@@ -45,6 +47,7 @@ export class StatsPanel {
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
     try { const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:stats') ?? 'null'); if (saved && typeof saved === 'object') { const data = saved as Record<string, unknown>; if(typeof data.channel==='string'&&[...this.channel.options].some(option=>option.value===data.channel))this.channel.value=data.channel; if (typeof data.excluded === 'string') this.exclusions.value = data.excluded.slice(0, 500); if(data.windows&&typeof data.windows==='object')for(const select of dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const value=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof value==='string'&&[...select.options].some(option=>option.value===value))select.value=value;} if (typeof data.scope === 'string' && [...this.scope.options].some(o => o.value === data.scope)) this.scope.value = data.scope; } } catch { /* optional storage */ }
     trigger.addEventListener('click', this.open); dialog.querySelector('#stats-close')?.addEventListener('click', this.close); dialog.addEventListener('close', this.closed); dialog.addEventListener('change', this.change);
+    this.bundleDispose=registerSettings('stats',()=>({scope:this.scope.value,channel:this.channel.value,excluded:this.exclusions.value,windows:Object.fromEntries([...this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')].map(select=>[select.dataset.statKind,select.value]))}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;for(const [select,key] of [[this.scope,'scope'],[this.channel,'channel']] as const){if(typeof data[key]==='string'&&[...select.options].some(option=>option.value===data[key]))select.value=data[key];}if(typeof data.excluded==='string')this.exclusions.value=data.excluded.slice(0,500);if(data.windows&&typeof data.windows==='object')for(const select of this.dialog.querySelectorAll<HTMLSelectElement>('[data-stat-kind]')){const choice=(data.windows as Record<string,unknown>)[select.dataset.statKind!];if(typeof choice==='string'&&[...select.options].some(option=>option.value===choice))select.value=choice;}this.change();});
     let ticks=0;this.timer = setInterval(()=>{this.paint();if(++ticks%6===0)this.ledger?.save();}, 5000); this.paint();
   }
   float():void {this.dialog.removeAttribute('open');this.open();}
@@ -103,5 +106,5 @@ export class StatsPanel {
       for (const row of rows) { const item = document.createElement('li'); item.textContent = `${row.name} · ${row.count.toLocaleString()}`; list.append(item); } section.append(list); body.append(section);
     }
   };
-  stop(): void { clearInterval(this.timer); this.trigger.removeEventListener('click', this.open); this.dialog.querySelector('#stats-close')?.removeEventListener('click', this.close); this.dialog.removeEventListener('close', this.closed); this.dialog.removeEventListener('change', this.change); }
+  stop(): void { this.bundleDispose(); clearInterval(this.timer); this.trigger.removeEventListener('click', this.open); this.dialog.querySelector('#stats-close')?.removeEventListener('click', this.close); this.dialog.removeEventListener('close', this.closed); this.dialog.removeEventListener('change', this.change); }
 }

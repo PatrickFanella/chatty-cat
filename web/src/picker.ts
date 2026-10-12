@@ -1,12 +1,14 @@
+import {registerSettings} from './settings-bundle';
 import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
 import { PickerMotion } from './picker-motion';
-import { PickerModel, pickerURL, pickerPreset, pickerPresetGeometry, SOURCES, type PickerItem } from './picker-model';
+import { PickerModel, pickerURL, pickerPreset, pickerPresetGeometry, parseOptions, SOURCES, type PickerItem } from './picker-model';
 
 function get<T extends HTMLElement>(root: HTMLElement, id: string, ctor: new () => T): T {
   const node = root.querySelector('#' + id); if (!(node instanceof ctor)) throw new Error('Missing picker control: ' + id); return node;
 }
 export class EmotePicker {
+  private bundleDispose:()=>void;
   private readonly search: HTMLInputElement;
   private readonly grid: HTMLElement;
   private readonly recent: HTMLElement;
@@ -54,6 +56,7 @@ export class EmotePicker {
     this.floating = new FloatingPanel(root, get(root, 'picker-handle', HTMLElement), get(root, 'picker-pin', HTMLButtonElement), 'chatthing:v1:picker:geometry');
     const query=new URL(location.href).searchParams;const presetGeo=pickerPresetGeometry(query.get('theme')??'');const rawGeo=query.get('epgeo')??presetGeo??null;const geometry=parsePickerGeometry(rawGeo);if(geometry)this.floating.configure(geometry,rawGeo?.includes(',')??false);
     if(query.has('epopen'))this.floating.reopen=query.get('epopen')!=='0';
+    this.bundleDispose=registerSettings('picker',()=>({options:this.model.options,floating:this.floating.state()}),this.restoreSettings);
     if (this.floating.reopen) this.open();
   }
   refresh(force = false): void {
@@ -104,6 +107,9 @@ export class EmotePicker {
     this.root.style.setProperty('--picker-cell', 64 * this.model.options.zoom + 'px');
     this.motion.play(regions, before, animateAges);
   }
+  private restoreSettings=(value:unknown):void=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(!data.options||typeof data.options!=='object'||!this.floating.restore(data.floating))return;this.model.options=parseOptions(data.options);
+   for(const key of ['sort','animation','zoom','ageRows'] as const)get(this.root,'picker-'+key,HTMLSelectElement).value=String(this.model.options[key]);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];for(const input of this.tabs.querySelectorAll<HTMLInputElement>('input'))input.checked=this.model.options.enabled.some(source=>source===input.value);this.reconcileFreeze();this.model.save(this.channel());if(this.root.dataset.rail!=='true'){if(this.floating.reopen)this.open();else this.close();}this.refresh(true);
+  };
   private preset=(event:Event):void=>{if(!(event instanceof CustomEvent)||typeof event.detail!=='string')return;this.model.options=pickerPreset(this.model.options,event.detail);const raw=pickerPresetGeometry(event.detail),geometry=parsePickerGeometry(raw??null);if(geometry)this.floating.configure(geometry,raw?.includes(',')??false);
    get(this.root,'picker-zoom',HTMLSelectElement).value=String(this.model.options.zoom);get(this.root,'picker-sort',HTMLSelectElement).value=this.model.options.sort;get(this.root,'picker-ageRows',HTMLSelectElement).value=String(this.model.options.ageRows);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];this.reconcileFreeze();this.model.save(this.channel());this.refresh(true);
   };
@@ -172,6 +178,7 @@ export class EmotePicker {
   private searchChange = (): void => { this.page = 200; this.grid.scrollTop = 0; this.refresh(true); };
   private showMore = (): void => { this.page += 200; this.refresh(true); };
   stop(): void {
+    this.bundleDispose();
     this.motion.stop();
     get(this.root,'picker-reset-order',HTMLButtonElement).removeEventListener('click',this.resetOrder);
     get(this.root,'picker-sort',HTMLSelectElement).removeEventListener('auxclick',this.resetMiddle);
