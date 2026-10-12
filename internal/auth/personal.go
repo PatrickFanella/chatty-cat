@@ -2,9 +2,14 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
+	"math"
 	"net/http"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
@@ -19,21 +24,56 @@ type personalEvent struct {
 	Message *irc.Message `json:"message,omitempty"`
 }
 
+func (s *Service) personalAdmission(w http.ResponseWriter, r *http.Request) {
+	status, detail, retry := http.StatusOK, "Personal chat capacity available", 0
+	want, err := chatlimits.Parse(r.URL.Query().Get("channels"), s.cfg.WorkspaceChannels)
+	p := s.lookup(r)
+	if !s.sameHost(r) {
+		status, detail = http.StatusForbidden, "Invalid chat origin"
+	} else if err != nil {
+		status, detail = http.StatusBadRequest, err.Error()
+	} else if p == nil {
+		status, detail = http.StatusUnauthorized, "Log in to receive personal chat state"
+	} else {
+		p.mu.Lock()
+		enabled := slices.Contains(p.user.Scopes, "chat:read") && slices.Contains(p.user.Scopes, "chat:edit")
+		full := p.personalConnections >= 2
+		p.mu.Unlock()
+		s.mu.Lock()
+		closing := s.closing
+		s.mu.Unlock()
+		if !enabled {
+			status, detail = http.StatusForbidden, "Log in again to enable personal chat state"
+		} else if closing {
+			status, detail, retry = http.StatusServiceUnavailable, "Service shutting down", 5
+		} else if full || len(s.ircSlots) >= cap(s.ircSlots) || !s.chatBudget.Available(len(want)) {
+			status, detail, retry = http.StatusTooManyRequests, "Personal chat capacity reached; close another view and retry", 5
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	if retry > 0 {
+		w.Header().Set("Retry-After", fmt.Sprint(retry))
+	}
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(struct {
+		Allowed bool   `json:"allowed"`
+		Detail  string `json:"detail"`
+		Retry   int    `json:"retryAfter"`
+	}{status == http.StatusOK, detail, retry}); err != nil {
+		return
+	}
+}
+
 func (s *Service) personalChat(w http.ResponseWriter, r *http.Request) {
 	if !s.sameHost(r) || !equal(r.Header.Get("Origin"), s.origin) {
 		http.Error(w, "Invalid chat origin", http.StatusForbidden)
 		return
 	}
-	want := strings.Split(r.URL.Query().Get("channels"), ",")
-	if len(want) < 1 || len(want) > 6 {
-		http.Error(w, "Invalid channels", http.StatusBadRequest)
+	want, err := chatlimits.Parse(r.URL.Query().Get("channels"), s.cfg.WorkspaceChannels)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-	for _, channel := range want {
-		if !channelPattern.MatchString(channel) {
-			http.Error(w, "Invalid channel", http.StatusBadRequest)
-			return
-		}
 	}
 	p := s.lookup(r)
 	if p == nil {
@@ -43,7 +83,7 @@ func (s *Service) personalChat(w http.ResponseWriter, r *http.Request) {
 	checkCtx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	p.mu.Lock()
 	valid := s.check(checkCtx, p, time.Now())
-	token, login := p.tokens.Access, p.user.Login
+	token, login, accountID := p.tokens.Access, p.user.Login, p.user.UserID
 	enabled := slices.Contains(p.user.Scopes, "chat:read") && slices.Contains(p.user.Scopes, "chat:edit")
 	p.mu.Unlock()
 	cancel()
@@ -84,6 +124,13 @@ func (s *Service) personalChat(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Personal chat capacity reached", http.StatusServiceUnavailable)
 		return
 	}
+	lease, err := s.chatBudget.Acquire(accountID, len(want))
+	if err != nil {
+		w.Header().Set("Retry-After", "5")
+		http.Error(w, err.Error(), http.StatusTooManyRequests)
+		return
+	}
+	defer lease.Release()
 	browser, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		return
@@ -130,16 +177,40 @@ func (s *Service) personalChat(w http.ResponseWriter, r *http.Request) {
 		defer end()
 		return upstream.Write(writeCtx, websocket.MessageText, []byte(text+"\r\n"))
 	}
+	if err := s.chatBudget.Wait(ctx, accountID, chatlimits.Authenticate, func(delay time.Duration) error {
+		return write(personalEvent{Type: "status", State: "connecting", Detail: fmt.Sprintf("Waiting for personal IRC login capacity; retrying in %d seconds", int(math.Ceil(delay.Seconds())))})
+	}); err != nil {
+		return
+	}
 	for _, command := range []string{"CAP REQ :twitch.tv/tags twitch.tv/commands", "PASS oauth:" + token, "NICK " + login} {
 		if send(command) != nil {
 			return
 		}
 	}
-	for _, channel := range want {
-		if send("JOIN #"+channel) != nil {
-			return
+	var welcomed, joined atomic.Bool
+	joinDone := make(chan struct{})
+	defer func() { stop(); <-joinDone }()
+	go func() {
+		defer close(joinDone)
+		for _, channel := range want {
+			if err := s.chatBudget.Wait(ctx, accountID, chatlimits.Join, func(delay time.Duration) error {
+				return write(personalEvent{Type: "status", State: "connecting", Detail: fmt.Sprintf("Waiting for personal channel join capacity; retrying in %d seconds", int(math.Ceil(delay.Seconds())))})
+			}); err != nil {
+				stop()
+				return
+			}
+			if err := send("JOIN #" + channel); err != nil {
+				stop()
+				return
+			}
 		}
-	}
+		joined.Store(true)
+		if welcomed.Load() {
+			if err := write(personalEvent{Type: "status", State: "connected", Detail: "Personal chat state connected"}); err != nil {
+				stop()
+			}
+		}
+	}()
 	// Logout, token rotation and session expiry cancel the credentialed connection.
 	done := make(chan struct{})
 	go func() {
@@ -196,6 +267,10 @@ func (s *Service) personalChat(w http.ResponseWriter, r *http.Request) {
 				return
 			case "001":
 				ready = true
+				welcomed.Store(true)
+				if !joined.Load() {
+					continue
+				}
 				if write(personalEvent{Type: "status", State: "connected", Detail: "Personal chat state connected"}) != nil {
 					return
 				}

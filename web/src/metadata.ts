@@ -50,28 +50,33 @@ export function parseMetadata(value: unknown): ChannelMetadata | null {
 }
 
 export class MetadataClient {
-  private readonly abort = new AbortController();
+  private abort = new AbortController();
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private generation=0;
+  private stopped=false;
 
-  constructor(private readonly channels: string[], private readonly receive: (data: ChannelMetadata) => void,
+  constructor(private channels: string[], private readonly receive: (data: ChannelMetadata) => void,
     private readonly failure: (channel: string) => void) {}
 
   start(): void { void this.poll(); }
-  stop(): void { this.abort.abort(); if (this.timer !== null) clearTimeout(this.timer); }
+  stop(): void {this.stopped=true;this.generation++; this.abort.abort(); if (this.timer !== null) clearTimeout(this.timer); }
+  setChannels(channels:readonly string[]):void{const next=[...new Set(channels)].sort();if(next.join(',')===[...this.channels].sort().join(',')||this.stopped)return;this.channels=next;this.generation++;this.abort.abort();this.abort=new AbortController();if(this.timer!==null)clearTimeout(this.timer);this.timer=null;void this.poll();}
 
   private async poll(): Promise<void> {
-    await Promise.all(this.channels.map(async (channel) => {
+    const generation=this.generation,abort=this.abort,channels=[...this.channels];let index=0;
+    const worker=async():Promise<void>=>{while(index<channels.length&&!abort.signal.aborted&&!this.stopped){const channel=channels[index++]!;
       try {
         const res = await fetch('/api/channels/' + encodeURIComponent(channel), {
-          signal: AbortSignal.any([this.abort.signal, AbortSignal.timeout(25000)]),
+          signal: AbortSignal.any([abort.signal, AbortSignal.timeout(25000)]),
         });
         if (!res.ok) throw new Error('metadata fetch failed');
         const value: unknown = await res.json();
         const data = parseMetadata(value);
         if (!data || data.channel !== channel) throw new Error('invalid metadata');
-        if (!this.abort.signal.aborted) this.receive(data);
-      } catch { if (!this.abort.signal.aborted) this.failure(channel); }
-    }));
-    if (!this.abort.signal.aborted) this.timer = setTimeout(() => void this.poll(), 60000);
+        if (!abort.signal.aborted&&generation===this.generation&&!this.stopped) this.receive(data);
+      } catch { if (!abort.signal.aborted&&generation===this.generation&&!this.stopped) this.failure(channel); }
+    }};
+    await Promise.all(Array.from({length:Math.min(4,channels.length)},()=>worker()));
+    if (!abort.signal.aborted&&generation===this.generation&&!this.stopped) this.timer = setTimeout(() => void this.poll(), 60000);
   }
 }

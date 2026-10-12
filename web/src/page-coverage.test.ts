@@ -50,3 +50,6 @@ it('continues when browser storage is unavailable', () => {
   const add = vi.fn(); coverage = new PageCoverage(['one'], add);
   vi.advanceTimersByTime(20000); expect(add).not.toHaveBeenCalled();
 });
+it('stops heartbeats for closed sources and records their unobserved interval on reopening',()=>{
+ vi.useFakeTimers();vi.setSystemTime(1000);const add=vi.fn();coverage=new PageCoverage(['one','two'],add);vi.advanceTimersByTime(10000);coverage.setChannels(['one']);const closed=localStorage.getItem('chatthing:v1:observed:two');vi.advanceTimersByTime(40000);expect(localStorage.getItem('chatthing:v1:observed:two')).toBe(closed);coverage.setChannels(['one','two']);expect(add).toHaveBeenCalledOnce();expect(add.mock.calls[0]?.[0]).toMatchObject({channel:'two',tags:{'gap-start':closed}});
+});

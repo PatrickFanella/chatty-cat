@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
 	"io"
 	"log/slog"
 	"net/http"
@@ -27,11 +28,12 @@ const maxEntries = 1024
 // Config contains server-only credentials and the public origin.
 // Endpoint overrides are for local integration tests.
 type Config struct {
-	ClientID, ClientSecret, PublicURL   string
-	AuthorizeURL, TokenURL, ValidateURL string
-	HelixURL                            string
-	IRCURL                              string
-	EventSubURL                         string
+	WorkspaceChannels, ChatSubscriptions int
+	ClientID, ClientSecret, PublicURL    string
+	AuthorizeURL, TokenURL, ValidateURL  string
+	HelixURL                             string
+	IRCURL                               string
+	EventSubURL                          string
 }
 
 type pending struct {
@@ -74,6 +76,7 @@ type Service struct {
 	appAccess                               string
 	appExpires, appValidated, appRetryAfter time.Time
 	cfg                                     Config
+	chatBudget                              *chatlimits.Budget
 	origin                                  string
 	secure                                  bool
 	client                                  *http.Client
@@ -92,6 +95,11 @@ type Service struct {
 
 // New validates configuration and starts the cancellable token validation worker.
 func New(cfg Config) (*Service, error) {
+	if cfg.ChatSubscriptions == 0 {
+		cfg.ChatSubscriptions = chatlimits.MaxSubscriptions
+	}
+	cfg.ChatSubscriptions = max(1, min(cfg.ChatSubscriptions, chatlimits.MaxSubscriptions))
+	cfg.WorkspaceChannels = min(chatlimits.Capacity(cfg.WorkspaceChannels), cfg.ChatSubscriptions)
 	if (cfg.ClientID == "") != (cfg.ClientSecret == "") {
 		return nil, errors.New("set both TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET")
 	}
@@ -126,7 +134,7 @@ func New(cfg Config) (*Service, error) {
 		cfg.EventSubURL = "wss://eventsub.wss.twitch.tv/ws"
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{cfg: cfg, origin: cfg.PublicURL, secure: u.Scheme == "https", client: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, pending: make(map[string]pending), sessions: make(map[[32]byte]*session), slots: make(chan struct{}, 16), ircSlots: make(chan struct{}, 32), whisperSlots: make(chan struct{}, 32), whispers: make(map[string]*whisperHub), ctx: ctx, cancel: cancel}
+	s := &Service{cfg: cfg, chatBudget: chatlimits.New(cfg.ChatSubscriptions, maxEntries), origin: cfg.PublicURL, secure: u.Scheme == "https", client: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, pending: make(map[string]pending), sessions: make(map[[32]byte]*session), slots: make(chan struct{}, 16), ircSlots: make(chan struct{}, 32), whisperSlots: make(chan struct{}, 32), whispers: make(map[string]*whisperHub), ctx: ctx, cancel: cancel}
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
@@ -167,6 +175,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("POST /api/chat/send", s.limit(s.send))
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
 	mux.HandleFunc("GET /api/auth/chat", s.personalChat)
+	mux.HandleFunc("GET /api/auth/chat-admission", s.personalAdmission)
 	mux.HandleFunc("GET /api/auth/whispers", s.whisperChat)
 }
 

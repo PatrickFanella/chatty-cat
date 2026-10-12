@@ -44,4 +44,5 @@ export class PersonalChat {
     this.connection=new ChatConnection(this.channels,event=>{if(event.type==='status')this.status.textContent=event.detail||`Personal chat: ${event.state}`;else this.receive(event);},'/api/auth/chat');this.connection.start();
   }
   stop():void {this.connection?.stop();}
+  setChannels(channels:readonly string[]):void{this.channels=[...channels];this.connection?.setChannels(channels);}
 }

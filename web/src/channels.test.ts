@@ -20,3 +20,9 @@ it('uses send chips without changing focus or bypassing a disabled destination',
   expect(form.querySelector<HTMLButtonElement>('[data-send-channel="one"]')!.disabled).toBe(true);
   controls.stop();
 });
+it('adds a seventh channel under the configured workspace cap and lets channel edits override saved URLs',()=>{
+ const current=new URL('https://chat.subcult.tv/?workspace=saved&channel=a,b,c,d,e,f');const next=channelURL(current,['a','b','c','d','e','f'],{kind:'add',channel:'g'},12);expect(next.searchParams.get('channel')).toBe('a,b,c,d,e,f,g');expect(next.searchParams.has('workspace')).toBe(false);expect(()=>channelURL(next,['a','b','c','d','e','f','g'],{kind:'add',channel:'h'},7)).toThrow();
+});
+it('blocks channel navigation during a pending send',()=>{
+ const root=document.createElement('div'),form=document.createElement('form'),select=document.createElement('select');select.innerHTML='<option value=one>one</option><option value=two>two</option>';form.append(select);const controls=new ChannelControls(root,form,select,['one','two'],12);select.disabled=true;const event=new MouseEvent('click',{bubbles:true,cancelable:true});root.querySelector('a')!.dispatchEvent(event);expect(event.defaultPrevented).toBe(true);expect(root.textContent).toContain('Wait for the current send');controls.stop();
+});
