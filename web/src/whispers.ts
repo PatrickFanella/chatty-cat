@@ -5,6 +5,7 @@ import type { ChatMessage } from './protocol';
 import { appendLinks } from './links';
 export class Whispers {
   private identity='';
+  private paused=false;
   private connection: ChatConnection | undefined;
   private enabled = false;
   private unread=0;
@@ -25,7 +26,7 @@ export class Whispers {
       if(identity!==this.identity){this.unread=0;this.seen.clear();this.log.replaceChildren();this.close();}
       this.identity=identity;this.enabled=enabled;
       this.status.textContent=identity?enabled?'Connecting incoming whispers':'Log in again to enable whispers':'Log in with Twitch for whispers';
-      if(enabled){this.connection=new ChatConnection([],event=>{if(event.type==='message')this.receive(event.message);else this.status.textContent=event.detail||'Incoming whispers '+event.state;},'/api/auth/whispers');this.connection.start();}
+      if(enabled){this.connection=new ChatConnection([],event=>{if(event.type==='message')this.receive(event.message);else this.status.textContent=event.detail||'Incoming whispers '+event.state;},'/api/auth/whispers');if(this.paused)this.connection.disconnect();else this.connection.start();}
     }
     this.trigger.disabled=!identity;this.paint();
   }
@@ -50,5 +51,7 @@ export class Whispers {
   private toggle=(event:MouseEvent):void=>{if(event.shiftKey){this.unread=0;this.paint();}else if(this.root.hidden)this.open();else this.close();};
   private click=(event:MouseEvent):void=>{if(!(event.target instanceof Element))return;const button=event.target.closest<HTMLButtonElement>('button');if(button?.id==='whisper-close'){this.close();this.trigger.focus();}else if(button?.dataset.answer&&/^[a-z0-9_]{1,25}$/.test(button.dataset.answer))this.answer(button.dataset.answer);};
   private key=(event:KeyboardEvent):void=>{if(event.key==='Escape'){event.preventDefault();this.close();this.trigger.focus();}};
+  disconnect():void{this.paused=true;this.connection?.disconnect();}
+  reconnect():void{this.paused=false;this.connection?.reconnect();}
   stop():void {this.connection?.stop();this.floating.stop();this.trigger.removeEventListener('click',this.toggle);this.root.removeEventListener('click',this.click);this.root.removeEventListener('keydown',this.key);}
 }

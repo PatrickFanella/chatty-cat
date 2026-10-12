@@ -78,7 +78,7 @@ func (s *Service) send(w http.ResponseWriter, r *http.Request) {
 		writeSend(w, 400, sendResult{Error: "Use 1–500 characters without line breaks or control characters"})
 		return
 	}
-	if strings.HasPrefix(strings.TrimSpace(input.Message), "/") {
+	if strings.HasPrefix(strings.TrimSpace(input.Message), "/") || strings.EqualFold(strings.Fields(input.Message)[0], ".w") {
 		if _, err := parseCommand(strings.TrimSpace(input.Message)); err != nil {
 			writeSend(w, 400, sendResult{Error: err.Error()})
 			return

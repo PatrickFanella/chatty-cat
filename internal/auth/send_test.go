@@ -277,3 +277,11 @@ func TestConcurrentReplay(t *testing.T) {
 		t.Fatal("concurrent duplicate posted")
 	}
 }
+
+func TestDotWhisperAliasRejectedBeforeProvider(t *testing.T) {
+	f := setupSend(t)
+	res := f.post(t, sendBody(".w someone private text", "local-alias-request-123"), f.cookies, "https://chat.subcult.tv", f.csrf)
+	if res.Code != http.StatusBadRequest || f.calls.Load() != 0 || f.lookups.Load() != 0 {
+		t.Fatalf("dot whisper leaked to provider: status=%d sends=%d lookups=%d", res.Code, f.calls.Load(), f.lookups.Load())
+	}
+}

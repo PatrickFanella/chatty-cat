@@ -1,3 +1,4 @@
+import {isLocalCommand,LOCAL_COMMANDS} from './local-commands';
 import { completions, insertCompletion, wireMessage, type Completion } from './completion';
 import type { AuthStatus } from './auth';
 import type { ChatMessage } from './protocol';
@@ -35,6 +36,12 @@ function field<T extends HTMLElement>(form: HTMLFormElement, id: string, ctor: n
   return node;
 }
 export class Composer {
+  private composing=false;
+  private compositionStart=():void=>{this.composing=true;};
+  private compositionEnd=():void=>{this.composing=false;};
+  private localDispatch:((text:string)=>Promise<string|undefined>)|undefined;
+  configureLocal(dispatch:(text:string)=>Promise<string|undefined>):void{this.localDispatch=dispatch;this.render();}
+  stageReply(message:ChatMessage,text:string):void{if(!this.canInsert)throw new Error('Log in to stage a public reply');if(this.target!==message.channel&&this.draftFor(message.channel).trim())throw new Error('Finish or clear the destination draft before staging a reply');this.selectReply(message);if(this.reply!==message)throw new Error('Reply channel is unavailable');this.input.value=text;this.edit();}
   private blocked = '';
   private commands:readonly string[]=[];
   private commandPreview:((text:string)=>boolean)|undefined;
@@ -42,7 +49,7 @@ export class Composer {
   get draft():string{return this.input.value;}
   draftFor(channel:string):string{try{return sessionStorage.getItem('chatthing:v1:draft:'+channel)??'';}catch{return '';}}
   prepare(text:string):void{if(!this.canInsert)return;this.reply=undefined;this.input.value=text;this.edit();this.input.focus();}
-  private validation(text:string):string|undefined{const error=validateMessage(text);return error?.startsWith('Unsupported slash')&&this.commands.some(trigger=>trigger.toLowerCase()===text.split(/\s/)[0]?.toLowerCase())?undefined:error;}
+  private validation(text:string):string|undefined{const error=validateMessage(text);if(this.localDispatch&&isLocalCommand(text))return undefined;return error?.startsWith('Unsupported slash')&&this.commands.some(trigger=>trigger.toLowerCase()===text.split(/\s/)[0]?.toLowerCase())?undefined:error;}
   setBlock(reason: string): void { if (this.blocked === reason) return; this.blocked = reason; if (!this.busy) this.status.textContent = reason; this.render(); }
   private readonly input: HTMLTextAreaElement;
   private readonly suggestions: HTMLElement;
@@ -79,7 +86,7 @@ export class Composer {
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
     this.restoreDraft();
     form.addEventListener('submit', this.submit);
-    this.input.addEventListener('input', this.edit);
+    this.input.addEventListener('input', this.edit);this.input.addEventListener('compositionstart',this.compositionStart);this.input.addEventListener('compositionend',this.compositionEnd);
     this.input.addEventListener('keydown', this.key);
     this.input.addEventListener('click', this.closeCompletion);
     this.input.addEventListener('blur', this.closeCompletion);
@@ -139,7 +146,7 @@ export class Composer {
     event.preventDefault(); this.completionIndex = Number(index); this.acceptCompletion(); this.input.focus();
   };
   setAuth(auth: AuthStatus | undefined): void {
-    if((this.auth?.userID??this.auth?.login)!==(auth?.userID??auth?.login)||!auth?.authenticated){this.authGeneration++;this.requestID=undefined;this.reply=undefined;if(/^\s*\/w(?:\s|$)/i.test(this.input.value))this.input.value='';}
+    if((this.auth?.userID??this.auth?.login)!==(auth?.userID??auth?.login)||!auth?.authenticated){this.authGeneration++;this.requestID=undefined;this.reply=undefined;if(/^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value))this.input.value='';}
     this.auth = auth;
     if (!auth?.authenticated) this.closeCompletion();
     document.documentElement.dataset.authenticated = String(auth?.authenticated === true);
@@ -160,18 +167,19 @@ export class Composer {
     } catch { return []; }
   }
   private saveDraft(): void {
-    try { sessionStorage.setItem('chatthing:v1:draft:' + this.channel.value, /^\s*\/w(?:\s|$)/i.test(this.input.value) ? '' : this.input.value); } catch { /* optional storage */ }
+    try { sessionStorage.setItem('chatthing:v1:draft:' + this.channel.value, /^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value) ? '' : this.input.value); } catch { /* optional storage */ }
   }
   private restoreDraft(): void {
     try { this.input.value = sessionStorage.getItem('chatthing:v1:draft:' + this.channel.value) ?? ''; } catch { this.input.value = ''; }
   }
   private render(): void {
     const signedIn = this.auth?.authenticated === true;
-    this.input.disabled = this.busy || !signedIn;
+    const local=!!this.localDispatch&&isLocalCommand(this.input.value);
+    this.input.disabled = this.busy || !signedIn&&!this.localDispatch;
     this.channel.disabled = this.busy;
-    this.button.disabled = this.busy || !signedIn || (!!this.blocked && !/^\s*\//.test(this.input.value)) || !!this.validation(wireMessage(this.input.value));
-    this.button.textContent = this.busy ? 'Sending…' : 'Send';
-    this.input.placeholder = signedIn ? 'Message' : 'Log in';
+    this.button.disabled = this.busy || !signedIn&&!local || (!!this.blocked && !/^\s*\//.test(this.input.value)) || !!this.validation(wireMessage(this.input.value));
+    this.button.textContent = this.busy ? 'Sending…' : local?'Run locally':'Send';
+    this.input.placeholder = signedIn ? 'Message' : this.localDispatch?'Local command (/help) or log in to send':'Log in';
     const length = [...wireMessage(this.input.value)].length;
     this.count.textContent = `${length}/500`;
     this.count.classList.toggle('warn', length >= 460);
@@ -186,7 +194,7 @@ export class Composer {
     this.form.dispatchEvent(new Event('channelstatechange'));
   }
   private edit = (): void => { this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
-    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,this.commands);
+    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,[...this.commands,...this.localDispatch?LOCAL_COMMANDS:[]]);
     this.completionIndex = 0; this.paintCompletion();
   };
   private clearReply = (): void => { this.reply = undefined; this.requestID = undefined; this.render(); };
@@ -229,7 +237,9 @@ export class Composer {
   };
   private submit = async (event: SubmitEvent): Promise<void> => {
     event.preventDefault();
-    if (this.busy || !this.auth?.authenticated || !this.auth.csrf) return;
+    if(this.busy||this.composing)return;
+    if(this.localDispatch&&isLocalCommand(wireMessage(this.input.value))){const generation=this.authGeneration;try{const report=await this.localDispatch(wireMessage(this.input.value));if(generation===this.authGeneration)this.status.textContent=report??'Local command unavailable';}catch(error){if(generation===this.authGeneration)this.status.textContent=error instanceof Error?error.message:'Local command failed';}this.render();return;}
+    if (!this.auth?.authenticated || !this.auth.csrf) return;
     if (this.blocked && !/^\s*\//.test(this.input.value)) { this.status.textContent = this.blocked; return; }
     try{if(this.commandPreview?.(wireMessage(this.input.value)))return;}catch(error){this.status.textContent=error instanceof Error?error.message:'Command preview failed';return;}
     const error = validateMessage(wireMessage(this.input.value));
@@ -269,7 +279,7 @@ export class Composer {
   };
   stop(): void {
     this.disposed = true; this.saveDraft(); this.abort.abort();
-    this.form.removeEventListener('submit', this.submit); this.input.removeEventListener('input', this.edit);
+    this.form.removeEventListener('submit', this.submit); this.input.removeEventListener('input', this.edit);this.input.removeEventListener('compositionstart',this.compositionStart);this.input.removeEventListener('compositionend',this.compositionEnd);
     this.input.removeEventListener('keydown', this.key); this.input.removeEventListener('click', this.closeCompletion); this.input.removeEventListener('blur', this.closeCompletion); this.suggestions.removeEventListener('mousedown', this.pickCompletion); this.channel.removeEventListener('change', this.changeChannel);
     this.cancelReply.removeEventListener('click', this.clearReply);
   }

@@ -77,3 +77,13 @@ Similarity defaults off. Trigram overlap uses at most 50 prior comparisons and a
 Synthetic browser demo: `http://127.0.0.1:5173/rules-demo.html`. Seed rows, configure a global hello highlight and a pane-only secret hide, then enable similarity. Observed 105 records, 105 global rows and 104 selected-pane rows; adding a new record preserved the same reader key and exact -16.2421875px offset. Only 56 rows were mounted across both readers. First hello remained highlighted; repeated messages were dimmed with highlights suppressed. This fixture makes no Twitch connection or send.
 
 Rules checkpoint: 83 frontend files / 393 tests, strict TypeScript/service-worker checks and production build passed. Browser preview/save, pane selection, similarity presentation and reader anchoring were verified without provider writes. PR #54 contains the prerequisite capacity work.
+
+## Local command dispatch (#40)
+
+Local /clearmessages, /uptime, /openurl, /copy, /user and /usercard dispatch in the browser with explicit channel context. /requests opens the Twitch channel-points reward queue. /help documents browser adaptations, /popup and /popout report blocked popups, /ignore and /unignore disclose local hiding versus provider blocking, and follow actions open Twitch without changing follow state. Raw/debug/native commands remain rejected by the server.
+
+/reply stages the selected public thread; /r stages a private whisper and never selects a public reply. /whisper, /msg and .w stage /w aliases. A separate Send is required for all staged messages. Targets are memory-only and cleared on account change; private alias drafts are excluded from storage. IME submissions are ignored. Local commands work while signed out and retain the invocation draft. Ephemeral popouts do not alter the parent saved workspace.
+
+Anonymous browser check: /disconnect remained paused after an online event; /clearmessages changed 32 mounted rows to zero while all 369 retained messages remained counted and its draft stayed intact; /reconnect resumed, and /help opened the documented command list. Regression fixtures cover clipboard denial, unsafe URLs, popup rejection, account target cleanup, frontend dispatch without fetch and server rejection of every local-only command. No provider write occurred.
+
+Local command checkpoint: 84 frontend files / 397 tests, production build and full Go race suite passed. The audited .w alias stages a private whisper and is explicitly rejected by the server send boundary.

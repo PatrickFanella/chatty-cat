@@ -4,6 +4,7 @@ export class ChatConnection {
   private socket: WebSocket | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
+  private paused=false;
   private attempt = 0;
   private hiddenAt = 0;
   private listening = false;
@@ -15,7 +16,7 @@ export class ChatConnection {
   constructor(channels: string[], private readonly receive: (event: ServerEvent) => void, private readonly path = '/api/chat') {this.channels=[...new Set(channels)].sort();}
 
   start(): void {
-    if (this.stopped || this.socket||this.refusal||!this.channels.length&&['/api/chat','/api/auth/chat'].includes(this.path)) return;
+    if (this.stopped || this.paused || this.socket||this.refusal||!this.channels.length&&['/api/chat','/api/auth/chat'].includes(this.path)) return;
     this.generation++;this.admissionAbort?.abort();
     if(!this.listening){this.listening=true;window.addEventListener('online',this.online);document.addEventListener('visibilitychange',this.visibility);}
     const url = new URL(this.path, location.href);
@@ -41,7 +42,7 @@ export class ChatConnection {
       void this.admission(this.generation);
     };
   }
-  setChannels(channels:readonly string[]):boolean {const next=channels.length?parseWorkspaceChannels(channels.join(',')).sort():[];if(next.join(',')===this.channels.join(','))return false;this.channels=next;this.reconnect();return true;}
+  setChannels(channels:readonly string[]):boolean {const next=channels.length?parseWorkspaceChannels(channels.join(',')).sort():[];if(next.join(',')===this.channels.join(','))return false;this.channels=next;if(!this.paused)this.reconnect();return true;}
   private async admission(generation:number):Promise<void>{
     if(!['/api/chat','/api/auth/chat'].includes(this.path))return;this.admissionAbort?.abort();const abort=new AbortController();this.admissionAbort=abort;
     try{const url=new URL(this.path+'-admission',location.href);url.searchParams.set('channels',this.channels.join(','));const response=await fetch(url,{cache:'no-store',signal:AbortSignal.any([abort.signal,AbortSignal.timeout(3000)])});const value:unknown=await response.json();
@@ -53,7 +54,8 @@ export class ChatConnection {
   }
 
   private online=():void=>{if(this.stopped||this.socket)return;if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}this.start();};
-  reconnect():void{if(this.stopped)return;this.generation++;this.admissionAbort?.abort();this.refusal=false;if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}const old=this.socket;this.socket=null;old?.close();this.attempt=0;this.receive({type:'status',state:'reconnecting',detail:this.path==='/api/chat'?'Reconnecting public chat':'Reconnecting personal chat'});this.start();}
+  disconnect():void{this.paused=true;this.generation++;this.admissionAbort?.abort();if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}const old=this.socket;this.socket=null;old?.close();this.receive({type:'status',state:'reconnecting',detail:'Disconnected by you; use /reconnect to resume'});}
+  reconnect():void{if(this.stopped)return;this.paused=false;this.generation++;this.admissionAbort?.abort();this.refusal=false;if(this.timer!==null){clearTimeout(this.timer);this.timer=null;}const old=this.socket;this.socket=null;old?.close();this.attempt=0;this.receive({type:'status',state:'reconnecting',detail:this.path==='/api/chat'?'Reconnecting public chat':'Reconnecting personal chat'});this.start();}
   private visibility=():void=>{
     if(document.hidden){this.hiddenAt=Date.now();return;}
     if(this.hiddenAt&&Date.now()-this.hiddenAt>60000){this.hiddenAt=0;this.socket?.close();this.online();}

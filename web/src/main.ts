@@ -1,3 +1,5 @@
+import {LocalTargets,dispatchLocal,LOCAL_COMMANDS} from './local-commands';
+import {privacyEnabled} from './privacy';
 import {RulePanel} from './rules-ui';
 import {SimilarMessages} from './similar';
 import {loadCapacity} from './capacity';
@@ -67,6 +69,8 @@ function element<T extends HTMLElement>(id: string, constructor: new () => T): T
 }
 
 const capacity=await loadCapacity();
+const localTargets=new LocalTargets();
+const localCleared=new Map<string,number>();
 const errorReport = new ErrorReport(document.body);
 const stopLifecycle = mountLifecycle(element('offline', HTMLElement), element('app-update', HTMLButtonElement));
 // Each built bundle gets its matching archive, bypassing stale edge copies.
@@ -107,7 +111,8 @@ try { frozen = localStorage.getItem('chatthing:v1:frozen') === '1'; } catch { /*
 animation.setAttribute('aria-pressed', String(frozen));
 const workspaceStore=new WorkspaceStore();
 const workspaceQuery=new URL(location.href).searchParams;
-const bootWorkspace=workspaceStore.get(workspaceQuery.get('workspace')??'')??workspaceStore.active;
+const ephemeralPopout=workspaceQuery.get('popout')==='1';
+const bootWorkspace=ephemeralPopout?undefined:(workspaceStore.get(workspaceQuery.get('workspace')??'')??workspaceStore.active);
 let currentWorkspaceID=bootWorkspace?.id??'';
 let pendingReaders:ReaderPosition[]|undefined=bootWorkspace?.readers.length?bootWorkspace.readers:undefined;
 let historyReady=false;
@@ -163,16 +168,16 @@ let selfLogin = '';
 function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true,true); scheduleRender(); }
 const tabSync = new TabSync(acceptEcho);
 const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.layout.enabled)follow=false;latest.hidden=false;},()=>latest.click());
-const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message),(message,outgoing)=>inboxPanel?.whisper(message,outgoing));
+const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { accountAuth = auth;if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
   const channel = event.target.closest<HTMLElement>('.row')?.dataset.channel;
   const message = viewMessages().find((message) => message.id === id && message.channel === channel);
-  if (message) composer.selectReply(message);
+  if (message){localTargets.reply(message);composer.selectReply(message);}
 });
 let renderQueued = false;
 let follow = !pendingReaders;
@@ -258,7 +263,7 @@ function render(): void {
   document.documentElement.style.setProperty('--composer-bottom',element('composer',HTMLFormElement).getBoundingClientRect().bottom+'px');
   store.setCap(display.options.scrollback);
   const messages = overlay?(archiveView??store.messages).filter(message=>channels.slice(0,6).includes(message.channel)):virtualLog.layout.enabled?store.messages:archiveView ?? store.messages;
-  const makeItems=(messages:readonly ChatMessage[]):LogItem[]=>{
+  const makeItems=(messages:readonly ChatMessage[],isArchive=false):LogItem[]=>{
    const cleared = new Map<string, number>();
    const deleted = new Set<string>();
    for (const message of messages) {
@@ -269,6 +274,7 @@ function render(): void {
    // Hidden-user stubs keep their place among visible messages, rather than
    // collecting at the live edge and disturbing scroll anchoring.
    for (const message of messages) {
+     if(!isArchive&&message.timestamp<=(localCleared.get(message.channel)??-1))continue;
      if (['ROOMSTATE', 'USERSTATE', 'GLOBALUSERSTATE'].includes(message.command)) continue;
      const visibility = messageVisibility(message, display.options, selfLogin);const rule=rulePanel?.engine.evaluate(message),similar=rulePanel?.similarity.classify(message,selfLogin)??false;
      if(rule?.hidden||similar&&rulePanel?.similarity.options.behavior==='hide')continue;
@@ -287,9 +293,9 @@ function render(): void {
    }
     return items;
   };
-  const items=makeItems(messages);
-  if(virtualLog.layout.enabled&&archiveView&&archiveView!==paneArchive){paneArchive=archiveView;for(const message of archiveView)paneArchiveMessages.set(messageKey(message),message);const context=makeItems(archiveView);virtualLog.showContext(display.options.rev?context.reverse():context,archiveView.map(messageKey));}
-  virtualLog.refreshContexts(keys=>{const messages=keys.map(key=>paneArchiveMessages.get(key)).filter((message):message is ChatMessage=>!!message);const context=makeItems(messages);return display.options.rev?context.reverse():context;});
+  const items=makeItems(messages,!!archiveView&&!virtualLog.layout.enabled);
+  if(virtualLog.layout.enabled&&archiveView&&archiveView!==paneArchive){paneArchive=archiveView;for(const message of archiveView)paneArchiveMessages.set(messageKey(message),message);const context=makeItems(archiveView,true);virtualLog.showContext(display.options.rev?context.reverse():context,archiveView.map(messageKey));}
+  virtualLog.refreshContexts(keys=>{const messages=keys.map(key=>paneArchiveMessages.get(key)).filter((message):message is ChatMessage=>!!message);const context=makeItems(messages,true);return display.options.rev?context.reverse():context;});
   virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split,display.options.pause);
   if(paneArchiveMessages.size){const keys=virtualLog.contextKeys();for(const key of paneArchiveMessages.keys())if(!keys.has(key))paneArchiveMessages.delete(key);}
   count.textContent = virtualLog.layout.enabled ? `${store.messages.length.toLocaleString()} messages${virtualLog.hasContexts()?' · Pane history open':''}` : archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
@@ -326,7 +332,7 @@ const attention = new Attention(element('missed-mentions', HTMLButtonElement), (
 element('display-panel', HTMLDialogElement).addEventListener('change', event => { if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked) void attention.permission(); });
 
 element('alert-test',HTMLButtonElement).addEventListener('click',()=>{void attention.test().then(result=>{element('alert-test-status',HTMLElement).textContent=result;});});
-const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, viewMessages, () => accountAuth, message => composer.selectReply(message), login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
+const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, viewMessages, () => accountAuth, message => {localTargets.reply(message);composer.selectReply(message);}, login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
 function zoomChat(delta:number):void{const index=FONT_SIZES.indexOf(display.options.size),size=FONT_SIZES[Math.max(0,Math.min(FONT_SIZES.length-1,index+delta))];if(size)display.setOptions({...display.options,size});}
@@ -354,12 +360,12 @@ virtualLog.manageKeyboard();
 if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
 if(['off','0'].includes(workspaceQuery.get('video')??''))videoPanel.showRail(false);
 function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
-function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout&&!overlay&&!capacityRefused)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
-if(!currentWorkspaceID&&!workspaceStore.error){try{const initial=workspaceStore.create('Watching',captureWorkspace());workspaceStore.activate(initial.id);currentWorkspaceID=initial.id;}catch(error){announcer.textContent=error instanceof Error?error.message:'Workspace storage unavailable';}}
+function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout&&!overlay&&!ephemeralPopout&&!capacityRefused)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
+if(!currentWorkspaceID&&!workspaceStore.error&&!ephemeralPopout){try{const initial=workspaceStore.create('Watching',captureWorkspace());workspaceStore.activate(initial.id);currentWorkspaceID=initial.id;}catch(error){announcer.textContent=error instanceof Error?error.message:'Workspace storage unavailable';}}
 const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElement),element('workspace-open',HTMLButtonElement),workspaceStore,()=>currentWorkspaceID,captureWorkspace,saveWorkspace,workspace=>{
  if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
  const url=new URL(location.href);url.search='';url.searchParams.set('workspace',workspace.id);url.searchParams.set('channel',workspace.channels.join(','));if(overlay)url.searchParams.set('overlay','1');location.assign(url.href);
-},!!panePopout);
+},!!panePopout||ephemeralPopout);
 async function replayInbox():Promise<void>{
  const generation=++inboxGeneration,panel=inboxPanel;if(!panel||!accountAuth?.authenticated)return;const messages=[...store.messages],login=accountAuth.login?.toLowerCase();
  for(const own of [true,false])for(let index=0;index<messages.length;index+=500){if(generation!==inboxGeneration)return;for(const message of messages.slice(index,index+500))if((message.login.toLowerCase()===login)===own){const rule=rulePanel?.engine.evaluate(message,ruleIDsFor(message));if(!rule?.hidden)panel.observe(message,!!rule?.inbox);}if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));}
@@ -422,6 +428,16 @@ const connection = new ChatConnection(liveSources(), (event) => {
 });
 syncSources=()=>{const sources=liveSources(),closed=channels.filter(channel=>!sources.includes(channel));pickerModel.connection(closed,'reconnecting');connection.setChannels(sources);personalChat.setChannels(sources);metadataClient.setChannels(sources);pageCoverage.setChannels(sources);};
 syncSources();connection.start();
+const localHelp=document.createElement('dialog');localHelp.setAttribute('aria-label','Local command help');const heading=document.createElement('h2');heading.textContent='Local commands';const helpText=document.createElement('p');helpText.textContent=LOCAL_COMMANDS.join(' · ');const details=document.createElement('p');details.textContent='Context is the selected send channel. /reply stages the selected public thread. /r stages a private whisper to the last selected or observed whisper recipient; it never means a public reply. /whisper, /msg and .w are aliases that stage /w. Review staged messages and press Send separately. /requests opens the channel-points queue. /ignore only hides a user locally; /block changes Twitch blocking. Follow actions open Twitch. /clearmessages hides retained rows locally while preserving the archive. /disconnect pauses public, personal and whisper streams until /reconnect. Raw, debug and native commands are unavailable.';const closeHelp=document.createElement('button');closeHelp.type='button';closeHelp.textContent='Close';closeHelp.addEventListener('click',()=>localHelp.close());localHelp.append(heading,helpText,details,closeHelp);document.body.append(localHelp);
+composer.configureLocal(text=>{if(privacyEnabled())throw new Error('Local commands are unavailable in privacy mode');return dispatchLocal(text,{channel:composer.target,uptime:metadata.get(composer.target)?.stream.uptime??'',targets:localTargets,
+ open:url=>{const opened=window.open('about:blank','_blank');if(!opened)return false;opened.opener=null;opened.location.href=url;return true;},copy:async value=>{await navigator.clipboard.writeText(value);},
+ clear:channel=>{localCleared.set(channel,store.messages.reduce((cutoff,m)=>m.channel===channel?Math.max(cutoff,m.timestamp):cutoff,Date.now()));visualRevision++;scheduleRender();},
+ user:(login,channel)=>inspector.openUser(login,channel),ignore:(login,hide)=>{const names=display.options.hidden.split(/[\s,]+/).filter(Boolean).filter(name=>name.toLowerCase()!==login);if(hide)names.push(login);display.setOptions({...display.options,hidden:names.join(',')});},
+ connection:connect=>{for(const stream of [connection,personalChat,whispers])if(connect)stream.reconnect();else stream.disconnect();},
+ popout:channel=>{const url=new URL(location.href);url.search='';url.searchParams.set('channel',channel);url.searchParams.set('popout','1');url.searchParams.set('video','off');return !!window.open(url.href,'_blank','popup,width=600,height=850');},
+ reply:(message,value)=>composer.stageReply(message,value),stage:value=>{if(!composer.canInsert)throw new Error('Log in to stage a whisper');composer.prepare(value);},help:()=>localHelp.showModal()});});
+window.addEventListener('pagehide',()=>localHelp.remove());
+
 
 log.addEventListener('scroll', (event) => {
   if(virtualLog.hoverPaused(event.target))return;
