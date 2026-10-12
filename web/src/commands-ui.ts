@@ -30,6 +30,7 @@ export class CommandPanel {
  };
  private show():void{if(privacyEnabled())return;this.root.showModal();this.field('input').focus();}
  private open=():void=>{this.messageContext=undefined;this.show();};
+ openPanel():void{this.open();}
  private liveContext():CommandContext{const current=this.context();return this.messageContext?{...current,channel:this.messageContext.channel,message:this.messageContext.message}:current;}
  private messageAction=():void=>{const current=this.context();this.messageContext={...current,channel:{...current.channel},message:current.message?{...current.message}:undefined};this.inspector.close();this.show();};
  private showPreview(command:CommandTemplate,invocation:string):void{

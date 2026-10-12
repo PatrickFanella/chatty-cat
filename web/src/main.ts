@@ -1,3 +1,6 @@
+import {HotkeyPanel} from './hotkeys-ui';
+import {ACTIONS,type ActionID} from './hotkeys';
+import {FONT_SIZES} from './display-data';
 import { InboxPanel } from './inbox-ui';
 import { CommandPanel } from './commands-ui';
 import { PrivacyControls } from './privacy-ui';
@@ -225,7 +228,7 @@ refreshCandidates();
 element('send-channel', HTMLSelectElement).addEventListener('change', refreshCandidates);
 element('send-channel', HTMLSelectElement).addEventListener('change', renderRoom);
 log.addEventListener('click', refreshCandidates);
-element('send-channel', HTMLSelectElement).addEventListener('change', () => { if(virtualLog.layout.enabled&&virtualLog.layout.activePane.channels.includes(composer.target))virtualLog.layout.activePane.target=composer.target;accountEmotes.update(accountAuth, composer.target); picker.refresh(true); });
+element('send-channel', HTMLSelectElement).addEventListener('change', () => { virtualLog.updateTarget(composer.target);accountEmotes.update(accountAuth, composer.target); picker.refresh(true); });
 log.addEventListener('click', () => { accountEmotes.update(accountAuth, composer.target); picker.refresh(); });
 
 
@@ -268,7 +271,8 @@ function render(): void {
     return items;
   };
   const items=makeItems(messages);
-  if(virtualLog.layout.enabled&&archiveView&&archiveView!==paneArchive){paneArchive=archiveView;for(const message of archiveView)paneArchiveMessages.set(messageKey(message),message);const context=makeItems(archiveView);virtualLog.showContext(display.options.rev?context.reverse():context);}
+  if(virtualLog.layout.enabled&&archiveView&&archiveView!==paneArchive){paneArchive=archiveView;for(const message of archiveView)paneArchiveMessages.set(messageKey(message),message);const context=makeItems(archiveView);virtualLog.showContext(display.options.rev?context.reverse():context,archiveView.map(messageKey));}
+  virtualLog.refreshContexts(keys=>{const messages=keys.map(key=>paneArchiveMessages.get(key)).filter((message):message is ChatMessage=>!!message);const context=makeItems(messages);return display.options.rev?context.reverse():context;});
   virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split,display.options.pause);
   if(paneArchiveMessages.size){const keys=virtualLog.contextKeys();for(const key of paneArchiveMessages.keys())if(!keys.has(key))paneArchiveMessages.delete(key);}
   count.textContent = virtualLog.layout.enabled ? `${store.messages.length.toLocaleString()} messages${virtualLog.hasContexts()?' · Pane history open':''}` : archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
@@ -308,6 +312,26 @@ element('alert-test',HTMLButtonElement).addEventListener('click',()=>{void atten
 const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, viewMessages, () => accountAuth, message => composer.selectReply(message), login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
+function zoomChat(delta:number):void{const index=FONT_SIZES.indexOf(display.options.size),size=FONT_SIZES[Math.max(0,Math.min(FONT_SIZES.length-1,index+delta))];if(size)display.setOptions({...display.options,size});}
+function channelStep(delta:number):void{const index=channels.indexOf(composer.target);virtualLog.focusChannel(channels[(index+delta+channels.length)%channels.length]!);}
+const hotkeyActions={
+ palette:()=>element('actions-open',HTMLButtonElement).click(),shortcuts:()=>element('hotkeys-open',HTMLButtonElement).click(),
+ compose:()=>composer.focusTyping(''),workspace:()=>{if(panePopout)throw new Error('Manage workspaces in the main view');element('workspace-open',HTMLButtonElement).click();},
+ 'channel-next':()=>channelStep(1),'channel-prev':()=>channelStep(-1),
+ 'pane-next':()=>virtualLog.moveFocus('pane',1),'pane-prev':()=>virtualLog.moveFocus('pane',-1),
+ 'tab-next':()=>virtualLog.moveFocus('tab',1),'tab-prev':()=>virtualLog.moveFocus('tab',-1),
+ 'pane-right':()=>virtualLog.rearrange('pane',1),'pane-left':()=>virtualLog.rearrange('pane',-1),
+ 'tab-right':()=>virtualLog.rearrange('tab',1),'tab-left':()=>virtualLog.rearrange('tab',-1),
+ reconnect:()=>connection.reconnect(),'zoom-in':()=>zoomChat(1),'zoom-out':()=>zoomChat(-1),
+ pause:()=>{if(virtualLog.layout.enabled)virtualLog.hold();else follow=false;latest.hidden=false;},live:()=>latest.click(),
+ history:()=>element('archive-open',HTMLButtonElement).click(),emotes:()=>element('picker-open',HTMLButtonElement).click(),video:()=>element('video-open',HTMLButtonElement).click(),stats:()=>element('stats-open',HTMLButtonElement).click(),settings:()=>element('display-open',HTMLButtonElement).click(),inbox:()=>inboxPanel?.show(),commands:()=>commandPanel.openPanel(),
+} satisfies Record<ActionID,()=>void>;
+const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element('hotkeys-open',HTMLButtonElement),id=>hotkeyActions[id](),()=>[
+ ...(panePopout?virtualLog.layout.activePane.channels:channels).map(channel=>({id:'channel:'+channel,label:'Send channel: '+channel,context:'chat',run:()=>virtualLog.focusChannel(channel)})),
+ ...(panePopout?[]:workspaceStore.all()).map(workspace=>({id:'workspace:'+workspace.id,label:'Workspace: '+workspace.name,context:'workspace preview',run:()=>workspacePanel.previewSwitch(workspace.id)})),
+ ...virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(tab=>[{id:'tab:'+tab.id,label:'Tab: '+tab.name,context:'chat',run:()=>virtualLog.selectTab(tab.id)},...tab.panes.map((pane,index)=>({id:'pane:'+pane.id,label:'Pane: '+tab.name+' / '+(index+1)+' '+pane.channels.join(', '),context:'chat',run:()=>{virtualLog.selectTab(tab.id);virtualLog.selectPane(pane.id);}}))]):[],
+],id=>ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled);
+virtualLog.manageKeyboard();
 if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
 if(['off','0'].includes(workspaceQuery.get('video')??''))videoPanel.showRail(false);
 function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
@@ -316,7 +340,7 @@ if(!currentWorkspaceID&&!workspaceStore.error){try{const initial=workspaceStore.
 const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElement),element('workspace-open',HTMLButtonElement),workspaceStore,()=>currentWorkspaceID,captureWorkspace,saveWorkspace,workspace=>{
  if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
  const url=new URL(location.href);url.search='';url.searchParams.set('workspace',workspace.id);url.searchParams.set('channel',workspace.channels.join(','));if(overlay)url.searchParams.set('overlay','1');location.assign(url.href);
-});
+},!!panePopout);
 async function replayInbox():Promise<void>{
  const generation=++inboxGeneration,panel=inboxPanel;if(!panel||!accountAuth?.authenticated)return;const messages=[...store.messages],login=accountAuth.login?.toLowerCase();
  for(const own of [true,false])for(let index=0;index<messages.length;index+=500){if(generation!==inboxGeneration)return;for(const message of messages.slice(index,index+500))if((message.login.toLowerCase()===login)===own)panel.observe(message);if(messages.length>500)await new Promise<void>(resolve=>setTimeout(resolve,0));}
@@ -331,7 +355,7 @@ const commandPanel=new CommandPanel(composer,()=>{
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {
@@ -384,7 +408,7 @@ log.addEventListener('scroll', (event) => {
   follow = virtualLog.trackScroll(event.target,follow);
   latest.hidden = follow && !virtualLog.hasManualPause();
 },{capture:true});
-latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; paneArchive=undefined; linkedLookups.clear(); const url = new URL(location.href); url.searchParams.delete('mid'); history.replaceState(null, '', url); window.dispatchEvent(new PopStateEvent('popstate')); follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
+latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; paneArchive=undefined; linkedLookups.clear(); const url = new URL(location.href); url.searchParams.delete('mid'); history.replaceState(null, '', url); window.dispatchEvent(new PopStateEvent('popstate')); follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = virtualLog.allFollowing(); });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {

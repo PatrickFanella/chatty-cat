@@ -21,6 +21,7 @@ export class InboxPanel {
  private schedule():void{if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=0;this.paint();});}
  private storage=(event:StorageEvent):void=>{if(event.key?.startsWith('chatthing:v1:inbox-read:'))try{this.model.refreshReads();this.schedule();}catch{this.status('Public read state could not be synchronized');}};
  private open=():void=>{if(privacyEnabled())return;try{this.model.refreshReads();}catch{this.status('Public read state could not be synchronized');}this.root.showModal();this.paint();this.root.querySelector<HTMLSelectElement>('#inbox-section')!.focus();};
+ show():void{this.open();}
  private status(text:string):void{this.root.querySelector<HTMLElement>('#inbox-status')!.textContent=text;}
  private paint():void{
   const counts={mentions:this.model.unread('mentions'),replies:this.model.unread('replies'),whispers:this.model.unread('whispers')};const unread=counts.mentions+counts.replies+counts.whispers;this.trigger.textContent='Inbox'+(unread?' ('+unread+')':'');

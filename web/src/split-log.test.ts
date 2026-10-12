@@ -52,3 +52,9 @@ it('refuses user destination changes while a send is pending',()=>{
  const root=document.createElement('main'),toggle=document.createElement('button');document.body.append(toggle,root);const target=vi.fn();view=new SplitLog(root,toggle,['alice','bob'],{target,changed:()=>{},popout:()=>{},canChange:()=>false});view.layout.enable();const first=view.layout.activePane;const next=view.layout.duplicatePane(first.id);view.layout.selectPane(first.id);view.set(records(20),true);
  root.querySelector<HTMLButtonElement>(`[data-pane="${next.id}"] button`)?.click();expect(view.layout.activePane.id).toBe(first.id);expect(target).not.toHaveBeenCalled();expect(root.textContent).toContain('Wait for the current send outcome');
 });
+it('changing send target preserves the existing reader node and its hold',()=>{
+ const {root}=setup();view!.set(records(200),true);view!.reveal('alice:4');const reader=root.querySelector<HTMLElement>('.split-reader')!,top=reader.scrollTop;view!.updateTarget('bob');view!.set(records(220),true);expect(root.querySelector('.split-reader')).toBe(reader);expect(reader.scrollTop).toBe(top);expect(root.textContent).toContain('Send: bob');
+});
+it('reapplies display visibility to archive context without losing its original source keys',()=>{
+ const {root}=setup();view!.set(records(200),true);view!.showContext(records(6));view!.refreshContexts(()=>[]);view!.set(records(200),true);expect(root.querySelectorAll('.split-reader .row')).toHaveLength(0);expect(view!.contextKeys().size).toBe(6);view!.refreshContexts(keys=>records(6).filter(item=>keys.includes(item.key)));view!.set(records(200),true);expect(root.textContent).toContain('message 4');
+});

@@ -51,3 +51,13 @@ Reproduce the synthetic 100,000-message demo with `npm --prefix web run dev -- -
 The six-channel source limit remains in place; raising channel admission is tracked separately in #8. Original page-column and rail presets remain available when independent panes are disabled. The bundle remains over Vite's 500 KB advisory threshold.
 
 Split verification checkpoint: 73 frontend files / 359 tests passed, strict TypeScript/service-worker checks and production build passed. Review added regression coverage for held keyboard navigation, same-channel reply preservation and pending-send destination guards. The single-pane popout mounted no Twitch iframe after workspace restoration.
+
+## Action palette and editable shortcuts (#11)
+
+Implemented 26 supported actions with explicit contexts/default bindings, a searchable keyboard-operated palette, and quick switches for joined send channels, named workspaces, tabs and panes. Workspace quick switches retain the existing preview/Apply flow. Binding edits show conflicts before saving, support chord recording and individual disabling, reject browser/privacy conflicts, and restore defaults independently of display/workspace preferences. IME composition, ordinary text editing, existing modal dialogs and privacy mode are respected. Pane-specific actions require independent layouts. Public reconnect replaces the old socket and pending retry; palette actions never send a chat message.
+
+Shortcut preferences are included in the bounded public workspace bundle; malformed/conflicting imports are rejected and private/unknown fields are removed. Stale-tab edits and storage failures leave the active bindings intact. Popout workspace controls are read-only, and changing a pane send target preserves the reader node/hold. Archive context rebuilds its display visibility from retained public source keys when settings change.
+
+Anonymous full-app browser checks searched and selected subcult_tv as the send target, displayed a duplicate-binding conflict with Save disabled, changed zoom-in to Alt+KeyU and used that physical chord to move chat text from 18px to 19px. Alt+KeyK opened action search; searching Watching and pressing Enter opened the workspace preview without navigating. No Twitch send or production deployment occurred.
+
+Shortcut verification checkpoint: 76 frontend files / 373 tests passed, strict TypeScript/service-worker checks and production build passed. The main bundle is about 574 KB raw / 151 KB gzip, with Vite's existing advisory. Independent layouts merged in PR #52 as `9c23317` while the shortcut follow-up was being published. PR #53 now targets main and awaits review. Channel-capacity #8 is Ready; the milestone remains open.

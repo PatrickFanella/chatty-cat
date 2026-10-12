@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { WorkspaceStore, parseWorkspaceFile, workspaceFile } from './workspaces';
 import { defaultDisplay } from './display';
 import {SplitLayout} from './splits';
+import {defaultBindings} from './hotkeys';
 const snapshot = () => ({ channels:['one','two'], target:'two', focus:'log', settings:{version:1 as const,display:defaultDisplay(),extras:{}}, readers:[{column:0,key:'one:message',offset:12}] });
 beforeEach(()=>localStorage.clear());
 it('creates, renames, duplicates and deletes without mutating another workspace',()=>{
@@ -42,4 +43,7 @@ it('round trips independent layouts and strips private fields inside panes',()=>
  const dirty={...state,tabs:state.tabs.map(tab=>({...tab,panes:tab.panes.map(pane=>({...pane,whisper:'secret',token:'secret',draft:'secret'}))}))};
  const store=new WorkspaceStore();store.create('Watching',{...snapshot(),settings:{version:1,display:defaultDisplay(),extras:{splits:dirty}}});
  const file=workspaceFile(store.all());expect(file).not.toContain('secret');expect(parseWorkspaceFile(file)[0]?.settings.extras.splits).toEqual(state);
+});
+it('exports only valid shortcut preferences and rejects conflicting workspace imports',()=>{
+ const bindings=defaultBindings(),store=new WorkspaceStore();bindings.compose='Alt+KeyF';store.create('Keys',{...snapshot(),settings:{version:1,display:defaultDisplay(),extras:{hotkeys:{version:1,bindings,token:'secret'}}}});expect(workspaceFile(store.all())).not.toContain('secret');expect(store.all()[0]?.settings.extras.hotkeys).toEqual({version:1,bindings});bindings.compose=bindings.palette??'';expect(()=>store.create('Bad',{...snapshot(),settings:{version:1,display:defaultDisplay(),extras:{hotkeys:{version:1,bindings}}}})).toThrow(/conflicting/);
 });

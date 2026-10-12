@@ -249,6 +249,13 @@ header { font-size:var(--header-size,14px) }
  .split-pane[data-active=true] { flex:1!important }
 }
 html[data-privacy=true] #split-settings { display:none!important }
+.action-results { max-height:55dvh;overflow:auto;display:flex;flex-direction:column;gap:4px;padding:8px 0 }
+.action-results [aria-selected=true] { border-color:var(--accent);background:var(--panel) }
+#action-search { width:min(560px,90vw) }
+.shortcut-list { max-height:55dvh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:8px 0 }
+.shortcut-list label { display:flex;flex-wrap:wrap;align-items:center;gap:8px }
+.shortcut-list input { width:210px;margin-left:auto }
+html[data-privacy=true] #action-palette,html[data-privacy=true] #shortcut-settings { display:none!important }
 .chat-workspace { flex:1;min-height:0;display:flex }
 .chat-workspace>#log { min-width:0 }
 #panel-rail { width:444px;min-width:444px;max-width:45vw;flex-shrink:0;display:flex;flex-direction:column;gap:8px;padding:8px;overflow:auto;border-left:1px solid var(--line) }
