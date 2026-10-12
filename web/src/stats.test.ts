@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { expect, it } from 'vitest';
-import { rateGraph, summarize } from './stats';
+import { StatsPanel, rateGraph, summarize } from './stats';
 import type { ChatMessage } from './protocol';
 const message: ChatMessage = { id: '1', command: 'PRIVMSG', channel: 'one', login: 'alice', text: 'Kappa Kappa https://example.com/a', timestamp: 60000, tags: { badges: 'subscriber/1' } };
 const emotes = () => ({ Kappa: { code: 'Kappa', url: 'https://example.com/a', source: 'BTTV', staticUrl: '', animated: false, zeroWidth: false } });
@@ -27,4 +27,36 @@ it('discloses partial connection windows without discarding recovered counts', (
   expect(graph.getAttribute('aria-label')).toContain('counts may be incomplete');
   expect(graph.querySelectorAll('.graph-gap')).toHaveLength(30);
   expect(graph.querySelector('.graph-gap title')?.textContent).toContain('Connection interrupted');
+});
+
+it('counts glorp messages once and keeps rankings scoped and excluded',()=>{
+ const rows=[{...message,text:'glorp F',id:'g1'},{...message,text:'F',id:'g2',login:'bob'},{...message,text:'coffee',id:'g3'}];
+ const data=summarize([...rows,rows[0]!],120000,120000,'one',new Set(['bob']),emotes);
+ expect(data.glorps).toBe(1);expect(data.glorpers).toEqual([{name:'alice',count:1}]);
+});
+it('counts bare-domain posts using the same parser as chat',()=>{
+ const data=summarize([{...message,text:'example.com/a alice@example.org'}],120000,120000,'one',new Set(),emotes);
+ expect(data.links).toEqual([{name:'example.com',count:1}]);
+});
+
+it('persists independent ranking windows and channel scope, and uses provider seeds on request',async()=>{
+ const {StatsLedger}=await import('./stats-ledger');
+ localStorage.clear();
+ const setup=()=>{
+  document.body.innerHTML='<button id="trigger"></button><div id="header"></div><dialog><button id="stats-close"></button><select id="stats-scope"><option value="60000">Minute</option></select><select id="stats-channel"><option value="">All</option></select><input id="stats-exclusions"><select data-stat-kind="users"><option value="24">Day</option><option value="0">All</option></select><select data-stat-kind="emotes"><option value="3">3 hours</option><option value="se">StreamElements</option></select><div id="stats-summary"></div><div id="stats-graph"></div><div id="stats-lists"></div></dialog>';
+  const dialog=document.querySelector('dialog')!;
+  const ledger=new StatsLedger(['one','two'],emotes);ledger.observe(message);
+  const panel=new StatsPanel(dialog,document.querySelector('button')!,document.querySelector('#header') as HTMLElement,()=>[],emotes,['one','two'],undefined,ledger,channel=>({Kappa:channel==='one'?8:12}));
+  return {dialog,panel};
+ };
+ const first=setup();
+ (document.querySelector('#stats-channel') as HTMLSelectElement).value='one';
+ (document.querySelector('[data-stat-kind="users"]') as HTMLSelectElement).value='0';
+ (document.querySelector('[data-stat-kind="emotes"]') as HTMLSelectElement).value='se';
+ first.dialog.dispatchEvent(new Event('change'));first.panel.showRail(true);
+ expect(document.querySelector('#stats-lists')?.textContent).toContain('Kappa · 8');first.panel.stop();
+ const next=setup();
+ expect((document.querySelector('#stats-channel') as HTMLSelectElement).value).toBe('one');
+ expect((document.querySelector('[data-stat-kind="users"]') as HTMLSelectElement).value).toBe('0');
+ expect((document.querySelector('[data-stat-kind="emotes"]') as HTMLSelectElement).value).toBe('se');next.panel.stop();localStorage.clear();
 });

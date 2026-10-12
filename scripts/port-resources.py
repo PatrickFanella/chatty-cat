@@ -4,9 +4,12 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
 import json
+import argparse
 
-ROOT = Path(__file__).resolve().parents[2]
-source = (ROOT / 'index.html').read_text()
+ROOT = Path(__file__).resolve().parents[1]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('source', nargs='?', type=Path, default=ROOT.parent / 'index.html')
+source = parser.parse_args().source.read_text()
 
 class Tabs(HTMLParser):
     def __init__(self):
@@ -45,4 +48,4 @@ tabs = Tabs(); tabs.feed(source)
 if len(tabs.tabs) != 4: raise ValueError('Original resource tabs changed')
 output = '// Curated links and attribution ported from the original AGPL app.\n'
 output += 'export const RESOURCE_TABS: Record<string, string> = ' + json.dumps(tabs.tabs, ensure_ascii=False, indent=2) + ';\n'
-(ROOT / 'rebuild/web/src/resource-data.ts').write_text(output)
+(ROOT / 'web/src/resource-data.ts').write_text(output)

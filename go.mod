@@ -1,4 +1,4 @@
-module github.com/PatrickFanella/hasanabi.neocities.org/rebuild
+module git.subcult.tv/subculture-collective/chatty-cat
 
 go 1.26.0
 

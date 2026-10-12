@@ -5,7 +5,7 @@ import type { ChatMessage } from './protocol';
 export type SendResult = { sent: boolean; command?: boolean; action?: boolean; whisper?: boolean; recipient?: string; messageID?: string; error?: string; uncertain?: boolean };
 export function validateMessage(text: string): string | undefined {
   if (!text.trim() || [...text].length > 500 || /[\x00-\x1f\x7f-\x9f]/.test(text)) return 'Use 1–500 characters without line breaks or control characters';
-  if (text.trimStart().startsWith('/') && !/^\/(?:w|me|ban|timeout|unban|delete|clear|slow|slowoff|followers|followersoff|subscribers|subscribersoff|emoteonly|emoteonlyoff|uniquechat|uniquechatoff|r9kbeta|r9kbetaoff|announce|announceblue|announcegreen|announceorange|announcepurple|color)(?:\s|$)/i.test(text.trimStart())) return 'Unsupported slash command; open Help for supported commands';
+  if (text.trimStart().startsWith('/') && !/^\/(?:w|me|ban|timeout|unban|delete|clear|slow|slowoff|followers|followersoff|subscribers|subscribersoff|emoteonly|emoteonlyoff|uniquechat|uniquechatoff|r9kbeta|r9kbetaoff|announce|announceblue|announcegreen|announceorange|announcepurple|color|raid|unraid|mod|unmod|vip|unvip|block|unblock|shoutout)(?:\s|$)/i.test(text.trimStart())) return 'Unsupported slash command; open Help for supported commands';
   return undefined;
 }
 export function parseSendResult(data: unknown): SendResult {
@@ -238,7 +238,7 @@ export class Composer {
         try { localStorage.setItem('chatthing:v1:sent:' + this.channel.value, JSON.stringify(history.slice(-50))); } catch { /* optional storage */ }
         if (result.command) this.commandAccepted(result, text, this.requestID);
         this.input.value = ''; if (!result.command && !result.action) this.reply = undefined; this.requestID = undefined; this.historyIndex = -1; this.saveDraft();
-        this.status.textContent = result.whisper ? 'Whisper request accepted; Twitch does not confirm delivery' : result.command ? 'Command completed' : 'Sent'; if (result.messageID && !result.command) this.accepted(result.messageID, this.channel.value, text);
+        this.status.textContent = result.whisper ? 'Whisper request accepted; Twitch does not confirm delivery' : result.command ? /^\/raid(?:\s|$)/i.test(text.trim())?'Raid requested; complete or cancel it in Twitch':'Command completed' : 'Sent'; if (result.messageID && !result.command) this.accepted(result.messageID, this.channel.value, text);
       } else {
         this.status.textContent = result.error || 'Delivery could not be confirmed; check chat before sending again';
         if (!result.uncertain) this.requestID = undefined;

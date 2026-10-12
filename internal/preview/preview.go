@@ -22,16 +22,17 @@ import (
 
 // Card is safe textual metadata. HTML from upstream is never returned.
 type Card struct {
-	URL         string `json:"url"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Site        string `json:"site"`
-	Image       string `json:"image"`
-	Icon        string `json:"icon"`
-	Author      string `json:"author"`
-	Published   string `json:"published"`
-	ContentType string `json:"contentType"`
-	TTL         int    `json:"ttl"`
+	Social      *SocialMedia `json:"social,omitempty"`
+	URL         string       `json:"url"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	Site        string       `json:"site"`
+	Image       string       `json:"image"`
+	Icon        string       `json:"icon"`
+	Author      string       `json:"author"`
+	Published   string       `json:"published"`
+	ContentType string       `json:"contentType"`
+	TTL         int          `json:"ttl"`
 }
 
 var blocked = []netip.Prefix{
@@ -274,6 +275,9 @@ func asset(base *url.URL, raw string) string {
 func (s *Service) fetch(ctx context.Context, u *url.URL) (Card, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+	if id := twitterID(u); id != "" {
+		return s.twitter(ctx, u, id)
+	}
 	if card, ok := s.provider(ctx, u); ok {
 		return card, nil
 	}

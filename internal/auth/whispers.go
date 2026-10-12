@@ -11,7 +11,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/irc"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )

@@ -1,7 +1,7 @@
-import { AGE_SECONDS, ageLabel, crossedAges } from './picker-order';
+import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
 import { PickerMotion } from './picker-motion';
-import { PickerModel, pickerURL, SOURCES, type PickerItem } from './picker-model';
+import { PickerModel, pickerURL, pickerPreset, pickerPresetGeometry, SOURCES, type PickerItem } from './picker-model';
 
 function get<T extends HTMLElement>(root: HTMLElement, id: string, ctor: new () => T): T {
   const node = root.querySelector('#' + id); if (!(node instanceof ctor)) throw new Error('Missing picker control: ' + id); return node;
@@ -27,7 +27,7 @@ export class EmotePicker {
   private readonly saveTimer: ReturnType<typeof setInterval>;
   constructor(private readonly root: HTMLElement, private readonly trigger: HTMLButtonElement,
     private readonly model: PickerModel, private readonly channel: () => string,
-    private readonly canInsert: () => boolean, private readonly insert: (code: string) => void, private readonly temporaryFreeze:(on:boolean)=>void=()=>{}) {
+    private readonly canInsert: () => boolean, private readonly insert: (code: string) => void, private readonly temporaryFreeze:(on:boolean)=>void=()=>{}, private readonly observationGaps:()=>readonly {from:number;to:number}[]=()=>[]) {
     this.search = get(root, 'picker-search', HTMLInputElement); this.grid = get(root, 'picker-grid', HTMLElement);
     this.ageObserver=new ResizeObserver(()=>this.paintAgeRows());this.ageObserver.observe(this.grid);
     this.recent = get(root, 'picker-recent', HTMLElement); this.count = get(root, 'picker-count', HTMLElement);
@@ -44,13 +44,15 @@ export class EmotePicker {
     for (const key of ['mixed', 'names', 'hold', 'holdPlus', 'frozen', 'seenOnly', 'ages'] as const) get(root, 'picker-' + key, HTMLInputElement).checked = model.options[key];
     this.grid.addEventListener('pointerenter',this.gridEnter);this.grid.addEventListener('pointerleave',this.gridLeave);
     trigger.addEventListener('click', this.toggle); root.addEventListener('click', this.click);
-    document.addEventListener('keydown', this.key, true); root.addEventListener('pointerenter', this.enter); root.addEventListener('pointerleave', this.leave);
+    document.addEventListener('displaypreset',this.preset);document.addEventListener('keydown', this.key, true); root.addEventListener('pointerenter', this.enter); root.addEventListener('pointerleave', this.leave);
+    get(root,'picker-reset-order',HTMLButtonElement).addEventListener('click',this.resetOrder);
+    get(root,'picker-sort',HTMLSelectElement).addEventListener('auxclick',this.resetMiddle);
     this.tabs.addEventListener('change', this.change); this.settings.addEventListener('change', this.change);
     this.search.addEventListener('input', this.searchChange); this.search.addEventListener('keydown', this.searchKey); this.more.addEventListener('click', this.showMore);
     this.timer = setInterval(() => { if (!this.root.hidden) this.paintAgeCoverage(); if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold)) this.refresh(true); }, 1000);
     this.saveTimer = setInterval(() => this.model.saveAll(), 15000);
     this.floating = new FloatingPanel(root, get(root, 'picker-handle', HTMLElement), get(root, 'picker-pin', HTMLButtonElement), 'chatthing:v1:picker:geometry');
-    const query=new URL(location.href).searchParams;const geometry=parsePickerGeometry(query.get('epgeo'));if(geometry)this.floating.configure(geometry,query.get('epgeo')?.includes(',')??false);
+    const query=new URL(location.href).searchParams;const presetGeo=pickerPresetGeometry(query.get('theme')??'');const rawGeo=query.get('epgeo')??presetGeo??null;const geometry=parsePickerGeometry(rawGeo);if(geometry)this.floating.configure(geometry,rawGeo?.includes(',')??false);
     if(query.has('epopen'))this.floating.reopen=query.get('epopen')!=='0';
     if (this.floating.reopen) this.open();
   }
@@ -83,6 +85,7 @@ export class EmotePicker {
       }
       if (this.model.options.ages && this.model.options.sort === 'use') {
         for (const seconds of crossedAges(previousAge, age)) {
+          if (!this.model.options.mixed && seconds * 1000 > oldestAge) continue;
           const marker = document.createElement('span'); marker.className = 'picker-age';marker.dataset.age=String(seconds);marker.classList.toggle('soon',seconds*1000>oldestAge);marker.classList.toggle('crossed',crossed.has(seconds));marker.title=seconds*1000>oldestAge?'No used emote has reached this age yet':crossed.has(seconds)?'An emote crossed this age while this page was open':'Emotes below were last used over '+ageLabel(seconds)+' ago'; marker.textContent = ageLabel(seconds); this.grid.append(marker);
         }
         previousAge = age;
@@ -101,6 +104,9 @@ export class EmotePicker {
     this.root.style.setProperty('--picker-cell', 64 * this.model.options.zoom + 'px');
     this.motion.play(regions, before, animateAges);
   }
+  private preset=(event:Event):void=>{if(!(event instanceof CustomEvent)||typeof event.detail!=='string')return;this.model.options=pickerPreset(this.model.options,event.detail);const raw=pickerPresetGeometry(event.detail),geometry=parsePickerGeometry(raw??null);if(geometry)this.floating.configure(geometry,raw?.includes(',')??false);
+   get(this.root,'picker-zoom',HTMLSelectElement).value=String(this.model.options.zoom);get(this.root,'picker-sort',HTMLSelectElement).value=this.model.options.sort;get(this.root,'picker-ageRows',HTMLSelectElement).value=String(this.model.options.ageRows);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];this.reconcileFreeze();this.model.save(this.channel());this.refresh(true);
+  };
   private paintAgeRows():void {if(this.model.options.ageRows!==2||this.model.options.sort!=='use')return;const markers=[...this.grid.querySelectorAll<HTMLElement>('.picker-age')];for(let pass=0;pass<5;pass++){const ends=new Set<HTMLElement>();let previous:HTMLElement|undefined;for(const marker of markers){if(previous&&previous.offsetTop!==marker.offsetTop)ends.add(previous);previous=marker;}if(previous)ends.add(previous);let changed=false;for(const marker of markers){const end=ends.has(marker);if(marker.classList.contains('row-end')!==end){marker.classList.toggle('row-end',end);changed=true;}}if(!changed)break;}}
   private cell(item: PickerItem): HTMLButtonElement {
     const button = document.createElement('button'); button.type = 'button'; button.dataset.insert = item.code;
@@ -122,7 +128,7 @@ export class EmotePicker {
     const channel = this.channel(), coverage = this.model.coverage(channel), now = Date.now();
     const crossed = this.model.crossedAges(channel, now);
     for (const marker of this.grid.querySelectorAll<HTMLElement>('.picker-age')) {
-      const seconds = Number(marker.dataset.age), missed = coverage.missed(seconds, now);
+      const seconds = Number(marker.dataset.age), missed = coverage.missed(seconds, now) || missedAge(seconds, now, this.observationGaps());
       marker.classList.toggle('missed', missed);
       marker.classList.toggle('crossed', crossed.has(seconds));
       let title = marker.classList.contains('soon') ? 'No used emote has reached this age yet' : 'Emotes below were last used over ' + ageLabel(seconds) + ' ago';
@@ -145,6 +151,8 @@ export class EmotePicker {
     const code = event.target.closest<HTMLButtonElement>('button[data-insert]')?.dataset.insert;
     if (code && this.canInsert()) { this.insert(code); this.model.select(this.channel(), code); this.dirty = true; }
   };
+  private resetOrder=():void=>{const channel=this.channel();this.model.resetOrder(channel);this.refresh(true);};
+  private resetMiddle=(event:MouseEvent):void=>{if(event.button===1){event.preventDefault();this.resetOrder();}};
   private change = (): void => {
     const options = this.model.options;options.ageRows=Number(get(this.root,'picker-ageRows',HTMLSelectElement).value)||0;
     options.enabled = [...this.tabs.querySelectorAll<HTMLInputElement>('input:checked')].flatMap((input) => SOURCES.includes(input.value as typeof SOURCES[number]) ? [input.value as typeof SOURCES[number]] : []);
@@ -165,6 +173,9 @@ export class EmotePicker {
   private showMore = (): void => { this.page += 200; this.refresh(true); };
   stop(): void {
     this.motion.stop();
+    get(this.root,'picker-reset-order',HTMLButtonElement).removeEventListener('click',this.resetOrder);
+    get(this.root,'picker-sort',HTMLSelectElement).removeEventListener('auxclick',this.resetMiddle);
+    document.removeEventListener('displaypreset',this.preset);
     this.ageObserver.disconnect();this.gridLeave();this.grid.removeEventListener('pointerenter',this.gridEnter);this.grid.removeEventListener('pointerleave',this.gridLeave);
     clearInterval(this.timer); clearInterval(this.saveTimer); this.floating.stop(); this.model.saveAll();
     this.trigger.removeEventListener('click', this.toggle); this.root.removeEventListener('click', this.click); document.removeEventListener('keydown', this.key, true);

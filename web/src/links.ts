@@ -1,3 +1,4 @@
+import {youtubeVideo} from './youtube';
 const userColors = new Map<string,string>();
 export function observeUserColor(login:string,color:string):void { if(!/^[a-z0-9_]{1,25}$/i.test(login)||!/^#[0-9a-f]{6}$/i.test(color))return;userColors.delete(login.toLowerCase());userColors.set(login.toLowerCase(),color);while(userColors.size>2000){const first=userColors.keys().next().value;if(first)userColors.delete(first);else break;} }
 function appendMentions(root:HTMLElement,text:string):void {
@@ -23,11 +24,28 @@ export function findLinks(text:string):FoundLink[]{
  return result;
 }
 export function linkFingerprint(text:string):string {return [...new Set(findLinks(text).map(link=>{const url=new URL(link.href);return url.hostname.replace(/^(?:www|mobile)\./i,'')+url.pathname.replace(/\/$/,'')+url.search+url.hash;}))].sort().join(' ');}
+export function inlineImageSource(raw:string):string|undefined {
+ try {
+  const url=new URL(raw);
+  if(url.protocol!=='https:'||url.username||url.password||url.port&&url.port!=='443')return undefined;
+  const host=url.hostname.toLowerCase();
+  if(host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||host.includes(':')||/^\d+\.\d+\.\d+\.\d+$/.test(host))return undefined;
+  if(['giphy.com','www.giphy.com'].includes(host)){
+   const id=url.pathname.match(/^\/(?:gifs|embed)\/(?:[^/]*-)?([A-Za-z0-9]+)\/?$/)?.[1]??url.pathname.match(/^\/media\/([A-Za-z0-9]+)(?:\/|$)/)?.[1];
+   if(id&&id.length<=100)return 'https://media.giphy.com/media/'+id+'/giphy.gif';
+  }
+  if(!/\.(?:gif|webp|png|jpe?g|avif|gifv)$/i.test(url.pathname))return undefined;
+  url.hash='';url.pathname=url.pathname.replace(/\.gifv$/i,'.gif');return url.href;
+ }catch{return undefined;}
+}
 export function appendLinks(root: HTMLElement, text: string): void {
  let start=0;for(const {index,raw,href} of findLinks(text)){
   appendMentions(root,text.slice(start,index));
+  const source=inlineImageSource(href);
+  if(source){const imageLink=document.createElement('a');imageLink.className='chat-image-link';imageLink.href=href;imageLink.target='_blank';imageLink.rel='noopener noreferrer';const image=document.createElement('img');image.src=source;image.alt='Image from '+new URL(href).hostname;image.className='chat-image';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>imageLink.remove(),{once:true});imageLink.append(image);root.append(imageLink);}
+
     const link = document.createElement('a'); link.href = href; link.textContent = document.documentElement.dataset.clean==='true' ? raw.replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/(?:index\.html?)?$/i,'') : raw;
-    link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'chat-link'; if(document.documentElement.dataset.lkico==='true'){const icon=document.createElement('img');icon.className='link-icon';icon.src='https://icons.duckduckgo.com/ip3/'+encodeURIComponent(new URL(href).hostname)+'.ico';icon.alt='';icon.loading='lazy';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});link.prepend(icon);}root.append(link); const preview = document.createElement('button'); preview.type = 'button'; preview.className = 'preview-button'; preview.dataset.preview = href; preview.setAttribute('aria-label', 'Preview ' + urlLabel(href)); root.append(preview); start=index+raw.length;
+    link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'chat-link'; if(document.documentElement.dataset.lkico==='true'){const icon=document.createElement('img');icon.className='link-icon';icon.src='https://icons.duckduckgo.com/ip3/'+encodeURIComponent(new URL(href).hostname)+'.ico';icon.alt='';icon.loading='lazy';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});link.prepend(icon);}root.append(link); const preview = document.createElement('button'); preview.type = 'button'; preview.className = 'preview-button'; preview.dataset.preview = href; preview.setAttribute('aria-label', 'Preview ' + urlLabel(href)); root.append(preview);if(document.documentElement.dataset.yt!=='false'&&youtubeVideo(href)){const play=document.createElement('button');play.type='button';play.className='youtube-play';play.dataset.youtube=href;play.textContent='▶';play.setAttribute('aria-label','Load YouTube player');play.setAttribute('aria-expanded','false');root.append(play);} start=index+raw.length;
  }
  appendMentions(root,text.slice(start));
 }

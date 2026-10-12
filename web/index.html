@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
-  <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <title>Chat Thing · rebuild</title>
+  <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta property="og:title" content="Chatty Cat"><meta property="og:description" content="Self-hosted Twitch chat client. Six merged channels, your display settings."><meta property="og:image" content="/og.png"><meta name="twitter:card" content="summary_large_image">
+  <title>Chatty Cat · rebuild</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Comic+Neue:wght@300;400;700&family=Fira+Code:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Inter&family=JetBrains+Mono:wght@400;600&family=Lexend:wght@400;600&family=Shantell+Sans:wght@300..700&family=Source+Code+Pro:wght@400;600&family=Source+Sans+3&family=VT323&display=swap">
 </head>
 <body>
   <header><button id="header-min" type="button" aria-label="Cycle header: full, strip, graph">Header ↕</button>
-    <div><strong>Chat Thing</strong><span class="stage">migration preview</span></div>
+    <div class="brand"><svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" shape-rendering="crispEdges"><path class="cat-face" d="M2 2h2.02v2.02h-2.02zM20 2h2.02v2.02h-2.02zM2 4h2.02v2.02h-2.02zM4 4h2.02v2.02h-2.02zM18 4h2.02v2.02h-2.02zM20 4h2.02v2.02h-2.02zM2 6h2.02v2.02h-2.02zM4 6h2.02v2.02h-2.02zM6 6h2.02v2.02h-2.02zM16 6h2.02v2.02h-2.02zM18 6h2.02v2.02h-2.02zM20 6h2.02v2.02h-2.02zM2 8h20.02v2.02h-20.02zM2 10h20.02v2.02h-20.02zM2 12h2.02v2.02h-2.02zM8 12h8.02v2.02h-8.02zM20 12h2.02v2.02h-2.02zM2 14h20.02v2.02h-20.02zM2 16h8.02v2.02h-8.02zM14 16h8.02v2.02h-8.02zM4 18h16.02v2.02h-16.02zM6 20h12.02v2.02h-12.02z"/><path class="cat-cursor" d="M10 16h4.02v2.02h-4.02z"/></svg><strong>Chatty Cat</strong><span class="stage">migration preview</span></div>
     <form id="channels"><label for="channel">Channels</label><input id="channel" name="channel" autocomplete="off" spellcheck="false" maxlength="155"><button>Join</button></form>
     <span id="status" role="status">Connecting…</span>
     <button id="theme" type="button" aria-label="Toggle light theme">◐</button>
@@ -43,7 +44,12 @@
     <label for="stats-scope">Window</label><select id="stats-scope"><option value="60000">1 minute</option><option value="300000">5 minutes</option><option value="1800000">30 minutes</option><option value="3600000">1 hour</option><option value="86400000">24 hours</option></select>
     <label for="stats-channel">Channel</label><select id="stats-channel"><option value="">All joined channels</option></select>
     <label for="stats-exclusions">Exclude users</label><input id="stats-exclusions" maxlength="500" placeholder="Comma-separated usernames">
-    <p>Counts cover retained chat in this browser, including loaded backfill. Earlier unsaved messages are unavailable.</p><div id="stats-summary" role="status"></div><div id="stats-graph"></div><div id="stats-lists"></div>
+    <fieldset><legend>Ranked observation windows</legend>
+<label>Chatters<select data-stat-kind="users"><option value="0">All recorded</option><option value="24" selected>24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3">3 hours</option><option value="1">1 hour</option></select></label>
+<label>Emotes<select data-stat-kind="emotes"><option value="se">StreamElements totals</option><option value="0">All recorded</option><option value="24">24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3" selected>3 hours</option><option value="1">1 hour</option></select></label>
+<label>Badges<select data-stat-kind="badges"><option value="0">All recorded</option><option value="24">24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3" selected>3 hours</option><option value="1">1 hour</option></select></label>
+<label>Links<select data-stat-kind="links"><option value="0">All recorded</option><option value="24">24 hours</option><option value="12">12 hours</option><option value="6">6 hours</option><option value="3" selected>3 hours</option><option value="1">1 hour</option></select></label>
+</fieldset><p>Rankings retain observed counts independently of scrollback; hour windows include the current hour bucket. The summary and graph cover retained chat, including loaded backfill. Earlier unobserved messages are unavailable.</p><div id="stats-summary" role="status"></div><div id="stats-graph"></div><div id="stats-lists"></div>
   </dialog>
   <dialog id="archive-search" aria-label="Search local chat archive">
     <button id="archive-close" type="button">Close</button>
@@ -55,7 +61,7 @@
     <div class="picker-header"><button id="picker-handle" type="button" aria-label="Move emote picker with arrow keys">Emotes ↔</button><button id="picker-pin" type="button" aria-pressed="false">Pin</button><input id="picker-search" type="search" placeholder="Search emotes or emoji" aria-label="Search emotes and emoji"><button id="picker-close" type="button" aria-label="Close emote picker">×</button></div>
     <div id="picker-tabs" aria-label="Enabled providers"></div>
     <div id="picker-settings"><label><input id="picker-seenOnly" type="checkbox"> Seen only</label><label><input id="picker-ages" type="checkbox"> Age markers</label>
-      <label>Age rows <select id="picker-ageRows"><option value="0">Inline squares</option><option value="1">Each era</option><option value="2">End at last square</option></select></label><label>Order <select id="picker-sort"><option value="use">Recent chat usage</option><option value="az">A–Z</option></select></label>
+      <label>Age rows <select id="picker-ageRows"><option value="0">Inline squares</option><option value="1">Each era</option><option value="2">End at last square</option></select></label><button id="picker-reset-order" type="button" title="Clear recorded picker usage; channel usage seeds remain">Reset order</button><label>Order <select id="picker-sort"><option value="use">Recent chat usage</option><option value="az">A–Z</option></select></label>
       <label>Show <select id="picker-animation"><option value="all">Animated and still</option><option value="animated">Animated only</option><option value="still">Still only</option></select></label>
       <label>Zoom <select id="picker-zoom"><option value="0.5">½×</option><option value="0.75">¾×</option><option value="1">1×</option><option value="1.3333333333333333">1⅓×</option><option value="1.6666666666666667">1⅔×</option><option value="1.5">1½×</option><option value="2">2×</option></select></label>
       <label><input id="picker-mixed" type="checkbox">Mix providers</label><label><input id="picker-names" type="checkbox">Names</label>

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/preview"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
 )
 
 type previewTransport func(*http.Request) (*http.Response, error)

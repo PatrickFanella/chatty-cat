@@ -19,7 +19,6 @@ import (
 var repositoryPart = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,100}$`)
 var itemNumber = regexp.MustCompile(`^[1-9][0-9]{0,18}$`)
 var wikipediaHost = regexp.MustCompile(`^[a-z][a-z-]{0,31}\.wikipedia\.org$`)
-var youtubeVideoID = regexp.MustCompile(`^[A-Za-z0-9_-]{11}$`)
 
 func (s *Service) provider(ctx context.Context, u *url.URL) (Card, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
@@ -111,6 +110,7 @@ func (s *Service) wikipedia(ctx context.Context, u *url.URL) (Card, bool) {
 	}
 	var data struct {
 		Type      string `json:"type"`
+		Provider  string `json:"provider_name"`
 		Title     string `json:"title"`
 		Extract   string `json:"extract"`
 		Thumbnail struct {
@@ -133,36 +133,16 @@ func (s *Service) wikipedia(ctx context.Context, u *url.URL) (Card, bool) {
 	return Card{URL: canonical, Site: "Wikipedia", Title: clean(data.Title, 300), Description: clean(data.Extract, 1000), Image: asset(u, data.Thumbnail.Source), ContentType: "text/html", TTL: 600}, true
 }
 
-func youtubeID(u *url.URL) string {
-	var id string
-	switch strings.ToLower(u.Hostname()) {
-	case "youtu.be":
-		id = strings.TrimPrefix(u.Path, "/")
-	case "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com":
-		if u.Path == "/watch" {
-			id = u.Query().Get("v")
-		} else {
-			parts := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
-			if len(parts) == 2 && (parts[0] == "shorts" || parts[0] == "live" || parts[0] == "embed") {
-				id = parts[1]
-			}
-		}
-	}
-	if !youtubeVideoID.MatchString(id) {
-		return ""
-	}
-	return id
-}
-
 func (s *Service) youtube(ctx context.Context, u *url.URL, id string) (Card, bool) {
 	var data struct {
 		Type      string `json:"type"`
+		Provider  string `json:"provider_name"`
 		Title     string `json:"title"`
 		Author    string `json:"author_name"`
 		Thumbnail string `json:"thumbnail_url"`
 	}
 	query := url.Values{"format": {"json"}, "url": {"https://www.youtube.com/watch?v=" + id}}
-	if err := s.providerJSON(ctx, "https://www.youtube.com/oembed?"+query.Encode(), &data); err != nil || data.Type != "video" || clean(data.Title, 300) == "" {
+	if err := s.providerJSON(ctx, "https://www.youtube.com/oembed?"+query.Encode(), &data); err != nil || data.Type != "video" || (data.Provider != "" && data.Provider != "YouTube") || clean(data.Title, 300) == "" {
 		return Card{}, false
 	}
 	author := clean(data.Author, 200)

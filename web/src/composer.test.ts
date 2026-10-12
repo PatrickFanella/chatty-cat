@@ -22,7 +22,7 @@ function setup() {
 }
 describe('message validation', () => {
   it('counts Unicode codepoints', () => { expect(validateMessage('😀'.repeat(500))).toBeUndefined(); expect(validateMessage('😀'.repeat(501))).toBeDefined(); });
-  it.each(['', ' ', 'hi\nthere', '\x01ACTION hi\x01', ' /raid user'])('rejects unsafe or unsupported input %j', (text) => expect(validateMessage(text)).toBeDefined());
+  it.each(['', ' ', 'hi\nthere', '\x01ACTION hi\x01', ' /unsupported user'])('rejects unsafe or unsupported input %j', (text) => expect(validateMessage(text)).toBeDefined());
   it('validates send acknowledgements', () => {
     expect(parseSendResult({ sent: true, messageID: 'id', access_token: 'ignored' })).toEqual({ sent: true, messageID: 'id' });
     expect(parseSendResult({ sent: false, error: 'dropped', uncertain: true })).toEqual({ sent: false, error: 'dropped', uncertain: true });
@@ -122,7 +122,7 @@ it('accepts commands without echoing them into chat and preserves an armed reply
 });
 it('permits supported slash commands and rejects unknown commands',()=>{
  for(const command of ['/ban alice','/timeout alice 60','/clear','/color blue','/announcepurple hello','/followers 10'])expect(validateMessage(command)).toBeUndefined();
- expect(validateMessage('/me hello')).toBeUndefined();expect(validateMessage('/raid alice')).toBeDefined();
+ expect(validateMessage('/me hello')).toBeUndefined();expect(validateMessage('/raid alice')).toBeUndefined();
 });
 it('adopts action acknowledgements while retaining an armed reply',async()=>{
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,action:true,messageID:'action-id'})}));
@@ -137,4 +137,9 @@ it('keeps whisper content out of persistent drafts and sent history and allows i
  expect(input.value).toBe('');expect(status.textContent).toContain('does not confirm delivery');expect(localStorage.getItem('chatthing:v1:sent:hasanabi')).not.toContain('private text');
  edit('unfinished');composer.prepareWhisper('alice');expect(input.value).toBe('unfinished');edit('');composer.prepareWhisper('alice');expect(input.value).toBe('/w alice ');
  for(const value of [{sent:true,whisper:true,messageID:'id'},{sent:true,command:true,whisper:'yes'},{sent:true,command:true,whisper:true,recipient:'bad!' }])expect(()=>parseSendResult(value)).toThrow();
+});
+
+it('reports a raid as a pending request rather than completed delivery',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,command:true})}));
+ const {composer,edit,submit,status}=setup();composer.setAuth(signedIn);edit('/raid alice');submit();await vi.advanceTimersByTimeAsync(0);expect(status.textContent).toContain('Raid requested');
 });

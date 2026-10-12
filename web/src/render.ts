@@ -1,3 +1,4 @@
+import {nativeGifTitle,gifTitleLink} from './gifs';
 import { appendLinks, readableColor, observeUserColor } from './links';
 import type { ChatMessage } from './protocol';
 import type { ChannelMetadata } from './metadata';
@@ -21,6 +22,8 @@ function emoteImage(emote: Emote, frozen: boolean): HTMLImageElement {
 export function messageText(message: ChatMessage, metadata: ChannelMetadata | undefined, frozen = false): HTMLElement {
   const text = document.createElement('span');
   text.className = 'message';
+  const gif=message.command==='PRIVMSG'?nativeGifTitle(message.text):undefined;
+  if(gif){text.append(gifTitleLink(gif));return text;}
   const tokens = tokenize(message.text, message.tags.emotes ?? '', metadata?.emotes ?? {},
     document.documentElement.dataset.theme === 'light', /^[1-9][0-9]*$/.test(message.tags.bits??''));
   let stack: HTMLElement | null = null;

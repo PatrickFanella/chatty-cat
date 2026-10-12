@@ -42,3 +42,7 @@ it('follows the top edge in reverse flow and preserves paused anchors through pr
  const {log,view}=setup();view.set(items(1000).reverse(),true,0,true);expect(log.scrollTop).toBe(0);expect(log.textContent).toContain('999');
  view.reveal('500');const oldTop=log.scrollTop;view.set(items(1100).reverse(),false,0,true);expect(log.scrollTop).toBe(oldTop+3200);expect(log.querySelector('[data-virtual-key="500"]')).not.toBeNull();view.stop();
 });
+
+it('keeps unchanged row subtrees connected as live rows append and the viewport advances',()=>{
+ const {log,view}=setup();const records=Array.from({length:100},(_,i)=>{const row=document.createElement('article');row.className='row';return {key:String(i),render:()=>row};});view.set(records,true);const keep=log.querySelector('[data-virtual-key="95"]')!;const frame=document.createElement('iframe');keep.append(frame);const insert=vi.spyOn(log,'insertBefore');view.set([...records,{key:'100',render:()=>document.createElement('article')}],true);expect(log.querySelector('[data-virtual-key="95"]')).toBe(keep);expect(keep.querySelector('iframe')).toBe(frame);expect(insert.mock.calls.some(([node])=>node===keep)).toBe(false);view.stop();
+});

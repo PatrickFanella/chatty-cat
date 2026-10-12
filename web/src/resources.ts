@@ -9,22 +9,22 @@ export class Resources {
     const nav = root.querySelector<HTMLElement>('[role=tablist]')!;
     const content = root.querySelector<HTMLElement>('.resource-content')!;
     const help = document.createElement('section'); help.id = 'resources-help'; help.role = 'tabpanel'; help.tabIndex = 0;
-    const title = document.createElement('h2'); title.textContent = 'Chat Thing'; help.append(title);
+    const title = document.createElement('h2'); title.textContent = 'Chatty Cat'; help.append(title);
     const instructions = [
       'Watch up to six Twitch chats together. Enter channel names separated by commas, then choose a send destination in the composer.',
       'Log in with Twitch to send. Enter sends; Shift+Enter adds a draft line break. Up and Down at the ends of the draft recall sent messages. Use @ for names, : for emotes, or Tab to complete a word.',
       'Reply buttons quote a parent message. Link buttons preserve the current channels and open saved message context. Jump to live resumes following chat.',
       'The emote picker has provider and emoji tabs, search, recent use, age markers, animation filters and saved size. Drag its title or use arrow keys on the move handle; Shift moves farther. Pin retains its position.',
       'Display settings control presets, palettes, fonts, metrics, timestamps, filters, scrollback, emote-only size and shadows. Mention sound and notifications are optional. The missed-mention button jumps to each queued message; Shift-click clears it.',
-      'Search reads this browser’s saved archive. Stats count retained messages. Offline mode displays saved history; live chat and sending need the network.',
+      'Search reads this browser’s saved archive. Stats retain observed rankings; their summary and graph cover retained messages. Offline mode displays saved history; live chat and sending need the network.',
       'Video opens Twitch’s player with the current parent domain and does not start playback automatically. Link previews load media players only when selected.',
-      'Supported commands: /me action text, /timeout username [seconds] [reason], /ban username [reason], /unban username, /delete message-id, /clear, /slow [seconds], /slowoff, /followers [minutes], /followersoff, /subscribers and /subscribersoff, /emoteonly and /emoteonlyoff, /uniquechat and /uniquechatoff, /announce text (or /announceblue, /announcegreen, /announceorange, /announcepurple), /color named-color or #RRGGBB. Moderation commands require the relevant Twitch scope and channel permission.',
+      'Supported commands: /me action text, /timeout username [seconds] [reason], /ban username [reason], /unban username, /delete message-id, /clear, /slow [seconds], /slowoff, /followers [minutes], /followersoff, /subscribers and /subscribersoff, /emoteonly and /emoteonlyoff, /uniquechat and /uniquechatoff, /announce text (or /announceblue, /announcegreen, /announceorange, /announcepurple), /color named-color or #RRGGBB. Also /raid username, /unraid, /mod and /unmod username, /vip and /unvip username, /block and /unblock username, /shoutout username. Raid/mod/VIP commands require the selected channel’s broadcaster account. A raid request starts Twitch’s pending raid; complete or cancel it there. Commands require the relevant Twitch scope and channel permission.',
       'Media, left, libre and author lists retain the original project’s curated links and attribution.',
     ];
     for (const text of instructions) { const p = document.createElement('p'); p.textContent = text; help.append(p); }
     for (const [name, label] of [['display-open', 'Display settings'], ['stats-open', 'Stats'], ['archive-open', 'Search archive']] as const) { const button = document.createElement('button'); button.type = 'button'; button.dataset.helpAction = name; button.textContent = label; help.append(button); }
     const credit = document.createElement('p'); credit.append('Rebuilt in Go and TypeScript from ');
-    const upstream = document.createElement('a'); upstream.href = 'https://github.com/mxmilkiib/hasanabi.neocities.org'; upstream.textContent = 'the original AGPL project'; upstream.target = '_blank'; upstream.rel = 'noopener noreferrer'; credit.append(upstream); help.append(credit);
+    const upstream = document.createElement('a'); upstream.href = 'https://github.com/mxmilkiib/hasanabi.neocities.org'; upstream.textContent = 'the original AGPL project'; upstream.target = '_blank'; upstream.rel = 'noopener noreferrer'; credit.append(upstream,'. ');const source=document.createElement('a');source.href='https://git.subcult.tv/subculture-collective/chatty-cat';source.textContent='Go and TypeScript source';source.target='_blank';source.rel='noopener noreferrer';credit.append(source);help.append(credit);
     this.pages.set('help',help); content.append(help);
     for (const [key, html] of Object.entries(RESOURCE_TABS)) {
       const page = document.createElement('section'); page.id = 'resources-' + key; page.role = 'tabpanel'; page.tabIndex = 0;

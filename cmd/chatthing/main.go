@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/auth"
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/config"
-	"github.com/PatrickFanella/hasanabi.neocities.org/rebuild/internal/server"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/config"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/server"
 )
 
 func main() {

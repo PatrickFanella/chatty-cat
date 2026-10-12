@@ -20,6 +20,9 @@ export class VirtualLog {
   private pauseOnText = false;
   private manuallyPaused = false;
   private wheelDuringHold = false;
+
+  private leading=this.spacer(0);
+  private trailing=this.spacer(0);
   constructor(private log: HTMLElement) {
     log.addEventListener('mouseover', this.hover); log.addEventListener('mouseleave', this.leave); log.addEventListener('wheel', this.wheel, { passive: true }); log.addEventListener('touchstart', this.wheel, { passive: true });
     log.addEventListener('scroll', this.scroll, { passive: true }); window.addEventListener('resize', this.schedule);
@@ -83,10 +86,15 @@ export class VirtualLog {
       row.dataset.position = String(i + 1); row.style.setProperty('--row-parity', String(i % 2)); rows.push(row);
     }
     this.observer?.disconnect();
-    this.log.replaceChildren(this.spacer(this.offsets[this.start] ?? 0), ...rows, this.spacer(total - (this.offsets[this.end] ?? 0)));
+    this.leading.style.height=Math.max(0,this.offsets[this.start]??0)+'px';
+    this.trailing.style.height=Math.max(0,total-(this.offsets[this.end]??0))+'px';
+    const desired=[this.leading,...rows,this.trailing],keep=new Set<Node>(desired);
+    for(const node of [...this.log.childNodes])if(!keep.has(node))node.remove();
+    let cursor=this.log.firstChild;
+    for(const node of desired){if(node===cursor)cursor=cursor.nextSibling;else this.log.insertBefore(node,cursor);}
     for (const row of rows) this.observer?.observe(row);
     if (this.following) this.log.scrollTop = this.reverse?0:this.log.scrollHeight;
-    this.log.dispatchEvent(new Event('virtualpaint'));
+    this.log.dispatchEvent(new Event('virtualpaint',{bubbles:true}));
     if(focused?.isConnected)focused.focus({preventScroll:true});
   }
   measuredHeight(key:string):number|undefined {return this.heights.get(key);}
