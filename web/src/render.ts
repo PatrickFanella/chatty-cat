@@ -154,6 +154,10 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
     const link = document.createElement('button'); link.type = 'button'; link.className = 'permalink';
     link.dataset.permalink = message.id; link.textContent = 'Link'; link.setAttribute('aria-label', 'Link to this message'); row.append(link);
   }
+  if(message.tags['bookmark-excerpt']==='1'){const saved=document.createElement('span');saved.className='saved-excerpt';saved.textContent='[saved excerpt]';row.append(saved);}
+  if(['PRIVMSG','USERNOTICE','NOTICE','CLEARCHAT','CLEARMSG'].includes(message.command)){
+    const bookmark=document.createElement('button');bookmark.type='button';bookmark.dataset.bookmark='';bookmark.className='bookmark-message';bookmark.textContent='Bookmark';bookmark.setAttribute('aria-label','Bookmark this public message');row.append(bookmark);
+  }
   return row;
 }
 

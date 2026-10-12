@@ -19,6 +19,7 @@ it('uses channel and time ranges, newest-first limits and ignores state frames',
   expect((await a.search({ text: '', channels: ['one'] })).map(m => m.channel)).toEqual(['one', 'one']);
   expect(await a.search({ text: '', channels: [] })).toEqual([]);
   expect(await a.search({ text: '', after: 300, before: 10 })).toEqual([]);
+  expect((await a.search({text:'',channel:'one',after:100,limit:1,order:'oldest'}))[0]?.id).toBe('id');
 });
 it('supports literal text/login filters and cancelled searches', async () => {
   expect(matchesArchive(message, { text: 'hello', login: 'alice' })).toBe(true);
@@ -53,4 +54,11 @@ it('cancels an active selective cursor scan and leaves storage usable',async()=>
  const controller=new AbortController();
  await expect(a.searchPage({text:'absent',limit:2},undefined,controller.signal,()=>controller.abort())).rejects.toHaveProperty('name','AbortError');
  expect((await a.searchPage({text:'hello',limit:1})).messages).toHaveLength(1);
+});
+it('recovers missing public excerpts without overwriting retained moderation state or exceeding capacity',async()=>{
+ const a=new MessageArchive(()=>{},2);archives.push(a);a.add({...message,tags:{deleted:'1'}});await a.flush();
+ expect(await a.recoverMissing([message,{...message,id:'recovered',timestamp:200}])).toBe(1);
+ expect((await a.get('id',['one']))?.tags.deleted).toBe('1');
+ await expect(a.recoverMissing([{...message,id:'full',timestamp:300}])).rejects.toThrow('full');expect(await a.get('full',['one'])).toBeUndefined();
+ await expect(a.recoverMissing([{...message,command:'WHISPER'}])).rejects.toThrow('public');
 });

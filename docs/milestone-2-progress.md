@@ -6,7 +6,8 @@ joining. PRs #61–#63 are merged. The original GIPHY provider gate stays in M0.
 
 ## Structured archive queries and saved searches — #15
 
-Implemented for review. The existing local IndexedDB archive supplies results;
+Merged in [PR #64](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/64).
+The existing local IndexedDB archive supplies results;
 search does not fetch unobserved history. The query and filter builder support
 text, sender/channel, badge, native emote IDs or literal tokens, link domains,
 reply/moderation state, dates, negation and alternative values. Bounded regex
@@ -34,3 +35,35 @@ provider request was made. No M2 deployment is recorded yet.
 - #19/#20: observation comparison and portable logs from the merged baseline.
 - #18: verified VOD context after #15/#16 merge.
 - #48: account-isolated user notes after #27 account profiles.
+
+## Public message/conversation bookmarks — #16
+
+Implemented for review. Bookmark buttons in live chat and archive results open
+an editor for a local public excerpt, private note and tags. Bookmarks stay in
+separate signed-in or signed-out profiles; only public commands and a small
+allowlist of reply/moderation metadata are retained. Limits are 200 bookmarks,
+1 MB per profile, 2,000 note characters, 1,000 characters per excerpt, and five
+context excerpts. Conversation capture includes a retained parent when found;
+it does not claim to reconstruct a full thread.
+
+Sharing requires an exact preview, then a separate copy action. Notes, authors,
+context, URLs and mentions in message text are excluded by default; each can
+be included explicitly. Sharing choices reset for another bookmark/account.
+Device-local archive links are labelled separately from public Twitch channel
+links; no public message permalink or remote publishing service is invented.
+Private backup downloads include notes and tags after preview. Imports preserve
+existing notes, validate bounds/schema and require an explicit import action.
+
+Missing public excerpts can be recovered atomically without overwriting retained
+records. Recovery refuses a full archive rather than evicting history. Copies
+keep bounded public reply/moderation flags and are visibly marked saved excerpts;
+private notes never enter chat, history exports or public statistics.
+
+Verification: all 450 frontend tests and strict production build pass. Browser
+creation and tagging, reload/reopen, redacted previews,
+explicit note inclusion, a 2,500-byte native backup download and duplicate-safe
+reimport, six-row orphan recovery and context reopening pass. Account switching
+and privacy clear editing/preview content and sharing opt-ins. Tests cover
+malformed imports, profile isolation, stale edits, capacity refusal, clipboard
+handoff of reviewed text and retention of existing moderation records. This is
+local fixture evidence; no M2 production deployment is recorded.
