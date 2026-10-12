@@ -1,3 +1,5 @@
+import {loadRowPronouns} from './row-pronouns';
+import {streamHeader} from './stream-header';
 import {DiscoveryPanel} from './discovery';
 import {PresentationPanel} from './presentation-ui';
 import {getPresentation} from './presentation';
@@ -282,6 +284,7 @@ function render(): void {
    for (const message of messages) {
      if(!isArchive&&message.timestamp<=(localCleared.get(message.channel)??-1))continue;
      if (['ROOMSTATE', 'USERSTATE', 'GLOBALUSERSTATE'].includes(message.command)) continue;
+     if(message.command==='JOIN'&&!getPresentation().showJoins||message.command==='PART'&&!getPresentation().showParts)continue;
      const visibility = messageVisibility(message, display.options, selfLogin);const rule=rulePanel?.engine.evaluate(message),similar=rulePanel?.similarity.classify(message,selfLogin)??false;
      if(rule?.hidden||similar&&rulePanel?.similarity.options.behavior==='hide')continue;
      if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
@@ -291,7 +294,7 @@ function render(): void {
        items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
      }
      items.push({ key, channel:message.channel,text:message.text, highlight:scope=>(visibility.highlight||!!rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope)).highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar),visible:ids=>!rulePanel?.engine.evaluate(message,ids).hidden,render: (scope="default") => {
-       const row=rowsByMessage.get(message,scope,visualRevision*2+(removed?1:0),()=>{const row=messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze||getPresentation().animateOnlyFocused&&!document.hasFocus(),names.get(message.channel));decoratePresentation(row,message,removed,!liveObserved.has(message));return row;});
+       const row=rowsByMessage.get(message,scope,visualRevision*2+(removed?1:0),()=>{const row=messageRow(message,metadata.get(message.channel),frozen||borrowedFreeze||getPresentation().animateOnlyFocused&&!document.hasFocus(),names.get(message.channel));decoratePresentation(row,message,removed,!liveObserved.has(message));if(message.command==='PRIVMSG')loadRowPronouns(row,message.login,login=>pronouns.get(login));return row;});
        const decision=rulePanel?.engine.evaluate(message,virtualLog.ruleIDs(scope));const highlight=(visibility.highlight||!!decision?.highlight)&&(!similar||!!rulePanel?.similarity.options.highlightSimilar);row.classList.toggle('keyword-match',highlight);row.classList.toggle('similar-message',similar);if(decision?.color&&highlight)row.style.setProperty('--rule-color',decision.color);else row.style.removeProperty('--rule-color'); row.classList.toggle('user-ghost', visibility.hiddenUser);
        row.classList.toggle('history-message',!liveObserved.has(message));row.classList.toggle('removed', removed); return row;
      } });
@@ -382,7 +385,7 @@ if(accountAuth?.authenticated){inboxPanel.setAccount(accountAuth.userID??'',acco
 const commandPanel=new CommandPanel(composer,()=>{
  const selected=inspector.selectedMessage,channel=selected?.channel??composer.target;
  const room=selected?.tags['room-id']??[...store.messages].reverse().find(message=>message.channel===channel&&message.tags['room-id'])?.tags['room-id']??'';
- return {channel:{name:channel,id:room,title:metadata.get(channel)?.stream.title??'',game:''},account:{name:accountAuth?.login??'',id:accountAuth?.userID??''},message:selected?{name:selected.login,id:selected.id,text:selected.text.replace(/^\x01ACTION (.*)\x01$/s,'$1')}:undefined,input:composer.draft};
+ return {channel:{name:channel,id:room,title:metadata.get(channel)?.stream.title??'',game:metadata.get(channel)?.stream.game??''},account:{name:accountAuth?.login??'',id:accountAuth?.userID??''},message:selected?{name:selected.login,id:selected.id,text:selected.text.replace(/^\x01ACTION (.*)\x01$/s,'$1')}:undefined,input:composer.draft};
 },element('user-inspector',HTMLDialogElement));
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
@@ -394,7 +397,7 @@ function scheduleRender(): void {
   if (!renderQueued) { renderQueued = true; requestAnimationFrame(render); }
 }
 function paintStreamInfo(data:ChannelMetadata):void{const p=getPresentation();
-    streamInfo.textContent = [p.headerUptime?data.stream.uptime:'',p.headerViewers&&/^\d+$/.test(data.stream.viewers) ? `${Number(data.stream.viewers).toLocaleString()} viewers` : '',p.headerTitle?data.stream.title:''].filter(Boolean).join(' · ');
+    streamInfo.textContent = streamHeader(data.stream,p);
     if(data.lastVod){const archiveLink=document.createElement('a');archiveLink.href=data.lastVod.url;archiveLink.target='_blank';archiveLink.rel='noopener noreferrer';archiveLink.textContent='Latest archive · '+new Date(data.lastVod.start).toLocaleDateString();archiveLink.title=data.lastVod.title+' · '+new Date(data.lastVod.start).toLocaleString()+' → '+new Date(data.lastVod.end).toLocaleString()+' · '+Math.round((Date.parse(data.lastVod.end)-Date.parse(data.lastVod.start))/60000)+' minutes';streamInfo.append(' · ',archiveLink);}
     streamInfo.title = data.errors.length ? `Some metadata unavailable: ${data.errors.join(', ')}` : data.stream.title;
   }
@@ -435,7 +438,7 @@ const connection = new ChatConnection(liveSources(), (event) => {
   scheduleRender();
 });
 syncSources=()=>{const sources=liveSources(),closed=channels.filter(channel=>!sources.includes(channel));pickerModel.connection(closed,'reconnecting');connection.setChannels(sources);personalChat.setChannels(sources);metadataClient.setChannels(sources);pageCoverage.setChannels(sources);};
-syncSources();connection.start();
+const updateReadOptions=():void=>{const p=getPresentation();connection.setReadOptions({membership:p.showJoins||p.showParts,history:p.loadHistory,historyLimit:p.historyLimit});};document.addEventListener('presentationchange',updateReadOptions);window.addEventListener('pagehide',()=>document.removeEventListener('presentationchange',updateReadOptions));updateReadOptions();syncSources();connection.start();
 const usernameContext=(event:MouseEvent):void=>{if(privacyEnabled()||composer.sending||!(event.target instanceof Element))return;const name=event.target.closest<HTMLElement>('a.name,a.mention'),row=name?.closest<HTMLElement>('.row');if(!name||!row)return;const p=getPresentation(),modified=({shift:event.shiftKey,ctrl:event.ctrlKey,alt:event.altKey,meta:event.metaKey})[p.rightClickModifier as 'shift'|'ctrl'|'alt'|'meta'],action=modified?p.modifiedRightClick:p.rightClick;if(action==='ignore')return;event.preventDefault();if(!composer.canInsert){announcer.textContent='Log in to stage a mention or reply';return;}const message=viewMessages().find(m=>m.id===row.dataset.id&&m.channel===row.dataset.channel);if(!message)return;if(action==='reply'){localTargets.reply(message);composer.selectReply(message);}else composer.mention(name.dataset.mention||message.login,p.mentionAt,p.mentionComma);};log.addEventListener('contextmenu',usernameContext);window.addEventListener('pagehide',()=>log.removeEventListener('contextmenu',usernameContext));
 const localHelp=document.createElement('dialog');localHelp.setAttribute('aria-label','Local command help');const heading=document.createElement('h2');heading.textContent='Local commands';const helpText=document.createElement('p');helpText.textContent=LOCAL_COMMANDS.join(' · ');const details=document.createElement('p');details.textContent='Context is the selected send channel. /reply stages the selected public thread. /r stages a private whisper to the last selected or observed whisper recipient; it never means a public reply. /whisper, /msg and .w are aliases that stage /w. Review staged messages and press Send separately. /requests opens the channel-points queue. /ignore only hides a user locally; /block changes Twitch blocking. Follow actions open Twitch. /clearmessages hides retained rows locally while preserving the archive. /disconnect pauses public, personal and whisper streams until /reconnect. Raw, debug and native commands are unavailable.';const closeHelp=document.createElement('button');closeHelp.type='button';closeHelp.textContent='Close';closeHelp.addEventListener('click',()=>localHelp.close());localHelp.append(heading,helpText,details,closeHelp);document.body.append(localHelp);
 composer.configureLocal(text=>{if(privacyEnabled())throw new Error('Local commands are unavailable in privacy mode');return dispatchLocal(text,{channel:composer.target,uptime:metadata.get(composer.target)?.stream.uptime??'',targets:localTargets,

@@ -1,3 +1,4 @@
+import {channelMuted} from './presentation';
 import { privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
 import type { DisplayOptions } from './display';
@@ -33,8 +34,8 @@ export class Attention {
     const key = message.channel + ':' + message.id;
     if (this.seen.has(key)) return;
     this.seen.add(key); while (this.seen.size > 2000) { const first = this.seen.values().next().value; if (first) this.seen.delete(first); else break; }
-    this.missed.push({ id: message.id, channel: message.channel }); if (this.missed.length > 500) this.missed.shift(); this.render(); if(policy.sound)this.sound();
-    if (policy.notify && Date.now() - this.lastNote >= 8000) { this.lastNote = Date.now(); void this.notify(`${message.tags['display-name'] || message.login} mentioned you`, message.text.slice(0, 140), 'mention', message.channel); }
+    this.missed.push({ id: message.id, channel: message.channel }); if (this.missed.length > 500) this.missed.shift(); this.render(); if(policy.sound)this.sound(message.channel);
+    if (policy.notify && !channelMuted(message.channel) && Date.now() - this.lastNote >= 8000) { this.lastNote = Date.now(); void this.notify(`${message.tags['display-name'] || message.login} mentioned you`, message.text.slice(0, 140), 'mention', message.channel); }
   }
   whisper(message: ChatMessage): void { if (document.hidden || !document.hasFocus()) { this.sound(); void this.notify(`${message.tags['display-name'] || message.login} whispered you`, message.text.slice(0, 140), 'whisper', ''); } }
   stream(channel: string, live: boolean, title: string): void {
@@ -42,11 +43,11 @@ export class Attention {
     if (previous === false && live) void this.notify(`${channel} is live`, title.slice(0, 300), 'live-' + channel, channel);
   }
   private async notify(title: string, body: string, tag: string, channel: string,explicitTest=false): Promise<void> {
-    if (privacyEnabled() || this.stopped || !this.options().notify || (!explicitTest&&!document.hidden) || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if ((!explicitTest&&channelMuted(channel)) || privacyEnabled() || this.stopped || !this.options().notify || (!explicitTest&&!document.hidden) || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
     const options = { body, tag, icon: '/icon-192.png', data: { channel } };
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
-      if (this.stopped || privacyEnabled()) return;
+      if (this.stopped || privacyEnabled() || !explicitTest&&channelMuted(channel)) return;
       if (registration) await registration.showNotification(title, options);
       else { const note = new Notification(title, options);this.notes.add(note);note.onclose=()=>this.notes.delete(note); note.onclick = () => { window.focus(); note.close(); }; }
     } catch { /* optional notifications must not interrupt chat */ }
@@ -56,8 +57,8 @@ export class Attention {
     if (privacyEnabled() || !this.options().ping || this.stopped) return;
     try { this.audio ??= new AudioContext(); if (this.audio.state === 'suspended') void this.audio.resume().catch(() => {}); } catch { /* unsupported */ }
   };
-  private sound(): void {
-    if (privacyEnabled() || !this.options().ping || !this.audio || this.audio.state !== 'running' || Date.now() - this.lastSound < 250) return;
+  private sound(channel=''): void {
+    if (channelMuted(channel) || privacyEnabled() || !this.options().ping || !this.audio || this.audio.state !== 'running' || Date.now() - this.lastSound < 250) return;
     this.lastSound = Date.now();
     try {
       const time = this.audio.currentTime, oscillator = this.audio.createOscillator(), gain = this.audio.createGain();

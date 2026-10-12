@@ -1,3 +1,4 @@
+import {getPresentation} from './presentation';
 import {ColumnLog} from './column-log';
 import {VirtualLog,type LogItem} from './virtual-log';
 import {SplitLayout,type SplitPane} from './splits';
@@ -109,8 +110,9 @@ export class SplitLog {
  }
  set(items:readonly LogItem[],following:boolean,revision=0,reverse=false,mode=1,pauseHover=false):void {
   if(this.stopped)return;this.following=following;this.paintLayout();
-  if(this.legacy){this.legacy.set(items,following,revision,reverse,mode,pauseHover);return;}
+  if(this.legacy){this.legacy.set(reverse?items.slice(0,getPresentation().paneScrollback):items.slice(-getPresentation().paneScrollback),following,revision,reverse,mode,pauseHover);return;}
   for(const entry of this.views){const p=entry.pane,filter=p.filter.toLowerCase(),context=this.contexts.get(p.id);entry.items=(context?.items??items).filter(item=>p.channels.includes(item.channel??item.key.split(':')[0]!)&&(!filter||(item.text??'').toLowerCase().includes(filter))&&(!item.visible||item.visible(p.rules??[])));
+   if(!context)entry.items=reverse?entry.items.slice(0,getPresentation().paneScrollback):entry.items.slice(-getPresentation().paneScrollback);
    // Main's source order follows its global display setting; panes own theirs.
    const visible=!(innerWidth<=650||innerHeight>=innerWidth)||p.id===this.layout.activePane.id;
    if(reverse!==p.reverse)entry.items=[...entry.items].reverse();entry.view.set(entry.items,following&&!context&&visible,revision,p.reverse,p.pauseHover);

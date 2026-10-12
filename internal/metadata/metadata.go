@@ -39,6 +39,7 @@ type Stream struct {
 	Uptime  string `json:"uptime"`
 	Viewers string `json:"viewers"`
 	Title   string `json:"title"`
+	Game    string `json:"game"`
 }
 
 // Channel contains metadata for one room; Errors identifies partial failures.
@@ -227,13 +228,14 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 	task(func() { bttvGlobal = get("BTTV global", s.endpoints.BTTV+"/emotes/global", emoteTTL) })
 	task(func() { ffzGlobal = get("FFZ global", s.endpoints.FFZ+"/set/global", emoteTTL) })
 	task(func() { badgesGlobal = get("badges global", s.endpoints.IVR+"/badges/global", emoteTTL) })
-	var uptime, viewers, title, usage []byte
+	var uptime, viewers, title, game, usage []byte
 	if s.endpoints.StreamElements != "" {
 		task(func() { usage = get("StreamElements usage", s.endpoints.StreamElements+"/"+channel+"/stats", emoteTTL) })
 	}
 	task(func() { uptime = get("stream uptime", s.endpoints.DecAPI+"/uptime/"+channel, time.Minute) })
 	task(func() { viewers = get("stream viewers", s.endpoints.DecAPI+"/viewercount/"+channel, time.Minute) })
 	task(func() { title = get("stream title", s.endpoints.DecAPI+"/title/"+channel, time.Minute) })
+	task(func() { game = get("stream category", s.endpoints.DecAPI+"/game/"+channel, time.Minute) })
 	wg.Wait()
 	var user struct {
 		ID string `json:"id"`
@@ -368,7 +370,7 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 			}
 		}
 	}
-	result.Stream = Stream{Uptime: strings.TrimSpace(string(uptime)), Viewers: strings.TrimSpace(string(viewers)), Title: strings.TrimSpace(string(title))}
+	result.Stream = Stream{Uptime: strings.TrimSpace(string(uptime)), Viewers: strings.TrimSpace(string(viewers)), Title: strings.TrimSpace(string(title)), Game: strings.TrimSpace(string(game))}
 	sort.Strings(result.Errors)
 	if err := ctx.Err(); err != nil {
 		return result, err

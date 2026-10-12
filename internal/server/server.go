@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -341,6 +342,11 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	options, err := parseReadOptions(r.URL.Query())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	s.mu.Lock()
 	if s.closing {
 		s.mu.Unlock()
@@ -388,7 +394,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 		if err := write(event{Type: "status", State: "connecting"}); err != nil {
 			return
 		}
-		err := s.relay(ctx, want, write)
+		err := s.relay(ctx, want, options, write)
 		if ctx.Err() != nil {
 			return
 		}
@@ -410,7 +416,7 @@ func (s *Server) chat(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) relay(ctx context.Context, want []string, write func(event) error) error {
+func (s *Server) relay(ctx context.Context, want []string, options readOptions, write func(event) error) error {
 	ctx, stop := context.WithCancel(ctx)
 	var background sync.WaitGroup
 	defer func() { stop(); background.Wait() }()
@@ -441,7 +447,11 @@ func (s *Server) relay(ctx context.Context, want []string, write func(event) err
 	}); err != nil {
 		return err
 	}
-	for _, command := range []string{"CAP REQ :twitch.tv/tags twitch.tv/commands", "PASS justinfan", fmt.Sprintf("NICK justinfan%d", time.Now().UnixNano()%99999)} {
+	caps := "CAP REQ :twitch.tv/tags twitch.tv/commands"
+	if options.membership {
+		caps += " twitch.tv/membership"
+	}
+	for _, command := range []string{caps, "PASS justinfan", fmt.Sprintf("NICK justinfan%d", time.Now().UnixNano()%99999)} {
 		if err := send(command); err != nil {
 			return fmt.Errorf("authenticate IRC: %w", err)
 		}
@@ -457,11 +467,14 @@ func (s *Server) relay(ctx context.Context, want []string, write func(event) err
 				stop()
 				return
 			}
+			if options.historyLimit == 0 {
+				return
+			}
 			for _, channel := range want {
 				background.Add(1)
 				go func(channel string) {
 					defer background.Done()
-					if err := s.backfill(ctx, channel, write); err != nil {
+					if err := s.backfill(ctx, channel, options.historyLimit, write); err != nil {
 						stop()
 					}
 				}(channel)
@@ -511,7 +524,7 @@ func (s *Server) relay(ctx context.Context, want []string, write func(event) err
 				welcome.Store(true)
 				notifyReady()
 			default:
-				if allowed[msg.Channel] && displayCommand(msg.Command) {
+				if allowed[msg.Channel] && (displayCommand(msg.Command) || options.membership && (msg.Command == "JOIN" || msg.Command == "PART")) {
 					if msg.Timestamp == 0 {
 						msg.Timestamp = time.Now().UnixMilli()
 					}
@@ -533,8 +546,8 @@ func displayCommand(command string) bool {
 	}
 }
 
-func (s *Server) backfill(ctx context.Context, channel string, write func(event) error) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.RecentURL+channel+"?limit=200", nil)
+func (s *Server) backfill(ctx context.Context, channel string, limit int, write func(event) error) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, s.cfg.RecentURL+channel+"?limit="+strconv.Itoa(limit), nil)
 	if err != nil {
 		return fmt.Errorf("create backlog request: %w", err)
 	}
@@ -556,7 +569,7 @@ func (s *Server) backfill(ctx context.Context, channel string, write func(event)
 	if err := json.NewDecoder(io.LimitReader(res.Body, 2<<20)).Decode(&backlog); err != nil {
 		return nil
 	}
-	for _, line := range backlog.Messages[:min(len(backlog.Messages), 200)] {
+	for _, line := range backlog.Messages[max(0, len(backlog.Messages)-limit):] {
 		msg, err := irc.Parse(line)
 		if err != nil || msg.Channel != channel || !displayCommand(msg.Command) {
 			continue

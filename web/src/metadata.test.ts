@@ -23,3 +23,5 @@ describe('metadata wire boundary', () => {
 
 it('validates optional lifetime usage seeds separately from stream/emote data',()=>{expect(parseMetadata({...valid,emoteUse:undefined})?.emoteUse).toEqual({});for(const count of [-1,Infinity,1.5,'12'])expect(parseMetadata({...valid,emoteUse:{Wave:count}})).toBeNull();});
 it('validates public VOD timing and Twitch-only destinations',()=>{const lastVod={start:'2026-10-10T12:00:00Z',end:'2026-10-10T13:00:00Z',url:'https://www.twitch.tv/videos/12345',title:'Latest archive'};expect(parseMetadata({...valid,lastVod})?.lastVod).toEqual(lastVod);for(const bad of [{...lastVod,end:lastVod.start},{...lastVod,url:'https://evil.test/videos/12345'},{...lastVod,start:'not a date'}])expect(parseMetadata({...valid,lastVod:bad})).toBeNull();});
+
+it('validates optional category metadata while accepting older servers',()=>{expect(parseMetadata({...valid,stream:{...valid.stream,game:'Music'}})?.stream.game).toBe('Music');expect(parseMetadata({...valid,stream:{...valid.stream,game:42}})).toBeNull();expect(parseMetadata(valid)?.stream.game).toBeUndefined();});

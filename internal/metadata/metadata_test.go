@@ -24,7 +24,7 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 		"/bttv/frankerfacez/users/twitch/123": `[{"code":"Anim","animated":true,"images":{"2x":"https://cdn.betterttv.net/frankerfacez_emote/3/2"}}]`,
 		"/ivr/badges/global":                  `[{"set_id":"subscriber","versions":[{"id":"1","image_url_2x":"https://badges.example/global","title":"Global"},{"id":"2","image_url_1x":"https://badges.example/2","title":"Two"}]}]`,
 		"/ivr/badges/channel":                 `[{"set_id":"subscriber","versions":[{"id":"1","image_url_2x":"https://badges.example/channel","title":"Channel","description":"Subscriber"}]}]`,
-		"/decapi/uptime/room":                 " 2 hours ", "/decapi/viewercount/room": "1234", "/decapi/title/room": "A stream title",
+		"/decapi/uptime/room":                 " 2 hours ", "/decapi/viewercount/room": "1234", "/decapi/title/room": "A stream title", "/decapi/game/room": " Just Chatting ",
 	}
 	var calls atomic.Int32
 	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 	if got.Badges["subscriber"]["1"].Title != "Channel" || got.Badges["subscriber"]["2"].Title != "Two" {
 		t.Fatalf("badge merge: %#v", got.Badges)
 	}
-	if got.Stream.Uptime != "2 hours" || got.Stream.Viewers != "1234" || got.Stream.Title != "A stream title" {
+	if got.Stream.Uptime != "2 hours" || got.Stream.Viewers != "1234" || got.Stream.Title != "A stream title" || got.Stream.Game != "Just Chatting" {
 		t.Fatalf("stream: %#v", got.Stream)
 	}
 	before := calls.Load()

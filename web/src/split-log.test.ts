@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 import {afterEach,expect,it,vi} from 'vitest';
+import {setPresentation,presentationDefaults} from './presentation';
 import {SplitLog} from './split-log';
 import type {LogItem} from './virtual-log';
 let view:SplitLog|undefined;
-afterEach(()=>{view?.stop();document.body.replaceChildren();vi.unstubAllGlobals();});
+afterEach(()=>{setPresentation({...presentationDefaults});view?.stop();document.body.replaceChildren();vi.unstubAllGlobals();});
 function setup(){const root=document.createElement('main'),button=document.createElement('button');document.body.append(button,root);const target=vi.fn();view=new SplitLog(root,button,['alice','bob'],{target,changed:()=>{},popout:()=>{}});view.layout.enable();return {root,target};}
 function records(n:number):LogItem[]{return Array.from({length:n},(_,i)=>({key:(i%2?'bob':'alice')+':'+i,channel:i%2?'bob':'alice',text:'message '+i,render:()=>{const row=document.createElement('article');row.className='row';row.textContent='message '+i;return row;}}));}
 it('filters each pane and mounts distinct bounded rows for duplicated sources',()=>{
@@ -61,3 +62,5 @@ it('reapplies display visibility to archive context without losing its original 
 it('uses the unique source union and drops subscriptions only after the last pane/tab closes',()=>{
  setup();view!.layout.configure(view!.layout.activePane.id,{channels:['alice'],target:'alice',filter:'',reverse:false,pauseHover:false});const alice=view!.layout.activePane,copy=view!.layout.duplicatePane(alice.id),bob=view!.layout.addPane();view!.layout.configure(bob.id,{channels:['bob'],target:'bob',filter:'',reverse:false,pauseHover:false});expect(view!.sources()).toEqual(['alice','bob']);view!.layout.closePane(alice.id);expect(view!.sources()).toEqual(['alice','bob']);view!.layout.closePane(copy.id);expect(view!.sources()).toEqual(['bob']);view!.layout.reopen();expect(view!.sources()).toEqual(['alice','bob']);
 });
+
+it('caps each channel pane without deleting source history or reversing the retained time window',()=>{setPresentation({...presentationDefaults,paneScrollback:100});setup();const first=view!.layout.activePane;view!.layout.configure(first.id,{channels:['alice'],target:'alice',filter:'',reverse:false,pauseHover:false});const items=records(400);view!.set(items,true);expect(view!.reveal('alice:198')).toBe(false);expect(view!.reveal('alice:200')).toBe(true);expect(items).toHaveLength(400);view!.set([...items].reverse(),true,1,true);expect(view!.reveal('alice:198')).toBe(false);expect(view!.reveal('alice:200')).toBe(true);});

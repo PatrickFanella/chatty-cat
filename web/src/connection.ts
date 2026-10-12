@@ -12,6 +12,7 @@ export class ChatConnection {
   private refusal=false;
   private admissionAbort:AbortController|undefined;
   private channels:string[];
+  private readOptions={membership:false,history:true,historyLimit:200};
 
   constructor(channels: string[], private readonly receive: (event: ServerEvent) => void, private readonly path = '/api/chat') {this.channels=[...new Set(channels)].sort();}
 
@@ -22,6 +23,7 @@ export class ChatConnection {
     const url = new URL(this.path, location.href);
     url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     url.searchParams.set('channels', this.channels.join(','));
+    if(this.path==='/api/chat'){url.searchParams.set('membership',this.readOptions.membership?'1':'0');url.searchParams.set('history',this.readOptions.history?'1':'0');url.searchParams.set('historyLimit',String(this.readOptions.historyLimit));}
     const socket = new WebSocket(url);
     this.socket = socket;
 
@@ -42,6 +44,7 @@ export class ChatConnection {
       void this.admission(this.generation);
     };
   }
+  setReadOptions(options:{membership:boolean;history:boolean;historyLimit:number}):void{if(!Number.isInteger(options.historyLimit)||options.historyLimit<1||options.historyLimit>800)throw new Error('Invalid history limit');if(JSON.stringify(options)===JSON.stringify(this.readOptions))return;this.readOptions={...options};if(this.socket&&!this.paused)this.reconnect();}
   setChannels(channels:readonly string[]):boolean {const next=channels.length?parseWorkspaceChannels(channels.join(',')).sort():[];if(next.join(',')===this.channels.join(','))return false;this.channels=next;if(!this.paused)this.reconnect();return true;}
   private async admission(generation:number):Promise<void>{
     if(!['/api/chat','/api/auth/chat'].includes(this.path))return;this.admissionAbort?.abort();const abort=new AbortController();this.admissionAbort=abort;
