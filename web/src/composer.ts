@@ -77,7 +77,7 @@ export class Composer {
   private historyIndex = -1;
   private savedDraft = '';
   private readonly abort = new AbortController();
-  constructor(private readonly form: HTMLFormElement, channels: string[], private readonly accepted: (id: string, channel: string, text: string) => void = () => {}, private readonly commandAccepted: (result: SendResult, text: string, requestID: string) => void = () => {}) {
+  constructor(private readonly form: HTMLFormElement, channels: string[], private readonly accepted: (id: string, channel: string, text: string, reply?:ChatMessage) => void = () => {}, private readonly commandAccepted: (result: SendResult, text: string, requestID: string) => void = () => {}) {
     this.input = field(form, 'message', HTMLTextAreaElement);
     this.suggestions = field(form, 'completions', HTMLElement);
     this.channel = field(form, 'send-channel', HTMLSelectElement);
@@ -267,8 +267,9 @@ export class Composer {
         const history = this.history(); if (!result.whisper && history.at(-1) !== text) history.push(text);
         try { localStorage.setItem('chatthing:v1:sent:' + this.channel.value, JSON.stringify(history.slice(-50))); } catch { /* optional storage */ }
         if (result.command) this.commandAccepted(result, text, this.requestID);
+        const acceptedReply=!text.trimStart().startsWith('/')?this.reply:undefined;
         this.input.value = ''; if (!result.command && !result.action) this.reply = undefined; this.requestID = undefined; this.historyIndex = -1; this.saveDraft();
-        this.status.textContent = result.whisper ? 'Whisper request accepted; Twitch does not confirm delivery' : result.command ? /^\/raid(?:\s|$)/i.test(text.trim())?'Raid requested; complete or cancel it in Twitch':'Command completed' : 'Sent'; if (result.messageID && !result.command) this.accepted(result.messageID, this.channel.value, text);
+        this.status.textContent = result.whisper ? 'Whisper request accepted; Twitch does not confirm delivery' : result.command ? /^\/raid(?:\s|$)/i.test(text.trim())?'Raid requested; complete or cancel it in Twitch':'Command completed' : 'Sent'; if (result.messageID && !result.command) this.accepted(result.messageID, this.channel.value, text,acceptedReply);
       } else {
         this.status.textContent = result.error || 'Delivery could not be confirmed; check chat before sending again';
         if (!result.uncertain) this.requestID = undefined;

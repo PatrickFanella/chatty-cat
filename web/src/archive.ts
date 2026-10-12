@@ -93,6 +93,10 @@ export class MessageArchive {
       };
     });
   }
+  // Visit retained channel records in chronological order without retaining a full scan.
+  async scanChannel(channel:string,visit:(message:ChatMessage)=>void,signal?:AbortSignal):Promise<void> {
+    await this.read({text:'',channel,order:'oldest',matches:message=>{visit(message);return false;}},signal);
+  }
   async searchPage(query:ArchiveQuery,after?:ArchiveCursor,signal?:AbortSignal,progress:(scanned:number)=>void=()=>{}):Promise<ArchivePage> {
     await this.flush();if(signal?.aborted)throw new DOMException('Search cancelled','AbortError');
     const db=await this.db;if(signal?.aborted)throw new DOMException('Search cancelled','AbortError');
