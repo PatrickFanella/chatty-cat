@@ -2,6 +2,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 import { WorkspaceStore, parseWorkspaceFile, workspaceFile } from './workspaces';
 import { defaultDisplay } from './display';
+import {SplitLayout} from './splits';
 const snapshot = () => ({ channels:['one','two'], target:'two', focus:'log', settings:{version:1 as const,display:defaultDisplay(),extras:{}}, readers:[{column:0,key:'one:message',offset:12}] });
 beforeEach(()=>localStorage.clear());
 it('creates, renames, duplicates and deletes without mutating another workspace',()=>{
@@ -35,4 +36,10 @@ it('handles storage failure visibly and leaves in-memory state unchanged',()=>{
 it('refuses a stale tab write and retains newer workspace changes',()=>{
  const first=new WorkspaceStore();const workspace=first.create('Watching',snapshot());const stale=new WorkspaceStore();
  first.rename(workspace.id,'Newest');expect(()=>stale.rename(workspace.id,'Stale')).toThrow(/another tab/);expect(new WorkspaceStore().get(workspace.id)?.name).toBe('Newest');
+});
+it('round trips independent layouts and strips private fields inside panes',()=>{
+ const model=new SplitLayout(['one','two']);model.enable();model.duplicatePane(model.activePane.id);const state=model.snapshot();
+ const dirty={...state,tabs:state.tabs.map(tab=>({...tab,panes:tab.panes.map(pane=>({...pane,whisper:'secret',token:'secret',draft:'secret'}))}))};
+ const store=new WorkspaceStore();store.create('Watching',{...snapshot(),settings:{version:1,display:defaultDisplay(),extras:{splits:dirty}}});
+ const file=workspaceFile(store.all());expect(file).not.toContain('secret');expect(parseWorkspaceFile(file)[0]?.settings.extras.splits).toEqual(state);
 });

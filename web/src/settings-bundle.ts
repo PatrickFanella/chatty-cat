@@ -1,7 +1,7 @@
 import type {DisplayOptions} from './display';
 export interface SettingsBundle {version:1;display:DisplayOptions;extras:Record<string,unknown>}
-export type SettingsPart='picker'|'resources'|'video'|'stats'|'rail';
-const PARTS:SettingsPart[]=['picker','resources','video','stats','rail'];
+export type SettingsPart='picker'|'resources'|'video'|'stats'|'rail'|'splits';
+const PARTS:SettingsPart[]=['picker','resources','video','stats','rail','splits'];
 function extras(value:unknown):Record<string,unknown> {
  const result:Record<string,unknown>={};if(!value||typeof value!=='object'||Array.isArray(value))return result;
  try {const raw=JSON.stringify(value);if(raw.length>65536)return result;const data=JSON.parse(raw) as Record<string,unknown>;for(const key of PARTS)if(data[key]&&typeof data[key]==='object'&&!Array.isArray(data[key]))result[key]=data[key];}catch{/* malformed optional bundle */}return result;

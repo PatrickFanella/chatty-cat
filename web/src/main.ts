@@ -24,7 +24,7 @@ import { Whispers } from './whispers';
 import { PersonalChat, PersonalState } from './personal';
 import { UserInspector } from './inspector';
 import { Resources } from './resources';
-import { ColumnLog } from './column-log';
+import { SplitLog } from './split-log';
 import { type LogItem } from './virtual-log';
 import { Attention } from './attention';
 import { AccountEmotes } from './account-emotes';
@@ -68,7 +68,6 @@ const log = element('log', HTMLElement);
 let rail:PanelRail|undefined;
 let inboxPanel:InboxPanel|undefined;
 let inboxGeneration=0;
-const virtualLog = new ColumnLog(log);
 const pronouns = new Pronouns();
 const socialCards=new SocialCards(log);
 const nitterLinks=new NitterLinks(log);
@@ -89,7 +88,7 @@ const roomInfo = element('room-state', HTMLElement);
 function renderRoom(): void { roomInfo.textContent = [...roomStates.labels(composer.target), ...personalState.labels(composer.target)].join(' · '); composer.setBlock(personalState.block(composer.target, roomStates.slow(composer.target))); roomInfo.hidden = !roomInfo.textContent || document.documentElement.dataset.cmodes === 'false'; }
 const metadata = new Map<string, ChannelMetadata>();
 const fingerprints=new WeakMap<ChatMessage,string>();
-const rowsByMessage = new WeakMap<ChatMessage, { revision: number; row: HTMLElement }>();
+const rowsByMessage = new WeakMap<ChatMessage, Map<string,{ revision: number; row: HTMLElement }>>();
 let visualRevision = 0;
 let frozen = false;
 let borrowedFreeze=false;
@@ -126,6 +125,14 @@ const composer = new Composer(element('composer', HTMLFormElement), channels, (i
   for (const word of text.split(/\s+/)) if (codes.has(word)) pickerModel.select(channel, word);
   picker.refresh();
 }, (result, text, requestID) => { if (result.whisper && result.recipient) { const match = /^\/w\s+\S+\s+(.+)$/i.exec(text.trim()); if (match) whispers.echo(result.recipient, match[1]!, requestID); } });
+const panePopout=workspaceQuery.get('pane')??'';
+const virtualLog = new SplitLog(log,element('splits-open',HTMLButtonElement),channels,{
+ canChange:()=>!composer.sending,target:channel=>composer.setTarget(channel),changed:()=>{if(overlay)virtualLog.layout.enable(false);else if(virtualLog.layout.enabled){follow=true;pendingReaders=undefined;}scheduleRender();},popout:pane=>{
+  if(composer.sending){announcer.textContent='Wait for the current send outcome before opening a pane';return;}
+  try{saveWorkspace();const url=new URL(location.href);url.search='';url.searchParams.set('workspace',currentWorkspaceID);url.searchParams.set('channel',channels.join(','));url.searchParams.set('pane',pane);url.searchParams.set('video','off');const opened=window.open(url.href,'_blank','popup,width=600,height=850');if(!opened)announcer.textContent='Allow popups to open this pane';}catch(error){announcer.textContent=error instanceof Error?error.message:'Could not save the pane';}
+ }
+},panePopout);
+if(overlay)element('splits-open',HTMLButtonElement).hidden=true;
 const pickerModel = new PickerModel();
 const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();},()=>rateTimeline.series.observationGaps());
 let accountAuth: AuthStatus | undefined;
@@ -135,7 +142,7 @@ const accountEmotes = new AccountEmotes(emotes => { pickerModel.setAccount(emote
 let selfLogin = '';
 function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true,true); scheduleRender(); }
 const tabSync = new TabSync(acceptEcho);
-const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{follow=false;latest.hidden=false;},()=>latest.click());
+const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.layout.enabled)follow=false;latest.hidden=false;},()=>latest.click());
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => composer.prepareWhisper(login), message => attention.whisper(message),(message,outgoing)=>inboxPanel?.whisper(message,outgoing));
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
@@ -144,18 +151,21 @@ log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
   const channel = event.target.closest<HTMLElement>('.row')?.dataset.channel;
-  const message = (archiveView ?? store.messages).find((message) => message.id === id && message.channel === channel);
+  const message = viewMessages().find((message) => message.id === id && message.channel === channel);
   if (message) composer.selectReply(message);
 });
 let renderQueued = false;
 let follow = !pendingReaders;
 let archiveView: ChatMessage[] | undefined;
+let paneArchive:ChatMessage[]|undefined;
+const paneArchiveMessages=new Map<string,ChatMessage>();
+function viewMessages():readonly ChatMessage[]{return virtualLog.layout.enabled?[...store.messages,...paneArchiveMessages.values()]:archiveView??store.messages;}
 let archiveGeneration = 0;
 element('composer', HTMLFormElement).addEventListener('composerresize', () => { if (follow) log.scrollTop = display.options.rev?0:log.scrollHeight; });
 const linkedLookups = new Set<string>();
 const missingLinks = new Map<string, number>();
-const navigation = new MessageNavigation(log, () => { follow = false; latest.hidden = false; }, id => {
-  const message = (archiveView ?? store.messages).find(item => item.id === id);
+const navigation = new MessageNavigation(log, () => { if(!virtualLog.layout.enabled)follow = false; latest.hidden = false; }, id => {
+  const message = viewMessages().find(item => item.id === id);
   if (message) virtualLog.reveal(messageKey(message));
   if (archiveView && message || linkedLookups.has(id) || !message && Date.now() - (missingLinks.get(id) ?? 0) < 5000) return;
   linkedLookups.add(id);
@@ -171,7 +181,7 @@ async function showArchived(message: ChatMessage): Promise<void> {
     const context = await archive.search({ text: '', channel: message.channel, before: message.timestamp + 30000, after: Math.max(0, message.timestamp - 30000), limit: 500 });
     if (generation !== archiveGeneration) return;
     if (!context.some(item => item.id === message.id && item.channel === message.channel)) context.push(message);
-    archiveView = context.sort((a, b) => a.timestamp - b.timestamp); follow = false;
+    archiveView = context.sort((a, b) => a.timestamp - b.timestamp); if(!virtualLog.layout.enabled)follow = false;
     const url = new URL(location.href); if (message.id) url.searchParams.set('mid', message.id); history.pushState(null, '', url);
     render(); window.dispatchEvent(new PopStateEvent('popstate'));
   } catch { element('archive-status', HTMLElement).textContent = 'Archived context unavailable'; }
@@ -190,6 +200,7 @@ window.addEventListener('pagehide', () => historyFiles.stop());
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
 function observe(message: ChatMessage, live = false, countStats=false): void {
+  if(live&&message.command==='PRIVMSG')virtualLog.observe(message.channel,message.text,messageKey(message));
   inboxPanel?.observe(message);
   if(countStats)statsLedger.observe(message);else {statsLedger.attach(message);statsLedger.reconcile(message.channel);}
   rateTimeline.series.observe(message,live);
@@ -214,7 +225,7 @@ refreshCandidates();
 element('send-channel', HTMLSelectElement).addEventListener('change', refreshCandidates);
 element('send-channel', HTMLSelectElement).addEventListener('change', renderRoom);
 log.addEventListener('click', refreshCandidates);
-element('send-channel', HTMLSelectElement).addEventListener('change', () => { accountEmotes.update(accountAuth, composer.target); picker.refresh(true); });
+element('send-channel', HTMLSelectElement).addEventListener('change', () => { if(virtualLog.layout.enabled&&virtualLog.layout.activePane.channels.includes(composer.target))virtualLog.layout.activePane.target=composer.target;accountEmotes.update(accountAuth, composer.target); picker.refresh(true); });
 log.addEventListener('click', () => { accountEmotes.update(accountAuth, composer.target); picker.refresh(); });
 
 
@@ -224,38 +235,46 @@ function render(): void {
   rail?.set(overlay?1:display.options.split);
   document.documentElement.style.setProperty('--composer-bottom',element('composer',HTMLFormElement).getBoundingClientRect().bottom+'px');
   store.setCap(display.options.scrollback);
-  const messages = archiveView ?? store.messages;
-  const cleared = new Map<string, number>();
-  const deleted = new Set<string>();
-  for (const message of messages) {
-    if (message.command === 'CLEARMSG' && message.tags['target-msg-id']) deleted.add(message.channel + ':' + message.tags['target-msg-id']);
-    if (message.command === 'CLEARCHAT') { const key = message.channel + ':' + message.text.toLowerCase(); cleared.set(key, Math.max(cleared.get(key) ?? 0, message.timestamp)); }
-  }
-  const items: LogItem[] = [];const seenLinks=new Set<string>();
-  // Hidden-user stubs keep their place among visible messages, rather than
-  // collecting at the live edge and disturbing scroll anchoring.
-  for (const message of messages) {
-    if (['ROOMSTATE', 'USERSTATE', 'GLOBALUSERSTATE'].includes(message.command)) continue;
-    const visibility = messageVisibility(message, display.options, selfLogin);
-    if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
-    if(display.options.links){let fingerprint=fingerprints.get(message);if(fingerprint===undefined){fingerprint=linkFingerprint(message.text);fingerprints.set(message,fingerprint);}if(!fingerprint||seenLinks.has(fingerprint))continue;if(seenLinks.size>=20000)seenLinks.clear();seenLinks.add(fingerprint);}
-    const key = messageKey(message);
-    if (visibility.hiddenUser && display.options.hideMode === 'stub') {
-      items.push({ key, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
-    }
-    items.push({ key, render: () => {
-      const previous = rowsByMessage.get(message);
-      const row = previous?.revision === visualRevision ? previous.row : messageRow(message, metadata.get(message.channel), frozen||borrowedFreeze);
-      rowsByMessage.set(message, { revision: visualRevision, row });
-      row.classList.toggle('keyword-match', visibility.highlight); row.classList.toggle('user-ghost', visibility.hiddenUser);
-      const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));
-      row.classList.toggle('removed', removed); return row;
-    } });
-  }
+  const messages = virtualLog.layout.enabled?store.messages:archiveView ?? store.messages;
+  const makeItems=(messages:readonly ChatMessage[]):LogItem[]=>{
+   const cleared = new Map<string, number>();
+   const deleted = new Set<string>();
+   for (const message of messages) {
+     if (message.command === 'CLEARMSG' && message.tags['target-msg-id']) deleted.add(message.channel + ':' + message.tags['target-msg-id']);
+     if (message.command === 'CLEARCHAT') { const key = message.channel + ':' + message.text.toLowerCase(); cleared.set(key, Math.max(cleared.get(key) ?? 0, message.timestamp)); }
+   }
+   const items: LogItem[] = [];const seenLinks=new Set<string>();
+   // Hidden-user stubs keep their place among visible messages, rather than
+   // collecting at the live edge and disturbing scroll anchoring.
+   for (const message of messages) {
+     if (['ROOMSTATE', 'USERSTATE', 'GLOBALUSERSTATE'].includes(message.command)) continue;
+     const visibility = messageVisibility(message, display.options, selfLogin);
+     if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
+     if(display.options.links){let fingerprint=fingerprints.get(message);if(fingerprint===undefined){fingerprint=linkFingerprint(message.text);fingerprints.set(message,fingerprint);}if(!fingerprint||seenLinks.has(fingerprint))continue;if(seenLinks.size>=20000)seenLinks.clear();seenLinks.add(fingerprint);}
+     const key = messageKey(message);
+     if (visibility.hiddenUser && display.options.hideMode === 'stub') {
+       items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
+     }
+     items.push({ key, channel:message.channel,text:message.text, render: (scope="default") => {
+       let cache=rowsByMessage.get(message);if(!cache){cache=new Map();rowsByMessage.set(message,cache);}
+       const previous = cache.get(scope);
+       const row = previous?.revision === visualRevision ? previous.row : messageRow(message, metadata.get(message.channel), frozen||borrowedFreeze);
+       cache.set(scope, { revision: visualRevision, row });
+       row.classList.toggle('keyword-match', visibility.highlight); row.classList.toggle('user-ghost', visibility.hiddenUser);
+       const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));
+       row.classList.toggle('removed', removed); return row;
+     } });
+   }
+    return items;
+  };
+  const items=makeItems(messages);
+  if(virtualLog.layout.enabled&&archiveView&&archiveView!==paneArchive){paneArchive=archiveView;for(const message of archiveView)paneArchiveMessages.set(messageKey(message),message);const context=makeItems(archiveView);virtualLog.showContext(display.options.rev?context.reverse():context);}
   virtualLog.set(display.options.rev?items.reverse():items, follow, visualRevision, display.options.rev, overlay?1:display.options.split,display.options.pause);
-  count.textContent = archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
+  if(paneArchiveMessages.size){const keys=virtualLog.contextKeys();for(const key of paneArchiveMessages.keys())if(!keys.has(key))paneArchiveMessages.delete(key);}
+  count.textContent = virtualLog.layout.enabled ? `${store.messages.length.toLocaleString()} messages${virtualLog.hasContexts()?' · Pane history open':''}` : archiveView ? `${archiveView.length} archived messages · Jump to live to return` : `${store.messages.length.toLocaleString()} messages`;
   latest.hidden = follow && virtualLog.allFollowing();
   if(pendingReaders){const restored=virtualLog.restoreReaders(pendingReaders);if(restored||historyReady){if(!restored)announcer.textContent='Some saved reader positions are no longer in retained history';pendingReaders=undefined;}}
+  if(historyReady)virtualLog.finishReaderRestore();
   navigation.reveal();
 }
 
@@ -286,12 +305,13 @@ const attention = new Attention(element('missed-mentions', HTMLButtonElement), (
 element('display-panel', HTMLDialogElement).addEventListener('change', event => { if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked) void attention.permission(); });
 
 element('alert-test',HTMLButtonElement).addEventListener('click',()=>{void attention.test().then(result=>{element('alert-test-status',HTMLElement).textContent=result;});});
-const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, () => archiveView ?? store.messages, () => accountAuth, message => composer.selectReply(message), login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
+const inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, viewMessages, () => accountAuth, message => composer.selectReply(message), login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const identityCards=new IdentityCards(document.body,element('identity-preview',HTMLElement),()=>store.messages,login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined));
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
-if(bootWorkspace){display.setOptions(bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(bootWorkspace.target);}
+if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
+if(['off','0'].includes(workspaceQuery.get('video')??''))videoPanel.showRail(false);
 function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
-function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
+function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
 if(!currentWorkspaceID&&!workspaceStore.error){try{const initial=workspaceStore.create('Watching',captureWorkspace());workspaceStore.activate(initial.id);currentWorkspaceID=initial.id;}catch(error){announcer.textContent=error instanceof Error?error.message:'Workspace storage unavailable';}}
 const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElement),element('workspace-open',HTMLButtonElement),workspaceStore,()=>currentWorkspaceID,captureWorkspace,saveWorkspace,workspace=>{
  if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
@@ -360,11 +380,11 @@ connection.start();
 
 log.addEventListener('scroll', (event) => {
   if(virtualLog.hoverPaused(event.target))return;
-  if (archiveView) { follow = false; latest.hidden = false; return; }
+  if (archiveView&&!virtualLog.layout.enabled) { follow = false; latest.hidden = false; return; }
   follow = virtualLog.trackScroll(event.target,follow);
   latest.hidden = follow && !virtualLog.hasManualPause();
 },{capture:true});
-latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; linkedLookups.clear(); const url = new URL(location.href); url.searchParams.delete('mid'); history.replaceState(null, '', url); window.dispatchEvent(new PopStateEvent('popstate')); follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
+latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; paneArchive=undefined; linkedLookups.clear(); const url = new URL(location.href); url.searchParams.delete('mid'); history.replaceState(null, '', url); window.dispatchEvent(new PopStateEvent('popstate')); follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = true; });
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {

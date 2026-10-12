@@ -1,6 +1,7 @@
 import { parseDisplay } from './display';
 import type { SettingsBundle } from './settings-bundle';
 import { parseChannels } from './protocol';
+import {parseSplits} from './splits';
 
 export interface ReaderPosition { column:number; key:string; offset:number }
 export interface WorkspaceSnapshot { channels:string[]; target:string; focus:string; settings:SettingsBundle; readers:ReaderPosition[] }
@@ -22,7 +23,7 @@ function fields(value:unknown,keys:readonly string[]):Record<string,unknown>{
   else if(Array.isArray(v)&&v.length<=20&&v.every(item=>typeof item==='string'&&item.length<=60))result[key]=[...v];}
  return result;
 }
-function publicExtras(value:unknown):Record<string,unknown>{
+function publicExtras(value:unknown,channels:readonly string[]):Record<string,unknown>{
  if(!object(value))return {};const result:Record<string,unknown>={};
  const geometry=(v:unknown):Record<string,unknown>=>{const data=fields(v,['pinned','open']);if(object(v)&&object(v.box))data.box=fields(v.box,['left','top','width','height']);return data;};
  for(const part of ['picker','video','resources','stats','rail']){
@@ -36,6 +37,7 @@ function publicExtras(value:unknown):Record<string,unknown>{
   if(['picker','video','resources'].includes(part)&&object(v.floating))data.floating=geometry(v.floating);
   result[part]=data;
  }
+ const splits=parseSplits(value.splits,channels);if(value.splits!==undefined&&!splits)throw new Error('Workspace pane layout is invalid or exceeds 32 KB');if(splits)result.splits=splits;
  return result;
 }
 export function parseSnapshot(value:unknown):WorkspaceSnapshot {
@@ -45,7 +47,7 @@ export function parseSnapshot(value:unknown):WorkspaceSnapshot {
  if(!object(value.settings)||value.settings.version!==1||!object(value.settings.display))throw new Error('Workspace settings are invalid');
  const readers:ReaderPosition[]=[];
  if(Array.isArray(value.readers))for(const v of value.readers.slice(0,3))if(object(v)&&Number.isInteger(v.column)&&Number(v.column)>=0&&Number(v.column)<3&&typeof v.key==='string'&&v.key.length<=1000&&channels.includes(v.key.split(':')[0]!)&&typeof v.offset==='number'&&Number.isFinite(v.offset)&&Math.abs(v.offset)<=100000)readers.push({column:Number(v.column),key:v.key,offset:v.offset});
- return {channels,target:String(value.target),focus:FOCUS.includes(String(value.focus))?String(value.focus):'log',settings:{version:1,display:parseDisplay(value.settings.display),extras:publicExtras(value.settings.extras)},readers};
+ return {channels,target:String(value.target),focus:FOCUS.includes(String(value.focus))?String(value.focus):'log',settings:{version:1,display:parseDisplay(value.settings.display),extras:publicExtras(value.settings.extras,channels)},readers};
 }
 function parseWorkspace(value:unknown):Workspace {
  if(!object(value)||typeof value.id!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(value.id))throw new Error('Workspace identity is invalid');

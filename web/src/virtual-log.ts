@@ -1,4 +1,4 @@
-export interface LogItem { key: string; render: () => HTMLElement }
+export interface LogItem { key: string; channel?:string; text?:string; render: (scope?:string) => HTMLElement }
 
 // Variable-height rows retain their measured heights while outside the DOM.
 // Only the viewport and a small overscan are mounted, even with 100k records.
@@ -23,7 +23,7 @@ export class VirtualLog {
 
   private leading=this.spacer(0);
   private trailing=this.spacer(0);
-  constructor(private log: HTMLElement) {
+  constructor(private log: HTMLElement,private scope='default') {
     log.addEventListener('mouseover', this.hover); log.addEventListener('mouseleave', this.leave); log.addEventListener('wheel', this.wheel, { passive: true }); log.addEventListener('touchstart', this.wheel, { passive: true });
     log.addEventListener('scroll', this.scroll, { passive: true }); window.addEventListener('resize', this.schedule);
     if (typeof ResizeObserver !== 'undefined') this.observer = new ResizeObserver(entries => {
@@ -81,6 +81,12 @@ export class VirtualLog {
   private spacer(height: number): HTMLElement {
     const node = document.createElement('div'); node.className = 'log-spacer'; node.setAttribute('aria-hidden', 'true'); node.style.height = Math.max(0, height) + 'px'; return node;
   }
+  private release(node:Node):void {
+    if(!(node instanceof HTMLElement))return;
+    for(const media of node.querySelectorAll('video,audio'))if(media instanceof HTMLMediaElement){media.pause();media.removeAttribute('src');media.querySelectorAll('source').forEach(source=>source.remove());media.closest('.social-card')?.remove();media.remove();}
+    node.querySelectorAll('iframe,.youtube-inline-player').forEach(frame=>frame.remove());
+    node.querySelectorAll('[data-youtube]').forEach(button=>button.setAttribute('aria-expanded','false'));
+  }
   private paint(): void {
     const focused=document.activeElement instanceof HTMLElement&&this.log.contains(document.activeElement)?document.activeElement:undefined;
     if (this.stopped) return;
@@ -90,14 +96,14 @@ export class VirtualLog {
     this.end = Math.min(this.items.length, this.indexAt(top + height + 500) + 1);
     const rows: HTMLElement[] = [];
     for (let i = this.start; i < this.end; i++) {
-      const item = this.items[i]!; const row = item.render(); row.dataset.virtualKey = item.key;
+      const item = this.items[i]!; const row = item.render(this.scope); row.dataset.virtualKey = item.key;
       row.dataset.position = String(i + 1); row.style.setProperty('--row-parity', String(i % 2)); rows.push(row);
     }
     this.observer?.disconnect();
     this.leading.style.height=Math.max(0,this.offsets[this.start]??0)+'px';
     this.trailing.style.height=Math.max(0,total-(this.offsets[this.end]??0))+'px';
     const desired=[this.leading,...rows,this.trailing],keep=new Set<Node>(desired);
-    for(const node of [...this.log.childNodes])if(!keep.has(node))node.remove();
+    for(const node of [...this.log.childNodes])if(!keep.has(node)){this.release(node);node.remove();}
     let cursor=this.log.firstChild;
     for(const node of desired){if(node===cursor)cursor=cursor.nextSibling;else this.log.insertBefore(node,cursor);}
     for (const row of rows) this.observer?.observe(row);
@@ -110,7 +116,7 @@ export class VirtualLog {
   moveKey(current:string|undefined,delta:number):string|undefined { const index=current?this.indexes.get(current):undefined;return this.items[index===undefined?(delta<0?this.items.length-1:0):Math.max(0,Math.min(this.items.length-1,index+delta))]?.key; }
   reveal(key: string): boolean {
     const index = this.indexes.get(key); if (index === undefined) return false;
-    this.following = false; this.allowFollow = false; this.log.scrollTop = Math.max(0, (this.offsets[index] ?? 0) - this.log.clientHeight / 2); this.paint(); return true;
+    this.manuallyPaused=true;this.following = false; this.allowFollow = false; this.log.scrollTop = Math.max(0, (this.offsets[index] ?? 0) - this.log.clientHeight / 2); this.paint(); return true;
   }
-  stop(): void { this.stopped = true; cancelAnimationFrame(this.frame); this.observer?.disconnect(); this.log.removeEventListener('mouseover',this.hover);this.log.removeEventListener('mouseleave',this.leave);this.log.removeEventListener('wheel',this.wheel);this.log.removeEventListener('touchstart',this.wheel);this.log.removeEventListener('scroll', this.scroll); window.removeEventListener('resize', this.schedule); }
+  stop(): void { this.stopped = true;for(const node of this.log.children)this.release(node); cancelAnimationFrame(this.frame); this.observer?.disconnect(); this.log.removeEventListener('mouseover',this.hover);this.log.removeEventListener('mouseleave',this.leave);this.log.removeEventListener('wheel',this.wheel);this.log.removeEventListener('touchstart',this.wheel);this.log.removeEventListener('scroll', this.scroll); window.removeEventListener('resize', this.schedule); }
 }

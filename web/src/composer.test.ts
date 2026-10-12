@@ -36,6 +36,9 @@ it('keeps sending disabled until authenticated', () => {
   edit('hi'); expect(button.disabled).toBe(false);
   composer.setAuth(undefined); expect(button.disabled).toBe(true);
 });
+it('keeps an armed reply and its draft when refocusing the same pane channel',()=>{
+ const {composer,form,input,edit}=setup();composer.setAuth(signedIn);composer.selectReply(reply);edit('Reply draft');composer.setTarget('other');expect(input.value).toBe('Reply draft');expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
+});
 it('sends CSRF and target, clears accepted text and saves input history', async () => {
   const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'sent-id' }) }); vi.stubGlobal('fetch', fetcher);
   const { composer, input, status, edit, submit } = setup(); composer.setAuth(signedIn); edit('hello 😀'); submit();
