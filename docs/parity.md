@@ -81,7 +81,7 @@ has been compared to the original and the evidence recorded. Completion evidence
   links, channel links, tooltips and repository metadata.
 - [x] Help and picker drag/resize/pin geometry; header labels/minimization,
   settings slots, reset behavior and copy/share settings URL.
-- [ ] Keyword/blocked-word filters, hidden-user modes, bot visibility,
+- [x] Keyword/blocked-word filters, hidden-user modes, bot visibility,
   own-name/keyword mentions, unread badges, sound and notifications.
 - [x] All documented URL options, precedence, aliases and settings serialization.
 
@@ -1643,3 +1643,25 @@ A final layout audit found rail modes 4–6 incorrectly creating two chat column
 They now retain one chat column; page-flip modes 2/3 alone create multiple chat
 columns. A regression check covers desktop and portrait. The same distinction
 applies when the rail is hidden on narrow screens.
+
+## Final live continuation acceptance
+
+The owner confirmed both audible sound and OS notification through Test alerts.
+This closes the attention family gate. Current checklist: 43 of 44 gates checked.
+The remaining external blocker is reproducing the original GIPHY media cache and
+proxy under provider approval; direct browser lookup is implemented and verified.
+GIPHY's current official integration rules were reopened on 2026-10-11 and still
+require prior approval for media caching and direct client-side requests.
+
+Frontend revision `20261012T030000Z`, source commit `f8427de`, corrects rail
+column count. All 26 current artifact hashes matched after static publication.
+The service retains release `20261012T025700Z`, backend commit `681888b`, PID
+4030029 and zero restarts. Go source and module files are identical between these
+commits; only frontend bytes and embedded build provenance differ. The manifest
+records backend and frontend provenance separately. The old frontend, manifest
+and source archive are retained in `recovery/frontend-20261012T030000Z`.
+
+Final frontend checks passed 316 tests and strict production build. Public source
+archive size: 477769 bytes; SHA-256
+`5e5751d0575e073fe9eda1e90f229a877cfa9dd34de24798e954def24db5994c`.
+No additional Twitch sends or moderation actions were performed.
