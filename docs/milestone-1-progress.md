@@ -18,4 +18,4 @@ Implemented manual privacy mode with a workspace allowlist and Alt+Shift+P panic
 
 Full check after integration: 67 frontend files / 327 tests passed, strict TypeScript/service-worker checks and production build passed. Vite retains its existing >500 KB bundle warning. No deployment or provider write was performed.
 
-Privacy browser demo: allowlisted Watching stayed visible with account/composer hidden; history export reported disabled. Alt+Shift+P hid the app header and content while the privacy toolbar stayed usable. A same-origin second tab inherited the policy; no account/provider write was used.
+Privacy browser demo: allowlisted Watching stayed visible with account/composer hidden; history export reported disabled. Alt+Shift+P hid the app header and content while the privacy toolbar stayed usable. A same-session window.open popout inherited panic mode and responded to privacy off/on storage changes; separately created T3 incognito tabs have isolated storage and were not used as propagation evidence; no account/provider write was used.
