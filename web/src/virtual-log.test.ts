@@ -8,6 +8,11 @@ function setup() {
 }
 function items(count:number,start=0):LogItem[]{return Array.from({length:count},(_,i)=>({key:String(start+i),render:()=>{const row=document.createElement('article');row.className='row';row.textContent=String(start+i);return row;}}));}
 afterEach(()=>{document.body.replaceChildren();vi.restoreAllMocks();});
+it('unloads retained inline media when its row leaves the viewport or its pane closes',()=>{
+ const {log,view}=setup();const row=document.createElement('article');row.className='row';row.append(document.createElement('iframe'));const card=document.createElement('section');card.className='social-card';const video=document.createElement('video');video.src='https://example.test/video';const pause=vi.spyOn(video,'pause');card.append(video);row.append(card);
+ view.set([{key:'media',render:()=>row},...items(200)],false);expect(log.contains(row)).toBe(true);view.set(items(200),true);expect(row.querySelector('iframe')).toBeNull();expect(row.querySelector('video')).toBeNull();expect(pause).toHaveBeenCalled();
+ row.append(document.createElement('iframe'));view.set([{key:'media',render:()=>row}],true);view.stop();expect(row.querySelector('iframe')).toBeNull();
+});
 it('pauses only over message rows and resumes on leaving without losing deliberate scroll',()=>{
  const {log,view}=setup();view.set(items(100),true,0,false,true);log.scrollTop=log.scrollHeight-log.clientHeight;const liveTop=log.scrollTop;
  log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));

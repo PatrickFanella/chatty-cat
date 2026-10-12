@@ -6,7 +6,7 @@ export class LogKeyboard {
   log.tabIndex=0;log.setAttribute('aria-keyshortcuts','ArrowUp ArrowDown Home End Enter Escape');log.addEventListener('keydown',this.key);log.addEventListener('virtualpaint',this.paint);document.addEventListener('keydown',this.typing);
  }
  private select(key:string|undefined):void {if(!key)return;this.pause();this.selected=key;this.virtual.reveal(key);this.paint();this.row()?.focus({preventScroll:true});}
- private row():HTMLElement|undefined {return [...this.log.querySelectorAll<HTMLElement>('[data-virtual-key]')].find(row=>row.dataset.virtualKey===this.selected);}
+ private row():HTMLElement|undefined {const scope=this.log.querySelector<HTMLElement>('.split-pane[data-active=true]')??this.log;return [...scope.querySelectorAll<HTMLElement>('[data-virtual-key]')].find(row=>row.dataset.virtualKey===this.selected);}
  private paint=():void=>{for(const row of this.log.querySelectorAll<HTMLElement>('[data-virtual-key]')){const selected=row.dataset.virtualKey===this.selected;row.classList.toggle('keyboard-selected',selected);row.tabIndex=-1;}};
  private key=(event:KeyboardEvent):void=>{
   if(event.isComposing||event.metaKey||event.ctrlKey||event.altKey||event.shiftKey)return;

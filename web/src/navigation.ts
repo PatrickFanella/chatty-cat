@@ -25,15 +25,16 @@ export class MessageNavigation {
     this.pending = id; this.reveal();
   };
   reveal(): void {
+    const scope=():HTMLElement=>this.log.querySelector<HTMLElement>('.split-pane[data-active=true]')??this.log;
     if (!this.pending) {
       if (this.selected && !this.selected.isConnected) {
-        const replacement = [...this.log.querySelectorAll<HTMLElement>('.row')].find((row) => row.dataset.id === this.selected?.dataset.id);
+        const replacement = [...scope().querySelectorAll<HTMLElement>('.row')].find((row) => row.dataset.id === this.selected?.dataset.id);
         if (replacement) { this.selected = replacement; replacement.classList.add('target-message'); }
       }
       return;
     }
     this.pause(); this.locate?.(this.pending);
-    const found = [...this.log.querySelectorAll<HTMLElement>('.row')].find((row) => row.dataset.id === this.pending);
+    const found = [...scope().querySelectorAll<HTMLElement>('.row')].find((row) => row.dataset.id === this.pending);
     if (!found) { this.status.textContent = 'Linked message is not in loaded history; waiting for available backfill'; return; }
     this.selected?.classList.remove('target-message'); this.selected = found;
     found.classList.add('target-message'); found.scrollIntoView?.({ block: 'center' });
