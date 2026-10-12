@@ -1,3 +1,4 @@
+import {DiscoveryPanel} from './discovery';
 import {PresentationPanel} from './presentation-ui';
 import {getPresentation} from './presentation';
 import {LocalTargets,dispatchLocal,LOCAL_COMMANDS} from './local-commands';
@@ -163,6 +164,7 @@ const virtualLog = new SplitLog(log,element('splits-open',HTMLButtonElement),cha
 if(overlay)element('splits-open',HTMLButtonElement).hidden=true;
 const pickerModel = new PickerModel();
 const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();},()=>rateTimeline.series.observationGaps());
+let discoveryPanel:DiscoveryPanel|undefined;
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
@@ -174,7 +176,7 @@ const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;discoveryPanel?.setAuth(auth);if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -453,6 +455,7 @@ log.addEventListener('scroll', (event) => {
   latest.hidden = follow && !virtualLog.hasManualPause();
 },{capture:true});
 latest.addEventListener('click', () => { archiveGeneration++; archiveView = undefined; paneArchive=undefined; linkedLookups.clear(); const url = new URL(location.href); url.searchParams.delete('mid'); history.replaceState(null, '', url); window.dispatchEvent(new PopStateEvent('popstate')); follow = true; virtualLog.resume(); render(); log.scrollTop = display.options.rev?0:log.scrollHeight; latest.hidden = virtualLog.allFollowing(); });
+discoveryPanel=new DiscoveryPanel(channels,login=>{if(panePopout||overlay)throw new Error('Join channels from the parent workspace');if(composer.sending)throw new Error('Wait for the current send outcome before joining a channel');const next=parseWorkspaceChannels([...channels,login].join(','),capacity.workspaceChannels);if(!reconcileSplits(virtualLog.layout.snapshot(),next,channels))throw new Error('Close a pane or tab before adding another channel');input.value=next.join(',');form.requestSubmit();});discoveryPanel.setAuth(accountAuth);window.addEventListener('pagehide',()=>discoveryPanel?.stop());
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   try {

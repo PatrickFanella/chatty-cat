@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -140,7 +141,21 @@ func (s *Service) helix(ctx context.Context, p *session, method, path string, bo
 		if err != nil {
 			return nil, 0, false
 		}
-		data, readErr := io.ReadAll(io.LimitReader(res.Body, (64<<10)+1))
+		if res.StatusCode == http.StatusTooManyRequests {
+			delay := time.Now().Add(time.Minute)
+			if reset, err := strconv.ParseInt(res.Header.Get("Ratelimit-Reset"), 10, 64); err == nil {
+				until := time.Unix(reset, 0)
+				if until.After(delay) {
+					delay = until
+				}
+			}
+			p.discoveryRetryAt = minTime(delay, time.Now().Add(time.Hour))
+		}
+		bodyLimit := int64(64 << 10)
+		if strings.HasPrefix(path, "/streams/followed?") || strings.HasPrefix(path, "/channels/followed?") {
+			bodyLimit = 256 << 10
+		}
+		data, readErr := io.ReadAll(io.LimitReader(res.Body, bodyLimit+1))
 		closeErr := res.Body.Close()
 		if res.StatusCode == 401 && attempt == 0 {
 			tok, err := s.exchange(ctx, url.Values{"grant_type": {"refresh_token"}, "refresh_token": {p.tokens.Refresh}})
@@ -161,7 +176,7 @@ func (s *Service) helix(ctx context.Context, p *session, method, path string, bo
 			p.invalid = true
 			p.tokens = tokens{}
 		}
-		if readErr != nil || closeErr != nil || len(data) > 64<<10 {
+		if readErr != nil || closeErr != nil || int64(len(data)) > bodyLimit {
 			return nil, res.StatusCode, false
 		}
 		return data, res.StatusCode, true
@@ -246,4 +261,11 @@ func sendFailure(status int, sending bool) (sendResult, int) {
 		}
 		return sendResult{Error: "Channel lookup unavailable; message was not sent"}, 502
 	}
+}
+
+func minTime(a, b time.Time) time.Time {
+	if a.Before(b) {
+		return a
+	}
+	return b
 }

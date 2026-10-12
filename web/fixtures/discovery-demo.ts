@@ -1,0 +1,6 @@
+import '../src/style.css';
+import {DiscoveryPanel} from '../src/discovery';
+import type {AuthStatus} from '../src/auth';
+let auth:AuthStatus={enabled:true,authenticated:true,loginURL:location.origin+'/api/auth/login',userID:'42',login:'fixture',followsEnabled:true,chattersEnabled:true};
+const panel=new DiscoveryPanel(['fixture_bob'],login=>{document.querySelector('#summary')!.textContent='Staged workspace join: '+login;},async input=>{const url=new URL(String(input),location.origin),kind=url.searchParams.get('kind');if(kind==='chatters')return new Response('',{status:403});const next=url.searchParams.has('after');return new Response(JSON.stringify({kind,channel:'',accountID:auth.userID,items:[{id:next?'101':'100',login:next?'fixture_carol':'fixture_alice',name:next?'Carol':'Alice',title:kind==='live'?'Synthetic live title':'',category:kind==='live'?'Music':'',viewers:kind==='live'?42:0}],after:next?'':'fixture-next',total:2,observedAt:Date.now()}));});panel.setAuth(auth);
+document.querySelector('#account-switch')!.addEventListener('click',()=>{auth={...auth,userID:auth.userID==='42'?'43':'42'};panel.setAuth(auth);});document.querySelector('#permission')!.addEventListener('click',()=>{auth={...auth,followsEnabled:false,chattersEnabled:false};panel.setAuth(auth);});window.addEventListener('pagehide',()=>panel.stop());
