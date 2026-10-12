@@ -379,3 +379,7 @@ html[data-privacy="true"] #commands-panel{display:none!important}
 
 html[data-privacy="true"] #inbox-panel,html[data-privacy="true"] #inbox-open{display:none!important}
 #inbox-items{max-height:60vh;overflow:auto}.inbox-item{padding:.5rem;border-bottom:1px solid var(--line)}.inbox-item[data-read="false"]{border-left:3px solid var(--accent)}.inbox-item p{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.row.similar-message{opacity:.45}
+.row.keyword-match{background-color:color-mix(in srgb,var(--rule-color,var(--accent)) 18%,transparent)}
+#rules-panel{max-width:700px} #rules-panel label{display:block;margin:.4rem 0} #rules-panel input:not([type=checkbox]),#rules-panel select{margin-left:.5rem;max-width:100%}

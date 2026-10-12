@@ -16,7 +16,7 @@ export class InboxPanel {
   this.root.addEventListener('change',this.change);this.root.addEventListener('click',this.click);window.addEventListener('storage',this.storage);document.body.append(this.root);this.paint();
  }
  setAccount(id:string,login:string):boolean{const changed=this.model.setAccount(id,login);if(changed){this.root.close();this.root.querySelector('#inbox-items')!.replaceChildren();this.paint();}return changed;}
- observe(message:ChatMessage):void{if(this.model.observe(message))this.schedule();}
+ observe(message:ChatMessage,forceMention=false):void{if(this.model.observe(message,forceMention))this.schedule();}
  whisper(message:ChatMessage,outgoing:boolean):void{this.model.whisper(message,outgoing);this.schedule();}
  private schedule():void{if(!this.frame)this.frame=requestAnimationFrame(()=>{this.frame=0;this.paint();});}
  private storage=(event:StorageEvent):void=>{if(event.key?.startsWith('chatthing:v1:inbox-read:'))try{this.model.refreshReads();this.schedule();}catch{this.status('Public read state could not be synchronized');}};

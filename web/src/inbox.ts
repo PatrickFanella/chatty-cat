@@ -27,13 +27,13 @@ export class ConversationInbox {
  refreshReads():void {if(!this.account)return;this.read=this.readStored();for(const item of this.entries)if(item.kind!=='whispers'&&(this.read.keys.includes(item.key)||item.message.timestamp<=(this.read.cursors[item.kind+':'+item.message.channel]??-1)))item.read=true;}
  get authenticated():boolean{return !!this.account;}
  private bound(set:Set<string>,cap:number):void{while(set.size>cap){const first=set.values().next().value;if(first!==undefined)set.delete(first);}}
- observe(message:ChatMessage):boolean{
+ observe(message:ChatMessage,forceMention=false):boolean{
   if(!this.account||!message.id||message.id.length>200||message.command!=='PRIVMSG')return false;
   const thread=message.tags['reply-thread-parent-msg-id']||message.tags['reply-parent-msg-id'];
   if(message.login.toLowerCase()===this.login){this.own.add(message.channel+':'+message.id);this.bound(this.own,1000);if(thread){this.threads.add(message.channel+':'+thread);this.bound(this.threads,500);}return false;}
   let changed=false;
   if((message.tags['reply-parent-user-login']??'').toLowerCase()===this.login||message.tags['reply-parent-user-id']===this.account||this.own.has(message.channel+':'+(message.tags['reply-parent-msg-id']??''))||!!thread&&this.threads.has(message.channel+':'+thread))changed=this.add('replies',message,false)||changed;
-  const words=message.text.toLowerCase().split(/[^a-z0-9_]+/);if(this.login&&words.includes(this.login))changed=this.add('mentions',message,false)||changed;return changed;
+  const words=message.text.toLowerCase().split(/[^a-z0-9_]+/);if(forceMention||this.login&&words.includes(this.login))changed=this.add('mentions',message,false)||changed;return changed;
  }
  whisper(message:ChatMessage,outgoing:boolean):void{if(this.account&&message.id&&message.command==='WHISPER')this.add('whispers',message,outgoing);}
  private add(kind:InboxKind,message:ChatMessage,outgoing:boolean):boolean{
