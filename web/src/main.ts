@@ -1,3 +1,4 @@
+import {ThreadsPanel} from './threads-ui';
 import {loadRowPronouns} from './row-pronouns';
 import {streamHeader} from './stream-header';
 import {BookmarksPanel} from './bookmarks-ui';
@@ -147,11 +148,11 @@ const streamHistory = new StreamHistory(channels);
 const statsPanel = new StatsPanel(element('stats-panel', HTMLDialogElement), element('stats-open', HTMLButtonElement), element('rate', HTMLElement), () => store.messages, channel => metadata.get(channel)?.emotes ?? {}, channels,rateTimeline.series,statsLedger,channel=>metadata.get(channel)?.emoteUse??{},streamHistory,channel=>metadata.get(channel)?.badges??{});
 const archive = new MessageArchive((message) => { element('archive-status', HTMLElement).textContent = message; });
 for (const message of store.messages) archive.add(message);
-const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text) => {
+const composer = new Composer(element('composer', HTMLFormElement), channels, (id, channel, text, reply) => {
   const action = /^\/me\s+(.+)$/i.exec(text);
   const shown = action ? '\x01ACTION ' + action[1]!.trim() + '\x01' : text;
   const ownTags = personalState.tags(channel);
-  const message: ChatMessage = { id, channel, text: shown, command: 'PRIVMSG', login: selfLogin, timestamp: Date.now(), tags: { ...ownTags, 'display-name': ownTags['display-name'] || selfLogin, 'emotes': nativeEmoteTag(shown, pickerModel.availableNative()), 'local-echo': '1' } };
+  const message: ChatMessage = { id, channel, text: shown, command: 'PRIVMSG', login: selfLogin, timestamp: Date.now(), tags: { ...ownTags, 'display-name': ownTags['display-name'] || selfLogin, 'emotes': nativeEmoteTag(shown, pickerModel.availableNative()), 'local-echo': '1',...(reply?{'reply-parent-msg-id':reply.id,'reply-thread-parent-msg-id':reply.tags['reply-thread-parent-msg-id']||reply.tags['reply-parent-msg-id']||reply.id,'reply-parent-user-login':reply.login}:{}) } };
   personalState.accepted(channel); renderRoom(); acceptEcho(message); tabSync.send(message);
   const codes = new Set(pickerModel.catalog(channel).map((item) => item.code));
   for (const word of text.split(/\s+/)) if (codes.has(word)) pickerModel.select(channel, word);
@@ -170,6 +171,7 @@ const picker = new EmotePicker(element('emote-picker', HTMLElement), element('pi
 let discoveryPanel:DiscoveryPanel|undefined;
 let archiveSearch:ArchiveSearch|undefined;
 let bookmarksPanel:BookmarksPanel|undefined;
+let threadsPanel:ThreadsPanel|undefined;
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
@@ -181,7 +183,7 @@ const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;threadsPanel?.setScope(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous',currentWorkspaceID||channels.join(','));discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -239,6 +241,7 @@ const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
 function ruleIDsFor(message:ChatMessage):string[]{return virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(t=>t.panes.filter(p=>p.channels.includes(message.channel)).flatMap(p=>p.rules??[])):[];}
 function observe(message: ChatMessage, live = false, countStats=false): void {
+ threadsPanel?.observe(message);
   if(live){liveObserved.add(message);if(getPresentation().pulseSelf&&message.login.toLowerCase()===selfLogin){const form=element('composer',HTMLFormElement);form.classList.remove('composer-pulse');void form.offsetWidth;form.classList.add('composer-pulse');}}
   if(live&&message.command==='PRIVMSG')virtualLog.observe(message.channel,message.text,messageKey(message));
   const decision=rulePanel?.engine.observe(message,ruleIDsFor(message));const similar=rulePanel?.similarity.classify(message,selfLogin)??false;
@@ -378,6 +381,8 @@ if(['off','0'].includes(workspaceQuery.get('video')??''))videoPanel.showRail(fal
 function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
 function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout&&!overlay&&!ephemeralPopout&&!capacityRefused)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
 if(!currentWorkspaceID&&!workspaceStore.error&&!ephemeralPopout){try{const initial=workspaceStore.create('Watching',captureWorkspace());workspaceStore.activate(initial.id);currentWorkspaceID=initial.id;}catch(error){announcer.textContent=error instanceof Error?error.message:'Workspace storage unavailable';}}
+threadsPanel=new ThreadsPanel(log,viewMessages,archive,channels,message=>{localTargets.reply(message);composer.selectReply(message);},change=>{document.dispatchEvent(new Event('presentation-before-change'));change();render();});
+threadsPanel.setScope(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous',currentWorkspaceID||channels.join(','));
 const workspacePanel=new WorkspacePanel(element('workspace-panel',HTMLDialogElement),element('workspace-open',HTMLButtonElement),workspaceStore,()=>currentWorkspaceID,captureWorkspace,saveWorkspace,workspace=>{
  if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');
  const url=new URL(location.href);url.search='';url.searchParams.set('workspace',workspace.id);url.searchParams.set('channel',workspace.channels.join(','));if(overlay)url.searchParams.set('overlay','1');location.assign(url.href);
@@ -420,9 +425,9 @@ const metadataClient = new MetadataClient(channels, (data) => {
   if (channel === channels[0]) streamInfo.title = 'Stream metadata unavailable; chat continues';
 });
 metadataClient.start();
-const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);scheduleRender();}},store.messages);
+const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);threadsPanel?.observe(message);scheduleRender();}},store.messages);
 function liveSources():string[]{return capacityRefused?[]:overlay?channels.slice(0,6):virtualLog.sources();}
-const pageCoverage = new PageCoverage(liveSources(), message=>{if(store.add(message)){archive.add(message);scheduleRender();}});
+const pageCoverage = new PageCoverage(liveSources(), message=>{if(store.add(message)){archive.add(message);threadsPanel?.observe(message);scheduleRender();}});
 window.addEventListener('pagehide', () => pageCoverage.stop());
 window.addEventListener('pagehide', () => { nitterLinks.stop(); giphyTitles.stop(); historyFiles.stop(); channelControls.stop(); streamHistory.save(); errorReport.stop(); });
 const connection = new ChatConnection(liveSources(), (event) => {
@@ -492,5 +497,5 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });

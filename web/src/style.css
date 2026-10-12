@@ -411,3 +411,11 @@ html[data-privacy="true"] #inbox-panel,html[data-privacy="true"] #inbox-open{dis
 #discovery-panel{max-width:800px;max-height:85vh} #discovery-panel label{display:block;margin:.5rem 0} #discovery-panel section{max-height:45vh;overflow:auto} #discovery-panel section button{margin-left:.6rem}
 
 .chat-pronouns{color:var(--muted);font-size:.85em;margin-inline:.3em}
+
+.thread-panel { width:360px;min-width:280px;max-width:40vw;flex-shrink:0;overflow:auto;padding:12px;border-left:1px solid var(--line); }
+.thread-panel[hidden] { display:none; }
+.thread-results { max-height:50vh;overflow:auto;overflow-anchor:none; }
+.thread-message { border-bottom:1px solid var(--line);padding:8px 0;overflow-wrap:anywhere; }
+.thread-panel pre { white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto; }
+html[data-privacy="true"] #threads-panel,html[data-privacy="true"] #threads-open,html[data-privacy="true"] .thread-open,html[data-overlay="true"] #threads-panel { display:none!important; }
+@media(max-width:650px) { .thread-panel { position:fixed;right:0;top:10vh;bottom:15vh;max-width:80vw;background:var(--bg);z-index:5; } }

@@ -94,6 +94,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
     }
     row.append(quote);
   }
+  if(message.command==='PRIVMSG'&&message.id){const thread=document.createElement('button');thread.type='button';thread.dataset.thread=message.id;thread.textContent='Thread';thread.className='thread-open';row.append(thread);}
   const badges = document.createElement('span');
   badges.className = 'badges';
   for (const entry of (message.tags.badges ?? '').split(',')) {

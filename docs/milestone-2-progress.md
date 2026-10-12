@@ -30,15 +30,13 @@ provider request was made. No M2 deployment is recorded yet.
 
 ## Remaining order and dependencies
 
-- #16: message/conversation bookmarks, bounded context and private notes.
-- #17: persistent public reply threads; #9 is merged.
 - #19/#20: observation comparison and portable logs from the merged baseline.
-- #18: verified VOD context after #15/#16 merge.
+- #18: verified VOD context; #15/#16 are merged.
 - #48: account-isolated user notes after #27 account profiles.
 
 ## Public message/conversation bookmarks — #16
 
-Implemented for review. Bookmark buttons in live chat and archive results open
+Merged in [PR #65](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/65). Bookmark buttons in live chat and archive results open
 an editor for a local public excerpt, private note and tags. Bookmarks stay in
 separate signed-in or signed-out profiles; only public commands and a small
 allowlist of reply/moderation metadata are retained. Limits are 200 bookmarks,
@@ -67,3 +65,37 @@ and privacy clear editing/preview content and sharing opt-ins. Tests cover
 malformed imports, profile isolation, stale edits, capacity refusal, clipboard
 handoff of reviewed text and retention of existing moderation records. This is
 local fixture evidence; no M2 production deployment is recorded.
+
+## Persistent public reply threads — #17
+
+Implemented for review. Thread buttons open an independent sidebar beside chat.
+Up to eight channel/root views and 500 messages per thread stay in the same
+account/workspace across reload. Explicit Mark thread read records message IDs,
+so late replies and equal-time replay do not depend on a timestamp watermark.
+The sidebar follows its bottom edge while preserving a scrolled reading position.
+
+Channel-indexed archive cursors reconstruct retained parent relationships without
+loading the full archive into memory. Missing parent IDs and the message cap are
+shown; the viewer does not fetch unobserved history. Live replies, retained replay
+and accepted local reply echoes update views without duplicate rows. Search and
+reviewed public-context copy redact channel-scoped deletions and chat clears.
+Reply actions stage the existing composer, and normal Send remains separate.
+Account changes and privacy clear the current rows/search/copy preview and cancel
+pending reads. Opening/hiding the sidebar captures the main reader before rows
+rewrap and restores the message anchor.
+
+Verification: all 461 frontend tests, strict TypeScript checks and production
+build pass; the pinned 515-row source inventory remains valid. Chromium with
+native IndexedDB reconstructs the root, replies and a missing-parent notice,
+stages Reply to bob, follows a new local-echo reply and preserves unread state
+on reload. Opening the sidebar preserved the paused visible message with an
+observed offset difference of 0.046875 pixels. A channel scan across roughly
+100,000 retained records completed with four matching thread rows; the browser
+continued its 16 ms timer (maximum interval observed 36.7 ms during the check).
+These measurements are fixture evidence, not universal latency guarantees.
+Focused tests also cover account/workspace isolation, background views, active
+cancellation, stale parent lookup, malformed saved data, bounds, reviewed-copy
+invalidation, moderation and authoritative echo replacement. No M2 production
+deployment or live Twitch-send acceptance is recorded.
+
+Reproducible browser fixture: [reply-thread demo](reply-thread-demo.md).

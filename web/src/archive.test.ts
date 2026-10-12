@@ -62,3 +62,6 @@ it('recovers missing public excerpts without overwriting retained moderation sta
  await expect(a.recoverMissing([{...message,id:'full',timestamp:300}])).rejects.toThrow('full');expect(await a.get('full',['one'])).toBeUndefined();
  await expect(a.recoverMissing([{...message,command:'WHISPER'}])).rejects.toThrow('public');
 });
+it('streams every channel row chronologically without the normal result cap and supports active cancellation',async()=>{
+ const a=archive();for(let i=0;i<700;i++)a.add({...message,id:String(i),timestamp:i});a.add({...message,channel:'two'});const rows:ChatMessage[]=[];await a.scanChannel('one',m=>rows.push(m));expect(rows).toHaveLength(700);expect(rows[0]?.timestamp).toBe(0);expect(rows.at(-1)?.timestamp).toBe(699);const controller=new AbortController();let visited=0;await expect(a.scanChannel('one',()=>{if(++visited===50)controller.abort();},controller.signal)).rejects.toHaveProperty('name','AbortError');expect(visited).toBe(50);
+});
