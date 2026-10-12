@@ -58,6 +58,7 @@ export class Composer {
   private readonly replyLabel: HTMLElement;
   private readonly cancelReply: HTMLButtonElement;
   private auth: AuthStatus | undefined;
+  private authGeneration=0;
   private reply: ChatMessage | undefined;
   private busy = false;
   private disposed = false;
@@ -138,6 +139,7 @@ export class Composer {
     event.preventDefault(); this.completionIndex = Number(index); this.acceptCompletion(); this.input.focus();
   };
   setAuth(auth: AuthStatus | undefined): void {
+    if((this.auth?.userID??this.auth?.login)!==(auth?.userID??auth?.login)||!auth?.authenticated){this.authGeneration++;this.requestID=undefined;this.reply=undefined;if(/^\s*\/w(?:\s|$)/i.test(this.input.value))this.input.value='';}
     this.auth = auth;
     if (!auth?.authenticated) this.closeCompletion();
     document.documentElement.dataset.authenticated = String(auth?.authenticated === true);
@@ -232,6 +234,7 @@ export class Composer {
     try{if(this.commandPreview?.(wireMessage(this.input.value)))return;}catch(error){this.status.textContent=error instanceof Error?error.message:'Command preview failed';return;}
     const error = validateMessage(wireMessage(this.input.value));
     if (error) { this.status.textContent = error; return; }
+    const sendingAccount=this.auth.userID??this.auth.login,sendingGeneration=this.authGeneration;
     this.busy = true; this.status.textContent = 'Sending…'; this.render();
     const text = wireMessage(this.input.value);
     this.closeCompletion();
@@ -244,6 +247,7 @@ export class Composer {
       });
       const result = parseSendResult(await response.json());
       if (this.disposed) return;
+      if(this.authGeneration!==sendingGeneration||!this.auth?.authenticated||(this.auth.userID??this.auth.login)!==sendingAccount){this.status.textContent='Account changed; check Twitch for the previous send outcome';return;}
       if (response.ok && result.sent && (result.messageID || result.command)) {
         const history = this.history(); if (!result.whisper && history.at(-1) !== text) history.push(text);
         try { localStorage.setItem('chatthing:v1:sent:' + this.channel.value, JSON.stringify(history.slice(-50))); } catch { /* optional storage */ }

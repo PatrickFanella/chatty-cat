@@ -1,3 +1,4 @@
+import { privacyEnabled } from './privacy';
 import {TwitchVolume} from './twitch-volume';
 import { registerSettings } from './settings-bundle';
 import { FloatingPanel } from './floating';
@@ -23,6 +24,7 @@ export class VideoPanel {
   private dock: HTMLButtonElement;
   constructor(private root: HTMLElement, private trigger: HTMLButtonElement, channels: string[]) {
     this.options = parseVideo(null, channels); try { this.options = parseVideo(JSON.parse(localStorage.getItem('chatthing:v1:video') ?? 'null'), channels); } catch { /* optional storage */ }
+    document.addEventListener('privacychange',this.privacyChanged);
     this.container = root.querySelector<HTMLElement>('#video-player')!; this.status = root.querySelector<HTMLElement>('#video-status')!;
     this.channel = root.querySelector<HTMLSelectElement>('#video-channel')!; this.dock = root.querySelector<HTMLButtonElement>('#video-dock')!;
     for (const name of channels) { const option = document.createElement('option'); option.value = name; option.textContent = '#' + name; this.channel.append(option); }
@@ -52,6 +54,7 @@ export class VideoPanel {
   showRail(open: boolean): void { if (open) this.open(); else this.hide(); }
   private open(): void {
     this.root.hidden = false; this.trigger.setAttribute('aria-expanded', 'true'); this.floating.opened();
+    if(privacyEnabled()){this.volume.stop();this.container.replaceChildren();this.status.textContent='Video is hidden in privacy mode';return;}
     this.root.querySelector<HTMLAnchorElement>('#video-external')!.href = 'https://www.twitch.tv/' + this.options.channel;
     if (innerWidth < 448) { this.status.textContent = 'Open Twitch for video on this narrow screen'; return; }
     if (this.container.querySelector('iframe')) return;
@@ -61,6 +64,7 @@ export class VideoPanel {
     frame.width = '100%'; frame.height = '100%';
     this.container.replaceChildren(frame);if(this.options.rememberVolume)void this.mountVolume(); this.status.textContent = 'Use Twitch’s player controls for playback, sound and quality';
   }
+  private privacyChanged=():void=>{if(privacyEnabled()){this.volume.stop();this.container.replaceChildren();}else if(!this.root.hidden)this.open();};
   private hide(): void {this.volume.stop();
     // Removing the official frame stops playback without a separate SDK script.
     this.container.replaceChildren(); this.root.hidden = true; this.trigger.setAttribute('aria-expanded', 'false');
@@ -76,5 +80,5 @@ export class VideoPanel {
   private mountVolume=async():Promise<void>=>{const channel=this.options.channel;const loaded=await this.volume.mount(this.container,channel,this.options.volume,this.options.muted,(volume,muted)=>{if(this.options.volume!==volume||this.options.muted!==muted){this.options.volume=volume;this.options.muted=muted;this.save();}});if(!loaded&&!this.root.hidden&&this.options.rememberVolume&&channel===this.options.channel)this.status.textContent='Volume memory unavailable · Twitch controls remain available';};
   private remember=():void=>{this.options.rememberVolume=!this.options.rememberVolume;this.memory.setAttribute('aria-pressed',String(this.options.rememberVolume));this.save();if(this.options.rememberVolume&&!this.root.hidden)void this.mountVolume();else this.volume.stop();};
   private share=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)event.detail.searchParams.set('video',this.root.hidden?'off':this.root.dataset.rail==='true'||this.options.docked?'dock':'float');};
-  stop(): void {this.volume.stop();this.memory.removeEventListener('click',this.remember);document.removeEventListener('share-settings',this.share); this.bundleDispose(); this.container.replaceChildren(); this.floating.stop(); this.trigger.removeEventListener('click', this.toggle); this.root.querySelector('#video-close')?.removeEventListener('click', this.close); this.channel.removeEventListener('change', this.changeChannel); this.dock.removeEventListener('click', this.changeDock); }
+  stop(): void {document.removeEventListener('privacychange',this.privacyChanged);this.volume.stop();this.memory.removeEventListener('click',this.remember);document.removeEventListener('share-settings',this.share); this.bundleDispose(); this.container.replaceChildren(); this.floating.stop(); this.trigger.removeEventListener('click', this.toggle); this.root.querySelector('#video-close')?.removeEventListener('click', this.close); this.channel.removeEventListener('change', this.changeChannel); this.dock.removeEventListener('click', this.changeDock); }
 }

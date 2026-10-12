@@ -59,3 +59,8 @@ it('applies explicit video visibility and shares dock/float/off without autoplay
  const url=new URL('https://chat.example.com');document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));expect(url.searchParams.get('video')).toBe('off');
  panel!.showRail(true);root.querySelector<HTMLButtonElement>('#video-dock')!.click();document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));expect(url.searchParams.get('video')).toBe('dock');expect(new URL(root.querySelector('iframe')!.src).searchParams.get('autoplay')).toBe('false');
 });
+it('unloads the hidden Twitch player in privacy mode and restores without autoplay',()=>{
+ const {root,trigger}=setup();trigger.click();expect(root.querySelector('iframe')).not.toBeNull();
+ localStorage.setItem('chatthing:v1:privacy',JSON.stringify({version:1,enabled:true,allowed:[],panic:false}));document.dispatchEvent(new Event('privacychange'));expect(root.querySelector('iframe')).toBeNull();
+ panel!.showRail(true);expect(root.querySelector('iframe')).toBeNull();localStorage.removeItem('chatthing:v1:privacy');document.dispatchEvent(new Event('privacychange'));const frame=root.querySelector('iframe')!;expect(new URL(frame.src).searchParams.get('autoplay')).toBe('false');
+});
