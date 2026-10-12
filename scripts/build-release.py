@@ -33,7 +33,8 @@ def main():
                'web/tsconfig.sw.json', 'web/vite.config.ts', 'web/vitest.config.ts',
                'go.mod', 'go.sum', 'README.md', 'NOTICE.md', 'Dockerfile',
                'compose.yaml', '.dockerignore', '.go-version', 'scripts',
-               'deploy', 'docs/architecture.md']
+               'deploy/Caddyfile', 'deploy/Caddyfile.host', 'deploy/README.md',
+               'docs/architecture.md']
     with tarfile.open(output / 'source.tar.gz', 'w:gz') as archive:
         for name in sources:
             archive.add(root / name, arcname=name)

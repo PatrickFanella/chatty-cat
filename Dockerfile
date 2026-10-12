@@ -20,7 +20,7 @@ COPY --from=frontend /src/web/public web/public
 COPY --from=frontend /src/web/index.html /src/web/package.json /src/web/package-lock.json /src/web/tsconfig.json /src/web/tsconfig.sw.json /src/web/vite.config.ts /src/web/vitest.config.ts web/
 COPY LICENSE NOTICE.md README.md Dockerfile compose.yaml .dockerignore .go-version ./
 COPY scripts/ scripts/
-COPY deploy/ deploy/
+COPY deploy/Caddyfile deploy/Caddyfile.host deploy/README.md deploy/
 COPY docs/architecture.md docs/architecture.md
 RUN tar -czf /out/source.tar.gz cmd internal web/src web/public web/index.html web/package.json web/package-lock.json web/tsconfig.json web/tsconfig.sw.json web/vite.config.ts web/vitest.config.ts go.mod go.sum LICENSE NOTICE.md README.md Dockerfile compose.yaml .dockerignore .go-version scripts deploy docs/architecture.md
 
