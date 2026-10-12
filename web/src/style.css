@@ -115,6 +115,10 @@ textarea { font:inherit; color:inherit; background:var(--bg); border:1px solid v
 dialog { color:var(--fg); background:var(--panel); border:1px solid var(--line); border-radius:6px; max-width:calc(100vw - 24px); width:800px; max-height:calc(100dvh - 32px); }
 dialog::backdrop { background:#0008; }
 .archive-result { display:block; text-align:left; width:100%; margin:5px 0; overflow-wrap:anywhere; }
+#bookmarks-panel { width:min(760px,92vw); }
+#bookmarks-panel pre { white-space:pre-wrap;overflow-wrap:anywhere;max-height:240px;overflow:auto; }
+#bookmarks-panel textarea { width:min(600px,90%); }
+html[data-privacy="true"] #bookmarks-panel,html[data-privacy="true"] .bookmark-message { display:none!important; }
 #rate { width:100px; height:26px; color:var(--accent); }
 #rate svg { width:100%; height:100%; }
 #stats-graph svg { width:100%; height:80px; color:var(--accent); }

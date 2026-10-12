@@ -1,5 +1,6 @@
 import {loadRowPronouns} from './row-pronouns';
 import {streamHeader} from './stream-header';
+import {BookmarksPanel} from './bookmarks-ui';
 import {DiscoveryPanel} from './discovery';
 import {PresentationPanel} from './presentation-ui';
 import {getPresentation} from './presentation';
@@ -168,6 +169,7 @@ const pickerModel = new PickerModel();
 const picker = new EmotePicker(element('emote-picker', HTMLElement), element('picker-open', HTMLButtonElement), pickerModel, () => composer.target, () => composer.canInsert, (code) => composer.insert(code), on=>{borrowedFreeze=on;document.documentElement.dataset.holdFreeze=String(on);visualRevision++;scheduleRender();},()=>rateTimeline.series.observationGaps());
 let discoveryPanel:DiscoveryPanel|undefined;
 let archiveSearch:ArchiveSearch|undefined;
+let bookmarksPanel:BookmarksPanel|undefined;
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
@@ -179,7 +181,7 @@ const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -221,7 +223,9 @@ async function showArchived(message: ChatMessage): Promise<void> {
 }
 const channelControls = new ChannelControls(element('joined-channels', HTMLElement), element('composer', HTMLFormElement), element('send-channel', HTMLSelectElement), channels,capacity.workspaceChannels);
 window.addEventListener('pagehide', () => channelControls.stop());
-archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); });
+bookmarksPanel=new BookmarksPanel(log,viewMessages,archive,message=>{void showArchived(message);});
+bookmarksPanel.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
+archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); },message=>{element('archive-search',HTMLDialogElement).close();void bookmarksPanel?.capture(message);});
 archiveSearch.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
 const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElement), () => channels[0]!, () => store.messages, async messages => {
   for (let index = 0; index < messages.length; index += 500) {
@@ -291,7 +295,7 @@ function render(): void {
      if(rule?.hidden||similar&&rulePanel?.similarity.options.behavior==='hide')continue;
      if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
      if(display.options.links){let fingerprint=fingerprints.get(message);if(fingerprint===undefined){fingerprint=linkFingerprint(message.text);fingerprints.set(message,fingerprint);}if(!fingerprint||seenLinks.has(fingerprint))continue;if(seenLinks.size>=20000)seenLinks.clear();seenLinks.add(fingerprint);}
-     const key = messageKey(message);const removed = message.command === 'PRIVMSG' && (deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));const p=getPresentation();if(p.hideModerated&&removed||p.hideModerationActions&&message.command==='CLEARCHAT'||p.hideDeletionActions&&message.command==='CLEARMSG')continue;
+     const key = messageKey(message);const removed = message.command === 'PRIVMSG' && (message.tags.deleted==='1'||message.tags.deleted==='true'||deleted.has(key) || message.timestamp <= (cleared.get(message.channel + ':') ?? -1) || message.timestamp <= (cleared.get(message.channel + ':' + message.login.toLowerCase()) ?? -1));const p=getPresentation();if(p.hideModerated&&removed||p.hideModerationActions&&message.command==='CLEARCHAT'||p.hideDeletionActions&&message.command==='CLEARMSG')continue;
      if (visibility.hiddenUser && display.options.hideMode === 'stub') {
        items.push({ key, channel:message.channel,text:message.text, render: () => { const row = document.createElement('article'); row.className = 'row notice'; row.dataset.id = message.id; row.dataset.channel = message.channel; row.textContent = message.login + ': hidden message'; return row; } }); continue;
      }
@@ -488,5 +492,5 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
