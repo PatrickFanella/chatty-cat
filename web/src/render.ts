@@ -21,7 +21,7 @@ function emoteImage(emote: Emote, frozen: boolean): HTMLImageElement {
   return img;
 }
 
-export function messageText(message: ChatMessage, metadata: ChannelMetadata | undefined, frozen = false): HTMLElement {
+export function messageText(message: ChatMessage, metadata: ChannelMetadata | undefined, frozen = false, users?:ReadonlyMap<string,boolean>): HTMLElement {
   const text = document.createElement('span');
   text.className = 'message';
   const gif=message.command==='PRIVMSG'?nativeGifTitle(message.text):undefined;
@@ -32,7 +32,7 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
   for (const token of tokens) {
     if (token.type === 'text') {
       const value = token.text;
-      appendLinks(text, value);
+      appendLinks(text, value, users);
       if (value.trim()) stack = null;
     } else {
       const image = emoteImage(token.emote, frozen);
@@ -51,7 +51,7 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
   return text;
 }
 
-export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, frozen = false): HTMLElement {
+export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, frozen = false, users?:ReadonlyMap<string,boolean>): HTMLElement {
   observeUserColor(message.login,message.tags.color??'');
   const p=getPresentation();
   const row = document.createElement('article');
@@ -78,7 +78,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   if (['fossabot','blammobot'].includes(message.login.toLowerCase())) name.classList.add('shimmer');
   name.textContent = usernameLabel(message.login,message.tags['display-name']??'',p.usernameMode)||message.command.toLowerCase();
   name.style.color = p.colorUsernames?readableColor(message.tags.color ?? '', document.documentElement.dataset.theme === 'light'):'';
-  const text = messageText(message, metadata, frozen);
+  const text = messageText(message, metadata, frozen, users);
   if (message.command !== 'PRIVMSG') { row.classList.add('notice'); const label=document.createElement('span');label.className='notice-label rainbow';label.textContent='['+(message.tags['msg-id']||message.command.toLowerCase())+']';row.append(label); }
   if (message.text.startsWith('\x01ACTION ') && message.text.endsWith('\x01')) {
     row.classList.add('action');
