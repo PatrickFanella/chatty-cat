@@ -1,6 +1,9 @@
 import { parseEvent, type ChatMessage } from './protocol';
 interface Archived { key: string; channel: string; timestamp: number; message: ChatMessage }
-export interface ArchiveQuery { text: string; channel?: string; channels?: readonly string[]; login?: string; before?: number; after?: number; limit?: number }
+export interface ArchiveQuery { text: string; channel?: string; channels?: readonly string[]; login?: string; before?: number; after?: number; limit?: number; matches?: (message:ChatMessage)=>boolean }
+export interface ArchiveCursor {timestamp:number;key:string}
+export interface ArchiveBounds {rows:number;oldest:number|undefined;newest:number|undefined}
+export interface ArchivePage {messages:ChatMessage[];next:ArchiveCursor|undefined;scanned:number;bounds:ArchiveBounds}
 const MAX_ROWS = 100000;
 function validMessage(value: unknown): ChatMessage | undefined {
   const event = parseEvent(JSON.stringify({ type: 'message', message: value, replay: true }));
@@ -12,7 +15,8 @@ export function matchesArchive(message: ChatMessage, query: ArchiveQuery): boole
     && (!query.login || message.login.toLowerCase() === query.login.toLowerCase())
     && (query.before === undefined || message.timestamp <= query.before)
     && (query.after === undefined || message.timestamp >= query.after)
-    && (!query.text.trim() || (message.text + ' ' + (message.tags['system-msg'] ?? '')).toLowerCase().includes(query.text.trim().toLowerCase()));
+    && (!query.text.trim() || (message.text + ' ' + (message.tags['system-msg'] ?? '')).toLowerCase().includes(query.text.trim().toLowerCase()))
+    && (!query.matches || query.matches(message));
 }
 function request<T>(req: IDBRequest<T>): Promise<T> { return new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error ?? new Error('Archive request failed')); }); }
 function done(tx: IDBTransaction): Promise<void> { return new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onabort = () => reject(tx.error ?? new Error('Archive transaction aborted')); tx.onerror = () => reject(tx.error ?? new Error('Archive transaction failed')); }); }
@@ -74,6 +78,44 @@ export class MessageArchive {
     return (await this.read({ text: '', limit }, signal, new Set(channels), MAX_ROWS)).reverse();
   }
   async search(query: ArchiveQuery, signal?: AbortSignal): Promise<ChatMessage[]> { return this.read(query, signal); }
+  async searchPage(query:ArchiveQuery,after?:ArchiveCursor,signal?:AbortSignal,progress:(scanned:number)=>void=()=>{}):Promise<ArchivePage> {
+    await this.flush();if(signal?.aborted)throw new DOMException('Search cancelled','AbortError');
+    const db=await this.db;if(signal?.aborted)throw new DOMException('Search cancelled','AbortError');
+    const tx=db.transaction('messages','readonly'),store=tx.objectStore('messages'),index=store.index('timestamp');
+    const limit=Math.max(1,Math.min(100,Math.floor(query.limit??100))),messages:ChatMessage[]=[];
+    const page:ArchivePage={messages,next:undefined,scanned:0,bounds:{rows:0,oldest:undefined,newest:undefined}};
+    return new Promise<ArchivePage>((resolve,reject)=>{
+      const cancelled=()=>new DOMException('Search cancelled','AbortError');
+      const abort=()=>{try{tx.abort();}catch{/* Transaction may have just completed. */}};
+      signal?.addEventListener('abort',abort,{once:true});
+      const clean=()=>signal?.removeEventListener('abort',abort);
+      tx.oncomplete=()=>{clean();signal?.aborted?reject(cancelled()):resolve(page);};
+      tx.onabort=()=>{clean();reject(signal?.aborted?cancelled():tx.error??new Error('Archive scan aborted'));};
+      tx.onerror=()=>{clean();reject(tx.error??new Error('Archive scan failed'));};
+      const count=store.count();count.onsuccess=()=>{page.bounds.rows=count.result;};
+      const oldest=index.openKeyCursor();oldest.onsuccess=()=>{if(typeof oldest.result?.key==='number')page.bounds.oldest=oldest.result.key;};
+      const newest=index.openKeyCursor(undefined,'prev');newest.onsuccess=()=>{if(typeof newest.result?.key==='number')page.bounds.newest=newest.result.key;};
+      const lower=Math.max(0,query.after??0),upper=Math.min(8640000000000000,query.before??8640000000000000,after?.timestamp??Infinity);
+      if(lower>upper)return;
+      const cursor=index.openCursor(IDBKeyRange.bound(lower,upper),'prev');
+      let last:ArchiveCursor|undefined;
+      cursor.onsuccess=()=>{
+        if(signal?.aborted){abort();return;}
+        const row=cursor.result;if(!row)return;
+        if(typeof row.key!=='number'||typeof row.primaryKey!=='string'){row.continue();return;}
+        const position={timestamp:row.key,key:row.primaryKey};
+        if(after&&position.timestamp===after.timestamp&&position.key>=after.key){row.continue();return;}
+        page.scanned++;if(page.scanned%250===0)progress(page.scanned);
+        if(signal?.aborted){abort();return;}
+        const record:unknown=row.value;const message=record&&typeof record==='object'&&'message' in record?validMessage(record.message):undefined;
+        if(message&&matchesArchive(message,query)){
+          if(messages.length===limit){page.next=last;return;}
+          messages.push(message);last=position;
+        }
+        row.continue();
+      };
+    });
+  }
   private async read(query: ArchiveQuery, signal?: AbortSignal, channels?: Set<string>, max = 500): Promise<ChatMessage[]> {
     await this.flush(); if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
     const db = await this.db; const tx = db.transaction('messages', 'readonly'); const complete = done(tx);
