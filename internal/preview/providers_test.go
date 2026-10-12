@@ -9,6 +9,7 @@ import (
 
 func TestProviderCards(t *testing.T) {
 	for _, tc := range []struct{ target, endpoint, body, site, title, description string }{
+		{"https://git.subcult.tv/subculture-collective/chatty-cat", "https://git.subcult.tv/api/v1/repos/subculture-collective/chatty-cat", `{"full_name":"subculture-collective/chatty-cat","description":"Rebuild","stars_count":2,"created_at":"2026-10-10T12:00:00Z","updated_at":"2026-10-11T13:00:00Z"}`, "Gitea", "subculture-collective/chatty-cat", "Rebuild · 2 stars · started 2026-10-10 · updated 2026-10-11"},
 		{"https://github.com/octocat/Hello-World/issues", "https://api.github.com/repos/octocat/Hello-World", `{"full_name":"octocat/Hello-World","description":"Example repo","stargazers_count":1234,"owner":{"avatar_url":"https://avatars.githubusercontent.com/u/1"},"token":"do-not-forward"}`, "GitHub", "octocat/Hello-World", "Example repo · 1,234 stars"},
 		{"https://news.ycombinator.com/item?id=8863", "https://hacker-news.firebaseio.com/v0/item/8863.json", `{"id":8863,"title":"Hello &amp; world","by":"author","score":117,"descendants":71,"time":1175714200,"url":"https://www.example.com/article"}`, "Hacker News", "Hello & world", "117 points · 71 comments · example.com"},
 		{"https://en.wikipedia.org/wiki/Earth", "https://en.wikipedia.org/api/rest_v1/page/summary/Earth", `{"type":"standard","title":"Earth","extract":"Our home planet.","thumbnail":{"source":"https://upload.wikimedia.org/earth.jpg"}}`, "Wikipedia", "Earth", "Our home planet."},

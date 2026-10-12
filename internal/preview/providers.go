@@ -30,7 +30,7 @@ func (s *Service) provider(ctx context.Context, u *url.URL) (Card, bool) {
 	if videoID := youtubeID(u); videoID != "" {
 		return s.youtube(ctx, u, videoID)
 	}
-	if host == "github.com" || host == "www.github.com" {
+	if host == "github.com" || host == "www.github.com" || host == "git.subcult.tv" {
 		parts := strings.Split(strings.Trim(u.Path, "/"), "/")
 		if len(parts) < 2 || !repositoryPart.MatchString(parts[0]) || !repositoryPart.MatchString(parts[1]) || strings.HasPrefix(parts[0], ".") || strings.HasPrefix(parts[1], ".") {
 			return Card{}, false
@@ -44,15 +44,28 @@ func (s *Service) provider(ctx context.Context, u *url.URL) (Card, bool) {
 			FullName    string `json:"full_name"`
 			Description string `json:"description"`
 			Stars       *int64 `json:"stargazers_count"`
+			GiteaStars  *int64 `json:"stars_count"`
+			Created     string `json:"created_at"`
+			Pushed      string `json:"pushed_at"`
+			Updated     string `json:"updated_at"`
 			Owner       struct {
 				Avatar string `json:"avatar_url"`
 			} `json:"owner"`
 		}
 		endpoint := "https://api.github.com/repos/" + url.PathEscape(parts[0]) + "/" + url.PathEscape(parts[1])
+		site := "GitHub"
+		if host == "git.subcult.tv" {
+			endpoint = "https://git.subcult.tv/api/v1/repos/" + url.PathEscape(parts[0]) + "/" + url.PathEscape(parts[1])
+			site = "Gitea"
+		}
 		if err := s.providerJSON(ctx, endpoint, &data); err != nil || !strings.EqualFold(data.FullName, repository) {
 			return Card{}, false
 		}
 		description := clean(data.Description, 900)
+		if site == "Gitea" {
+			data.Stars = data.GiteaStars
+			data.Pushed = data.Updated
+		}
 		if data.Stars != nil && *data.Stars >= 0 {
 			word := "stars"
 			if *data.Stars == 1 {
@@ -63,7 +76,15 @@ func (s *Service) provider(ctx context.Context, u *url.URL) (Card, bool) {
 			}
 			description += countText(*data.Stars) + " " + word
 		}
-		return Card{URL: u.String(), Site: "GitHub", Title: clean(data.FullName, 300), Description: clean(description, 1000), Image: asset(u, data.Owner.Avatar), ContentType: "text/html", TTL: 600}, true
+		for _, value := range []struct{ label, stamp string }{{"started", data.Created}, {"updated", data.Pushed}} {
+			if stamp, err := time.Parse(time.RFC3339, value.stamp); err == nil {
+				if description != "" {
+					description += " · "
+				}
+				description += value.label + " " + stamp.UTC().Format("2006-01-02")
+			}
+		}
+		return Card{URL: u.String(), Site: site, Title: clean(data.FullName, 300), Description: clean(description, 1000), Image: asset(u, data.Owner.Avatar), ContentType: "text/html", TTL: 600}, true
 	}
 	if host == "news.ycombinator.com" && u.Path == "/item" && itemNumber.MatchString(u.Query().Get("id")) {
 		id, err := strconv.ParseInt(u.Query().Get("id"), 10, 64)

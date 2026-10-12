@@ -284,3 +284,24 @@ html[data-stitle="false"] #stream{display:none}
 .runtime-error { position: fixed; z-index: 10000; top: .5rem; left: .5rem; right: .5rem; max-height: 40vh; overflow: auto; padding: .6rem; border: 1px solid #d96a72; background: var(--bg, #19191f); color: var(--fg, #eee); }
 .runtime-error button { margin-left: .5rem; }
 .runtime-error pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.resource-group > .linkcols { display: block; columns: 26em; column-gap: 1.2em; }
+.resource-group > .linkcols > i { display: block; break-inside: avoid; font-style: normal; margin-bottom: .35em; }
+.resource-group > .linkcols > i > b { display: block; break-after: avoid; color: var(--accent); }
+.resource-group .resource-group { border: 0; }
+#resources-author-sections { display: contents; }
+#resources-htabAuth .linkcols { column-width: 34em; }
+#resources-htabAuth .author-life { display: none; }
+#resources-htabAuth[data-author-info="1"] .author-work,#resources-htabAuth[data-author-info="1"] .author-dates { display: none; }
+#resources-htabAuth[data-author-info="2"] .ag,#resources-htabAuth[data-author-info="2"] .author-dates { display: none; }
+#resources-htabAuth[data-author-info="3"] .ag,#resources-htabAuth[data-author-info="3"] .author-work,#resources-htabAuth[data-author-info="3"] .author-dates { display: none; }
+#resources-htabAuth[data-author-info="3"] .author-life { display: inline; }
+#resources-htabAuth[data-author-info="1"] .linkcols { column-width: 28em; }
+#resources-htabAuth[data-author-info="2"] .linkcols { column-width: 24em; }
+#resources-htabAuth[data-author-info="3"] .linkcols { column-width: 20em; }
+.resource-group.authctl { display: flex; flex-wrap: wrap; gap: .5rem 2rem; }
+.resource-group button[aria-pressed="true"] { border-color: var(--accent); }
+.resource-group a[data-au] { text-decoration: underline dotted; }
+.resource-channel-control { margin-left: .35em; }
+.resource-group a[data-live="true"]::before { content: '● '; color: #43b581; }
+.resource-group a[data-live="false"] { opacity: .6; }
+@media (min-width: 640px) { .resource-content section > .resource-group:not(.authctl):has(> b),#resources-author-sections > .resource-group:has(> b) { display: grid; grid-template-columns: 9em minmax(0,1fr); gap: 13px; } }

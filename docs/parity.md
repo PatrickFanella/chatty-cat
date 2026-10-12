@@ -1451,3 +1451,29 @@ channel/docking/visibility recall and autoplay=false.
 The owner approved one whisper to subcult_tv and deletion of the original
 Chatty Cat parity test message in patrick__eff. Approval is recorded; neither
 live action has been performed in this checkpoint.
+
+## Resources and repository metadata checkpoint
+
+The curated resource port now preserves safe layout classes, author birth/death
+fields, work sources and internal author citations. Author controls select all,
+themes, works or names/life dates; area restores the original sections, while
+birth/activity sorting deduplicates the flat list. Citations open Authors and
+focus the matching entry. Responsive columns retain section labels. Resource
+channel links gain bounded add/remove controls. Media-tab stream probes run two
+requests at a time, cache successful observations for five minutes and cancel
+when hidden; failed metadata stays unknown.
+
+Help shows optional public metadata for the rebuild and upstream repositories.
+The existing bounded preview service now reads Gitea repository metadata at the
+owner's forge and preserves validated started/updated dates for both forges.
+Metadata failure leaves source links usable and reports unavailable; no account
+credential is sent to these public metadata requests.
+
+Verification: frontend suite passed 289 tests, then the added repository test
+and resource tests passed (290 total tests now present). Production build and
+strict check passed. Full Go race tests, vet and golangci-lint passed. Browser
+sorted 106 deduplicated authors by birth, selected names mode and confirmed
+column layout. At 375 x 812 the popup fit in 351 pixels with no document overflow
+or runtime error. These checks do not assert that every external curated URL is
+currently reachable. The owner's forge returned HTTP 403 to a direct public
+metadata probe; the unavailable fallback remains necessary.

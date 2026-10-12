@@ -9,12 +9,14 @@ it('retains all curated tabs while excluding executable markup and unsafe links'
  for(const html of Object.values(RESOURCE_TABS)){
   const doc=new DOMParser().parseFromString(html,'text/html');expect(doc.querySelector('script,iframe,style,img')).toBeNull();
   for(const node of doc.querySelectorAll('*'))for(const attr of node.attributes)expect(attr.name).not.toMatch(/^on/);
-  for(const link of doc.querySelectorAll<HTMLAnchorElement>('a[href]')){const href=link.getAttribute('href')!;expect(href.startsWith('?channel=')||/^https?:\/\//.test(href)).toBe(true);if(!href.startsWith('?'))expect(link.rel).toContain('noopener');links++;}
+  for(const link of doc.querySelectorAll<HTMLAnchorElement>('a[href]')){const href=link.getAttribute('href')!;expect(href.startsWith('?channel=')||href==='#authors'||/^https?:\/\//.test(href)).toBe(true);if(!href.startsWith('?')&&!href.startsWith('#'))expect(link.rel).toContain('noopener');links++;}
  }
  expect(links).toBeGreaterThan(300);
+ const authors=new DOMParser().parseFromString(RESOURCE_TABS.htabAuth!,'text/html');expect(authors.querySelectorAll('a[data-b]').length).toBeGreaterThan(50);expect(authors.querySelectorAll('.linkcols').length).toBeGreaterThan(5);
 });
 it('supports tab keyboard navigation, linked help actions and close focus restoration',()=>{
  vi.stubGlobal('ResizeObserver',class{observe(){}disconnect(){}});
+ vi.stubGlobal('fetch',vi.fn(async()=>({ok:false})));
  const root=document.createElement('section');root.hidden=true;root.innerHTML='<span id="resources-handle"></span><button id="resources-pin"></button><button id="resources-close"></button><nav role="tablist"></nav><div class="resource-content"></div>';
  const trigger=document.createElement('button');document.body.append(trigger,root);const action=vi.fn();const panel=new Resources(root,trigger,action);
  trigger.click();expect(root.hidden).toBe(false);const tabs=[...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];expect(tabs).toHaveLength(5);
