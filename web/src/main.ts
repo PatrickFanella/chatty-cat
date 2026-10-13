@@ -405,6 +405,7 @@ document.addEventListener('customthemechange',themeChanged);
 window.addEventListener('pagehide',()=>{document.removeEventListener('customthemechange',themeChanged);customThemePanel.stop();});
 rulePanel=new RulePanel(()=>{visualRevision++;scheduleRender();});
 function channelStep(delta:number):void{const index=channels.indexOf(composer.target);virtualLog.focusChannel(channels[(index+delta+channels.length)%channels.length]!);}
+function reloadProviderMetadata():boolean{const accepted=metadataClient.refresh();if(accepted)rawMetadata.clear();return accepted;}
 const hotkeyActions={
  palette:()=>element('actions-open',HTMLButtonElement).click(),shortcuts:()=>element('hotkeys-open',HTMLButtonElement).click(),
  compose:()=>composer.focusTyping(''),workspace:()=>{if(panePopout)throw new Error('Manage workspaces in the main view');element('workspace-open',HTMLButtonElement).click();},
@@ -413,7 +414,7 @@ const hotkeyActions={
  'tab-next':()=>virtualLog.moveFocus('tab',1),'tab-prev':()=>virtualLog.moveFocus('tab',-1),
  'pane-right':()=>virtualLog.rearrange('pane',1),'pane-left':()=>virtualLog.rearrange('pane',-1),
  'tab-right':()=>virtualLog.rearrange('tab',1),'tab-left':()=>virtualLog.rearrange('tab',-1),
- reconnect:()=>connection.reconnect(),'zoom-in':()=>zoomChat(1),'zoom-out':()=>zoomChat(-1),
+ 'reload-emotes':()=>{announcer.textContent=reloadProviderMetadata()?'Provider metadata reload requested; server cache remains in effect.':'Wait 30 seconds between provider reloads.';},reconnect:()=>connection.reconnect(),'zoom-in':()=>zoomChat(1),'zoom-out':()=>zoomChat(-1),
  pause:()=>{if(virtualLog.layout.enabled)virtualLog.hold();else follow=false;latest.hidden=false;},live:()=>latest.click(),
  history:()=>archiveSearch?.show(composer.target),'history-global':()=>archiveSearch?.show(),emotes:()=>element('picker-open',HTMLButtonElement).click(),video:()=>element('video-open',HTMLButtonElement).click(),stats:()=>element('stats-open',HTMLButtonElement).click(),settings:()=>element('display-open',HTMLButtonElement).click(),inbox:()=>inboxPanel?.show(),commands:()=>commandPanel.openPanel(),
 } satisfies Record<ActionID,()=>void>;
@@ -487,7 +488,7 @@ const metadataClient = new MetadataClient(channels, (data) => {
 const cosmeticClient=new CosmeticClient(()=>store.messages.slice(-100).map(message=>message.tags['user-id']??''),()=>{visualRevision++;scheduleRender();},(_providers,detail)=>providerPanel.cosmeticsStatus(detail));
 userHoldPanel=new UserHoldPanel(()=>accountAuth,()=>channels,()=>composer.target,!!panePopout||ephemeralPopout||overlay);
 deviceSyncPanel=new DeviceSyncPanel(()=>accountAuth,()=>{const bookmarks=new BookmarkStore();bookmarks.setAccount(accountAuth?.userID);return {activeWorkspace:currentWorkspaceID,workspaces:workspaceStore.all().map(w=>w.id===currentWorkspaceID?{...w,...captureWorkspace()}:w),preferences:{display:display.options,presentation:getPresentation(),picker:pickerModel.options,provider:getProviderPreferences(),links:getLinkPreferences()},bookmarks:bookmarks.list()};},()=>!composer.sending,()=>{suppressWorkspaceSave=true;const next=new WorkspaceStore().active;const url=new URL(location.href);if(next){url.searchParams.set('workspace',next.id);url.searchParams.delete('channel');}location.assign(url.href);},!!panePopout||ephemeralPopout||overlay,syncRecovery);
-const providerPanel=new ProviderPanel(()=>{cosmeticClient.preferencesChanged();for(const data of rawMetadata.values())applyProviderData(data);visualRevision++;scheduleRender();},()=>{const accepted=metadataClient.refresh();if(accepted)rawMetadata.clear();return accepted;},!!panePopout||ephemeralPopout||overlay);
+const providerPanel=new ProviderPanel(()=>{cosmeticClient.preferencesChanged();for(const data of rawMetadata.values())applyProviderData(data);visualRevision++;scheduleRender();},reloadProviderMetadata,!!panePopout||ephemeralPopout||overlay);
 metadataClient.start();cosmeticClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);threadsPanel?.observe(message);scheduleRender();}},store.messages);
 function liveSources():string[]{return capacityRefused?[]:overlay?channels.slice(0,6):virtualLog.sources();}
