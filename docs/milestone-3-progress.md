@@ -7,6 +7,8 @@ has started: [Shield, metadata, private-feed reads and remaining gates](m3-live-
 Consent completed in the regular browser. Controlled second-account moderation,
 actual private events, eligible/live broadcaster checks and the observed production
 journal persistence problem remain pending.
+The [journal storage investigation](journal-storage-2026-10-13.md) records recovered
+client disk headroom and tested safeguards; it does not close the data-loss gate.
 
 All seven M2 issues are merged as of October 12, 2026, including user notes PR #71.
 M2 production deployment and owner/provider acceptance remain separate from merged
