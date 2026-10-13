@@ -36,3 +36,4 @@ it('retains bounded provider scopes and rejects ambiguous/malformed sets',()=>{
 });
 
 it('validates optional public broadcaster IDs without requiring newer metadata',()=>{expect(parseMetadata({...valid,broadcasterID:'123'})?.broadcasterID).toBe('123');for(const broadcasterID of ['../bad',42,''])expect(parseMetadata({...valid,broadcasterID})).toBeNull();});
+it('accepts only the two bounded FFZ role artwork entries with safe images',()=>{const badge={url:'https://cdn.example/mod',title:'Moderator',description:'FFZ artwork'};expect(parseMetadata({...valid,ffzRoleBadges:{moderator:badge}})?.ffzRoleBadges?.moderator).toEqual(badge);for(const ffzRoleBadges of [{staff:badge},{vip:{...badge,url:'javascript:alert(1)'}},{moderator:{...badge,description:'x'.repeat(1001)}}])expect(parseMetadata({...valid,ffzRoleBadges})).toBeNull();expect(parseMetadata(valid)?.ffzRoleBadges).toBeUndefined();});

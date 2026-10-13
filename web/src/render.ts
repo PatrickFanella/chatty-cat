@@ -11,6 +11,16 @@ import type { ChatMessage } from './protocol';
 import type { ChannelMetadata } from './metadata';
 import { tokenize, type Emote } from './tokens';
 
+function badgeImage(metadata:ChannelMetadata|undefined,set:string,version:string,origin=false,roomID=''):HTMLElement{
+ const native=metadata?.badges[set]?.[version],prefs=getProviderPreferences();
+ const custom=(set==='moderator'||set==='vip')&&prefs.ffzRoleArtwork[set]?metadata?.ffzRoleBadges?.[set]:undefined;
+ const selected=custom??native,prefix=origin?'Origin ':'';
+ if(!selected){const chip=document.createElement('span');chip.className='badge-fallback';chip.textContent='['+set+']';return chip;}
+ let badge=selected;const image=document.createElement('img');image.className='badge'+(origin?' source-badge':'');image.referrerPolicy='no-referrer';
+ const update=():void=>{image.src=badge.url;image.alt='['+prefix+(badge.title||set)+']';image.title=(origin?'Origin room '+roomID+' · ':'')+[badge.title||set,badge.description].filter(Boolean).join(' · ');};
+ image.addEventListener('error',()=>{if(badge===custom&&native&&native.url!==badge.url){badge=native;update();}else image.replaceWith(document.createTextNode('['+prefix+set+']'));});update();return image;
+}
+
 function emoteImage(emote: Emote, frozen: boolean): HTMLElement {
   const prefs=getProviderPreferences();
   if(!prefs.animated&&emote.animated&&!emote.staticUrl){const label=document.createElement('span');label.className='emote emote-fallback';label.textContent=emote.code;label.title=emote.code+' · '+emote.source+' · static image unavailable';return label;}
@@ -109,27 +119,13 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   for (const entry of (message.tags.badges ?? '').split(',')) {
     const [set, version] = entry.split('/');
     if (!set || !version || !showBadge(set)) continue;
-    const badge = metadata?.badges[set]?.[version];
-    if (badge) {
-      const image = document.createElement('img');
-      image.className = 'badge';
-      image.src = badge.url;
-      image.alt = `[${badge.title || set}]`;
-      image.title = [badge.title || set, badge.description].filter(Boolean).join(' · ');
-      image.addEventListener('error', () => image.replaceWith(document.createTextNode(`[${set}]`)), { once: true });
-      badges.append(image);
-    } else {
-      const chip = document.createElement('span');
-      chip.className = 'badge-fallback';
-      chip.textContent = `[${set}]`;
-      badges.append(chip);
-    }
+    badges.append(badgeImage(metadata,set,version));
   }
   for(const badge of cosmeticBadges(message.tags['user-id']??'')){const image=document.createElement('img');image.className='badge cosmetic-badge';image.src=badge.url;image.alt='['+badge.provider+' cosmetic: '+badge.title+']';image.title=badge.provider+' cosmetic · '+badge.title+' · not a Twitch role';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>image.replaceWith(document.createTextNode(image.alt)),{once:true});badges.append(image);}
   row.append(time, channel);
   const shared=sharedContext(message),contextLabels=messageContextLabels(message,sourceMetadata?.channel);
   if(contextLabels.length){const context=document.createElement('span');context.className='message-context';context.textContent=contextLabels.join(' · ');row.append(context);}
-  if(shared){const source=document.createElement('span');source.className='source-badges';source.textContent='Origin badges: ';if(shared.badges===undefined)source.append('not supplied');else if(!shared.badges.length)source.append('none reported');else for(const entry of shared.badges){if(!showBadge(entry.set))continue;const badge=sourceMetadata?.badges[entry.set]?.[entry.version];if(badge){const image=document.createElement('img');image.className='badge source-badge';image.src=badge.url;image.alt='[Origin '+(badge.title||entry.set)+']';image.title='Origin room '+shared.roomID+' · '+(badge.title||entry.set)+' · '+badge.description;image.addEventListener('error',()=>image.replaceWith(document.createTextNode('[Origin '+entry.set+']')),{once:true});source.append(image);}else source.append('['+entry.set+']');}row.append(source);}
+  if(shared){const source=document.createElement('span');source.className='source-badges';source.textContent='Origin badges: ';if(shared.badges===undefined)source.append('not supplied');else if(!shared.badges.length)source.append('none reported');else for(const entry of shared.badges){if(!showBadge(entry.set))continue;source.append(badgeImage(sourceMetadata,entry.set,entry.version,true,shared.roomID));}row.append(source);}
 
   const sub=document.createElement('span');sub.className='sub-months';
   const months=/(?:^|,)subscriber\/(\d+)(?:,|$)/.exec(message.tags['badge-info']??'')?.[1];

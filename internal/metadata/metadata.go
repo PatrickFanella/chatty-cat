@@ -52,6 +52,7 @@ type Stream struct {
 
 // Channel contains metadata for one room; Errors identifies partial failures.
 type Channel struct {
+	FFZRoleBadges map[string]Badge            `json:"ffzRoleBadges,omitempty"`
 	BroadcasterID string                      `json:"broadcasterID,omitempty"`
 	EmoteSets     []EmoteSet                  `json:"emoteSets"`
 	LastVod       *Vod                        `json:"lastVod,omitempty"`
@@ -336,6 +337,7 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 	decode("7TV channel", stvUser, &channel7)
 	decode("BTTV channel", bttvUser, &channelB)
 	decode("FFZ channel", ffzRoom, &channelF)
+	result.FFZRoleBadges = ffzRoleBadges(channelF)
 	sets := []EmoteSet{
 		{Provider: "7TV", Scope: "global", Emotes: make(map[string]Emote)},
 		{Provider: "BTTV", Scope: "global", Emotes: make(map[string]Emote)},
@@ -439,6 +441,10 @@ type bttvEmote struct {
 	ImageType string `json:"imageType"`
 }
 type ffzSets struct {
+	Room struct {
+		Moderator map[string]string `json:"mod_urls"`
+		VIP       map[string]string `json:"vip_badge"`
+	} `json:"room"`
 	Sets map[string]struct {
 		Emotes []struct {
 			Name     string            `json:"name"`
@@ -447,6 +453,28 @@ type ffzSets struct {
 		} `json:"emoticons"`
 	} `json:"sets"`
 }
+
+func ffzRoleBadges(sets ffzSets) map[string]Badge {
+	badges := make(map[string]Badge)
+	for role, images := range map[string]map[string]string{"moderator": sets.Room.Moderator, "vip": sets.Room.VIP} {
+		for _, scale := range []string{"2", "1", "4"} {
+			raw := images[scale]
+			if len(raw) > 2048 || strings.ContainsAny(raw, " \t\r\n") {
+				continue
+			}
+			if u := safeImage(raw); u != "" {
+				title := "Moderator"
+				if role == "vip" {
+					title = "VIP"
+				}
+				badges[role] = Badge{URL: u, Title: title, Description: "FFZ artwork for native Twitch " + role + " badge"}
+				break
+			}
+		}
+	}
+	return badges
+}
+
 type badgeSet struct {
 	ID       string `json:"set_id"`
 	Versions []struct {

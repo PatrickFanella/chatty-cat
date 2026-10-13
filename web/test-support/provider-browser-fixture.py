@@ -17,7 +17,7 @@ class Handler(SimpleHTTPRequestHandler):
    def emote(source,code,url,overlay=False):return {'code':code,'source':source,'url':'https://static-cdn.jtvnw.net/emoticons/v2/25/animated/dark/2.0?fixture='+source,'staticUrl':'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0?fixture='+source,'animated':True,'zeroWidth':overlay}
    global7={'Wave':emote('7TV','Wave','https://cdn.example/global')}
    channelffz={} if Handler.version==2 else {'Wave':emote('FFZ','Wave','https://cdn.example/channel'),'Overlay':emote('FFZ','Overlay','https://cdn.example/overlay',True)}
-   body={'channel':channel,'emotes':{**global7,**channelffz},'emoteSets':[{'provider':'7TV','scope':'global','emotes':global7},{'provider':'FFZ','scope':'channel','emotes':channelffz}],'badges':{},'errors':[],'stream':{'uptime':'live','viewers':'10','title':'Synthetic provider fixture','game':'Just Chatting'}}
+   body={'channel':channel,'emotes':{**global7,**channelffz},'emoteSets':[{'provider':'7TV','scope':'global','emotes':global7},{'provider':'FFZ','scope':'channel','emotes':channelffz}],'badges':{'moderator':{'1':{'url':'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2','title':'Moderator','description':'Native Twitch'}}},'ffzRoleBadges':{'moderator':{'url':'https://cdn.frankerfacez.com/badge/2/2','title':'Moderator','description':'FFZ artwork for native Twitch moderator badge'},'vip':{'url':'https://cdn.frankerfacez.com/badge/2/2','title':'VIP','description':'FFZ artwork for native Twitch vip badge'}},'errors':[],'stream':{'uptime':'live','viewers':'10','title':'Synthetic provider fixture','game':'Just Chatting'}}
   elif self.path.startswith('/api/'):
    self.send_error(404);return
   elif self.path.split('?')[0] in ('/','/index.html'):
