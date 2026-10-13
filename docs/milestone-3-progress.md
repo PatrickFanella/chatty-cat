@@ -1,15 +1,17 @@
 # Milestone 3 progress
 
-Deployment update, October 13: merged code through PR #83 is live. See the
+Deployment update, October 13: merged code through PR #85 is live (including custom themes #84). See the
 [deployment evidence and recovery](m3-deployment-2026-10-13.md). Earlier verification
 sections retain their implementation-time observations. Live Twitch acceptance
 has started: [Shield, metadata, private-feed reads and remaining gates](m3-live-acceptance-2026-10-13.md).
-Consent completed in the regular browser. Controlled second-account moderation,
-actual private events, eligible/live broadcaster checks and the observed production
-journal persistence problem remain pending.
+Consent completed in the regular browser. Controlled subcult_tv message deletion,
+a short timeout and its removal are provider-confirmed with state/redaction readback.
+Actual private events, eligible/live broadcaster checks and investigation of the
+original production journal loss remain pending. The owner has no eligible channel
+available; further private checks require patrick__eff login after the latest restart.
 The [journal storage investigation](journal-storage-2026-10-13.md) records recovered
-client disk headroom and tested safeguards. A fresh live confirmed receipt now
-survives Accounts/workspace reopening and reload; this does not explain the original
+client disk headroom and tested safeguards. Four fresh confirmed receipts now survive reload; the earlier single-receipt check
+also survived Accounts/workspace reopening; this does not explain the original
 loss or close the data-loss investigation.
 
 All seven M2 issues are merged as of October 12, 2026, including user notes PR #71.
