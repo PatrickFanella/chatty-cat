@@ -8,9 +8,11 @@ Consent completed in the regular browser. Controlled subcult_tv message deletion
 a short timeout and its removal are provider-confirmed with state/redaction readback.
 Actual private events, eligible/live broadcaster checks and investigation of the
 production journal loss remain pending. The owner has no eligible channel
-available. The renewed patrick__eff session was verified at 17:26 UTC; Twitch still
-reported the channel offline. The regular-browser connection then became unavailable
-during broadcaster consent renewal, before any clip or marker submission.
+available. After a test stream started, a clip was provider-confirmed as published
+and a marker was provider-confirmed at 200 seconds. Both new receipts were privately
+backed up and retained with the same IDs and confirmed outcomes after page reload.
+Poll/prediction creation and commercial acceptance still need Affiliate/Partner
+eligibility; actual private-event acceptance and restart retention remain open.
 The [journal storage investigation](journal-storage-2026-10-13.md) records recovered
 client disk headroom and tested safeguards. Four fresh confirmed receipts survived
 the earlier reload, but the same account's journal read returned zero after the

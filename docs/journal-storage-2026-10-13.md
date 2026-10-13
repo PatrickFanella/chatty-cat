@@ -65,7 +65,15 @@ theme deployment and renewed sign-in, the same account's reviewed export and jou
 refresh returned zero receipts. Its four-receipt private backup remains intact.
 The connection-close guard does not prove retention after a new page opens an empty
 database. No eviction log or causative transition was captured. Production journal
-retention remains unaccepted; new live writes are paused for investigation.
+retention remains unaccepted. The owner subsequently reported force-quitting Vivaldi
+because of approximately 14 GiB of memory use. This is a reported browser event,
+not an established storage-loss cause. A post-restart snapshot measured 7,794 MiB
+resident memory across 55 browser processes; client free disk space was 2.8 GiB.
+No eviction log, tab-specific heap profile or exact quit/loss ordering was captured.
 
 Controlled message deletion, timeout and removal were separately provider-confirmed.
-Eligible/live broadcaster and actual private-event gates remain open.
+A later live clip and marker were also provider-confirmed, with separate private
+backups before/after delivery. Their two receipts survived a page reload with the
+same IDs and confirmed outcomes. That narrow check does not recover the earlier
+four receipts or establish retention across a browser restart. Eligible broadcaster
+and actual private-event gates remain open.

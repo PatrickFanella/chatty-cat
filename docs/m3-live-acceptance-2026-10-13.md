@@ -1,5 +1,47 @@
 # Live M3 acceptance — October 13, 2026
 
+## Live clip and marker acceptance — 17:36–17:38 UTC
+
+After the owner started a test stream, fresh provider context verified `patrick__eff`
+/ actor and broadcaster ID `69674313`, broadcaster role and live stream
+`321789911385`. The previously approved broadcaster/clip consent was renewed in
+the regular browser for the same account. The empty journal was backed up separately
+before the new writes; the earlier four-receipt backup was preserved.
+
+One separately reviewed `/clip` request received published confirmation. The
+confirmed clip is
+[`TacitWittyMangetoutSeemsGood-pp-SfURRwfhChFNP`](https://clips.twitch.tv/TacitWittyMangetoutSeemsGood-pp-SfURRwfhChFNP).
+Its receipt `b9835ed8-62b8-4d22-a1e1-3183ff745179` is confirmed at
+`2026-10-13T17:36:34.450Z`. Capture acceptance alone was not treated as publication;
+the application waited for the matching published clip response.
+
+One separately reviewed `/marker Chatty Cat acceptance test` request received
+provider confirmation for marker `89acf4250b90b3c8700ddca5f4c50762` at 200 seconds.
+Its receipt `4fa34a46-c807-48bf-93cd-dc74a163ba10` is confirmed at
+`2026-10-13T17:37:07.767Z`. The server validates marker ID, timestamp, position and
+matching description before reporting confirmation. No provider request was retried,
+no chat message was sent and no title, category or room setting was changed.
+
+Both confirmed receipts were saved in a separate 1,006-byte private backup with
+`0600` permissions. After page reload and authenticated workspace reopen, the same
+two IDs and confirmed outcomes were verified in the reviewed export and backed up
+separately. This verifies this reload only; the earlier empty journal remains
+unexplained. An initial workspace click during bootstrap was replaced by a later
+authenticated render; reopening after bootstrap allowed the journal read.
+
+The owner reports force-quitting Vivaldi because it reached about 14 GiB of memory.
+That report does not establish the exact quit/loss ordering or a database eviction.
+After restart, a process snapshot measured 7,794 MiB total resident memory across
+55 Vivaldi processes, with a largest process of 384 MiB. Browser-wide RSS is distinct
+from one tab's JavaScript heap and from Activity Monitor's memory accounting.
+Raw CDP memory counters were unsupported by the browser bridge, so neither a
+Chatty Cat memory leak nor the cause of the reported spike was established.
+Client data-volume free space measured 2.8 GiB; no data or cache was cleared.
+
+Poll/prediction creation and successful commercials remain blocked by the lack of
+an Affiliate/Partner broadcaster. Actual AutoMod and suspicious-user event/decision
+acceptance and production journal retention across a browser restart remain open.
+
 ## Follow-up after theme deployment and renewed sign-in — 17:26 UTC
 
 The regular browser completed ordinary sign-in as `patrick__eff`. The moderation
@@ -25,7 +67,8 @@ remain blocked by broadcaster eligibility.
 Browser control disconnected during renewal of previously approved broadcaster
 consent. Consent completion could not be verified. No clip, marker or commercial
 action was previewed or confirmed during this follow-up, and no provider write was
-submitted. New live writes are paused while the empty journal is investigated.
+submitted. New live writes were paused at this checkpoint. The later clip/marker
+run above used separate backups before and after each provider-confirmed write.
 
 The owner authorized the controlled live checks and signed in as `patrick__eff`.
 The server verified account and broadcaster ID `69674313` for that account's own
