@@ -4,6 +4,40 @@ The owner authorized the controlled live checks and signed in as `patrick__eff`.
 The server verified account and broadcaster ID `69674313` for that account's own
 channel. No action targeted another channel or an unrelated chatter.
 
+## Controlled second-account moderation at 17:06–17:08 UTC
+
+The owner supplied `subcult_tv` and its recent test message in `patrick__eff`.
+Provider context resolved target ID `1415704837`, broadcaster/account ID `69674313`,
+and an initial not-banned/not-timed-out state. The rendered message had no moderator
+badge; the documented provider restriction and accepted deletion provide evidence
+of deletion eligibility at delivery, rather than a claim of a fresh moderator-list
+read. No moderator role was added or removed for testing.
+
+On deployed #83, the exact message `2e482102-1ff9-4eba-bdd6-cebb785606a3` from
+`2026-10-13T17:01:23.622Z` was selected and separately reviewed. Twitch confirmed
+its deletion at `17:06:32.413Z`. A fresh retained-history read showed
+`[removed message]` and disabled message selection, preserving redaction.
+
+A separately reviewed 30-second timeout was confirmed at `17:07:27.825Z`.
+Fresh context at `17:07:33.368Z` observed a timeout through `17:07:58Z`.
+A separately reviewed `/untimeout subcult_tv` was confirmed at `17:07:45.179Z`.
+Fresh context at `17:07:50.754Z`, before natural expiry, reported the target not
+banned or timed out. Room settings and inactive Shield Mode stayed unchanged.
+No public chat message was sent by the agent and no provider request was retried.
+
+The journal contained four confirmed receipts: the earlier unchanged-title write
+plus these three moderation actions. A reviewed 1,771-byte private recovery JSON
+was saved locally with private permissions before reload. After reload, the same
+four receipt IDs and confirmed outcomes were verified through the private export
+preview. These are new retained receipts, not recovery of the original four lost
+metadata receipts. The original disappearance remains unexplained; #82 stays open.
+
+The owner has no eligible Affiliate/Partner broadcaster available. Successful
+poll/prediction creation and live clip/marker/commercial checks remain blocked by
+external channel conditions. Actual AutoMod and suspicious-user event/decision
+acceptance also remains pending; a subscription with zero events is insufficient.
+Warnings, role changes and suspicious treatment were not exercised in this run.
+
 ## Verified live
 
 The moderation workspace read the broadcaster role, room settings, current target
@@ -45,8 +79,8 @@ shared preview's separate local journal.
 Previewing clip, marker and commercial actions while offline refused each action
 before confirmation. No clip, marker or commercial request was sent.
 
-Only the `patrick__eff` account profile was available. User-targeted live moderation
-still needs a controlled second account and a recent test message. Twitch's
+At this earlier checkpoint, only the `patrick__eff` account profile was available.
+The controlled second-account follow-up is recorded above. Twitch's
 [message deletion API](https://dev.twitch.tv/docs/api/reference/#delete-chat-messages)
 cannot delete broadcaster or other moderator messages. No unrelated chatter was
 selected and no chat message was sent for this test.

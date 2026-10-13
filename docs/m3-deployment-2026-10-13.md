@@ -1,5 +1,40 @@
 # M3 deployment verification — October 13, 2026
 
+## Theme release activation through PR #85
+
+Merged commit `3568fa4d7abd7e91754e1b1cafd6f36ff5bddc37` is deployed, including
+custom color themes #84 and the journal safeguards #83. Runtime image:
+`sha256:78f46959969131a0ddbe9de8bead12b2fbb38d696e60338529f36a25dc5dd258`.
+All 26 transferred manifest hashes matched. Private loopback staging passed
+readiness, HTTP 401 on the broadcaster-context route with production Host, and
+packaged binary/source/browser-entry hash checks. Activation checked readiness
+and exact runtime image identity, with automatic restoration of the previous
+image/link if those checks failed. Rollback was not needed; staging was removed.
+
+Native public browser checks returned readiness 200 and signed-out private-context
+401. Browser entry `assets/main-qOZOakfN.js` is 870,962 bytes and matches SHA-256
+`19da115327a5494437f1d73b2b66408584b7a3614c80cba4d6eb99d3c6b6c933`.
+Public source is 727,759 bytes and matches SHA-256
+`6e337eeb3bcd0b844a836c5ae05d196b7780fbfaf66666dc24beaff1cbde1242`.
+The public custom-theme UI reviewed an opaque six-color theme, temporarily changed
+workspace colors, then reverted to the existing palette. No preference was saved.
+
+NUC is healthy with zero restarts, UID/GID 10001, read-only root, 512 MiB and PID 128
+limits retained. The prior #83 image, Compose/selector and current-link target remain
+under root-only `recovery/theme-3568fa4-20261013`. No edge, DNS, firewall or secret-file
+change was needed. The matching clean Linux release was built with strict TypeScript
+and production compilation; the 592-test qualification already covered the merged
+runtime code. No runtime source was changed during this deployment.
+
+The controlled subcult_tv deletion/timeout/removal and four-receipt reload check
+were completed on #83 immediately before this activation. After the restart, the
+regular browser's Twitch authorization showed `SUBCULT_tv`, rather than the expected
+`patrick__eff`. That authorization was cancelled; no access was granted to a different
+account and no further provider write occurred. Rechecking private receipts under the
+new deployment needs the correct broadcaster login. The pre-activation recovery
+backup remains saved locally. Original lost-receipt investigation #82 and actual
+private-event/eligible-live broadcaster acceptance remain open.
+
 ## Journal safeguards activation through PR #83
 
 Merged commit `7932ddb97b3eb7eaa0c5b4fce0161486cab591ca` is now deployed,
