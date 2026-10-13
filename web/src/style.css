@@ -452,3 +452,5 @@ html[data-privacy=true] #user-notes,html[data-privacy=true] #user-notes-open,[da
 .moderation-columns section {max-height:500px;overflow:auto;}
 html[data-privacy=true] #moderation-workspace {display:none!important;}
 @media(max-width:700px){.moderation-columns {grid-template-columns:1fr;}}
+
+#moderation-workspace textarea {display:block;width:100%;min-height:120px;max-height:300px;}
