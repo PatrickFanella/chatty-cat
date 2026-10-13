@@ -31,8 +31,8 @@ function parseEmotes(value:unknown,limit=16384):Record<string,Emote>|null {
   for (const [code, e] of Object.entries(value)) {
     if (!code || code.length>100 || /\s/.test(code) || !object(e) || e.code !== code || !image(e.url) || typeof e.staticUrl !== 'string'
       || (e.staticUrl !== '' && !image(e.staticUrl)) || typeof e.source !== 'string' || e.source.length>40
-      || typeof e.animated !== 'boolean' || typeof e.zeroWidth !== 'boolean') return null;
-    emotes[code] = { code, url: e.url, staticUrl: e.staticUrl, source: e.source,
+      || e.unlisted!==undefined&&(typeof e.unlisted!=='boolean'||e.source!=='7TV') || typeof e.animated !== 'boolean' || typeof e.zeroWidth !== 'boolean') return null;
+    emotes[code] = { code, ...(e.unlisted!==undefined?{unlisted:e.unlisted}:{}), url: e.url, staticUrl: e.staticUrl, source: e.source,
       animated: e.animated, zeroWidth: e.zeroWidth };
   }
  return emotes;

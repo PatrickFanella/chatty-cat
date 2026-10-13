@@ -1,3 +1,4 @@
+import {getProviderPreferences} from './provider-preferences';
 import {getLinkPreferences} from './link-preferences';
 import {privacyEnabled} from './privacy';
 import { previewMode } from './preview';
@@ -35,7 +36,7 @@ export class IdentityCards {
   if(privacyEnabled()||anchor instanceof HTMLImageElement&&!getLinkPreferences().emoteTooltip||!(anchor instanceof HTMLImageElement)&&!previewMode())return;this.abort?.abort();this.abort=new AbortController();const generation=++this.generation;this.anchor=anchor;this.root.hidden=false;this.root.replaceChildren();const close=document.createElement('button');close.type='button';close.dataset.closeIdentity='1';close.textContent='Close';this.root.append(close);
   if(anchor instanceof HTMLImageElement){
    const source=anchor.dataset.emoteSource??(anchor.classList.contains('badge')?'Twitch badge':'Twitch');const heading=document.createElement('a');heading.href=emotePage(source,anchor.src);heading.target='_blank';heading.rel='noopener noreferrer';heading.textContent=(anchor.dataset.emoteCode||anchor.alt)+' · '+source;
-   const image=document.createElement('img');image.src=anchor.src;image.alt=anchor.alt;image.className='identity-image';image.referrerPolicy='no-referrer';image.style.maxWidth=getLinkPreferences().thumbnailSize+'px';image.addEventListener('error',()=>image.remove(),{once:true});this.root.append(heading,image);const details=document.createElement('p');details.textContent=anchor.title;this.root.append(details);this.position();return;
+   const image=document.createElement('img');image.src=anchor.src;image.alt=anchor.alt;image.className='identity-image';image.referrerPolicy='no-referrer';const scale=getProviderPreferences().tooltipScale;image.style.height=String(96*scale)+'px';image.style.maxWidth=Math.min(getLinkPreferences().thumbnailSize,250*scale)+'px';image.addEventListener('error',()=>image.remove(),{once:true});this.root.append(heading,image);const details=document.createElement('p');details.textContent=anchor.title;this.root.append(details);this.position();return;
   }
   const row=anchor.closest<HTMLElement>('.row');const login=(anchor.dataset.mention||row?.dataset.login||'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(login)){this.close();return;}
   const name=document.createElement('a');name.href='https://www.twitch.tv/'+login;name.target='_blank';name.rel='noopener noreferrer';name.textContent=anchor.textContent||login;name.style.color=readableColor('',document.documentElement.dataset.theme==='light');this.root.append(name);

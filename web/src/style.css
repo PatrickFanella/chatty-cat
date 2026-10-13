@@ -35,10 +35,11 @@ time,.channel { color:var(--muted); font-size:12px }
 .badge { height:18px; width:18px; object-fit:contain }
 .badge-fallback { font-size:11px; color:var(--muted) }
 .emote-stack { display:inline-grid; position:relative; vertical-align:middle; align-items:center; justify-items:center }
-.emote { height:28px; max-width:128px; object-fit:contain; vertical-align:middle }
+.emote { height:calc(28px * var(--emote-scale,1)); max-width:128px; object-fit:contain; vertical-align:middle }
 .emote.overlay { position:absolute; max-width:none; height:100%; width:auto }
-.emote-only .emote { height:40px }
+.emote-only .emote { height:calc(40px * var(--emote-scale,1)) }
 .emote-only .emote.overlay { height:100% }
+#log .emote.line-scaled { height:calc(1lh * var(--emote-scale,1)) }
 #animation[aria-pressed=true] { border-color:var(--accent); color:var(--accent) }
 .notice { color:var(--muted) }
 .action .message { font-style:italic }
@@ -173,7 +174,7 @@ html[data-privacy="true"] #bookmarks-panel,html[data-privacy="true"] .bookmark-m
 .preview-redirect { opacity:.7; font-size:10px; }
 .preview-button::before { content:'↗'; }
 #log .row { text-shadow:var(--chat-shadow,none) }
-:root[data-eonly="2"] .emote-only .emote { height:28px }
+:root[data-eonly="2"] .emote-only .emote { height:calc(28px * var(--emote-scale,1)) }
 :root[data-eonly="1"] .emote-only { display:inline-flex; float:right; justify-content:flex-end }
 :root[data-eonly="1"] .row { display:flow-root }
 :root[data-eonly="1"] .emote-only .emote.overlay, :root[data-eonly="2"] .emote-only .emote.overlay { height:100% }

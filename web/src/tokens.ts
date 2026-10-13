@@ -1,5 +1,6 @@
 export interface Emote {
   code: string;
+  unlisted?:boolean;
   url: string;
   staticUrl: string;
   source: string;
@@ -22,6 +23,17 @@ export function cheerEmote(word:string,light=false):Emote|undefined {
  let tier=1;for(const value of [100,1000,5000,10000,100000])if(amount>=value)tier=value;
  const base=`https://d3aqoihi2n8ty8.cloudfront.net/actions/${match[1]!.toLowerCase()}/${light?'light':'dark'}`;
  return {code:word,url:`${base}/animated/${tier}/2.gif`,staticUrl:`${base}/static/${tier}/2.png`,source:'Cheer',animated:true,zeroWidth:false};
+}
+
+// Collapse only a complete, recognized cheer total; unknown/custom prefixes remain text.
+export function stackCheerTokens(tokens:Token[],total:number,light=false):Token[]{
+ if(!Number.isSafeInteger(total)||total<1)return tokens;
+ const cheers=tokens.filter((t):t is Extract<Token,{type:'emote'}>=>t.type==='emote'&&t.emote.source==='Cheer');
+ if(cheers.length<2)return tokens;
+ const amounts=cheers.map(t=>Number(/^[a-z]+([0-9]+)$/i.exec(t.emote.code)?.[1]));
+ if(amounts.some(n=>!Number.isSafeInteger(n)||n<1)||amounts.reduce((sum,n)=>sum+n,0)!==total)return tokens;
+ const prefix=/^[a-z]+/i.exec(cheers[0]!.emote.code)?.[0],combined=prefix?cheerEmote(prefix+total,light):undefined;if(!combined)return tokens;
+ let placed=false;return tokens.flatMap((t):Token[]=>{if(t.type!=='emote'||t.emote.source!=='Cheer')return [t];if(placed)return [];placed=true;return [{type:'emote',emote:combined}];});
 }
 
 // Twitch tag positions count Unicode code points, not JavaScript UTF-16 units.
