@@ -1,3 +1,4 @@
+import {replyContext} from './message-context';
 import {getPresentation} from './presentation';
 import {isLocalCommand,LOCAL_COMMANDS} from './local-commands';
 import { completions, insertCompletion, wireMessage, type Completion } from './completion';
@@ -206,7 +207,7 @@ export class Composer {
     this.input.style.overflowY = this.input.scrollHeight > 158 ? 'auto' : 'hidden';
     this.form.dispatchEvent(new Event('composerresize'));
     this.replyTarget.hidden = !this.reply;
-    this.replyLabel.textContent = this.reply ? `Replying to ${this.reply.login}: ${this.reply.text.slice(0, 120)}` : '';
+    this.replyLabel.textContent = this.reply ? `${replyContext(this.reply)}Replying to ${this.reply.login}: ${this.reply.text.slice(0, 120)}` : '';
     this.cancelReply.disabled = this.busy;
     this.form.dispatchEvent(new Event('channelstatechange'));
   }

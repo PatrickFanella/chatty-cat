@@ -1,3 +1,4 @@
+import {sharedContext,messageContextLabels} from './message-context';
 import {cosmeticBadges} from './cosmetics';
 import {getProviderPreferences,showBadge} from './provider-preferences';
 import {getPresentation,formatTimestamp,usernameLabel} from './presentation';
@@ -58,7 +59,7 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
   return text;
 }
 
-export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, frozen = false, users?:ReadonlyMap<string,boolean>): HTMLElement {
+export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, frozen = false, users?:ReadonlyMap<string,boolean>, sourceMetadata?:ChannelMetadata): HTMLElement {
   observeUserColor(message.login,message.tags.color??'');
   const p=getPresentation();
   const row = document.createElement('article');
@@ -126,6 +127,10 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   }
   for(const badge of cosmeticBadges(message.tags['user-id']??'')){const image=document.createElement('img');image.className='badge cosmetic-badge';image.src=badge.url;image.alt='['+badge.provider+' cosmetic: '+badge.title+']';image.title=badge.provider+' cosmetic · '+badge.title+' · not a Twitch role';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>image.replaceWith(document.createTextNode(image.alt)),{once:true});badges.append(image);}
   row.append(time, channel);
+  const shared=sharedContext(message),contextLabels=messageContextLabels(message,sourceMetadata?.channel);
+  if(contextLabels.length){const context=document.createElement('span');context.className='message-context';context.textContent=contextLabels.join(' · ');row.append(context);}
+  if(shared){const source=document.createElement('span');source.className='source-badges';source.textContent='Origin badges: ';if(shared.badges===undefined)source.append('not supplied');else if(!shared.badges.length)source.append('none reported');else for(const entry of shared.badges){if(!showBadge(entry.set))continue;const badge=sourceMetadata?.badges[entry.set]?.[entry.version];if(badge){const image=document.createElement('img');image.className='badge source-badge';image.src=badge.url;image.alt='[Origin '+(badge.title||entry.set)+']';image.title='Origin room '+shared.roomID+' · '+(badge.title||entry.set)+' · '+badge.description;image.addEventListener('error',()=>image.replaceWith(document.createTextNode('[Origin '+entry.set+']')),{once:true});source.append(image);}else source.append('['+entry.set+']');}row.append(source);}
+
   const sub=document.createElement('span');sub.className='sub-months';
   const months=/(?:^|,)subscriber\/(\d+)(?:,|$)/.exec(message.tags['badge-info']??'')?.[1];
   sub.dataset.months=months??'--';sub.title=months?`${months} subscriber months reported`:'No subscriber months reported';

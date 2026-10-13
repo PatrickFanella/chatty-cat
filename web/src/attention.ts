@@ -1,3 +1,4 @@
+import {publicMessageKey} from './message-context';
 import {channelMuted} from './presentation';
 import { privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
@@ -31,7 +32,7 @@ export class Attention {
   }
   mention(message: ChatMessage, highlight: boolean, replay = false,policy:{sound:boolean;notify:boolean}={sound:true,notify:true}): void {
     if (this.stopped || replay || !highlight || !message.id || message.command !== 'PRIVMSG' || (!document.hidden && document.hasFocus())) return;
-    const key = message.channel + ':' + message.id;
+    const key = publicMessageKey(message);
     if (this.seen.has(key)) return;
     this.seen.add(key); while (this.seen.size > 2000) { const first = this.seen.values().next().value; if (first) this.seen.delete(first); else break; }
     this.missed.push({ id: message.id, channel: message.channel }); if (this.missed.length > 500) this.missed.shift(); this.render(); if(policy.sound)this.sound(message.channel);

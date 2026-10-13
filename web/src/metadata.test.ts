@@ -34,3 +34,5 @@ it('retains bounded provider scopes and rejects ambiguous/malformed sets',()=>{
  expect(parseMetadata({...valid,emotes:Object.fromEntries(Array.from({length:16385},(_,i)=>['x'+i,{...valid.emotes.Wave,code:'x'+i}]))})).toBeNull();
  expect(parseMetadata({...valid,emotes:{Wave:{...valid.emotes.Wave,url:'https://cdn.example/'+ 'a'.repeat(2048)}}})).toBeNull();
 });
+
+it('validates optional public broadcaster IDs without requiring newer metadata',()=>{expect(parseMetadata({...valid,broadcasterID:'123'})?.broadcasterID).toBe('123');for(const broadcasterID of ['../bad',42,''])expect(parseMetadata({...valid,broadcasterID})).toBeNull();});

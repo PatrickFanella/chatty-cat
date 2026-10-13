@@ -54,6 +54,9 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if got.BroadcasterID != "123" {
+		t.Fatal("public room ID missing")
+	}
 	if len(got.EmoteSets) != 8 || got.EmoteSets[0].Scope != "global" || got.EmoteSets[3].Scope != "channel" {
 		t.Fatalf("provider scopes missing: %+v", got.EmoteSets)
 	}

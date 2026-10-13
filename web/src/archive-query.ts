@@ -1,8 +1,9 @@
+import {sharedContext,messageReward,messageEffect,watchStreak} from './message-context';
 import type {ChatMessage} from './protocol';
 import {compilePattern} from './rules';
 import {findLinks} from './links';
 
-export const archiveFields=['text','sender','channel','badge','emote','domain','is','regex','after','before'] as const;
+export const archiveFields=['text','sender','channel','badge','emote','domain','is','regex','after','before','source','sourcebadge','reward','streak','effect'] as const;
 export type ArchiveField=typeof archiveFields[number];
 export interface ArchiveClause {field:ArchiveField;values:readonly string[];negated:boolean}
 export interface StructuredArchiveQuery {source:string;clauses:readonly ArchiveClause[];matches:(message:ChatMessage)=>boolean}
@@ -53,6 +54,11 @@ function compile(clause:ArchiveClause):(m:ChatMessage)=>boolean {
     if(!/^[a-z0-9_-]{1,80}$/.test(needle))throw new Error('Use a badge name, for example subscriber or moderator');
     return (m:ChatMessage)=>(m.tags.badges??'').split(',').some(v=>v.split('/')[0]?.toLowerCase()===needle);
    }
+   case 'source':if(!/^[0-9]{1,32}$/.test(raw))throw new Error('Use a supplied origin room ID');return (m:ChatMessage)=>sharedContext(m)?.roomID===raw;
+   case 'sourcebadge':if(!/^[a-z0-9_-]{1,100}$/.test(needle))throw new Error('Use an origin badge set name');return (m:ChatMessage)=>sharedContext(m)?.badges?.some(b=>b.set.toLowerCase()===needle)??false;
+   case 'reward':return (m:ChatMessage)=>messageReward(m)?.toLowerCase()===needle;
+   case 'effect':return (m:ChatMessage)=>messageEffect(m)?.toLowerCase()===needle;
+   case 'streak':if(!/^[0-9]{1,7}$/.test(raw)||Number(raw)<1||Number(raw)>1000000)throw new Error('Use a supplied streak count from 1 to 1000000');return (m:ChatMessage)=>watchStreak(m)?.count===Number(raw);
    case 'emote':return (m:ChatMessage)=>(m.tags.emotes??'').split('/').some(v=>v.split(':')[0]===raw)||m.text.split(/\s+/).includes(raw);
    case 'domain':{
     let host:string;try{const url=new URL('https://'+raw);if(url.username||url.password||url.port||url.pathname!=='/'||url.search||url.hash||!url.hostname.includes('.'))throw new Error();host=url.hostname.toLowerCase();}catch{throw new Error('Use a bare link domain, for example example.org');}
@@ -60,13 +66,17 @@ function compile(clause:ArchiveClause):(m:ChatMessage)=>boolean {
    }
    case 'before':case 'after':{const time=timestamp(raw);return (m:ChatMessage)=>field==='before'?m.timestamp<=time:m.timestamp>=time;}
    case 'is':switch(needle){
+    case 'shared':return (m:ChatMessage)=>sharedContext(m)!==undefined;
+    case 'reward':return (m:ChatMessage)=>messageReward(m)!==undefined;
+    case 'streak':return (m:ChatMessage)=>watchStreak(m)!==undefined;
+    case 'effect':return (m:ChatMessage)=>messageEffect(m)!==undefined;
     case 'reply':return (m:ChatMessage)=>!!m.tags['reply-parent-msg-id'];
     case 'moderation':return (m:ChatMessage)=>m.command==='CLEARMSG'||m.command==='CLEARCHAT';
     case 'deleted':return (m:ChatMessage)=>m.command==='CLEARMSG'||m.tags.deleted==='true'||m.tags.deleted==='1';
     case 'system':return (m:ChatMessage)=>m.command!=='PRIVMSG';
     case 'message':return (m:ChatMessage)=>m.command==='PRIVMSG';
     case 'link':return (m:ChatMessage)=>findLinks(m.text.slice(0,2000)).length>0;
-    default:throw new Error('is accepts reply, moderation, deleted, system, message or link');
+    default:throw new Error('is accepts reply, moderation, deleted, system, message, link, shared, reward, streak or effect');
    }
   }
  });

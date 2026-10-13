@@ -72,3 +72,10 @@ func FuzzParse(f *testing.F) {
 		}
 	})
 }
+
+func TestWatchStreakAndSharedContextRemainTransportFacts(t *testing.T) {
+	m, err := Parse(`@id=notice;login=alice;msg-id=viewermilestone;msg-param-category=watch-streak;msg-param-value=10;msg-param-copoReward=450;room-id=200;source-room-id=100;source-id=11111111-1111-4111-8111-111111111111;source-badges=subscriber/1 :tmi.twitch.tv USERNOTICE #receiving :A supplied streak`)
+	if err != nil || m.Login != "alice" || m.Tags["source-room-id"] != "100" || m.Tags["msg-param-copoReward"] != "450" || m.Channel != "receiving" {
+		t.Fatalf("context lost: %+v %v", m, err)
+	}
+}
