@@ -23,6 +23,7 @@ import (
 
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/cosmetics"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
@@ -35,6 +36,7 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	Cosmetics         *cosmetics.Service
 	WorkspaceChannels int
 	Subscriptions     int
 	GiphyAPIKey       string
@@ -102,6 +104,9 @@ func (s *Server) Close() {
 // Handler returns same-origin API and static asset routes.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	if s.cfg.Cosmetics != nil {
+		s.cfg.Cosmetics.Register(mux)
+	}
 	if s.cfg.Uploads != nil {
 		var authorize uploads.Authorize
 		if s.cfg.Auth != nil {
