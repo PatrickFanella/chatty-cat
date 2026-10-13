@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
+import {linkDefaults,setLinkPreferences} from './link-preferences';
 import { afterEach, expect, it, vi } from 'vitest';
 import { LinkPreview, parsePreview, youtubeID } from './preview';
 const card = { url: 'https://example.com/redirect', title: '<script>Title</script>', description: 'Description', site: 'Example', image: 'https://cdn.example/image.png', icon: '', author: 'Alice', published: '', contentType: 'video/mp4', ttl: 86400 };
 let preview: LinkPreview | undefined;
-afterEach(() => { preview?.stop(); preview = undefined; vi.unstubAllGlobals(); vi.useRealTimers(); document.body.replaceChildren();delete document.documentElement.dataset.peek;delete document.documentElement.dataset.yt; });
+afterEach(() => { preview?.stop(); preview = undefined;setLinkPreferences(linkDefaults);localStorage.clear(); vi.unstubAllGlobals(); vi.useRealTimers(); document.body.replaceChildren();delete document.documentElement.dataset.peek;delete document.documentElement.dataset.yt; });
 function setup() {
+setLinkPreferences({...linkDefaults,enabled:true,tooltip:true,thumbnails:true});
   vi.useFakeTimers(); const log = document.createElement('main'); const anchor = document.createElement('button'); anchor.dataset.preview = 'https://example.com/source'; log.append(anchor); const root = document.createElement('section'); root.hidden = true; document.body.append(log, root);
   preview = new LinkPreview(log, root); return { log, anchor, root };
 }
@@ -55,3 +57,5 @@ it('respects off, text, icon and YouTube preferences and closes on changes', asy
  document.documentElement.dataset.peek='2';document.documentElement.dataset.yt='false';anchor.click();await vi.advanceTimersByTimeAsync(0);expect(root.textContent).not.toContain('Load media player');
  document.documentElement.dataset.yt='true';anchor.click();await vi.advanceTimersByTimeAsync(0);expect(root.textContent).toContain('Load media player');document.dispatchEvent(new Event('previewsettings'));expect(root.hidden).toBe(true);
 });
+
+it('asks before a one-time fetch, suppresses unsolicited hover and drops privacy-late responses',async()=>{let finish:(v:unknown)=>void=()=>{};const fetcher=vi.fn(()=>new Promise(resolve=>{finish=resolve;}));vi.stubGlobal('fetch',fetcher);const {anchor,root}=setup();setLinkPreferences(linkDefaults);anchor.dispatchEvent(new Event('pointerover',{bubbles:true}));await vi.advanceTimersByTimeAsync(400);expect(fetcher).not.toHaveBeenCalled();anchor.click();expect(root.textContent).toContain('Fetch one public preview');expect(fetcher).not.toHaveBeenCalled();[...root.querySelectorAll('button')].find(b=>b.textContent==='Fetch this preview once')!.click();expect(fetcher).toHaveBeenCalledOnce();localStorage.setItem('chatthing:v1:privacy',JSON.stringify({version:1,enabled:true,allowed:[],panic:true}));document.dispatchEvent(new Event('privacychange'));finish({ok:true,json:async()=>card});await vi.advanceTimersByTimeAsync(0);expect(root.hidden).toBe(true);expect(root.childElementCount).toBe(0);});
