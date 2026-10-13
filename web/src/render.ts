@@ -1,4 +1,6 @@
 import {getPresentation,formatTimestamp,usernameLabel} from './presentation';
+import {getLocalNickname} from './completion-preferences';
+import {privacyEnabled} from './privacy';
 import { channelURL, CHANNEL_COLORS } from './channels';
 import {nativeGifTitle,gifTitleLink} from './gifs';
 import { appendLinks, readableColor, observeUserColor } from './links';
@@ -77,6 +79,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   name.className = 'name';
   if (['fossabot','blammobot'].includes(message.login.toLowerCase())) name.classList.add('shimmer');
   name.textContent = usernameLabel(message.login,message.tags['display-name']??'',p.usernameMode)||message.command.toLowerCase();
+  const alias=getLocalNickname(message.login);if(alias&&!privacyEnabled()){name.textContent=alias+' · '+message.login;name.title='Local nickname; Twitch login: '+message.login;}
   name.style.color = p.colorUsernames?readableColor(message.tags.color ?? '', document.documentElement.dataset.theme === 'light'):'';
   const text = messageText(message, metadata, frozen, users);
   if (message.command !== 'PRIVMSG') { row.classList.add('notice'); const label=document.createElement('span');label.className='notice-label rainbow';label.textContent='['+(message.tags['msg-id']||message.command.toLowerCase())+']';row.append(label); }

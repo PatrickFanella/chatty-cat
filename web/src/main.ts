@@ -28,6 +28,8 @@ import { PrivacyControls } from './privacy-ui';
 import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
 import { WorkspacePanel } from './workspaces-ui';
 import {ChatterinoImportPanel} from './chatterino-import-ui';
+import {CompletionPreferencesPanel} from './completion-preferences-ui';
+import {CompletionChatters} from './completion-chatters';
 import { captureBundle, restoreBundle } from './settings-bundle';
 import { NitterLinks } from './nitter';
 import { GiphyTitles } from './giphy';
@@ -282,6 +284,7 @@ function observe(message: ChatMessage, live = false, countStats=false): void {
   while (codes.size > 1000) { const first = codes.values().next().value; if (first) codes.delete(first); else break; }
   nativeCodes.set(message.channel, codes);
 }
+let completionChatters:CompletionChatters|undefined;
 function refreshCandidates(): void {
   composer.setCandidates([...(names.get(composer.target)?.keys() ?? [])],
     [...new Set([...Object.keys(metadata.get(composer.target)?.emotes ?? {}), ...(nativeCodes.get(composer.target) ?? []), ...pickerModel.catalog(composer.target).filter(item => item.source === "Twitch").map(item => item.code)])]);
@@ -429,10 +432,13 @@ const commandPanel=new CommandPanel(composer,()=>{
  return {channel:{name:channel,id:room,title:metadata.get(channel)?.stream.title??'',game:metadata.get(channel)?.stream.game??''},account:{name:accountAuth?.login??'',id:accountAuth?.userID??''},message:selected?{name:selected.login,id:selected.id,text:selected.text.replace(/^\x01ACTION (.*)\x01$/s,'$1')}:undefined,input:composer.draft};
 },element('user-inspector',HTMLDialogElement),bootWorkspace?.settings.extras.commands);
 const chatterinoImport=new ChatterinoImportPanel(workspaceStore,captureWorkspace,!!panePopout||ephemeralPopout||overlay);
+completionChatters=new CompletionChatters(()=>{const raw=metadata.get(composer.target)?.stream.viewers??'',viewers=/^(?:\d+|[1-9]\d{0,2}(?:,\d{3})+)$/.test(raw)?Number(raw.replaceAll(',','')):undefined;return {auth:accountAuth,channel:composer.target,viewers};},refreshCandidates);
+composer.configureExtraNames(()=>completionChatters?.names()??[]);
+const completionPreferences=new CompletionPreferencesPanel(()=>{visualRevision++;refreshCandidates();scheduleRender();},!!panePopout||ephemeralPopout||overlay,()=>completionChatters!.read());
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();chatterinoImport.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();chatterinoImport.stop();completionPreferences.stop();completionChatters?.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {

@@ -16,9 +16,15 @@ activation and return to the original draft and commands with zero provider writ
 See [supported mappings, limits and demo](chatterino-import-demo.md). This change
 still needs PR merge and deployment; it is not a production acceptance claim.
 
-Remaining M4 work: optional cross-device sync (#29), configured image uploads (#30),
-live provider/cosmetic updates (#31), actual message-event context (#32), completion
-and local aliases (#33), safe link previews/search (#44), and Unicode emoji catalog
+Completion and local nicknames (#33) now have reviewed profile-local preferences,
+prefix/fuzzy policies, canonical identity annotations, opt-in browser spellcheck
+and a bounded manual chatter read. Native dictionary/suggestion controls remain
+browser-owned. Tests and a built-app fixture cover Unicode, IME, aliases, permission
+and context isolation. See [behavior and verification](completion-demo.md).
+Merge, deployment and live acceptance remain separate.
+
+Remaining M4 work: optional cross-device sync (#29), self-hosted image uploads (#30; owner-selected Chatty Cat storage),
+live provider/cosmetic updates (#31), actual message-event context (#32), safe link previews/search (#44), and Unicode emoji catalog
 and styles (#45). External provider/configuration acceptance is recorded separately
 from implementation and fixture verification.
 

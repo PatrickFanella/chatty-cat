@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { messageRow } from './render';
 import type { ChatMessage } from './protocol';
 import type { ChannelMetadata } from './metadata';
+import {completionDefaults,setCompletionPreferences} from './completion-preferences';
 
 const message: ChatMessage = { id: 'one', command: 'PRIVMSG', channel: 'room', login: 'alice', timestamp: 123, text: 'Base Overlay', tags: { badges: 'subscriber/1,vip/1' } };
 const metadata: ChannelMetadata = { channel: 'room', errors: [], stream: { uptime: '', viewers: '', title: '' },
@@ -12,6 +13,7 @@ const metadata: ChannelMetadata = { channel: 'room', errors: [], stream: { uptim
     Overlay: { code: 'Overlay', url: 'https://cdn.example/overlay', staticUrl: '', source: '7TV', animated: true, zeroWidth: true },
   },
 };
+it('renders a local annotation as text beside the real login without changing provider identity',()=>{try{setCompletionPreferences({...completionDefaults,aliases:[{login:'alice',alias:'<b>Friend</b>'}]});const row=messageRow(message,metadata);expect(row.querySelector('.name')?.textContent).toBe('<b>Friend</b> · alice');expect(row.querySelector('.name')?.getAttribute('href')).toBe('https://www.twitch.tv/alice');expect(row.querySelector('.name b')).toBeNull();expect(message.login).toBe('alice');}finally{setCompletionPreferences(completionDefaults);}});
 describe('message rendering', () => {
   it('stacks zero-width emotes on the preceding emote and enlarges emote-only text', () => {
     const row = messageRow(message, metadata);

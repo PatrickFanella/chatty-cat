@@ -1,6 +1,7 @@
 import {getPresentation} from './presentation';
 import {isLocalCommand,LOCAL_COMMANDS} from './local-commands';
 import { completions, insertCompletion, wireMessage, type Completion } from './completion';
+import {getCompletionPreferences} from './completion-preferences';
 import type { AuthStatus } from './auth';
 import type { ChatMessage } from './protocol';
 
@@ -41,8 +42,9 @@ export class Composer {
   private presentationChanged=():void=>{if(this.blocked&&!this.busy)this.status.textContent=!getPresentation().showWait&&this.blocked.startsWith('Slow mode:')?'Slow mode active; wait before sending':this.blocked;this.render();};
   private outgoing():string{const text=wireMessage(this.input.value);if(!this.reply||!getPresentation().stripReplyMention||text.trimStart().startsWith('/'))return text;const login=this.reply.login.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');return text.replace(new RegExp('^@?'+login+'[, :]?\\s+','i'),'');}
   private composing=false;
-  private compositionStart=():void=>{this.composing=true;};
-  private compositionEnd=():void=>{this.composing=false;};
+  private compositionStart=():void=>{this.composing=true;this.closeCompletion();};
+  private compositionEnd=():void=>{this.composing=false;this.edit();};
+  private completionChanged=():void=>{this.input.spellcheck=getCompletionPreferences().spellcheck;this.closeCompletion();};
   private localDispatch:((text:string)=>Promise<string|undefined>)|undefined;
   configureLocal(dispatch:(text:string)=>Promise<string|undefined>):void{this.localDispatch=dispatch;this.render();}
   stageReply(message:ChatMessage,text:string):void{if(!this.canInsert)throw new Error('Log in to stage a public reply');if(this.target!==message.channel&&this.draftFor(message.channel).trim())throw new Error('Finish or clear the destination draft before staging a reply');this.selectReply(message);if(this.reply!==message)throw new Error('Reply channel is unavailable');this.input.value=text;this.edit();}
@@ -94,6 +96,7 @@ export class Composer {
     this.cancelReply = field(form, 'cancel-reply', HTMLButtonElement);
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
     this.restoreDraft();
+    this.input.spellcheck=getCompletionPreferences().spellcheck;document.addEventListener('completionpreferenceschange',this.completionChanged);
     document.addEventListener('presentationchange',this.presentationChanged);form.addEventListener('submit', this.submit);
     this.input.addEventListener('input', this.edit);this.input.addEventListener('compositionstart',this.compositionStart);this.input.addEventListener('compositionend',this.compositionEnd);
     this.input.addEventListener('keydown', this.key);
@@ -125,6 +128,8 @@ export class Composer {
   get sending(): boolean { return this.busy; }
   setTarget(channel: string): void { if(this.busy || channel===this.target || ![...this.channel.options].some(option=>option.value===channel))return;this.saveDraft();this.channel.value=channel;this.channel.dispatchEvent(new Event('change')); }
   setCandidates(names: readonly string[], emotes: readonly string[]): void { this.names = names; this.emotes = emotes; }
+  private extraNames:()=>readonly string[]=()=>[];
+  configureExtraNames(read:()=>readonly string[]):void{this.extraNames=read;this.closeCompletion();}
   private closeCompletion = (): void => {
     this.completion = undefined; this.suggestions.hidden = true;
     this.input.setAttribute('aria-expanded', 'false'); this.input.removeAttribute('aria-activedescendant');
@@ -137,14 +142,14 @@ export class Composer {
       const option = document.createElement('div');
       option.id = `completion-${index}`; option.role = 'option'; option.dataset.index = String(index);
       option.setAttribute('aria-selected', String(index === this.completionIndex));
-      option.textContent = item.value; this.suggestions.append(option);
+      option.textContent = item.label??item.value; this.suggestions.append(option);
     });
     const active = this.suggestions.children[this.completionIndex];
     if (active instanceof HTMLElement) { this.input.setAttribute('aria-activedescendant', active.id); active.scrollIntoView?.({ block: 'nearest' }); }
   }
   private acceptCompletion(): void {
     if (!this.completion) return;
-    const result = insertCompletion(this.input.value, this.completion, this.completionIndex);
+    const result = insertCompletion(this.input.value, this.completion, this.completionIndex,getCompletionPreferences());
     this.input.value = result.text; this.input.setSelectionRange(result.caret, result.caret);
     this.closeCompletion(); this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
   }
@@ -155,6 +160,7 @@ export class Composer {
     event.preventDefault(); this.completionIndex = Number(index); this.acceptCompletion(); this.input.focus();
   };
   setAuth(auth: AuthStatus | undefined): void {
+    if(this.auth?.chattersEnabled!==auth?.chattersEnabled)this.closeCompletion();
     const account=auth===undefined?this.account:auth.authenticated?auth.userID??auth.login??'anonymous':'anonymous';
     if(account!==this.account){this.saveDraft();this.account=account;this.restoreDraft();this.historyIndex=-1;this.savedDraft='';}
     if((this.auth?.userID??this.auth?.login)!==(auth?.userID??auth?.login)||this.auth?.csrf!==auth?.csrf||!auth?.authenticated){this.authGeneration++;this.sendAbort?.abort();this.busy=false;this.requestID=undefined;this.reply=undefined;this.closeCompletion();if(/^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value))this.input.value='';}
@@ -205,9 +211,10 @@ export class Composer {
     this.form.dispatchEvent(new Event('channelstatechange'));
   }
   private edit = (): void => { this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
-    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,[...this.commands,...this.moderationReview?['/clip','/marker','/settitle','/setgame','/commercial','/lowtrust','/monitor','/unmonitor','/restrict','/unrestrict','/warn','/shield','/shieldoff','/banid','/untimeout']:[],...this.localDispatch?LOCAL_COMMANDS:[]]);
+    this.completion = this.composing?undefined:this.candidates(false);
     this.completionIndex = 0; this.paintCompletion();
   };
+  private candidates(bare:boolean):Completion|undefined{const options=getCompletionPreferences(),names=[...new Set([...this.names,...this.extraNames(),...options.includeBroadcaster?[this.target]:[]])];return completions(this.input.value,this.input.selectionStart,this.input.selectionEnd,names,this.emotes,bare,[...this.commands,...this.moderationReview?['/clip','/marker','/settitle','/setgame','/commercial','/lowtrust','/monitor','/unmonitor','/restrict','/unrestrict','/warn','/shield','/shieldoff','/banid','/untimeout']:[],...this.localDispatch?LOCAL_COMMANDS:[]],options);}
   private clearReply = (): void => { this.reply = undefined; this.requestID = undefined; this.render(); };
   private changeChannel = (): void => {
     this.closeCompletion();
@@ -216,7 +223,7 @@ export class Composer {
     this.restoreDraft(); this.status.textContent = ''; this.render();
   };
   private key = (event: KeyboardEvent): void => {
-    if (this.busy || this.input.disabled || event.isComposing) return;
+    if (this.busy || this.input.disabled || this.composing || event.isComposing) return;
     if (this.completion) {
       if (['Tab', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
         event.preventDefault();
@@ -228,7 +235,7 @@ export class Composer {
       if (event.key === 'Escape') { event.preventDefault(); this.closeCompletion(); return; }
     }
     if (event.key === 'Tab' && !event.shiftKey) {
-      this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes, true);
+      this.completion = this.candidates(true);
       if (this.completion) { event.preventDefault(); this.completionIndex = 0; this.paintCompletion(); return; }
     }
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.requestSubmit(); return; }
@@ -292,7 +299,7 @@ export class Composer {
   };
   stop(): void {
     this.disposed = true; this.saveDraft(); this.abort.abort();
-    document.removeEventListener('presentationchange',this.presentationChanged);this.form.removeEventListener('submit', this.submit); this.input.removeEventListener('input', this.edit);this.input.removeEventListener('compositionstart',this.compositionStart);this.input.removeEventListener('compositionend',this.compositionEnd);
+    document.removeEventListener('completionpreferenceschange',this.completionChanged);document.removeEventListener('presentationchange',this.presentationChanged);this.form.removeEventListener('submit', this.submit); this.input.removeEventListener('input', this.edit);this.input.removeEventListener('compositionstart',this.compositionStart);this.input.removeEventListener('compositionend',this.compositionEnd);
     this.input.removeEventListener('keydown', this.key); this.input.removeEventListener('click', this.closeCompletion); this.input.removeEventListener('blur', this.closeCompletion); this.suggestions.removeEventListener('mousedown', this.pickCompletion); this.channel.removeEventListener('change', this.changeChannel);
     this.cancelReply.removeEventListener('click', this.clearReply);
   }
