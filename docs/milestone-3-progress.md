@@ -5,7 +5,8 @@ Deployment update, October 13: merged code through PR #78 is live. See the
 sections retain their implementation-time observations. Live Twitch acceptance
 has started: [Shield, metadata, private-feed reads and remaining gates](m3-live-acceptance-2026-10-13.md).
 Consent completed in the regular browser. Controlled second-account moderation,
-actual private events and eligible/live broadcaster checks remain pending.
+actual private events, eligible/live broadcaster checks and the observed production
+journal persistence problem remain pending.
 
 All seven M2 issues are merged as of October 12, 2026, including user notes PR #71.
 M2 production deployment and owner/provider acceptance remain separate from merged

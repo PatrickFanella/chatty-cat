@@ -39,8 +39,9 @@ server readback:
 | 10:39:00 | Restore Just Chatting, exact ID `509658` | Confirmed |
 
 Additional fresh reads verified the temporary title/category and their restoration.
-The regular browser's private journal contains all four confirmed receipts. The
-two earlier Shield receipts remain in the shared preview's separate local journal.
+The regular browser's private journal displayed all four confirmed receipts before
+the persistence check below. The two earlier Shield receipts were observed in the
+shared preview's separate local journal.
 Previewing clip, marker and commercial actions while offline refused each action
 before confirmation. No clip, marker or commercial request was sent.
 
@@ -56,6 +57,20 @@ attempted; it needs an eligible broadcaster. Twitch's
 Affiliates and Partners. Read access alone does not prove write eligibility.
 Clip/marker/commercial delivery additionally needs a suitable live stream. Actual
 AutoMod holds and suspicious-user signals remain external event gates. M3 is open.
+
+### Journal persistence is not accepted
+
+After closing/reopening the workspace and opening/closing Accounts without an
+account switch, the regular-browser test tab reported a closing IndexedDB connection.
+After reload and authenticated reopen, refresh displayed zero receipts. No retention
+apply, forgetting or storage-clearing action was performed by the agent. External
+browser storage changes and the database-close cause remain unverified. The provider
+acknowledgements and metadata restoration were already verified; no write was retried.
+
+A local synthetic test in the same browser preserved one confirmed receipt across
+workspace close/reopen and page reload. Thus the close/reopen path alone does not
+establish the cause. Production journal persistence remains an M3 acceptance gate;
+capture a private backup before further live writes and diagnose the storage transition.
 
 ## Earlier consent interruption
 
