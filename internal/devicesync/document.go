@@ -270,7 +270,7 @@ func nullable(check validator) validator { return func(v any) bool { return v ==
 
 var displaySchema = object(fields(displayFields))
 var presentationSchema = object(fields(presentationFields))
-var pickerSchema = func() validator { f := fields(pickerFields); f["enabled"] = array(scalar, 4); return object(f) }()
+var pickerSchema = func() validator { f := fields(pickerFields); f["enabled"] = array(scalar, 5); return object(f) }()
 var geometrySchema = object(map[string]validator{"pinned": scalar, "open": scalar, "box": object(fields("left top width height"))})
 var paneSchema = object(map[string]validator{"id": scalar, "channels": array(scalar, 6), "target": scalar, "filter": scalar, "rules": array(scalar, 32), "reverse": scalar, "pauseHover": scalar, "weight": scalar, "unread": scalar, "reader": nullable(object(fields("key offset")))})
 var tabSchema = object(map[string]validator{"id": scalar, "name": scalar, "active": scalar, "panes": array(paneSchema, 6)})

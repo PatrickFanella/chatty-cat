@@ -115,3 +115,11 @@ func TestQuotaRejectionPreservesLastGoodSnapshot(t *testing.T) {
 		t.Fatal("quota failure replaced good data")
 	}
 }
+
+func TestAllFivePickerSourcesArePortable(t *testing.T) {
+	d := doc()
+	d.Preferences = map[string]any{"display": map[string]any{}, "presentation": map[string]any{}, "provider": map[string]any{}, "links": map[string]any{}, "picker": map[string]any{"enabled": []any{"Twitch", "7TV", "BTTV", "FFZ", "Emoji"}}}
+	if _, err := CanonicalDocument(d); err != nil {
+		t.Fatal("complete picker source set rejected", err)
+	}
+}
