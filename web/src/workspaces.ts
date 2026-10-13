@@ -7,6 +7,7 @@ import type { SettingsBundle } from './settings-bundle';
 import { parseWorkspaceChannels } from './protocol';
 import {parseSplits} from './splits';
 import {parseHotkeys} from './hotkeys';
+import {parseCommandList} from './commands';
 
 export interface ReaderPosition { column:number; key:string; offset:number }
 export interface WorkspaceSnapshot { channels:string[]; target:string; focus:string; settings:SettingsBundle; readers:ReaderPosition[] }
@@ -45,6 +46,7 @@ function publicExtras(value:unknown,channels:readonly string[]):Record<string,un
  const splits=parseSplits(value.splits,channels);if(value.splits!==undefined&&!splits)throw new Error('Workspace pane layout is invalid or exceeds 32 KB');if(splits)result.splits=splits;
  const hotkeys=parseHotkeys(value.hotkeys);if(value.hotkeys!==undefined&&!hotkeys)throw new Error('Workspace shortcuts are invalid or conflicting');if(hotkeys)result.hotkeys=hotkeys;
  if(value.presentation!==undefined)result.presentation=parsePresentation(value.presentation);
+ if(value.commands!==undefined)result.commands=parseCommandList(value.commands);
  if(value.rules!==undefined){if(!object(value.rules))throw new Error('Invalid workspace rules');const v=value.rules;result.rules={version:1,rules:parseRules(v),similarity:parseSimilarity(v.similarity),preferences:fields(v.preferences,['muted','quietStart','quietEnd'])};}
  return result;
 }
