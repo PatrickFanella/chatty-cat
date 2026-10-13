@@ -46,4 +46,26 @@ reason and deleted text. Reasons are sent to Twitch for ban/timeout actions.
 
 Reproducible demo: [moderation workspace](moderation-workspace-demo.md).
 Live moderation acceptance remains pending an approved channel/target/action.
-This implementation is for review; no M3 deployment or live write is recorded.
+The foundation is merged in PR #72; no M3 deployment or live write is recorded.
+
+
+## Moderation buttons and timeout presets — #22
+
+Channel-specific ordered quick actions use the same staged workspace and explicit
+confirmation. Definitions are isolated by account, workspace and channel; limits
+are 12 presets / 32 KB. Templates support only selected-user `{user}` and selected
+message `{messageID}` substitutions within validated moderation commands. User
+and message actions cannot hard-code another target. JSON definitions and imports
+have replacement previews; backups require the same scope and no credentials.
+
+Alt+Shift+1–9 stages the corresponding ordered preset while the modal is open and
+focus is outside editable fields. It never confirms or sends. Scope/role/identity
+checks, pending receipts and uncertain-outcome handling remain in the existing
+workspace/provider path. Privacy/account changes clear preset transfers. Stale
+writers and storage failure preserve saved definitions.
+
+Verification: 531 frontend tests and production build pass, with Go race/vet/lint
+and the 515-row inventory unchanged. Native Chromium staged a three-second timeout
+from the physical keyboard shortcut with zero provider writes, then confirmed it
+once. Ordered definitions persisted and a 338-byte native backup reopened for a
+same-scope replacement preview. [Demo](moderation-presets-demo.md).
