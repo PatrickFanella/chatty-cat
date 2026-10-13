@@ -27,6 +27,7 @@ import { CommandPanel } from './commands-ui';
 import { PrivacyControls } from './privacy-ui';
 import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
 import { WorkspacePanel } from './workspaces-ui';
+import {ChatterinoImportPanel} from './chatterino-import-ui';
 import { captureBundle, restoreBundle } from './settings-bundle';
 import { NitterLinks } from './nitter';
 import { GiphyTitles } from './giphy';
@@ -426,11 +427,12 @@ const commandPanel=new CommandPanel(composer,()=>{
  const selected=inspector?.selectedMessage,channel=selected?.channel??composer.target;
  const room=selected?.tags['room-id']??[...store.messages].reverse().find(message=>message.channel===channel&&message.tags['room-id'])?.tags['room-id']??'';
  return {channel:{name:channel,id:room,title:metadata.get(channel)?.stream.title??'',game:metadata.get(channel)?.stream.game??''},account:{name:accountAuth?.login??'',id:accountAuth?.userID??''},message:selected?{name:selected.login,id:selected.id,text:selected.text.replace(/^\x01ACTION (.*)\x01$/s,'$1')}:undefined,input:composer.draft};
-},element('user-inspector',HTMLDialogElement));
+},element('user-inspector',HTMLDialogElement),bootWorkspace?.settings.extras.commands);
+const chatterinoImport=new ChatterinoImportPanel(workspaceStore,captureWorkspace,!!panePopout||ephemeralPopout||overlay);
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();chatterinoImport.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {

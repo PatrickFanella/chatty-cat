@@ -8,6 +8,20 @@ Chatterino 2.5.6 mapping, contrast review, reversible preview and validated expo
 See the [reproducible theme demo and verification](custom-themes-demo.md).
 Native QColor alpha, multipliers and filesystem autoreload remain unavailable.
 
+Chatterino settings/layout import (#28) now has a bounded, reviewed browser
+adaptation. It saves named workspace copies, maps supported public appearance and
+text command definitions, excludes credentials/native scripts, and supplies a
+validated recovery export. A native built-app demo verified imported pane/command
+activation and return to the original draft and commands with zero provider writes.
+See [supported mappings, limits and demo](chatterino-import-demo.md). This change
+still needs PR merge and deployment; it is not a production acceptance claim.
+
+Remaining M4 work: optional cross-device sync (#29), configured image uploads (#30),
+live provider/cosmetic updates (#31), actual message-event context (#32), completion
+and local aliases (#33), safe link previews/search (#44), and Unicode emoji catalog
+and styles (#45). External provider/configuration acceptance is recorded separately
+from implementation and fixture verification.
+
 This work does not close the earlier M3 production journal persistence gate or
 remaining controlled-subject, private-event and eligible/live broadcaster checks.
 Theme changes are local preferences and introduce no provider writes.
