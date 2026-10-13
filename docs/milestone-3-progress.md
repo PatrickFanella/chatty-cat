@@ -207,3 +207,48 @@ channel. Poll command aliases remain planned in the source inventory.
 Sources: [read polls](https://dev.twitch.tv/docs/api/reference/#get-polls),
 [create](https://dev.twitch.tv/docs/api/reference/#create-poll),
 [end/archive](https://dev.twitch.tv/docs/api/reference/#end-poll).
+
+## Broadcaster prediction lifecycle — #26
+
+The prediction panel reads the latest 20 provider predictions and restores ACTIVE
+or LOCKED state through explicit refresh/reconnect. Broadcaster identity is required
+for this provider API; read-only prediction consent observes state/counts while
+manage consent enables actions. Explicit creation review validates a 45-character
+title, two to ten distinct outcomes of 25 characters and a 30–1,800-second window.
+Creation begins participation immediately; Twitch decides eligibility.
+
+Lock, cancel and resolve are separate staged actions. Resolution names the exact
+winning outcome title and ID and discloses provider points distribution. Cancel
+discloses provider refunds; lock stops further participation. Each confirmation
+saves a pending private receipt before one request. The server rereads provider
+state, verifies allowed ACTIVE/LOCKED transitions and requires a winner from the
+same prediction. Exact acknowledgement identity/status/winner and explicit
+aggregate participant/point counts are required. Missing data is unavailable;
+participant identities and inferred payout calculations are not exposed.
+
+Unknown or incorrect-winner responses stay uncertain, with no automatic retry.
+An explicit provider refresh is required before another action after uncertainty.
+Receipts replay at most once, with 32 cached account-session requests. Successful
+reads repeat every 15 seconds while open; uncertainty, closure, account/channel
+and privacy changes cancel reads/clear private state. Unchanged provider reads
+preserve focused poll/prediction controls rather than replacing their DOM nodes.
+Command aliases remain planned in the source inventory.
+
+Verification: 564 frontend tests and production build, full Go race tests, vet and
+zero-issue lint; all 515 reference declarations accounted for. Tests cover foreign
+winners, missing counts, incorrect-winner acknowledgements, CSRF/identity/scope
+refusal, receipt replay, pending-before-write, terminal-state updates, account
+isolation and focus preservation. Native Chromium verified zero-write preview,
+CREATE → ACTIVE, exact selected-winner RESOLVED, local rate refusal without a
+provider write, separately reviewed LOCKED, reopening/restoration and CANCELED.
+Only synthetic provider calls occurred. [Demo](predictions-demo.md).
+
+The owner approved needed live M3 acceptance on October 13. The shared preview
+currently reaches Twitch's username/password login form; login/consent and
+broadcaster eligibility remain external prerequisites. No real M3 write or new
+M3 deployment is recorded. Earlier sections' approval prerequisites are now met;
+their provider acceptance remains pending login and deployment.
+
+Sources: [prediction reads](https://dev.twitch.tv/docs/api/reference/#get-predictions),
+[creation](https://dev.twitch.tv/docs/api/reference/#create-prediction),
+[lock/cancel/resolve](https://dev.twitch.tv/docs/api/reference/#end-prediction).

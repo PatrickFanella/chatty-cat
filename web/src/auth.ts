@@ -12,6 +12,8 @@ export type AuthStatus = {
   personalChatEnabled?: boolean;
 	moderationReadEnabled?:boolean;
   automodEnabled?:boolean;
+ predictionsEnabled?:boolean;
+ predictionsManageEnabled?:boolean;
  pollsEnabled?:boolean;
  pollsManageEnabled?:boolean;
  suspiciousEnabled?:boolean;
@@ -36,7 +38,9 @@ export function parseAuthStatus(value: unknown): AuthStatus {
     result.whispersEnabled = data["whispersEnabled"] === true;
     result.personalChatEnabled = data["personalChatEnabled"] === true;
     result.emotesEnabled = data["emotesEnabled"] === true;
-	result.pollsEnabled=data['pollsEnabled']===true;
+	result.predictionsEnabled=data['predictionsEnabled']===true;
+ result.predictionsManageEnabled=data['predictionsManageEnabled']===true;
+ result.pollsEnabled=data['pollsEnabled']===true;
  result.pollsManageEnabled=data['pollsManageEnabled']===true;
  result.suspiciousEnabled=data['suspiciousEnabled']===true;
  result.suspiciousManageEnabled=data['suspiciousManageEnabled']===true;
