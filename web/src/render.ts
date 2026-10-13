@@ -1,3 +1,4 @@
+import {getProviderPreferences,showBadge} from './provider-preferences';
 import {getPresentation,formatTimestamp,usernameLabel} from './presentation';
 import {getLocalNickname} from './completion-preferences';
 import {privacyEnabled} from './privacy';
@@ -8,10 +9,13 @@ import type { ChatMessage } from './protocol';
 import type { ChannelMetadata } from './metadata';
 import { tokenize, type Emote } from './tokens';
 
-function emoteImage(emote: Emote, frozen: boolean): HTMLImageElement {
+function emoteImage(emote: Emote, frozen: boolean): HTMLElement {
+  const prefs=getProviderPreferences();
+  if(!prefs.animated&&emote.animated&&!emote.staticUrl){const label=document.createElement('span');label.className='emote emote-fallback';label.textContent=emote.code;label.title=emote.code+' · '+emote.source+' · static image unavailable';return label;}
   const img = document.createElement('img');
   img.className = 'emote';img.dataset.emoteCode=emote.code;img.dataset.emoteSource=emote.source;
-  img.src = frozen && emote.staticUrl ? emote.staticUrl : emote.url;
+  img.src = (frozen||!prefs.animated) && emote.staticUrl ? emote.staticUrl : emote.url;
+  if(prefs.scale!==1)img.style.height=String(1.75*prefs.scale)+'em';
   img.alt = emote.code;
   img.title = `${emote.code} · ${emote.source}`;
   img.loading = 'lazy';
@@ -102,7 +106,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
   badges.className = 'badges';
   for (const entry of (message.tags.badges ?? '').split(',')) {
     const [set, version] = entry.split('/');
-    if (!set || !version) continue;
+    if (!set || !version || !showBadge(set)) continue;
     const badge = metadata?.badges[set]?.[version];
     if (badge) {
       const image = document.createElement('img');

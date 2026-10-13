@@ -54,6 +54,15 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(got.EmoteSets) != 8 || got.EmoteSets[0].Scope != "global" || got.EmoteSets[3].Scope != "channel" {
+		t.Fatalf("provider scopes missing: %+v", got.EmoteSets)
+	}
+	if got.EmoteSets[0].Emotes["Shared"].Source != "7TV" || got.EmoteSets[2].Emotes["Shared"].Source != "FFZ" || got.EmoteSets[5].Emotes["Shared"].Source != "FFZ" {
+		t.Fatal("disabled winner must not erase lower precedence providers")
+	}
+	if got.EmoteSets[5].Emotes["Anim"].StaticURL != "https://cdn.frankerfacez.com/emote/3/2" {
+		t.Fatal("static fallback lost")
+	}
 	if got.Emotes["Native"].Source != "Twitch" || !got.Emotes["Native"].Animated {
 		t.Fatalf("native catalog: %+v", got.Emotes["Native"])
 	}

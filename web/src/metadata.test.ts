@@ -25,3 +25,12 @@ it('validates optional lifetime usage seeds separately from stream/emote data',(
 it('validates public VOD timing and Twitch-only destinations',()=>{const lastVod={start:'2026-10-10T12:00:00Z',end:'2026-10-10T13:00:00Z',url:'https://www.twitch.tv/videos/12345',title:'Latest archive'};expect(parseMetadata({...valid,lastVod})?.lastVod).toEqual(lastVod);for(const bad of [{...lastVod,end:lastVod.start},{...lastVod,url:'https://evil.test/videos/12345'},{...lastVod,start:'not a date'}])expect(parseMetadata({...valid,lastVod:bad})).toBeNull();});
 
 it('validates optional category metadata while accepting older servers',()=>{expect(parseMetadata({...valid,stream:{...valid.stream,game:'Music'}})?.stream.game).toBe('Music');expect(parseMetadata({...valid,stream:{...valid.stream,game:42}})).toBeNull();expect(parseMetadata(valid)?.stream.game).toBeUndefined();});
+
+it('retains bounded provider scopes and rejects ambiguous/malformed sets',()=>{
+ const set={provider:'7TV',scope:'global',emotes:valid.emotes};
+ expect(parseMetadata({...valid,emoteSets:[set]})?.emoteSets).toEqual([set]);
+ for(const emoteSets of [[{...set,scope:'other'}],[set,set],[{...set,provider:'FFZ'}],Array(9).fill(set)])expect(parseMetadata({...valid,emoteSets})).toBeNull();
+ expect(parseMetadata({...valid,errors:Array(65).fill('bad')})).toBeNull();
+ expect(parseMetadata({...valid,emotes:Object.fromEntries(Array.from({length:16385},(_,i)=>['x'+i,{...valid.emotes.Wave,code:'x'+i}]))})).toBeNull();
+ expect(parseMetadata({...valid,emotes:{Wave:{...valid.emotes.Wave,url:'https://cdn.example/'+ 'a'.repeat(2048)}}})).toBeNull();
+});

@@ -27,6 +27,13 @@ type Emote struct {
 	ZeroWidth bool   `json:"zeroWidth"`
 }
 
+// EmoteSet keeps provider/scope provenance so disabling a winner exposes the next source.
+type EmoteSet struct {
+	Provider string           `json:"provider"`
+	Scope    string           `json:"scope"`
+	Emotes   map[string]Emote `json:"emotes"`
+}
+
 // Badge retains presentation metadata for a specific badge version.
 type Badge struct {
 	URL         string `json:"url"`
@@ -44,13 +51,14 @@ type Stream struct {
 
 // Channel contains metadata for one room; Errors identifies partial failures.
 type Channel struct {
-	LastVod  *Vod                        `json:"lastVod,omitempty"`
-	Channel  string                      `json:"channel"`
-	EmoteUse map[string]int64            `json:"emoteUse"`
-	Emotes   map[string]Emote            `json:"emotes"`
-	Badges   map[string]map[string]Badge `json:"badges"`
-	Stream   Stream                      `json:"stream"`
-	Errors   []string                    `json:"errors"`
+	EmoteSets []EmoteSet                  `json:"emoteSets"`
+	LastVod   *Vod                        `json:"lastVod,omitempty"`
+	Channel   string                      `json:"channel"`
+	EmoteUse  map[string]int64            `json:"emoteUse"`
+	Emotes    map[string]Emote            `json:"emotes"`
+	Badges    map[string]map[string]Badge `json:"badges"`
+	Stream    Stream                      `json:"stream"`
+	Errors    []string                    `json:"errors"`
 }
 
 // Endpoints allows deterministic local-provider integration tests.
@@ -321,12 +329,22 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 	decode("7TV channel", stvUser, &channel7)
 	decode("BTTV channel", bttvUser, &channelB)
 	decode("FFZ channel", ffzRoom, &channelF)
-	add7(result.Emotes, global7)
-	addB(result.Emotes, globalB)
-	addF(result.Emotes, globalF)
-	add7(result.Emotes, channel7.Set)
-	addB(result.Emotes, append(channelB.Channel, channelB.Shared...))
-	addF(result.Emotes, channelF)
+	sets := []EmoteSet{
+		{Provider: "7TV", Scope: "global", Emotes: make(map[string]Emote)},
+		{Provider: "BTTV", Scope: "global", Emotes: make(map[string]Emote)},
+		{Provider: "FFZ", Scope: "global", Emotes: make(map[string]Emote)},
+		{Provider: "7TV", Scope: "channel", Emotes: make(map[string]Emote)},
+		{Provider: "BTTV", Scope: "channel", Emotes: make(map[string]Emote)},
+		{Provider: "FFZ", Scope: "channel", Emotes: make(map[string]Emote)},
+		{Provider: "Twitch", Scope: "global", Emotes: make(map[string]Emote)},
+		{Provider: "Twitch", Scope: "channel", Emotes: make(map[string]Emote)},
+	}
+	add7(sets[0].Emotes, global7)
+	addB(sets[1].Emotes, globalB)
+	addF(sets[2].Emotes, globalF)
+	add7(sets[3].Emotes, channel7.Set)
+	addB(sets[4].Emotes, append(channelB.Channel, channelB.Shared...))
+	addF(sets[5].Emotes, channelF)
 	var animated []struct {
 		Code     string            `json:"code"`
 		Animated bool              `json:"animated"`
@@ -337,13 +355,13 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 		if e.Animated {
 			u := safeImage(first(e.Images["2x"], e.Images["1x"]))
 			if u != "" {
-				old := result.Emotes[e.Code]
+				old := sets[5].Emotes[e.Code]
 				old.Code = e.Code
 				old.URL = u
 				old.Source = "FFZ animated"
 				old.Animated = true
 				old.ZeroWidth = false
-				result.Emotes[e.Code] = old
+				sets[5].Emotes[e.Code] = old
 			}
 		}
 	}
@@ -360,16 +378,38 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 			}
 		}
 	}
-	for _, entry := range []struct {
+	for i, entry := range []struct {
 		name string
 		data []byte
 	}{{"Twitch global emotes", twitchGlobal}, {"Twitch channel emotes", twitchChannel}} {
 		if len(entry.data) > 0 {
-			if err := addTwitch(result.Emotes, entry.data); err != nil {
+			if err := addTwitch(sets[6+i].Emotes, entry.data); err != nil {
 				result.Errors = append(result.Errors, entry.name+" data")
 			}
 		}
 	}
+	for i := range sets {
+		keys := make([]string, 0, len(sets[i].Emotes))
+		for code := range sets[i].Emotes {
+			keys = append(keys, code)
+		}
+		sort.Strings(keys)
+		bounded := make(map[string]Emote)
+		for _, code := range keys {
+			e := sets[i].Emotes[code]
+			if len(bounded) >= 2048 {
+				result.Errors = append(result.Errors, sets[i].Provider+" "+sets[i].Scope+" truncated")
+				break
+			}
+			if len(code) == 0 || len(code) > 100 || strings.ContainsAny(code, " \t\r\n") || len(e.URL) > 2048 || len(e.StaticURL) > 2048 {
+				continue
+			}
+			bounded[code] = e
+			result.Emotes[code] = e
+		}
+		sets[i].Emotes = bounded
+	}
+	result.EmoteSets = sets
 	result.Stream = Stream{Uptime: strings.TrimSpace(string(uptime)), Viewers: strings.TrimSpace(string(viewers)), Title: strings.TrimSpace(string(title)), Game: strings.TrimSpace(string(game))}
 	sort.Strings(result.Errors)
 	if err := ctx.Err(); err != nil {
