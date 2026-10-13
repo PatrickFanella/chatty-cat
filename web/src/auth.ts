@@ -1,3 +1,4 @@
+import {AccountControls} from './account-profiles-ui';
 export type AuthStatus = {
   enabled: boolean;
   authenticated: boolean;
@@ -58,11 +59,18 @@ export function mountAuth(button: HTMLButtonElement, label: HTMLElement, onChang
   let generation = 0;
   let changing = false;
   const query = new URL(location.href).searchParams;
-  const notice = query.has('auth') ? query.get('auth') === 'denied' ? 'Twitch login was cancelled' : 'Twitch login failed; try again' : '';
+  const notice = query.has('auth') ? query.get('auth') === 'account-mismatch'?'Twitch returned a different account; select the saved account and try again':query.get('auth') === 'denied' ? 'Twitch login was cancelled' : 'Twitch login failed; try again' : '';
   const controller = new AbortController();
   let sync: BroadcastChannel | undefined;
   const reload = (): void => { if (!changing) void update(); };
   try { if (typeof BroadcastChannel !== 'undefined') { sync = new BroadcastChannel('chatthing:v1:auth'); sync.addEventListener('message', reload); } } catch { /* optional sync */ }
+  const accounts=new AccountControls(button,async target=>{
+    if(changing||!session)throw new Error('Wait for login status before changing accounts');changing=true;generation++;const previous=session;onChange(undefined);accounts.setAuth(undefined);button.disabled=true;
+    try{if(previous.authenticated)await logout(previous.csrf!);session=undefined;sync?.postMessage('changed');
+      if(target===''){setTimeout(()=>{if(!disposed)void update();},0);return;}
+      const url=new URL(previous.loginURL);url.searchParams.set('profile','add');if(target)url.searchParams.set('account',target);const channel=query.get('channel');if(channel)url.searchParams.set('channel',channel);location.assign(url.href);
+    }catch(error){await update();throw error;}finally{changing=false;}
+  });
   async function update(): Promise<void> {
     const current = ++generation;
     try {
@@ -72,11 +80,12 @@ export function mountAuth(button: HTMLButtonElement, label: HTMLElement, onChang
       session = data;
       if (changed) { try { sync?.postMessage('changed'); } catch { /* optional sync */ } }
       onChange(data);
+      accounts.setAuth(data);
       button.disabled = !data.enabled;
       button.textContent = data.authenticated ? 'Sign out' : 'Log in with Twitch';
       label.textContent = data.authenticated ? `Signed in as ${data.login}` : data.enabled ? notice : 'Twitch login is not configured';
     } catch {
-      if (!disposed && current === generation) { session = undefined; onChange(undefined); button.disabled = true; label.textContent = 'Login status unavailable'; }
+      if (!disposed && current === generation) { session = undefined; onChange(undefined);accounts.setAuth(undefined); button.disabled = true; label.textContent = 'Login status unavailable'; }
     }
   }
   async function click(): Promise<void> {
@@ -84,6 +93,7 @@ export function mountAuth(button: HTMLButtonElement, label: HTMLElement, onChang
     generation++;
     changing = true;
     onChange(undefined);
+    accounts.setAuth(undefined);
     button.disabled = true;
     if (!session.authenticated) {
       const url = new URL(session.loginURL);
@@ -98,10 +108,10 @@ export function mountAuth(button: HTMLButtonElement, label: HTMLElement, onChang
   }
   button.addEventListener('click', click);
   if (query.has('auth')) {
-    label.textContent = query.get('auth') === 'denied' ? 'Twitch login was cancelled' : 'Twitch login failed; try again';
+    label.textContent = notice;
     const url = new URL(location.href); url.searchParams.delete('auth'); history.replaceState(null, '', url);
   }
   void update();
   const timer = setInterval(() => { if (!changing) void update(); }, 60000);
-  return () => { disposed = true; controller.abort(); clearInterval(timer); sync?.removeEventListener('message', reload); sync?.close(); button.removeEventListener('click', click); };
+  return () => { disposed = true;accounts.stop(); controller.abort(); clearInterval(timer); sync?.removeEventListener('message', reload); sync?.close(); button.removeEventListener('click', click); };
 }

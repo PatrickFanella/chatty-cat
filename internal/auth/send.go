@@ -87,6 +87,10 @@ func (s *Service) send(w http.ResponseWriter, r *http.Request) {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if s.lookup(r) != p {
+		writeSend(w, 401, sendResult{Error: "Account session changed; reload before sending"})
+		return
+	}
 	if !equal(r.Header.Get("X-CSRF-Token"), p.csrf) {
 		writeSend(w, 403, sendResult{Error: "Session request rejected; reload and try again"})
 		return

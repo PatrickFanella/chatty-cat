@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import {registerSettings} from './settings-bundle';
 import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
@@ -53,7 +54,7 @@ export class EmotePicker {
     this.search.addEventListener('input', this.searchChange); this.search.addEventListener('keydown', this.searchKey); this.more.addEventListener('click', this.showMore);
     this.timer = setInterval(() => { if (!this.root.hidden) this.paintAgeCoverage(); if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold)) this.refresh(true); }, 1000);
     this.saveTimer = setInterval(() => this.model.saveAll(), 15000);
-    this.floating = new FloatingPanel(root, get(root, 'picker-handle', HTMLElement), get(root, 'picker-pin', HTMLButtonElement), 'chatthing:v1:picker:geometry');
+    this.floating = new FloatingPanel(root, get(root, 'picker-handle', HTMLElement), get(root, 'picker-pin', HTMLButtonElement), profileKey('chatthing:v1:picker:geometry'));
     const query=new URL(location.href).searchParams;const presetGeo=pickerPresetGeometry(query.get('theme')??'');const rawGeo=query.get('epgeo')??presetGeo??null;const geometry=parsePickerGeometry(rawGeo);if(geometry)this.floating.configure(geometry,rawGeo?.includes(',')??false);
     if(query.has('epopen'))this.floating.reopen=query.get('epopen')!=='0';
     this.bundleDispose=registerSettings('picker',()=>({options:this.model.options,floating:this.floating.state()}),this.restoreSettings);

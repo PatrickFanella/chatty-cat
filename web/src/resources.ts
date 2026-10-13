@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import {registerSettings} from './settings-bundle';
 import { ResourceAuthors } from './resource-authors';
 import { ResourceStreams } from './resource-streams';
@@ -52,7 +53,7 @@ export class Resources {
       const button = document.createElement('button');button.type='button';button.role='tab';button.id='resources-tab-'+key;button.dataset.tab=key;button.textContent=label!;button.setAttribute('aria-controls','resources-'+key);nav.append(button);this.tabs.push(button);
       this.pages.get(key!)?.setAttribute('aria-labelledby',button.id);
     }
-    try { const saved=localStorage.getItem('chatthing:v1:resources:tab'); if(saved && this.pages.has(saved))this.selected=saved; } catch { /* optional storage */ }
+    try { const saved=localStorage.getItem(profileKey('chatthing:v1:resources:tab')); if(saved && this.pages.has(saved))this.selected=saved; } catch { /* optional storage */ }
     this.authors = new ResourceAuthors(this.pages.get('htabAuth')!);
     this.streams = new ResourceStreams(this.pages.get('htabRes')!);
     const current = new URL(location.href), joined = (current.searchParams.get('channel') ?? 'hasanabi').split(',');
@@ -63,7 +64,7 @@ export class Resources {
       try { const control = document.createElement('a'); control.href = channelURL(current, joined, { kind: action, channel }).href; control.textContent = action === 'add' ? '+' : '−'; control.setAttribute('aria-label', (action === 'add' ? 'Join #' : 'Leave #') + channel); control.className = 'resource-channel-control'; link.after(control); } catch { /* invalid curated channel */ }
     }
     this.select(this.selected);
-    this.floating = new FloatingPanel(root,root.querySelector<HTMLElement>('#resources-handle')!,root.querySelector<HTMLButtonElement>('#resources-pin')!,'chatthing:v1:resources:geometry');
+    this.floating = new FloatingPanel(root,root.querySelector<HTMLElement>('#resources-handle')!,root.querySelector<HTMLButtonElement>('#resources-pin')!,profileKey('chatthing:v1:resources:geometry'));
     trigger.addEventListener('click',this.toggle);root.addEventListener('click',this.click);root.addEventListener('keydown',this.key);
     this.bundleDispose=registerSettings('resources',()=>({tab:this.selected,authors:this.authors.state(),floating:this.floating.state()}),value=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(typeof data.tab!=='string'||!this.pages.has(data.tab)||!this.floating.restore(data.floating))return;this.authors.restore(data.authors);this.select(data.tab);if(this.floating.reopen)this.open();else this.close();});
     const query=resourceURL(new URL(location.href).searchParams);
@@ -76,7 +77,7 @@ export class Resources {
   private select(key:string):void {
     this.selected=key;for(const [name,page] of this.pages)page.hidden=name!==key;
     for(const button of this.tabs){const active=button.dataset.tab===key;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;}
-    try {localStorage.setItem('chatthing:v1:resources:tab',key);}catch{/* optional storage */}
+    try {localStorage.setItem(profileKey('chatthing:v1:resources:tab'),key);}catch{/* optional storage */}
     if (key === 'htabRes' && !this.root.hidden) this.streams.start(); else this.streams.stop();
     if (key === 'help' && !this.root.hidden) this.repositories.start(); else this.repositories.stop();
   }

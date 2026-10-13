@@ -51,7 +51,7 @@ export class Composer {
   private commandPreview:((text:string)=>boolean)|undefined;
   configureCommands(commands:readonly string[],preview:(text:string)=>boolean):void{this.commands=[...commands];this.commandPreview=preview;this.render();}
   get draft():string{return this.input.value;}
-  draftFor(channel:string):string{try{return sessionStorage.getItem('chatthing:v1:draft:'+channel)??'';}catch{return '';}}
+  draftFor(channel:string):string{try{return sessionStorage.getItem(this.storageKey('draft',channel))??'';}catch{return '';}}
   prepare(text:string):void{if(!this.canInsert)return;this.reply=undefined;this.input.value=text;this.edit();this.input.focus();}
   private validation(text:string):string|undefined{const error=validateMessage(text);if(getPresentation().overflow==='truncate'&&[...text].length>500&&!text.trimStart().startsWith('/')&&!/[\x00-\x1f\x7f-\x9f]/.test(text))return undefined;if(this.localDispatch&&isLocalCommand(text))return undefined;return error?.startsWith('Unsupported slash')&&this.commands.some(trigger=>trigger.toLowerCase()===text.split(/\s/)[0]?.toLowerCase())?undefined:error;}
   setBlock(reason: string): void { if (this.blocked === reason) return; this.blocked = reason; if (!this.busy) this.status.textContent = !getPresentation().showWait&&reason.startsWith('Slow mode:')?'Slow mode active; wait before sending':reason; this.render(); }
@@ -70,6 +70,9 @@ export class Composer {
   private readonly cancelReply: HTMLButtonElement;
   private auth: AuthStatus | undefined;
   private authGeneration=0;
+  private account='anonymous';
+  private sendAbort:AbortController|undefined;
+  private storageKey(kind:'draft'|'sent',channel:string):string{return 'chatthing:v1:'+kind+':'+this.account+':'+channel;}
   private reply: ChatMessage | undefined;
   private busy = false;
   private disposed = false;
@@ -150,7 +153,9 @@ export class Composer {
     event.preventDefault(); this.completionIndex = Number(index); this.acceptCompletion(); this.input.focus();
   };
   setAuth(auth: AuthStatus | undefined): void {
-    if((this.auth?.userID??this.auth?.login)!==(auth?.userID??auth?.login)||!auth?.authenticated){this.authGeneration++;this.requestID=undefined;this.reply=undefined;if(/^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value))this.input.value='';}
+    const account=auth===undefined?this.account:auth.authenticated?auth.userID??auth.login??'anonymous':'anonymous';
+    if(account!==this.account){this.saveDraft();this.account=account;this.restoreDraft();this.historyIndex=-1;this.savedDraft='';}
+    if((this.auth?.userID??this.auth?.login)!==(auth?.userID??auth?.login)||this.auth?.csrf!==auth?.csrf||!auth?.authenticated){this.authGeneration++;this.sendAbort?.abort();this.busy=false;this.requestID=undefined;this.reply=undefined;this.closeCompletion();if(/^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value))this.input.value='';}
     this.auth = auth;
     if (!auth?.authenticated) this.closeCompletion();
     document.documentElement.dataset.authenticated = String(auth?.authenticated === true);
@@ -166,15 +171,15 @@ export class Composer {
   }
   private history(): string[] {
     try {
-      const data: unknown = JSON.parse(localStorage.getItem('chatthing:v1:sent:' + this.channel.value) ?? '[]');
+      const data: unknown = JSON.parse(localStorage.getItem(this.storageKey('sent',this.channel.value)) ?? '[]');
       return Array.isArray(data) ? data.filter((item): item is string => typeof item === 'string' && !validateMessage(item)).slice(-50) : [];
     } catch { return []; }
   }
   private saveDraft(): void {
-    try { sessionStorage.setItem('chatthing:v1:draft:' + this.channel.value, /^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value) ? '' : this.input.value); } catch { /* optional storage */ }
+    try { sessionStorage.setItem(this.storageKey('draft',this.channel.value), /^\s*[/.](?:w|r|whisper|msg)(?:\s|$)/i.test(this.input.value) ? '' : this.input.value); } catch { /* optional storage */ }
   }
   private restoreDraft(): void {
-    try { this.input.value = sessionStorage.getItem('chatthing:v1:draft:' + this.channel.value) ?? ''; } catch { this.input.value = ''; }
+    try { this.input.value = sessionStorage.getItem(this.storageKey('draft',this.channel.value)) ?? ''; } catch { this.input.value = ''; }
   }
   private render(): void {
     const signedIn = this.auth?.authenticated === true;
@@ -250,6 +255,7 @@ export class Composer {
     const error = validateMessage(this.outgoing());
     if (error) { this.status.textContent = error; return; }
     const sendingAccount=this.auth.userID??this.auth.login,sendingGeneration=this.authGeneration;
+    const sendAbort=this.sendAbort=new AbortController();
     this.busy = true; this.status.textContent = 'Sending…'; this.render();
     const text = this.outgoing();
     this.closeCompletion();
@@ -258,14 +264,14 @@ export class Composer {
       const response = await fetch('/api/chat/send', {
         method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.auth.csrf },
         body: JSON.stringify({ channel: this.channel.value, message: text, requestID: this.requestID, ...(this.reply && !text.trimStart().startsWith('/') ? { replyID: this.reply.id } : {}) }),
-        signal: AbortSignal.any([this.abort.signal, AbortSignal.timeout(30000)]),
+        signal: AbortSignal.any([this.abort.signal,sendAbort.signal, AbortSignal.timeout(30000)]),
       });
       const result = parseSendResult(await response.json());
       if (this.disposed) return;
-      if(this.authGeneration!==sendingGeneration||!this.auth?.authenticated||(this.auth.userID??this.auth.login)!==sendingAccount){this.status.textContent='Account changed; check Twitch for the previous send outcome';return;}
+      if(this.authGeneration!==sendingGeneration||!this.auth?.authenticated||(this.auth.userID??this.auth.login)!==sendingAccount){if(!this.busy)this.status.textContent='Account changed; check Twitch for the previous send outcome';return;}
       if (response.ok && result.sent && (result.messageID || result.command)) {
         const history = this.history(); if (!result.whisper && history.at(-1) !== text) history.push(text);
-        try { localStorage.setItem('chatthing:v1:sent:' + this.channel.value, JSON.stringify(history.slice(-50))); } catch { /* optional storage */ }
+        try { localStorage.setItem(this.storageKey('sent',this.channel.value), JSON.stringify(history.slice(-50))); } catch { /* optional storage */ }
         if (result.command) this.commandAccepted(result, text, this.requestID);
         const acceptedReply=!text.trimStart().startsWith('/')?this.reply:undefined;
         this.input.value = ''; if (!result.command && !result.action) this.reply = undefined; this.requestID = undefined; this.historyIndex = -1; this.saveDraft();
@@ -273,14 +279,13 @@ export class Composer {
       } else {
         this.status.textContent = result.error || 'Delivery could not be confirmed; check chat before sending again';
         if (!result.uncertain) this.requestID = undefined;
-        if (response.status === 401) this.setAuth(undefined);
+        if (response.status === 401) {this.setAuth(undefined);this.status.textContent=result.error||'Session expired; log in again';}
       }
     } catch {
-      if (!this.disposed) this.status.textContent = 'Delivery could not be confirmed; check chat before retrying';
+      if (!this.disposed&&sendingGeneration===this.authGeneration) this.status.textContent = 'Delivery could not be confirmed; check chat before retrying';
       // Retain the request ID after an ambiguous failure to prevent duplicates.
     } finally {
-      this.busy = false;
-      if (!this.disposed) { this.render(); if (!this.input.disabled) this.input.focus(); }
+      if(sendingGeneration===this.authGeneration){this.busy = false;if (!this.disposed) { this.render(); if (!this.input.disabled) this.input.focus(); }}
     }
   };
   stop(): void {

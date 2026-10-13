@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Account profile fixture</title><h1>Account profile fixture</h1><p>Use a fresh profile. Seed replaces this fixture origin's synthetic history and profile preferences.</p><button id="seed">Seed and open account profiles</button><script>
+document.querySelector('#seed').onclick=()=>{
+ localStorage.removeItem('chatthing:v1:account-profiles');localStorage.removeItem('chatthing:v1:privacy');
+ localStorage.setItem('chatthing:v1:profile:42:frozen','1');localStorage.setItem('chatthing:v1:profile:43:frozen','0');
+ sessionStorage.setItem('chatthing:v1:draft:42:one','alice retained draft');sessionStorage.setItem('chatthing:v1:draft:43:one','bob retained draft');
+ localStorage.setItem('chatthing:v1:sent:42:one',JSON.stringify(['alice sent history']));localStorage.setItem('chatthing:v1:sent:43:one',JSON.stringify(['bob sent history']));
+ const base=Date.now()-60000;localStorage.setItem('chatthing:v1:history:one',JSON.stringify(Array.from({length:400},(_,i)=>({id:'fixture-'+i,command:'PRIVMSG',channel:'one',login:'viewer',text:'Synthetic public row '+i,timestamp:base+i,tags:{}}))));
+ location.assign('/?channel=one&video=off');
+};
+</script></html>

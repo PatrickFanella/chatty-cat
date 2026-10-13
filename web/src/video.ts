@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import { privacyEnabled } from './privacy';
 import {TwitchVolume} from './twitch-volume';
 import { registerSettings } from './settings-bundle';
@@ -23,13 +24,13 @@ export class VideoPanel {
   private channel: HTMLSelectElement;
   private dock: HTMLButtonElement;
   constructor(private root: HTMLElement, private trigger: HTMLButtonElement, channels: string[]) {
-    this.options = parseVideo(null, channels); try { this.options = parseVideo(JSON.parse(localStorage.getItem('chatthing:v1:video') ?? 'null'), channels); } catch { /* optional storage */ }
+    this.options = parseVideo(null, channels); try { this.options = parseVideo(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:video')) ?? 'null'), channels); } catch { /* optional storage */ }
     document.addEventListener('privacychange',this.privacyChanged);
     this.container = root.querySelector<HTMLElement>('#video-player')!; this.status = root.querySelector<HTMLElement>('#video-status')!;
     this.channel = root.querySelector<HTMLSelectElement>('#video-channel')!; this.dock = root.querySelector<HTMLButtonElement>('#video-dock')!;
     for (const name of channels) { const option = document.createElement('option'); option.value = name; option.textContent = '#' + name; this.channel.append(option); }
     this.channel.value = this.options.channel;
-    this.floating = new FloatingPanel(root, root.querySelector<HTMLElement>('#video-handle')!, root.querySelector<HTMLButtonElement>('#video-pin')!, 'chatthing:v1:video:geometry');
+    this.floating = new FloatingPanel(root, root.querySelector<HTMLElement>('#video-handle')!, root.querySelector<HTMLButtonElement>('#video-pin')!, profileKey('chatthing:v1:video:geometry'));
     this.memory.type='button';this.memory.id='video-memory';this.memory.textContent='Remember Twitch volume';this.memory.setAttribute('aria-pressed',String(this.options.rememberVolume));root.querySelector('#video-dock')?.after(this.memory);this.memory.addEventListener('click',this.remember);
     root.classList.toggle('video-docked', this.options.docked); this.paint();
     trigger.addEventListener('click', this.toggle); root.querySelector('#video-close')?.addEventListener('click', this.close); this.channel.addEventListener('change', this.changeChannel); this.dock.addEventListener('click', this.changeDock);
@@ -49,7 +50,7 @@ export class VideoPanel {
     document.addEventListener('share-settings',this.share);
   }
   private paint(): void { this.dock.textContent = this.options.docked ? 'Float' : 'Dock'; }
-  private save(): void { try { localStorage.setItem('chatthing:v1:video', JSON.stringify(this.options)); } catch { /* optional storage */ } }
+  private save(): void { try { localStorage.setItem(profileKey('chatthing:v1:video'), JSON.stringify(this.options)); } catch { /* optional storage */ } }
   float(): void { this.options.docked = false; this.root.classList.remove('video-docked'); this.save(); this.open(); }
   showRail(open: boolean): void { if (open) this.open(); else this.hide(); }
   private open(): void {

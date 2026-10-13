@@ -1,3 +1,4 @@
+import {getProfileScope,profileKey} from './account-profiles';
 import {PortableLogsPanel} from './portable-logs-ui';
 import {ComparisonPanel} from './comparison-ui';
 import {VodContextPanel} from './vod-context-ui';
@@ -72,6 +73,7 @@ import { messageRow,decoratePresentation } from './render';
 import { MessageStore } from './store';
 import { MetadataClient, type ChannelMetadata } from './metadata';
 
+export async function startMain():Promise<void>{
 function element<T extends HTMLElement>(id: string, constructor: new () => T): T {
   const found = document.getElementById(id);
   if (!(found instanceof constructor)) throw new Error(`Missing UI element: ${id}`);
@@ -118,7 +120,7 @@ const rowsByMessage = new RowCache();
 let visualRevision = 0;
 let frozen = false;
 let borrowedFreeze=false;
-try { frozen = localStorage.getItem('chatthing:v1:frozen') === '1'; } catch { /* optional storage */ }
+try { frozen = localStorage.getItem(profileKey('chatthing:v1:frozen')) === '1'; } catch { /* optional storage */ }
 animation.setAttribute('aria-pressed', String(frozen));
 const workspaceStore=new WorkspaceStore();
 const workspaceQuery=new URL(location.href).searchParams;
@@ -184,12 +186,12 @@ const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement))
 const accountEmotes = new AccountEmotes(emotes => { pickerModel.setAccount(emotes); refreshCandidates(); picker.refresh(true); }, element('account-emotes', HTMLElement));
 let selfLogin = '';
 function acceptEcho(message: ChatMessage): void { if (!channels.includes(message.channel) || !store.add(message)) return; archive.add(message); observe(message, true,true); scheduleRender(); }
-const tabSync = new TabSync(acceptEcho);
+const tabSync = new TabSync(acceptEcho);tabSync.setAccount(undefined);
 const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.layout.enabled)follow=false;latest.hidden=false;},()=>latest.click());
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;portableLogs?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');comparisonPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');vodContext?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');threadsPanel?.setScope(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous',currentWorkspaceID||channels.join(','));discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { if(auth&&getProfileScope()!==(auth.authenticated?auth.userID:'anonymous')){try{sessionStorage.setItem('chatthing:v1:last-profile',auth.authenticated?auth.userID!:'anonymous');}catch{/* Optional storage. */}composer.setAuth(undefined);whispers.update(undefined);tabSync.setAccount(undefined);location.reload();return;}tabSync.setAccount(auth?.authenticated?auth.userID:undefined);localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;portableLogs?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');comparisonPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');vodContext?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');threadsPanel?.setScope(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous',currentWorkspaceID||channels.join(','));discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -353,7 +355,7 @@ function hydrateHistory(): void {
 }
 hydrateHistory();
 element('display-panel', HTMLDialogElement).addEventListener('change', hydrateHistory);
-window.addEventListener('storage', event => { if (event.key === 'chatthing:v1:display') hydrateHistory(); });
+window.addEventListener('storage', event => { if (event.key === profileKey('chatthing:v1:display')) hydrateHistory(); });
 
 const attention = new Attention(element('missed-mentions', HTMLButtonElement), () => display.options, (id, channel) => {
   const message = store.messages.find(item => item.id === id && item.channel === channel);
@@ -388,7 +390,7 @@ const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element(
 ],id=>ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled);
 virtualLog.manageKeyboard();
 
-if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
+if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);pendingReaders=bootWorkspace.readers.length?bootWorkspace.readers:undefined;follow=!pendingReaders;render();hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
 if(['off','0'].includes(workspaceQuery.get('video')??''))videoPanel.showRail(false);
 function captureWorkspace():WorkspaceSnapshot{return {channels:[...channels],target:composer.target,focus:workspaceFocus,settings:captureBundle(display.options),readers:virtualLog.readerPositions()};}
 function saveWorkspace():void {if(composer.sending)throw new Error('Wait for the current send outcome before switching workspaces');if(currentWorkspaceID&&!panePopout&&!overlay&&!ephemeralPopout&&!capacityRefused)workspaceStore.update(currentWorkspaceID,captureWorkspace());}
@@ -503,7 +505,7 @@ theme.addEventListener('click', () => {
 animation.addEventListener('click', () => {
   frozen = !frozen;
   animation.setAttribute('aria-pressed', String(frozen));
-  try { localStorage.setItem('chatthing:v1:frozen', frozen ? '1' : '0'); } catch { /* optional storage */ }
+  try { localStorage.setItem(profileKey('chatthing:v1:frozen'), frozen ? '1' : '0'); } catch { /* optional storage */ }
   visualRevision++;
   scheduleRender();
 });
@@ -511,3 +513,5 @@ setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
 window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
+
+}

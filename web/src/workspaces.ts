@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import {parsePresentation} from './presentation';
 import {parseRules} from './rules';
 import {parseSimilarity} from './similar';
@@ -75,15 +76,15 @@ export class WorkspaceStore {
  private activeID='';
  private savedRaw:string|null=null;
  error='';
- constructor(){try{const raw=localStorage.getItem(KEY);this.savedRaw=raw;if(raw){if(new TextEncoder().encode(raw).length>MAX_BYTES)throw new Error('Saved workspaces exceed 256 KB');const value:unknown=JSON.parse(raw);if(!object(value)||value.version!==1||!Array.isArray(value.workspaces))throw new Error('Saved workspace data is invalid');this.workspaces=parseWorkspaceFile(JSON.stringify({format:'chatty-cat-workspaces',version:1,workspaces:value.workspaces}));this.activeID=typeof value.active==='string'&&this.get(value.active)?value.active:'';}}catch{this.error='Saved workspaces could not be read; existing data was retained';}}
+ constructor(){try{const raw=localStorage.getItem(profileKey(KEY));this.savedRaw=raw;if(raw){if(new TextEncoder().encode(raw).length>MAX_BYTES)throw new Error('Saved workspaces exceed 256 KB');const value:unknown=JSON.parse(raw);if(!object(value)||value.version!==1||!Array.isArray(value.workspaces))throw new Error('Saved workspace data is invalid');this.workspaces=parseWorkspaceFile(JSON.stringify({format:'chatty-cat-workspaces',version:1,workspaces:value.workspaces}));this.activeID=typeof value.active==='string'&&this.get(value.active)?value.active:'';}}catch{this.error='Saved workspaces could not be read; existing data was retained';}}
  all():Workspace[]{return this.workspaces.map(w=>parseWorkspace(w));}
  get(id:string):Workspace|undefined {const w=this.workspaces.find(w=>w.id===id);return w?parseWorkspace(w):undefined;}
  get active():Workspace|undefined{return this.get(this.activeID);}
  private write(next:Workspace[],active=this.activeID):void {
   if(this.error)throw new Error(this.error);
-  if(localStorage.getItem(KEY)!==this.savedRaw)throw new Error('Workspaces changed in another tab; reload before saving');
+  if(localStorage.getItem(profileKey(KEY))!==this.savedRaw)throw new Error('Workspaces changed in another tab; reload before saving');
   const raw=JSON.stringify({version:1,active,workspaces:next});if(new TextEncoder().encode(raw).length>MAX_BYTES||next.length>MAX_WORKSPACES)throw new Error('Workspace limit reached (20 workspaces / 256 KB)');
-  try{localStorage.setItem(KEY,raw);}catch{throw new Error('Could not save workspaces; free browser storage and retry');}
+  try{localStorage.setItem(profileKey(KEY),raw);}catch{throw new Error('Could not save workspaces; free browser storage and retry');}
   this.workspaces=next;this.activeID=active;this.savedRaw=raw;
  }
  create(label:string,snapshot:WorkspaceSnapshot):Workspace {
