@@ -7,12 +7,16 @@ has started: [Shield, metadata, private-feed reads and remaining gates](m3-live-
 Consent completed in the regular browser. Controlled subcult_tv message deletion,
 a short timeout and its removal are provider-confirmed with state/redaction readback.
 Actual private events, eligible/live broadcaster checks and investigation of the
-original production journal loss remain pending. The owner has no eligible channel
-available; further private checks require patrick__eff login after the latest restart.
+production journal loss remain pending. The owner has no eligible channel
+available. The renewed patrick__eff session was verified at 17:26 UTC; Twitch still
+reported the channel offline. The regular-browser connection then became unavailable
+during broadcaster consent renewal, before any clip or marker submission.
 The [journal storage investigation](journal-storage-2026-10-13.md) records recovered
-client disk headroom and tested safeguards. Four fresh confirmed receipts now survive reload; the earlier single-receipt check
-also survived Accounts/workspace reopening; this does not explain the original
-loss or close the data-loss investigation.
+client disk headroom and tested safeguards. Four fresh confirmed receipts survived
+the earlier reload, but the same account's journal read returned zero after the
+theme deployment and renewed sign-in. The private four-receipt backup is intact.
+This later observation supersedes a claim of current retention acceptance; neither
+loss has a confirmed cause. See the dated follow-up in the live acceptance report.
 
 All seven M2 issues are merged as of October 12, 2026, including user notes PR #71.
 M2 production deployment and owner/provider acceptance remain separate from merged

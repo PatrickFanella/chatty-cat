@@ -3,7 +3,9 @@
 Issue [#82](https://git.subcult.tv/subculture-collective/chatty-cat/issues/82)
 remains open. The four earlier production receipts have not been recovered and
 their disappearance is not conclusively attributed to a browser storage event.
-No live Twitch write was performed during this investigation.
+No live Twitch write was performed during this investigation. Subsequent controlled
+live writes and their receipt checks are recorded separately in the
+[live acceptance report](m3-live-acceptance-2026-10-13.md).
 
 ## Measured conditions
 
@@ -57,7 +59,13 @@ browser also reported denied protection without claiming success. A new syntheti
 confirmed receipt survived reload after disk recovery. None of these fixture checks
 establish production persistence or prove the earlier eviction hypothesis.
 
-Production acceptance still needs the merged safeguards deployed, a private recovery
-backup before further live writes, and a receipt retained across the affected
-production browser lifecycle. M3's controlled subject/message, eligible broadcaster
-and actual private-event gates remain separate.
+The merged safeguards were subsequently deployed. Four fresh confirmed production
+receipts survived a reload before custom theme activation. At 17:26 UTC, following
+theme deployment and renewed sign-in, the same account's reviewed export and journal
+refresh returned zero receipts. Its four-receipt private backup remains intact.
+The connection-close guard does not prove retention after a new page opens an empty
+database. No eviction log or causative transition was captured. Production journal
+retention remains unaccepted; new live writes are paused for investigation.
+
+Controlled message deletion, timeout and removal were separately provider-confirmed.
+Eligible/live broadcaster and actual private-event gates remain open.
