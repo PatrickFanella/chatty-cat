@@ -34,9 +34,13 @@ manual protected resolution and reviewed selection search. Privacy cancels pendi
 requests and clears selections. See [behavior and verification](safe-links-demo.md).
 PR merge, deployment and provider acceptance remain separate.
 
+Unicode emoji (#45) now have the pinned Unicode 17 catalog, categories, tone
+sequences, native/local-image/label styles and bounded rows/assets/cache. Legacy
+workspace snapshots retain additive emoji choices. See [provenance and demo](unicode-emoji-demo.md).
+PR merge, deployment and production acceptance remain separate.
+
 Remaining M4 work: optional cross-device sync (#29), live provider/cosmetic
-updates (#31), actual message-event context (#32), and Unicode emoji catalog
-and styles (#45). External provider/configuration acceptance is recorded separately
+updates (#31), actual message-event context (#32). External provider/configuration acceptance is recorded separately
 from implementation and fixture verification.
 
 This work does not close the earlier M3 production journal persistence gate or

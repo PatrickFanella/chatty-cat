@@ -388,6 +388,7 @@ const resources = new Resources(element('resources-panel', HTMLElement), element
 function zoomChat(delta:number):void{const index=FONT_SIZES.indexOf(display.options.size),size=FONT_SIZES[Math.max(0,Math.min(FONT_SIZES.length-1,index+delta))];if(size)display.setOptions({...display.options,size});}
 const presentationPanel=new PresentationPanel(()=>{visualRevision++;scheduleRender();renderRoom();const data=metadata.get(channels[0]!);if(data)paintStreamInfo(data);});
 const customThemePanel=new CustomThemePanel();
+const emojiStyleChanged=():void=>{visualRevision++;scheduleRender();};document.addEventListener('emojistylechange',emojiStyleChanged);window.addEventListener('pagehide',()=>document.removeEventListener('emojistylechange',emojiStyleChanged));
 const themeChanged=():void=>{visualRevision++;picker.refresh(true);scheduleRender();};
 document.addEventListener('customthemechange',themeChanged);
 window.addEventListener('pagehide',()=>{document.removeEventListener('customthemechange',themeChanged);customThemePanel.stop();});

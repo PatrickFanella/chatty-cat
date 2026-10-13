@@ -1,9 +1,10 @@
+import {EMOJI_GROUPS,EMOJI_VERSION,emojiNode} from './emoji';
 import {profileKey} from './account-profiles';
 import {registerSettings} from './settings-bundle';
 import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
 import { PickerMotion } from './picker-motion';
-import { PickerModel, pickerURL, pickerPreset, pickerPresetGeometry, parseOptions, SOURCES, type PickerItem } from './picker-model';
+import { PickerModel, pickerURL, pickerPreset, pickerPresetGeometry, parseOptions,restorePickerOptions, SOURCES, type PickerItem } from './picker-model';
 
 function get<T extends HTMLElement>(root: HTMLElement, id: string, ctor: new () => T): T {
   const node = root.querySelector('#' + id); if (!(node instanceof ctor)) throw new Error('Missing picker control: ' + id); return node;
@@ -36,6 +37,9 @@ export class EmotePicker {
     this.recent = get(root, 'picker-recent', HTMLElement); this.count = get(root, 'picker-count', HTMLElement);
     this.tabs = get(root, 'picker-tabs', HTMLElement); this.more = get(root, 'picker-more', HTMLButtonElement);
     this.settings = get(root, 'picker-settings', HTMLElement);
+    for(const [key,label,values] of [['emojiStyle','Emoji style',[['native','Native font'],['image','Local Twemoji images'],['labels','Text labels']]],['emojiCategory','Emoji category',[['all','All categories'],...EMOJI_GROUPS.map(group=>[group,group])]],['emojiTone','Emoji skin tone',[['all','All tones'],['none','No modifier'],['1f3fb','Light'],['1f3fc','Medium-light'],['1f3fd','Medium'],['1f3fe','Medium-dark'],['1f3ff','Dark'],['mixed','Mixed tones']]]] as const){const field=document.createElement('label'),select=document.createElement('select');field.textContent=label;select.id='picker-'+key;select.setAttribute('aria-label',label);for(const [value,name] of values){const option=document.createElement('option');option.value=value;option.textContent=name??value;select.append(option);}select.value=model.options[key];field.append(select);this.settings.append(field);}
+    const emojiNote=document.createElement('p');emojiNote.textContent='Unicode Emoji '+EMOJI_VERSION+'. Native glyphs depend on your fonts; images and text labels provide alternatives. Choose a category or search to narrow large lists.';const credit=document.createElement('a');credit.href='/emoji/twemoji-17.0.3/LICENSE-GRAPHICS.txt';credit.target='_blank';credit.rel='noopener noreferrer';credit.textContent='Twemoji graphics by Twitter and contributors · CC BY 4.0';emojiNote.append(' ',credit);this.settings.append(emojiNote);
+
     for (const source of SOURCES) {
       const label = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.value = source;
       checkbox.checked = model.options.enabled.includes(source); label.append(checkbox, source); this.tabs.append(label);
@@ -103,13 +107,13 @@ export class EmotePicker {
     if (!this.search.value.trim()) for (const item of this.model.recent(this.channel())) this.recent.append(this.cell(item));
     this.recent.hidden = this.recent.childElementCount === 0;
     this.count.textContent = `${Math.min(items.length, this.page)} of ${items.length} · #${this.channel()}${this.canInsert() ? '' : ' · Sign in to insert'}`;
-    this.more.hidden = items.length <= this.page;
+    this.more.hidden = items.length <= this.page||this.page>=600;if(items.length>this.page&&this.page>=600)this.count.textContent+=' · 600-row limit; narrow category, tone or search';
     this.root.classList.toggle('show-names', this.model.options.names);
     this.root.style.setProperty('--picker-cell', 64 * this.model.options.zoom + 'px');
     this.motion.play(regions, before, animateAges);
   }
-  private restoreSettings=(value:unknown):void=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(!data.options||typeof data.options!=='object'||!this.floating.restore(data.floating))return;this.model.options=parseOptions(data.options);
-   for(const key of ['sort','animation','zoom','ageRows'] as const)get(this.root,'picker-'+key,HTMLSelectElement).value=String(this.model.options[key]);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];for(const input of this.tabs.querySelectorAll<HTMLInputElement>('input'))input.checked=this.model.options.enabled.some(source=>source===input.value);this.reconcileFreeze();this.model.save(this.channel());if(this.root.dataset.rail!=='true'){if(this.floating.reopen)this.open();else this.close();}this.refresh(true);
+  private restoreSettings=(value:unknown):void=>{if(!value||typeof value!=='object')return;const data=value as Record<string,unknown>;if(!data.options||typeof data.options!=='object'||!this.floating.restore(data.floating))return;this.model.options=restorePickerOptions(this.model.options,data.options);
+   for(const key of ['sort','animation','zoom','ageRows','emojiStyle','emojiCategory','emojiTone'] as const)get(this.root,'picker-'+key,HTMLSelectElement).value=String(this.model.options[key]);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];for(const input of this.tabs.querySelectorAll<HTMLInputElement>('input'))input.checked=this.model.options.enabled.some(source=>source===input.value);this.reconcileFreeze();this.model.save(this.channel());if(this.root.dataset.rail!=='true'){if(this.floating.reopen)this.open();else this.close();}this.refresh(true);
   };
   private preset=(event:Event):void=>{if(!(event instanceof CustomEvent)||typeof event.detail!=='string')return;this.model.options=pickerPreset(this.model.options,event.detail);const raw=pickerPresetGeometry(event.detail),geometry=parsePickerGeometry(raw??null);if(geometry)this.floating.configure(geometry,raw?.includes(',')??false);
    get(this.root,'picker-zoom',HTMLSelectElement).value=String(this.model.options.zoom);get(this.root,'picker-sort',HTMLSelectElement).value=this.model.options.sort;get(this.root,'picker-ageRows',HTMLSelectElement).value=String(this.model.options.ageRows);for(const key of ['mixed','names','hold','holdPlus','frozen','seenOnly','ages'] as const)get(this.root,'picker-'+key,HTMLInputElement).checked=this.model.options[key];this.reconcileFreeze();this.model.save(this.channel());this.refresh(true);
@@ -128,7 +132,7 @@ export class EmotePicker {
       image.dataset.playUrl=tone(emote.url);if(emote.staticUrl)image.dataset.stillUrl=tone(emote.staticUrl);
       let usedStatic = (this.model.options.frozen||this.borrowed) && !!emote.staticUrl;
       image.addEventListener('error', () => { if (emote.staticUrl && !usedStatic) { usedStatic = true; image.src = tone(emote.staticUrl); } else image.replaceWith(document.createTextNode(item.code)); }); button.append(image);
-    } else { const emoji = document.createElement('span'); emoji.className = 'picker-emoji'; emoji.textContent = item.code; button.append(emoji); }
+    } else { const emoji = document.createElement('span'); emoji.className = 'picker-emoji'; emoji.append(emojiNode(item.code,this.model.options.emojiStyle)); button.append(emoji); }
     const name = document.createElement('span'); name.className = 'picker-name'; name.textContent = item.code; button.append(name); return button;
   }
   private paintAgeCoverage(): void {
@@ -161,7 +165,7 @@ export class EmotePicker {
   private resetOrder=():void=>{const channel=this.channel();this.model.resetOrder(channel);this.refresh(true);};
   private resetMiddle=(event:MouseEvent):void=>{if(event.button===1){event.preventDefault();this.resetOrder();}};
   private change = (): void => {
-    const options = this.model.options;options.ageRows=Number(get(this.root,'picker-ageRows',HTMLSelectElement).value)||0;
+    const options = this.model.options;const emojiOptions=parseOptions({...options,emojiStyle:get(this.root,'picker-emojiStyle',HTMLSelectElement).value,emojiCategory:get(this.root,'picker-emojiCategory',HTMLSelectElement).value,emojiTone:get(this.root,'picker-emojiTone',HTMLSelectElement).value});options.emojiStyle=emojiOptions.emojiStyle;options.emojiCategory=emojiOptions.emojiCategory;options.emojiTone=emojiOptions.emojiTone;options.ageRows=Number(get(this.root,'picker-ageRows',HTMLSelectElement).value)||0;
     options.enabled = [...this.tabs.querySelectorAll<HTMLInputElement>('input:checked')].flatMap((input) => SOURCES.includes(input.value as typeof SOURCES[number]) ? [input.value as typeof SOURCES[number]] : []);
     const sort = get(this.root, 'picker-sort', HTMLSelectElement).value; options.sort = sort === 'az' ? 'az' : 'use';
     const animation = get(this.root, 'picker-animation', HTMLSelectElement).value; options.animation = animation === 'animated' || animation === 'still' ? animation : 'all';
@@ -177,7 +181,7 @@ export class EmotePicker {
   private leave = (): void => { this.held = false; if (this.dirty) this.refresh(true); };
   private searchKey = (event: KeyboardEvent): void => { if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); this.grid.querySelector<HTMLButtonElement>('button[data-insert]:not(:disabled)')?.click(); } };
   private searchChange = (): void => { this.page = 200; this.grid.scrollTop = 0; this.refresh(true); };
-  private showMore = (): void => { this.page += 200; this.refresh(true); };
+  private showMore = (): void => { this.page = Math.min(600,this.page+200); this.refresh(true); };
   stop(): void {
     this.bundleDispose();
     this.motion.stop();

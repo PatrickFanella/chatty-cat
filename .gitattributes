@@ -1,0 +1,5 @@
+
+web/src/emoji-catalog.ts linguist-generated=true
+docs/emoji-sources.json linguist-generated=true
+web/public/emoji/twemoji-17.0.3/*.svg linguist-vendored=true
+scripts/data/unicode-17/* linguist-vendored=true
