@@ -2,12 +2,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Composer, parseSendResult, validateMessage } from './composer';
 import type { ChatMessage } from './protocol';
+import {completionDefaults,setCompletionPreferences} from './completion-preferences';
 
 const signedIn = { enabled: true, authenticated: true, loginURL: 'https://chat.subcult.tv/api/auth/login', login: 'viewer', userID: '42', csrf: 'csrf' };
 const reply: ChatMessage = { id: 'parent-id', channel: 'other', command: 'PRIVMSG', login: 'someone', text: '<b>hi</b>', timestamp: 1000, tags: {} };
 let stops: Composer[] = [];
 beforeEach(() => { vi.useFakeTimers(); localStorage.clear(); sessionStorage.clear(); });
-afterEach(() => { for (const composer of stops) composer.stop(); stops = []; vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { for (const composer of stops) composer.stop(); stops = []; vi.unstubAllGlobals(); vi.useRealTimers();setCompletionPreferences(completionDefaults); });
 function setup() {
   const form = document.createElement('form');
   form.innerHTML = '<select id="send-channel"></select><textarea id="message"></textarea><div id="completions" hidden></div><button id="send"></button><span id="message-length"></span><span id="send-status"></span><div id="reply-target"><span id="reply-label"></span><button type="button" id="cancel-reply"></button></div>';
@@ -20,6 +21,14 @@ function setup() {
   const submit = () => form.dispatchEvent(new SubmitEvent('submit', { cancelable: true }));
   return { composer, form, input, channel, button, status, edit, submit };
 }
+it('keeps IME text intact and suppresses the completion menu and acceptance during composition',()=>{
+ const {composer,input,form,edit}=setup();composer.setAuth(signedIn);composer.setCandidates(['patrick__eff'],[]);edit('@pa');input.setSelectionRange(3,3);edit('@pa');expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(false);
+ input.dispatchEvent(new Event('compositionstart'));expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(true);input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',cancelable:true}));expect(input.value).toBe('@pa');input.dispatchEvent(new Event('compositionend'));expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(false);
+});
+it('updates browser spellcheck without changing the draft and accepts an alias using the real login',()=>{
+ const {composer,input,edit,form}=setup();composer.setAuth(signedIn);composer.setCandidates(['alice'],[]);setCompletionPreferences({...completionDefaults,spellcheck:true,aliases:[{login:'alice',alias:'Friend'}]});document.dispatchEvent(new Event('completionpreferenceschange'));edit('@fri');input.setSelectionRange(4,4);edit('@fri');expect(input.spellcheck).toBe(true);expect(form.querySelector('#completions')?.textContent).toBe('Friend · alice');input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',cancelable:true}));expect(input.value).toBe('@alice ');
+});
+it('can include the broadcaster without observed messages and reads scoped extra names at completion time',()=>{const {composer,input,form,edit}=setup();composer.setAuth(signedIn);setCompletionPreferences({...completionDefaults,includeBroadcaster:true});edit('@hasa');input.setSelectionRange(5,5);edit('@hasa');expect(form.querySelector('#completions')?.textContent).toBe('@hasanabi');let names=['bob'];composer.configureExtraNames(()=>names);edit('@bo');input.setSelectionRange(3,3);edit('@bo');expect(form.querySelector('#completions')?.textContent).toBe('@bob');names=[];edit('@bo');expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(true);});
 describe('message validation', () => {
   it('counts Unicode codepoints', () => { expect(validateMessage('😀'.repeat(500))).toBeUndefined(); expect(validateMessage('😀'.repeat(501))).toBeDefined(); });
   it.each(['', ' ', 'hi\nthere', '\x01ACTION hi\x01', ' /unsupported user'])('rejects unsafe or unsupported input %j', (text) => expect(validateMessage(text)).toBeDefined());
