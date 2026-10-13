@@ -93,6 +93,15 @@ func parseCommand(text string) (chatCommand, error) {
 			return c, errors.New("specify action text")
 		}
 		c.text = strings.TrimSpace(text[len(fields[0]):])
+	case "/monitor", "/unmonitor", "/restrict", "/unrestrict":
+		c.scope = suspiciousManageScope
+		if len(args) != 1 {
+			return c, errors.New("use one Twitch username for monitor/restrict actions")
+		}
+		c.target = strings.ToLower(strings.TrimPrefix(args[0], "@"))
+		if !channelPattern.MatchString(c.target) {
+			return c, errors.New("invalid Twitch username")
+		}
 	case "/shield", "/shieldoff":
 		c.scope = "moderator:manage:shield_mode"
 		return c, noArgs()
@@ -296,6 +305,29 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 		case "/unraid":
 			method, path = http.MethodDelete, "/raids"
 			params.Del("moderator_id")
+		case "/monitor", "/unmonitor", "/restrict", "/unrestrict":
+			target, known := s.resolveUser(ctx, p, c.target)
+			if !known {
+				return sendResult{Error: "User identity unavailable; command was not sent"}, http.StatusNotFound
+			}
+			if input.ExpectedTargetID != "" && input.ExpectedTargetID != target {
+				return sendResult{Error: "User identity changed; review again"}, http.StatusConflict
+			}
+			if target == broadcaster || target == p.user.UserID {
+				return sendResult{Error: "Self/broadcaster treatment is unavailable"}, http.StatusBadRequest
+			}
+			path = "/moderation/suspicious_users"
+			if c.name == "/unmonitor" || c.name == "/unrestrict" {
+				method = http.MethodDelete
+				params.Set("user_id", target)
+			} else {
+				method = http.MethodPost
+				payload["user_id"] = target
+				payload["status"] = "ACTIVE_MONITORING"
+				if c.name == "/restrict" {
+					payload["status"] = "RESTRICTED"
+				}
+			}
 		case "/shield", "/shieldoff":
 			method, path = http.MethodPut, "/moderation/shield_mode"
 			payload["is_active"] = c.name == "/shield"
@@ -392,7 +424,7 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 			return sendResult{Error: "Command result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
 		}
 	}
-	if slices.Contains([]string{"/warn", "/shield", "/shieldoff", "/banid"}, c.name) && status != http.StatusOK {
+	if slices.Contains([]string{"/warn", "/shield", "/shieldoff", "/banid", "/monitor", "/unmonitor", "/restrict", "/unrestrict"}, c.name) && status != http.StatusOK {
 		return sendResult{Error: "Moderation result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
 	}
 	if status == http.StatusOK {
@@ -407,6 +439,26 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 			}
 			if json.Unmarshal(confirmation.Data[0], &v) != nil || v.Broadcaster != params.Get("broadcaster_id") || v.User != c.target {
 				return sendResult{Error: "Numeric ban result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
+		}
+		if slices.Contains([]string{"/monitor", "/unmonitor", "/restrict", "/unrestrict"}, c.name) {
+			var v struct {
+				Broadcaster string `json:"broadcaster_id"`
+				Moderator   string `json:"moderator_id"`
+				User        string `json:"user_id"`
+				Status      string `json:"status"`
+				Updated     string `json:"updated_at"`
+			}
+			expected, target := "NO_TREATMENT", params.Get("user_id")
+			if method == http.MethodPost {
+				expected = payload["status"].(string)
+				target = payload["user_id"].(string)
+			}
+			if json.Unmarshal(confirmation.Data[0], &v) != nil || v.Broadcaster != params.Get("broadcaster_id") || v.Moderator != p.user.UserID || v.User != target || v.Status != expected {
+				return sendResult{Error: "Suspicious-user result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
+			if _, err := time.Parse(time.RFC3339Nano, v.Updated); err != nil {
+				return sendResult{Error: "Suspicious-user update timestamp unavailable; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
 			}
 		}
 		if c.name == "/warn" {

@@ -72,6 +72,8 @@ type session struct {
 	moderationRequests                int
 	autoModWindow                     time.Time
 	autoModRequests                   int
+	pollReceipts                      map[string]pollReceipt
+	pollReceiptOrder                  []string
 	autoModReceipts                   map[string]autoModReceipt
 	autoModReceiptOrder               []string
 	personalPeers                     []*personalPeer
@@ -86,6 +88,7 @@ type Service struct {
 	appExpires, appValidated, appRetryAfter time.Time
 	cfg                                     Config
 	autoModHubs                             map[string]*autoModHub
+	suspiciousHubs                          map[string]*autoModHub
 	chatBudget                              *chatlimits.Budget
 	origin                                  string
 	secure                                  bool
@@ -186,7 +189,10 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
 	mux.Handle("GET /api/auth/discovery", s.limit(s.discovery))
 	mux.Handle("GET /api/auth/moderation-context", s.limit(s.moderationContext))
+	mux.Handle("GET /api/auth/polls", s.limit(s.polls))
+	mux.Handle("POST /api/auth/polls", s.limit(s.pollAction))
 	mux.HandleFunc("GET /api/auth/automod/events", s.autoModEvents)
+	mux.HandleFunc("GET /api/auth/suspicious/events", s.suspiciousEvents)
 	mux.Handle("POST /api/auth/automod/decision", s.limit(s.autoModDecision))
 	mux.HandleFunc("GET /api/auth/chat", s.personalChat)
 	mux.HandleFunc("GET /api/auth/chat-admission", s.personalAdmission)
@@ -248,6 +254,18 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
+	if consent := r.URL.Query().Get("polls"); consent == "manage" {
+		scopes += " " + pollScope
+	} else if consent != "" {
+		http.Error(w, "Invalid poll consent", 400)
+		return
+	}
+	if consent := r.URL.Query().Get("suspicious"); consent == "read" {
+		scopes += " " + suspiciousReadScope + " " + suspiciousManageScope
+	} else if consent != "" {
+		http.Error(w, "Invalid suspicious-user consent", http.StatusBadRequest)
+		return
+	}
 	if consent := r.URL.Query().Get("automod"); consent == "read" {
 		scopes += " " + autoModScope
 	} else if consent != "" {
@@ -272,7 +290,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if p := s.lookup(r); p != nil {
 		p.mu.Lock()
-		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope} {
+		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope, suspiciousReadScope, suspiciousManageScope, pollScope} {
 			if slices.Contains(p.user.Scopes, scope) && !slices.Contains(strings.Fields(scopes), scope) {
 				scopes += " " + scope
 			}
@@ -499,9 +517,16 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["followsEnabled"] = slices.Contains(p.user.Scopes, "user:read:follows")
 			result["chattersEnabled"] = slices.Contains(p.user.Scopes, "moderator:read:chatters")
 			result["emotesEnabled"] = slices.Contains(p.user.Scopes, "user:read:emotes")
+			result["pollsEnabled"] = slices.Contains(p.user.Scopes, pollScope) || slices.Contains(p.user.Scopes, "channel:read:polls")
+			result["pollsManageEnabled"] = slices.Contains(p.user.Scopes, pollScope)
+			result["suspiciousEnabled"] = slices.Contains(p.user.Scopes, suspiciousReadScope)
+			result["suspiciousManageEnabled"] = slices.Contains(p.user.Scopes, suspiciousManageScope)
 			result["automodEnabled"] = slices.Contains(p.user.Scopes, autoModScope)
 			result["moderationReadEnabled"] = slices.Contains(p.user.Scopes, "user:read:moderated_channels")
 			permissions := []string{}
+			if slices.Contains(p.user.Scopes, suspiciousManageScope) {
+				permissions = append(permissions, suspiciousManageScope)
+			}
 			for _, scope := range strings.Fields(commandScopes) {
 				if slices.Contains(p.user.Scopes, scope) {
 					permissions = append(permissions, scope)

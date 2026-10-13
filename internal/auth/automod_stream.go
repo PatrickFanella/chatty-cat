@@ -18,6 +18,7 @@ import (
 type autoModHub struct {
 	mu      sync.Mutex
 	state   *autoModState
+	signals *suspiciousState
 	service *Service
 	session *session
 	ctx     context.Context
@@ -33,17 +34,44 @@ func (h *autoModHub) notifyLocked() {
 		}
 	}
 }
-func (h *autoModHub) snapshot() autoModSnapshot {
+func (h *autoModHub) scope() string {
+	if h.signals != nil {
+		return suspiciousReadScope
+	}
+	return autoModScope
+}
+func (h *autoModHub) version() string {
+	if h.signals != nil {
+		return "1"
+	}
+	return "2"
+}
+func (h *autoModHub) registry() map[string]*autoModHub {
+	if h.signals != nil {
+		return h.service.suspiciousHubs
+	}
+	return h.service.autoModHubs
+}
+func (h *autoModHub) invalidateLocked(detail string) {
+	h.state.invalidate(detail)
+	if h.signals != nil {
+		clear(h.signals.rows)
+	}
+}
+func (h *autoModHub) snapshot() any {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.ctx.Err() != nil && h.state.active {
-		h.state.invalidate("Private connection ended; earlier held messages are unavailable")
+		h.invalidateLocked("Private connection ended; earlier private events are unavailable")
+	}
+	if h.signals != nil {
+		return h.signals.snapshot()
 	}
 	return h.state.snapshot()
 }
 func (h *autoModHub) fail(detail string) {
 	h.mu.Lock()
-	h.state.invalidate(detail)
+	h.invalidateLocked(detail)
 	h.notifyLocked()
 	h.mu.Unlock()
 	h.cancel()
@@ -57,7 +85,7 @@ func (h *autoModHub) detach(peer chan struct{}) {
 		h.cancel()
 	}
 }
-func (s *Service) autoModHubFor(p *session, account, channel, broadcaster string) (*autoModHub, chan struct{}, error) {
+func (s *Service) privateHubFor(p *session, account, channel, broadcaster string, suspicious bool) (*autoModHub, chan struct{}, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closing {
@@ -66,24 +94,34 @@ func (s *Service) autoModHubFor(p *session, account, channel, broadcaster string
 	if s.autoModHubs == nil {
 		s.autoModHubs = map[string]*autoModHub{}
 	}
-	h := s.autoModHubs[account]
+	if s.suspiciousHubs == nil {
+		s.suspiciousHubs = map[string]*autoModHub{}
+	}
+	hubs := s.autoModHubs
+	if suspicious {
+		hubs = s.suspiciousHubs
+	}
+	h := hubs[account]
 	if h != nil && h.ctx.Err() != nil {
-		delete(s.autoModHubs, account)
+		delete(hubs, account)
 		h = nil
 	}
 	fresh := h == nil
 	if fresh {
-		if len(s.autoModHubs) >= 16 {
-			return nil, nil, errors.New("private AutoMod capacity reached; reconnect later")
+		if len(s.autoModHubs)+len(s.suspiciousHubs) >= 16 {
+			return nil, nil, errors.New("private moderation capacity reached; reconnect later")
 		}
 		ctx, cancel := context.WithCancel(s.ctx)
 		h = &autoModHub{state: newAutoModState(account, channel, broadcaster), service: s, session: p, ctx: ctx, cancel: cancel, peers: map[chan struct{}]bool{}}
-		s.autoModHubs[account] = h
+		if suspicious {
+			h.signals = newSuspiciousState(h.state)
+		}
+		hubs[account] = h
 	}
 	h.mu.Lock()
 	if h.session != p || h.state.channel != channel || h.state.broadcaster != broadcaster || len(h.peers) >= 4 {
 		h.mu.Unlock()
-		return nil, nil, errors.New("Close the other account/channel AutoMod view before reconnecting (four tabs maximum)")
+		return nil, nil, errors.New("Close the other account/channel private moderation view before reconnecting (four tabs maximum)")
 	}
 	peer := make(chan struct{}, 1)
 	h.peers[peer] = true
@@ -94,7 +132,15 @@ func (s *Service) autoModHubFor(p *session, account, channel, broadcaster string
 	}
 	return h, peer, nil
 }
-func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) {
+func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) { s.privateEvents(w, r, false) }
+func (s *Service) suspiciousEvents(w http.ResponseWriter, r *http.Request) {
+	s.privateEvents(w, r, true)
+}
+func (s *Service) privateEvents(w http.ResponseWriter, r *http.Request, suspicious bool) {
+	scope := autoModScope
+	if suspicious {
+		scope = suspiciousReadScope
+	}
 	q := r.URL.Query()
 	channel := q.Get("channel")
 	if len(q) != 1 || len(q["channel"]) != 1 || !channelPattern.MatchString(channel) || !s.sameHost(r) {
@@ -103,13 +149,13 @@ func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	p := s.lookup(r)
 	if p == nil {
-		http.Error(w, "Log in for private AutoMod", http.StatusUnauthorized)
+		http.Error(w, "Log in for private moderation", http.StatusUnauthorized)
 		return
 	}
 	ctx, end := context.WithTimeout(r.Context(), 15*time.Second)
 	p.mu.Lock()
 	valid := s.lookup(r) == p && s.check(ctx, p, time.Now())
-	enabled := slices.Contains(p.user.Scopes, autoModScope)
+	enabled := slices.Contains(p.user.Scopes, scope)
 	account := p.user.UserID
 	limited := false
 	if valid && enabled {
@@ -133,24 +179,28 @@ func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !enabled {
-		http.Error(w, "Grant moderator:manage:automod consent", http.StatusForbidden)
+		http.Error(w, "Grant "+scope+" consent", http.StatusForbidden)
 		return
 	}
 	if limited {
 		w.Header().Set("Retry-After", "60")
-		http.Error(w, "Wait before reconnecting private AutoMod", http.StatusTooManyRequests)
+		http.Error(w, "Wait before reconnecting private moderation", http.StatusTooManyRequests)
 		return
 	}
 	if !found || !numericID(broadcaster) {
 		http.Error(w, "Channel identity unavailable", http.StatusBadGateway)
 		return
 	}
-	h, peer, err := s.autoModHubFor(p, account, channel, broadcaster)
+	h, peer, err := s.privateHubFor(p, account, channel, broadcaster, suspicious)
 	if err != nil {
 		w.Header().Set("Content-Type", "text/event-stream")
 		snapshot := newAutoModState(account, channel, broadcaster)
 		snapshot.invalidate(err.Error())
-		if err := writeAutoModSnapshot(w, snapshot.snapshot()); err != nil {
+		var value any = snapshot.snapshot()
+		if suspicious {
+			value = newSuspiciousState(snapshot).snapshot()
+		}
+		if err := writeAutoModSnapshot(w, value); err != nil {
 			return
 		}
 		return
@@ -175,7 +225,7 @@ func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-heartbeat.C:
 			p.mu.Lock()
-			valid := s.lookup(r) == p && !p.invalid && slices.Contains(p.user.Scopes, autoModScope)
+			valid := s.lookup(r) == p && !p.invalid && slices.Contains(p.user.Scopes, scope)
 			p.mu.Unlock()
 			if !valid {
 				return
@@ -190,7 +240,7 @@ func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-func writeAutoModSnapshot(w http.ResponseWriter, value autoModSnapshot) error {
+func writeAutoModSnapshot(w http.ResponseWriter, value any) error {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return err
@@ -248,19 +298,19 @@ func dialEventSub(ctx context.Context, raw string) (*websocket.Conn, eventSubFra
 	return conn, welcome, nil
 }
 func (h *autoModHub) subscribe(ctx context.Context, sessionID, kind string) (string, error) {
-	payload, err := json.Marshal(map[string]any{"type": kind, "version": "2", "condition": map[string]string{"broadcaster_user_id": h.state.broadcaster, "moderator_user_id": h.state.account}, "transport": map[string]string{"method": "websocket", "session_id": sessionID}})
+	payload, err := json.Marshal(map[string]any{"type": kind, "version": h.version(), "condition": map[string]string{"broadcaster_user_id": h.state.broadcaster, "moderator_user_id": h.state.account}, "transport": map[string]string{"method": "websocket", "session_id": sessionID}})
 	if err != nil {
 		return "", err
 	}
 	p := h.session
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.invalid || !slices.Contains(p.user.Scopes, autoModScope) {
-		return "", errors.New("AutoMod consent/session changed")
+	if p.invalid || !slices.Contains(p.user.Scopes, h.scope()) {
+		return "", errors.New("private moderation consent/session changed")
 	}
 	data, status, ok := h.service.helix(ctx, p, http.MethodPost, "/eventsub/subscriptions", payload)
 	if !ok || status != http.StatusAccepted {
-		return "", fmt.Errorf("private AutoMod subscription unavailable (HTTP %d); check consent/role and reconnect", status)
+		return "", fmt.Errorf("private moderation subscription unavailable (HTTP %d); check consent/role and reconnect", status)
 	}
 	var response struct {
 		Data []struct {
@@ -279,7 +329,7 @@ func (h *autoModHub) subscribe(ctx context.Context, sessionID, kind string) (str
 		return "", errors.New("private subscription could not be verified")
 	}
 	v := response.Data[0]
-	if !messageIDPattern.MatchString(v.ID) || v.Type != kind || v.Version != "2" || v.Status != "enabled" || v.Condition.Broadcaster != h.state.broadcaster || v.Condition.Moderator != h.state.account || v.Transport.Method != "websocket" || v.Transport.SessionID != sessionID {
+	if !messageIDPattern.MatchString(v.ID) || v.Type != kind || v.Version != h.version() || v.Status != "enabled" || v.Condition.Broadcaster != h.state.broadcaster || v.Condition.Moderator != h.state.account || v.Transport.Method != "websocket" || v.Transport.SessionID != sessionID {
 		return "", errors.New("private subscription identity could not be verified")
 	}
 	return v.ID, nil
@@ -310,14 +360,14 @@ func (h *autoModHub) run() {
 	defer func() {
 		h.mu.Lock()
 		if h.state.active {
-			h.state.invalidate("Private connection ended; earlier held messages are unavailable")
+			h.invalidateLocked("Private connection ended; earlier private events are unavailable")
 		}
 		h.notifyLocked()
 		h.mu.Unlock()
 		h.cancel()
 		h.service.mu.Lock()
-		if h.service.autoModHubs[h.state.account] == h {
-			delete(h.service.autoModHubs, h.state.account)
+		if h.registry()[h.state.account] == h {
+			delete(h.registry(), h.state.account)
 		}
 		h.service.mu.Unlock()
 	}()
@@ -327,7 +377,7 @@ func (h *autoModHub) run() {
 	}
 	conn, welcome, err := dialEventSub(h.ctx, h.service.cfg.EventSubURL)
 	if err != nil {
-		h.fail("Private AutoMod connection unavailable; reconnect after checking consent/role")
+		h.fail("Private moderation connection unavailable; reconnect after checking consent/role")
 		return
 	}
 	defer func() { closeEventSub(conn) }()
@@ -340,7 +390,11 @@ func (h *autoModHub) run() {
 	h.state.floor = at
 	h.mu.Unlock()
 	subscribeCtx, end := context.WithTimeout(h.ctx, 8*time.Second)
-	for _, kind := range []string{"automod.message.hold", "automod.message.update"} {
+	kinds := []string{"automod.message.hold", "automod.message.update"}
+	if h.signals != nil {
+		kinds = []string{"channel.suspicious_user.message", "channel.suspicious_user.update"}
+	}
+	for _, kind := range kinds {
 		id, err := h.subscribe(subscribeCtx, welcome.Payload.Session.ID, kind)
 		if err != nil {
 			end()
@@ -354,7 +408,10 @@ func (h *autoModHub) run() {
 	end()
 	h.mu.Lock()
 	h.state.active = true
-	h.state.detail = "Live private AutoMod (100 rows / 15 minutes); earlier held messages are unavailable"
+	h.state.detail = "Live private AutoMod (100 rows / 15 minutes); earlier private events are unavailable"
+	if h.signals != nil {
+		h.state.detail = "Live private suspicious-user signals (100 users / 15 minutes); earlier/missing signals unavailable"
+	}
 	h.notifyLocked()
 	h.mu.Unlock()
 	type handoff struct {
@@ -389,7 +446,7 @@ func (h *autoModHub) run() {
 		case next := <-handoffs:
 			reconnecting = false
 			if next.err != nil {
-				h.fail("Private reconnect unavailable; earlier held messages are unavailable")
+				h.fail("Private reconnect unavailable; earlier private events are unavailable")
 				return
 			}
 			old := conn
@@ -401,7 +458,7 @@ func (h *autoModHub) run() {
 				continue
 			}
 			if incoming.err != nil {
-				h.fail("Private AutoMod disconnected; reconnect. Earlier held messages are unavailable")
+				h.fail("Private moderation disconnected; reconnect. Earlier held messages are unavailable")
 				return
 			}
 			var frame eventSubFrame
@@ -415,10 +472,15 @@ func (h *autoModHub) run() {
 				}
 				h.mu.Lock()
 				duplicate := h.state.seen[frame.Metadata.ID]
-				if !duplicate && messageIDPattern.MatchString(frame.Metadata.ID) {
+				exhausted := len(h.state.seen) >= 1000
+				if !exhausted && !duplicate && messageIDPattern.MatchString(frame.Metadata.ID) {
 					h.state.seen[frame.Metadata.ID] = true
 				}
 				h.mu.Unlock()
+				if exhausted {
+					h.fail("Private replay budget reached; reconnect; earlier private events unavailable")
+					return
+				}
 				if duplicate {
 					continue
 				}
@@ -440,7 +502,12 @@ func (h *autoModHub) run() {
 				continue
 			}
 			h.mu.Lock()
-			changed := h.state.observe(incoming.data)
+			changed := false
+			if h.signals != nil {
+				changed = h.signals.observe(incoming.data)
+			} else {
+				changed = h.state.observe(incoming.data)
+			}
 			active := h.state.active
 			if changed {
 				h.notifyLocked()

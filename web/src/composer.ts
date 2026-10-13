@@ -7,7 +7,7 @@ import type { ChatMessage } from './protocol';
 export type SendResult = { sent: boolean; command?: boolean; action?: boolean; whisper?: boolean; recipient?: string; messageID?: string; error?: string; uncertain?: boolean };
 export function validateMessage(text: string): string | undefined {
   if (!text.trim() || [...text].length > 500 || /[\x00-\x1f\x7f-\x9f]/.test(text)) return 'Use 1–500 characters without line breaks or control characters';
-  if (text.trimStart().startsWith('/') && !/^\/(?:warn|shield|shieldoff|banid|untimeout|w|me|ban|timeout|unban|delete|clear|slow|slowoff|followers|followersoff|subscribers|subscribersoff|emoteonly|emoteonlyoff|uniquechat|uniquechatoff|r9kbeta|r9kbetaoff|announce|announceblue|announcegreen|announceorange|announcepurple|color|raid|unraid|mod|unmod|vip|unvip|block|unblock|shoutout)(?:\s|$)/i.test(text.trimStart())) return 'Unsupported slash command; open Help for supported commands';
+  if (text.trimStart().startsWith('/') && !/^\/(?:lowtrust|monitor|unmonitor|restrict|unrestrict|warn|shield|shieldoff|banid|untimeout|w|me|ban|timeout|unban|delete|clear|slow|slowoff|followers|followersoff|subscribers|subscribersoff|emoteonly|emoteonlyoff|uniquechat|uniquechatoff|r9kbeta|r9kbetaoff|announce|announceblue|announcegreen|announceorange|announcepurple|color|raid|unraid|mod|unmod|vip|unvip|block|unblock|shoutout)(?:\s|$)/i.test(text.trimStart())) return 'Unsupported slash command; open Help for supported commands';
   return undefined;
 }
 export function parseSendResult(data: unknown): SendResult {
@@ -205,7 +205,7 @@ export class Composer {
     this.form.dispatchEvent(new Event('channelstatechange'));
   }
   private edit = (): void => { this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
-    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,[...this.commands,...this.moderationReview?['/warn','/shield','/shieldoff','/banid','/untimeout']:[],...this.localDispatch?LOCAL_COMMANDS:[]]);
+    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,[...this.commands,...this.moderationReview?['/lowtrust','/monitor','/unmonitor','/restrict','/unrestrict','/warn','/shield','/shieldoff','/banid','/untimeout']:[],...this.localDispatch?LOCAL_COMMANDS:[]]);
     this.completionIndex = 0; this.paintCompletion();
   };
   private clearReply = (): void => { this.reply = undefined; this.requestID = undefined; this.render(); };
