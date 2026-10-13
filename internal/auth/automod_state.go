@@ -60,6 +60,7 @@ type eventSubFrame struct {
 			Condition struct {
 				Broadcaster string `json:"broadcaster_user_id"`
 				Moderator   string `json:"moderator_user_id"`
+				User        string `json:"user_id"`
 			} `json:"condition"`
 		} `json:"subscription"`
 		Event struct {
