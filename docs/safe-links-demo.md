@@ -54,3 +54,9 @@ redirect disclosure, reviewed local settings, 160 px preference persistence afte
 reload, encoded selection review, explicit resolution and privacy-disabled search.
 The fixture recorded zero provider writes. Thumbnail image rendering is covered by
 component tests; production provider acceptance remains separate.
+
+For the browser fixture, run `python3 web/test-support/safe-links-browser-fixture.py`
+after building, then open `http://127.0.0.1:5186/?channel=current&video=off`.
+It supplies a synthetic account, public chat, preview responses and selection
+control. `/fixture-count` reports accepted preview requests and provider writes.
+It does not use production credentials or real Twitch chat.
