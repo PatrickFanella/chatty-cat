@@ -70,6 +70,10 @@ type session struct {
 	personalConnections               int
 	moderationWindow                  time.Time
 	moderationRequests                int
+	autoModWindow                     time.Time
+	autoModRequests                   int
+	autoModReceipts                   map[string]autoModReceipt
+	autoModReceiptOrder               []string
 	personalPeers                     []*personalPeer
 	receipts                          map[string]receipt
 	receiptOrder                      []string
@@ -81,6 +85,7 @@ type Service struct {
 	appAccess                               string
 	appExpires, appValidated, appRetryAfter time.Time
 	cfg                                     Config
+	autoModHubs                             map[string]*autoModHub
 	chatBudget                              *chatlimits.Budget
 	origin                                  string
 	secure                                  bool
@@ -181,6 +186,8 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
 	mux.Handle("GET /api/auth/discovery", s.limit(s.discovery))
 	mux.Handle("GET /api/auth/moderation-context", s.limit(s.moderationContext))
+	mux.HandleFunc("GET /api/auth/automod/events", s.autoModEvents)
+	mux.Handle("POST /api/auth/automod/decision", s.limit(s.autoModDecision))
 	mux.HandleFunc("GET /api/auth/chat", s.personalChat)
 	mux.HandleFunc("GET /api/auth/chat-admission", s.personalAdmission)
 	mux.HandleFunc("GET /api/auth/whispers", s.whisperChat)
@@ -241,6 +248,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
+	if consent := r.URL.Query().Get("automod"); consent == "read" {
+		scopes += " " + autoModScope
+	} else if consent != "" {
+		http.Error(w, "Invalid AutoMod consent", http.StatusBadRequest)
+		return
+	}
 	if consent := r.URL.Query().Get("moderation"); consent == "read" {
 		scopes += " user:read:moderated_channels"
 	} else if consent != "" {
@@ -259,7 +272,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if p := s.lookup(r); p != nil {
 		p.mu.Lock()
-		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels"} {
+		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope} {
 			if slices.Contains(p.user.Scopes, scope) && !slices.Contains(strings.Fields(scopes), scope) {
 				scopes += " " + scope
 			}
@@ -486,6 +499,7 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["followsEnabled"] = slices.Contains(p.user.Scopes, "user:read:follows")
 			result["chattersEnabled"] = slices.Contains(p.user.Scopes, "moderator:read:chatters")
 			result["emotesEnabled"] = slices.Contains(p.user.Scopes, "user:read:emotes")
+			result["automodEnabled"] = slices.Contains(p.user.Scopes, autoModScope)
 			result["moderationReadEnabled"] = slices.Contains(p.user.Scopes, "user:read:moderated_channels")
 			permissions := []string{}
 			for _, scope := range strings.Fields(commandScopes) {
