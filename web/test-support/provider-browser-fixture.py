@@ -2,17 +2,19 @@ from http.server import SimpleHTTPRequestHandler, HTTPServer
 from functools import partial
 from pathlib import Path
 import json,time
-MOCK='''<script>window.WebSocket=class{static OPEN=1;readyState=1;constructor(url){const u=new URL(url);setTimeout(()=>{if(this.readyState!==1)return;this.onmessage?.({data:JSON.stringify({type:'status',state:'connected',detail:'synthetic fixture'})});if(u.pathname!=='/api/chat')return;const channel=u.searchParams.get('channels').split(',')[0];for(const [i,login,text,tags] of [[1,'alice','Wave Overlay Kappa',{'display-name':'Alice',emotes:'25:13-17',badges:'moderator/1,subscriber/1'}],[2,'patrick__eff','Real login retained',{'display-name':'Patrick'}],[3,'fixture','Unlisted Wave  Overlay end',{}]])this.onmessage?.({data:JSON.stringify({type:'message',replay:false,message:{id:'fixture-'+i,command:'PRIVMSG',channel,login,text,timestamp:Date.now(),tags}})});},300);}close(){this.readyState=3;this.onclose?.({code:1000});}};</script>'''
+MOCK='''<script>window.fixtureBootID=crypto.randomUUID();window.fixtureChatSockets=0;window.WebSocket=class{static OPEN=1;readyState=1;constructor(url){const u=new URL(url);if(u.pathname==='/api/chat')window.fixtureChatSockets++;setTimeout(()=>{if(this.readyState!==1)return;this.onmessage?.({data:JSON.stringify({type:'status',state:'connected',detail:'synthetic fixture'})});if(u.pathname!=='/api/chat')return;const channel=u.searchParams.get('channels').split(',')[0];for(const [i,login,text,tags] of [[1,'alice','Wave Overlay Kappa',{'display-name':'Alice',emotes:'25:13-17',badges:'moderator/1,subscriber/1'}],[2,'patrick__eff','Real login retained',{'display-name':'Patrick'}],[3,'fixture','Unlisted Wave  Overlay end',{}],[4,'fixture','Cheer100 hello Kappa50',{bits:'150'}]])this.onmessage?.({data:JSON.stringify({type:'message',replay:false,message:{id:'fixture-'+i,command:'PRIVMSG',channel,login,text,timestamp:Date.now(),tags}})});},300);}close(){this.readyState=3;this.onclose?.({code:1000});}};</script>'''
 class Handler(SimpleHTTPRequestHandler):
  version=1
  writes=0
  reads=0
+ metadata_reads=0
  def do_GET(self):
-  if self.path.startswith('/fixture-count'):body={'writes':Handler.writes,'chatterReads':Handler.reads}
+  if self.path.startswith('/fixture-count'):body={'writes':Handler.writes,'chatterReads':Handler.reads,'metadataReads':Handler.metadata_reads}
   elif self.path.startswith('/api/auth/session'):body={'enabled':True,'authenticated':True,'loginURL':'http://127.0.0.1:5192/api/auth/login','userID':'42','login':'fixture','csrf':'fixture','chattersEnabled':True}
   elif self.path.startswith('/api/auth/discovery'):
    Handler.reads+=1;body={'kind':'chatters','channel':'current','accountID':'42','after':'not-fetched','observedAt':int(time.time()*1000),'total':200,'items':[{'id':'2','login':'bob','name':'Bob'}]}
   elif self.path.startswith('/api/channels/'):
+   Handler.metadata_reads+=1
    channel=self.path.split('?')[0].split('/')[-1]
    def emote(source,code,url,overlay=False):return {'code':code,'source':source,'url':'https://static-cdn.jtvnw.net/emoticons/v2/25/animated/dark/2.0?fixture='+source,'staticUrl':'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0?fixture='+source,'animated':True,'zeroWidth':overlay}
    global7={'Wave':emote('7TV','Wave','https://cdn.example/global'),'Unlisted':{**emote('7TV','Unlisted','https://cdn.example/unlisted'),'unlisted':True}}

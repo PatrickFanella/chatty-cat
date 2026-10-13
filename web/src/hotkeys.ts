@@ -12,6 +12,7 @@ export const ACTIONS=[
  {id:'tab-right',label:'Move tab right',context:'splits',binding:'Alt+Shift+ArrowDown'},
  {id:'tab-left',label:'Move tab left',context:'splits',binding:'Alt+Shift+ArrowUp'},
  {id:'workspace',label:'Manage workspaces',context:'chat',binding:'Alt+KeyW'},
+ {id:'reload-emotes',label:'Reload provider emote metadata',context:'chat',binding:'F5'},
  {id:'reconnect',label:'Reconnect public chat',context:'chat',binding:'Alt+KeyR'},
  {id:'zoom-in',label:'Increase chat text size',context:'chat',binding:'Alt+Equal'},
  {id:'zoom-out',label:'Decrease chat text size',context:'chat',binding:'Alt+Minus'},
@@ -42,7 +43,7 @@ function reserved(binding:string):boolean {
 }
 export function validateBindings(bindings:Bindings):string[]{
  const errors:string[]=[],used=new Map<string,string>();
- for(const action of ACTIONS){const binding=bindings[action.id]??'';if(!valid(binding)){errors.push(action.label+': use a modifier and physical key code, such as Alt+KeyM');continue;}if(reserved(binding)){errors.push(action.label+': binding conflicts with a browser shortcut or privacy panic key');continue;}if(binding){const previous=used.get(binding);if(previous)errors.push('Conflict: '+action.label+' and '+previous+' both use '+binding);used.set(binding,action.label);}}
+ for(const action of ACTIONS){const binding=bindings[action.id]??'';if(!valid(binding)&&!(action.id==='reload-emotes'&&binding==='F5')){errors.push(action.label+': use a modifier and physical key code, such as Alt+KeyM');continue;}if(reserved(binding)){errors.push(action.label+': binding conflicts with a browser shortcut or privacy panic key');continue;}if(binding){const previous=used.get(binding);if(previous)errors.push('Conflict: '+action.label+' and '+previous+' both use '+binding);used.set(binding,action.label);}}
  return errors;
 }
 export function parseHotkeys(value:unknown):HotkeyPreferences|null {

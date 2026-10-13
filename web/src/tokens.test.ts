@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nativeEmoteTag, tokenize, type Emote } from './tokens';
+import { nativeEmoteTag, tokenize, stackCheerTokens, type Emote } from './tokens';
 
 const emote: Emote = { code: 'Wave', url: 'https://cdn.example/wave', staticUrl: 'https://cdn.example/still', source: '7TV', animated: true, zeroWidth: false };
 describe('emote tokenization', () => {
@@ -46,3 +46,4 @@ it('renders allowlisted cheer tiers only when Twitch reports bits and preserves 
  expect(tokenize('Cheer100', '', {})[0]).toEqual({type:'text',text:'Cheer100'});
  const tokens=tokenize('Cheer99 Kappa1000 unknown100 Cheer0','',{},true,true);expect(tokens[0]).toMatchObject({type:'emote',emote:{source:'Cheer',url:expect.stringContaining('/cheer/light/animated/1/2.gif')}});expect(tokens[2]).toMatchObject({type:'emote',emote:{url:expect.stringContaining('/kappa/light/animated/1000/2.gif')}});expect(tokens.at(-1)).toEqual({type:'text',text:' unknown100 Cheer0'});
 });
+it('stacks recognized cheers only when their sum matches the supplied Twitch bits total',()=>{const tokens=tokenize('Cheer100 hello Kappa50','',{},false,true),stacked=stackCheerTokens(tokens,150);expect(stacked.filter(t=>t.type==='emote')).toHaveLength(1);expect(stacked.find(t=>t.type==='emote')).toMatchObject({emote:{code:'Cheer150',url:expect.stringContaining('/animated/100/')}});expect(tokens.filter(t=>t.type==='emote')).toHaveLength(2);expect(stackCheerTokens(tokens,151)).toBe(tokens);expect(stackCheerTokens(tokens,0)).toBe(tokens);expect(stackCheerTokens(tokens,Number.MAX_SAFE_INTEGER+1)).toBe(tokens);expect(stackCheerTokens(tokenize('custom50 Cheer100','',{},false,true),150)).toHaveLength(2);});
