@@ -68,6 +68,8 @@ type session struct {
 	discoveryWindow, discoveryRetryAt time.Time
 	discoveryRequests                 int
 	personalConnections               int
+	moderationWindow                  time.Time
+	moderationRequests                int
 	personalPeers                     []*personalPeer
 	receipts                          map[string]receipt
 	receiptOrder                      []string
@@ -178,6 +180,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("POST /api/chat/send", s.limit(s.send))
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
 	mux.Handle("GET /api/auth/discovery", s.limit(s.discovery))
+	mux.Handle("GET /api/auth/moderation-context", s.limit(s.moderationContext))
 	mux.HandleFunc("GET /api/auth/chat", s.personalChat)
 	mux.HandleFunc("GET /api/auth/chat-admission", s.personalAdmission)
 	mux.HandleFunc("GET /api/auth/whispers", s.whisperChat)
@@ -238,6 +241,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
+	if consent := r.URL.Query().Get("moderation"); consent == "read" {
+		scopes += " user:read:moderated_channels"
+	} else if consent != "" {
+		http.Error(w, "Invalid moderation consent", 400)
+		return
+	}
 	switch r.URL.Query().Get("discovery") {
 	case "follows":
 		scopes += " user:read:follows"
@@ -250,7 +259,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if p := s.lookup(r); p != nil {
 		p.mu.Lock()
-		for _, scope := range []string{"user:read:follows", "moderator:read:chatters"} {
+		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels"} {
 			if slices.Contains(p.user.Scopes, scope) && !slices.Contains(strings.Fields(scopes), scope) {
 				scopes += " " + scope
 			}
@@ -477,6 +486,7 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["followsEnabled"] = slices.Contains(p.user.Scopes, "user:read:follows")
 			result["chattersEnabled"] = slices.Contains(p.user.Scopes, "moderator:read:chatters")
 			result["emotesEnabled"] = slices.Contains(p.user.Scopes, "user:read:emotes")
+			result["moderationReadEnabled"] = slices.Contains(p.user.Scopes, "user:read:moderated_channels")
 			permissions := []string{}
 			for _, scope := range strings.Fields(commandScopes) {
 				if slices.Contains(p.user.Scopes, scope) {

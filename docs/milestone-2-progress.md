@@ -28,9 +28,11 @@ privacy cleared the current query, results and prior saved names. A result
 opened 155 retained context rows with Jump to live available. No search-history
 provider request was made. No M2 deployment is recorded yet.
 
-## Remaining order and dependencies
+## Implementation status
 
-- #48: private user notes implemented for review on merged account profiles PR #70.
+All seven M2 issues are merged, including private user notes PR #71. Production
+deployment and owner/provider acceptance remain unverified; M2 stays open for
+those release checks. M3 implementation starts with moderation workspace #21.
 
 ## Public message/conversation bookmarks — #16
 
@@ -227,7 +229,8 @@ Reproducible demo: [portable logs](portable-logs-demo.md).
 
 ## Private user notes — #48
 
-Implemented for review on merged [account profiles PR #70](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/70).
+Merged in [PR #71](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/71),
+on the account profile foundation from PR #70.
 Clicked and hover user cards include a separate local note editor, keyed by stable
 Twitch user IDs within the current signed-in account. Public profile responses now
 allowlist the provider's numeric ID; missing/conflicting identities refuse note

@@ -19,9 +19,9 @@ export class UserInspector {
   private confirm: HTMLButtonElement;
   constructor(private dialog: HTMLDialogElement, private log: HTMLElement,
     private messages: () => readonly ChatMessage[], private auth: () => AuthStatus | undefined,
-    private reply: (message: ChatMessage) => void, private pronouns:(login:string)=>Promise<string|undefined>=async()=>undefined,private noteEditor?:(id:string,login:string)=>HTMLElement|undefined) {
+    private reply: (message: ChatMessage) => void, private pronouns:(login:string)=>Promise<string|undefined>=async()=>undefined,private noteEditor?:(id:string,login:string)=>HTMLElement|undefined,private moderation?:(message:ChatMessage)=>void) {
     this.status=dialog.querySelector<HTMLElement>('[role=status]')!;this.confirm=dialog.querySelector<HTMLButtonElement>('[data-confirm]')!;
-    dialog.append(this.notes);document.addEventListener('privacychange',this.privacy);log.addEventListener('click',this.inspect);dialog.addEventListener('click',this.click);dialog.addEventListener('close',this.closed);dialog.addEventListener('cancel',this.cancel);
+    dialog.append(this.notes);if(this.moderation){const button=document.createElement('button');button.type='button';button.textContent='Open moderation workspace';button.addEventListener('click',()=>{const message=this.message;if(message&&!this.busy&&!privacyEnabled()){this.dialog.close();this.moderation?.(message);}});dialog.append(button);}document.addEventListener('privacychange',this.privacy);log.addEventListener('click',this.inspect);dialog.addEventListener('click',this.click);dialog.addEventListener('close',this.closed);dialog.addEventListener('cancel',this.cancel);
   }
   private inspect=(event:MouseEvent):void=>{
     if(privacyEnabled())return;
