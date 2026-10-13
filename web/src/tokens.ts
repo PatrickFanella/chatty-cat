@@ -1,5 +1,6 @@
 export interface Emote {
   code: string;
+  unlisted?:boolean;
   url: string;
   staticUrl: string;
   source: string;

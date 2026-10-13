@@ -2,6 +2,7 @@ package metadata
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -254,5 +255,17 @@ func TestFFZRoleImagesRejectUnsafeAndUseSafeFallback(t *testing.T) {
 	badges := ffzRoleBadges(sets)
 	if len(badges) != 1 || badges["moderator"].URL != "https://cdn.frankerfacez.com/role/1" {
 		t.Fatal("unsafe FFZ role image or missing safe fallback")
+	}
+}
+
+func TestSevenTVVisibilityMetadata(t *testing.T) {
+	var set sevenSet
+	if err := json.Unmarshal([]byte(`{"emotes":[{"id":"listed","name":"Listed","data":{"listed":true}},{"id":"unlisted","name":"Unlisted","data":{"listed":false}},{"id":"disallowed","name":"Disallowed","data":{"listed":true,"flags":16777216}}]}`), &set); err != nil {
+		t.Fatal(err)
+	}
+	emotes := make(map[string]Emote)
+	add7(emotes, set)
+	if emotes["Listed"].Unlisted || !emotes["Unlisted"].Unlisted || emotes["Disallowed"].Code != "" {
+		t.Fatal("7TV visibility flags lost")
 	}
 }

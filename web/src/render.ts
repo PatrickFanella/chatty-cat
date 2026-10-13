@@ -27,7 +27,7 @@ function emoteImage(emote: Emote, frozen: boolean): HTMLElement {
   const img = document.createElement('img');
   img.className = 'emote';img.dataset.emoteCode=emote.code;img.dataset.emoteSource=emote.source;
   img.src = (frozen||!prefs.animated) && emote.staticUrl ? emote.staticUrl : emote.url;
-  if(prefs.scale!==1)img.style.height=String(1.75*prefs.scale)+'em';
+  if(prefs.scaleEmotesByLineHeight)img.classList.add('line-scaled');if(prefs.scale!==1)img.style.setProperty('--emote-scale',String(prefs.scale));
   img.alt = emote.code;
   img.title = `${emote.code} · ${emote.source}`;
   img.loading = 'lazy';
@@ -47,15 +47,15 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
   const tokens = tokenize(message.text, message.tags.emotes ?? '', metadata?.emotes ?? {},
     document.documentElement.dataset.theme === 'light', /^[1-9][0-9]*$/.test(message.tags.bits??''));
   let stack: HTMLElement | null = null;
-  for (const token of tokens) {
+  for (const [index,token] of tokens.entries()) {
     if (token.type === 'text') {
       const value = token.text;
-      appendLinks(text, value, users);
+      if(getProviderPreferences().removeSpacesBetweenEmotes&&/^[ \t]+$/.test(value)&&tokens[index-1]?.type==='emote'&&tokens[index+1]?.type==='emote'){const gap=document.createElement('span');gap.className='emote-gap';gap.style.fontSize='0';gap.textContent=value;text.append(gap);}else appendLinks(text, value, users);
       if (value.trim()) stack = null;
     } else {
       const image = emoteImage(token.emote, frozen);
       if (token.emote.zeroWidth && stack) {
-        image.classList.add('overlay');
+        image.classList.add('overlay');image.style.height='100%';
         stack.append(image);
       } else {
         stack = document.createElement('span');

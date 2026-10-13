@@ -21,6 +21,7 @@ import (
 // Emote is the winning provider entry for one channel-specific emote code.
 type Emote struct {
 	Code      string `json:"code"`
+	Unlisted  bool   `json:"unlisted,omitempty"`
 	URL       string `json:"url"`
 	StaticURL string `json:"staticUrl"`
 	Source    string `json:"source"`
@@ -431,7 +432,11 @@ type sevenSet struct {
 	Emotes []struct {
 		ID, Name string
 		Flags    int
-		Data     struct{ Animated bool }
+		Data     struct {
+			Animated bool
+			Listed   bool
+			Flags    int64
+		}
 	} `json:"emotes"`
 }
 type bttvEmote struct {
@@ -488,8 +493,8 @@ type badgeSet struct {
 
 func add7(out map[string]Emote, set sevenSet) {
 	for _, e := range set.Emotes {
-		if idPattern.MatchString(e.ID) && e.Name != "" {
-			out[e.Name] = Emote{Code: e.Name, URL: "https://cdn.7tv.app/emote/" + e.ID + "/2x.webp", StaticURL: "https://cdn.7tv.app/emote/" + e.ID + "/2x_static.webp", Source: "7TV", Animated: e.Data.Animated, ZeroWidth: e.Flags&1 != 0}
+		if idPattern.MatchString(e.ID) && e.Name != "" && e.Data.Flags&(1<<24) == 0 {
+			out[e.Name] = Emote{Code: e.Name, URL: "https://cdn.7tv.app/emote/" + e.ID + "/2x.webp", StaticURL: "https://cdn.7tv.app/emote/" + e.ID + "/2x_static.webp", Source: "7TV", Unlisted: !e.Data.Listed, Animated: e.Data.Animated, ZeroWidth: e.Flags&1 != 0}
 		}
 	}
 }
