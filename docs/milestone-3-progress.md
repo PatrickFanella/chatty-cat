@@ -130,3 +130,41 @@ channel/target/action; no deployment or Twitch moderation write is recorded.
 Sources: [AutoMod subscriptions](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/),
 [WebSocket handoff](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/),
 [held-message decisions](https://dev.twitch.tv/docs/api/reference/#manage-held-automod-messages).
+
+## Suspicious-user signals and treatment controls — #24
+
+Explicit suspicious-user consent requests separate read/manage permissions.
+Version-1 message/update subscriptions share the bounded server-held transport with
+AutoMod. Each private row contains only observed Twitch fields: treatment, latest
+message where present, recognized signal types, shared-ban channel IDs and provider
+ban-evasion evaluation. Missing fields remain unavailable. An update lacking message
+signals clears previous message details; older deliveries cannot undo newer state.
+No provider report is presented as proof of evasion. No historical status is inferred.
+
+`/monitor`, `/restrict`, `/unmonitor` and `/unrestrict` stage the same moderated
+workspace actions and private receipts. Removing either treatment uses the supported
+remove-status endpoint and does not infer user safety. Exact acknowledgement actor,
+channel, subject, treatment and update timestamp must validate before confirmation.
+Malformed success remains uncertain, with no automatic retry. Explicit scope,
+role and expected identity guards apply before delivery. `/lowtrust [joined-channel]`
+opens the private view without connecting or sending. Lead Moderator assignment
+and additional Lead Moderator controls remain unavailable.
+
+Bounds: 100 users / 15 minutes, four tabs/session, one channel/account per private
+feed, a shared service limit of 16 AutoMod/suspicious hubs and 12 combined connection
+attempts/session/minute. Snapshots and replay identifiers retain the AutoMod limits.
+Account/privacy changes, disconnect and revocation clear private views. Signals
+never feed public chat, archive, logs or statistics.
+
+Verification: 551 frontend tests, strict TypeScript/production build, full Go race,
+vet and zero-issue lint. Tests exercise shared streams and handoff, event/identity
+filtering, deduplication, exact treatment acknowledgement and unavailable fields.
+Native Chromium verified inert reported text, zero-write preview, one confirmed
+restriction/private receipt, two tabs sharing one connection, synchronized treatment
+updates, reconnect and revocation cleanup. Provider writes were synthetic only.
+[Demo](suspicious-user-demo.md). Live acceptance requires an approved Twitch
+channel/subject/treatment; no deployment or real moderation write is recorded.
+
+Sources: [suspicious-user events](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/),
+[add treatment](https://dev.twitch.tv/docs/api/reference/#add-suspicious-status-to-chat-user),
+[remove treatment](https://dev.twitch.tv/docs/api/reference/#remove-suspicious-status-from-chat-user).
