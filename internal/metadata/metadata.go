@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -51,14 +52,15 @@ type Stream struct {
 
 // Channel contains metadata for one room; Errors identifies partial failures.
 type Channel struct {
-	EmoteSets []EmoteSet                  `json:"emoteSets"`
-	LastVod   *Vod                        `json:"lastVod,omitempty"`
-	Channel   string                      `json:"channel"`
-	EmoteUse  map[string]int64            `json:"emoteUse"`
-	Emotes    map[string]Emote            `json:"emotes"`
-	Badges    map[string]map[string]Badge `json:"badges"`
-	Stream    Stream                      `json:"stream"`
-	Errors    []string                    `json:"errors"`
+	BroadcasterID string                      `json:"broadcasterID,omitempty"`
+	EmoteSets     []EmoteSet                  `json:"emoteSets"`
+	LastVod       *Vod                        `json:"lastVod,omitempty"`
+	Channel       string                      `json:"channel"`
+	EmoteUse      map[string]int64            `json:"emoteUse"`
+	Emotes        map[string]Emote            `json:"emotes"`
+	Badges        map[string]map[string]Badge `json:"badges"`
+	Stream        Stream                      `json:"stream"`
+	Errors        []string                    `json:"errors"`
 }
 
 // Endpoints allows deterministic local-provider integration tests.
@@ -266,6 +268,11 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 		}
 		if json.Unmarshal(data, &response) == nil && len(response.Data) == 1 && response.Data[0].Login == channel && idPattern.MatchString(response.Data[0].ID) {
 			user.ID = response.Data[0].ID
+		}
+	}
+	if user.ID != "" {
+		if _, err := strconv.ParseUint(user.ID, 10, 64); err == nil {
+			result.BroadcasterID = user.ID
 		}
 	}
 	var stvUser, bttvUser, ffzRoom, ffzAnim, badgesChan, vodData, twitchChannel []byte

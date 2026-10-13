@@ -3,6 +3,7 @@ package irc
 
 import (
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -17,6 +18,8 @@ type Message struct {
 	Timestamp int64             `json:"timestamp"`
 	Tags      map[string]string `json:"tags"`
 }
+
+var loginPattern = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Parse decodes a single IRC line, including commands without trailing text.
 func Parse(raw string) (Message, error) {
@@ -58,6 +61,9 @@ func Parse(raw string) (Message, error) {
 	}
 	if m.Command == "CLEARCHAT" && m.Text == "" && len(fields) > 2 {
 		m.Text = fields[2]
+	}
+	if m.Command == "USERNOTICE" && m.Login == "" && loginPattern.MatchString(m.Tags["login"]) {
+		m.Login = m.Tags["login"]
 	}
 	m.ID = m.Tags["id"]
 	if ts := m.Tags["tmi-sent-ts"]; ts != "" {

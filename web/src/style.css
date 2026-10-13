@@ -461,3 +461,6 @@ html[data-privacy=true] #moderation-workspace {display:none!important;}
 #moderation-workspace textarea {display:block;width:100%;min-height:120px;max-height:300px;}
 
 .automod-list {max-height:350px;overflow:auto;overflow-wrap:anywhere;}
+
+.message-context,.source-badges {display:inline-block;font-size:.8em;color:var(--muted);margin-inline:.35em;padding-inline:.25em;border:1px solid var(--line);border-radius:3px;overflow-wrap:anywhere}
+.source-badges .source-badge {vertical-align:middle}

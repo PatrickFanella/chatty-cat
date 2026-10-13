@@ -1,3 +1,4 @@
+import {receivedMessageID,sharedContext} from './message-context';
 import { parseEvent, type ChatMessage } from './protocol';
 
 export class MessageStore {
@@ -17,20 +18,23 @@ export class MessageStore {
   }
 
   private identity(message: ChatMessage): string {
-    return message.channel + ':' + (message.id || [message.command, message.timestamp, message.login, message.text, message.tags['system-msg'] ?? ''].join(':'));
+    return message.channel + ':' + (receivedMessageID(message) || [message.command, message.timestamp, message.login, message.text, message.tags['system-msg'] ?? ''].join(':'));
   }
+  private removeKeys(message:ChatMessage):void{for(const key of [this.identity(message),message.channel+':'+message.id])if(this.ids.get(key)===message)this.ids.delete(key);}
   add(message: ChatMessage): boolean {
-    const key = this.identity(message); const previous = this.ids.get(key);
+    const key = this.identity(message); const previous = this.ids.get(key)??this.ids.get(message.channel+':'+message.id);
     if (previous) {
-      if (previous.tags['local-echo'] !== '1' || message.tags['local-echo'] === '1') return false;
+      const richer=!sharedContext(previous)&&!!sharedContext(message);
+      if (!richer&&(previous.tags['local-echo'] !== '1' || message.tags['local-echo'] === '1')) return false;
       const index = this.messages.indexOf(previous); if (index >= 0) this.messages.splice(index, 1);
     }
-    this.ids.set(key, message);
+    if(previous)this.removeKeys(previous);
+    this.ids.set(key, message);if(message.id)this.ids.set(message.channel+':'+message.id,message);
     // Live messages append cheaply; late backfill uses a stable binary insertion.
     let low = 0; let high = this.messages.length;
     while (low < high) { const middle = (low + high) >>> 1; if ((this.messages[middle]?.timestamp ?? 0) <= message.timestamp) low = middle + 1; else high = middle; }
     this.messages.splice(low, 0, message);
-    while (this.messages.length > this.cap) { const removed = this.messages.shift(); if (removed) this.ids.delete(this.identity(removed)); }
+    while (this.messages.length > this.cap) { const removed = this.messages.shift(); if (removed) this.removeKeys(removed); }
     return true;
   }
 
@@ -43,11 +47,11 @@ export class MessageStore {
     }
     const sorted = [...merged.values()].sort((a, b) => a.timestamp - b.timestamp).slice(-this.cap);
     this.messages.length = 0; this.ids.clear();
-    for (const message of sorted) { this.messages.push(message); this.ids.set(this.identity(message), message); }
+    for (const message of sorted) this.add(message);
   }
   setCap(cap: number): void {
     if (!Number.isSafeInteger(cap) || cap < 1 || cap > 100000) return; this.cap = cap;
-    if (this.messages.length > cap) for (const removed of this.messages.splice(0, this.messages.length - cap)) this.ids.delete(this.identity(removed));
+    if (this.messages.length > cap) for (const removed of this.messages.splice(0, this.messages.length - cap)) this.removeKeys(removed);
   }
 
   save(): void {
