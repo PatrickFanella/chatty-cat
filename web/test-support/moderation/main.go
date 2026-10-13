@@ -15,7 +15,8 @@ import (
 func main() {
 	var mu sync.Mutex
 	mode, writes, lookups := "confirmed", 0, 0
-	scopes := []string{"user:write:chat", "user:read:moderated_channels", "moderator:manage:banned_users", "moderator:manage:chat_messages", "moderator:manage:chat_settings"}
+	shieldActive := false
+	scopes := []string{"user:write:chat", "user:read:moderated_channels", "moderator:manage:banned_users", "moderator:manage:chat_messages", "moderator:manage:chat_settings", "moderator:manage:warnings", "moderator:manage:shield_mode"}
 	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		encode := func(v any) { _ = json.NewEncoder(w).Encode(v) }
@@ -52,6 +53,25 @@ func main() {
 				w.WriteHeader(204)
 				return
 			}
+			if r.URL.Path == "/helix/moderation/shield_mode" {
+				var body struct {
+					Active bool `json:"is_active"`
+				}
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				shieldActive = body.Active
+				encode(map[string]any{"data": []any{map[string]any{"is_active": shieldActive}}})
+				return
+			}
+			if r.URL.Path == "/helix/moderation/warnings" || r.URL.Path == "/helix/moderation/bans" {
+				var body struct {
+					Data map[string]any `json:"data"`
+				}
+				_ = json.NewDecoder(r.Body).Decode(&body)
+				body.Data["broadcaster_id"] = r.URL.Query().Get("broadcaster_id")
+				body.Data["moderator_id"] = actor
+				encode(map[string]any{"data": []any{body.Data}})
+				return
+			}
 			encode(map[string]any{"data": []any{map[string]any{}}})
 			return
 		}
@@ -76,6 +96,8 @@ func main() {
 				data = append(data, map[string]any{"broadcaster_id": "123"})
 			}
 			encode(map[string]any{"data": data, "pagination": map[string]any{}})
+		case "/helix/moderation/shield_mode":
+			encode(map[string]any{"data": []any{map[string]any{"is_active": shieldActive}}})
 		case "/helix/chat/settings":
 			encode(map[string]any{"data": []any{map[string]any{"broadcaster_id": "123", "slow_mode": false, "subscriber_mode": false, "follower_mode": false, "emote_mode": false, "unique_chat_mode": false}}})
 		case "/helix/moderation/banned":

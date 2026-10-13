@@ -69,3 +69,28 @@ and the 515-row inventory unchanged. Native Chromium staged a three-second timeo
 from the physical keyboard shortcut with zero provider writes, then confirmed it
 once. Ordered definitions persisted and a 338-byte native backup reopened for a
 same-scope replacement preview. [Demo](moderation-presets-demo.md).
+
+## Warnings, Shield Mode and numeric-ID commands — #42
+
+The command path supports `/warn`, `/shield`, `/shieldoff`, `/banid` and
+`/untimeout`. Composer submissions open a staged moderation review; they preserve
+source drafts and do not send until separate confirmation. Required scopes,
+channel/target IDs and current actor role appear before delivery. The existing
+private journal keeps confirmed, rejected and uncertain results. Re-consent grants
+warning/Shield scopes; the frontend auth allowlist preserves those permissions.
+
+Shield state is a timestamped private read. Warning acknowledgement remains
+explicitly unavailable. Direct numeric-ID mode does not infer names, suspension,
+existence or login-matched history; numeric bans validate positive bounded IDs
+and expected identities before delivery. Warning, numeric-ban and Shield response
+fields must match the request before confirmation; malformed responses remain
+uncertain and have no automatic retry.
+
+Verification: 539 frontend tests and production build pass; full Go race suite,
+vet and zero-issue lint pass. Native Chromium confirms warning/Shield/numeric-ban/
+untimeout actions, fresh active Shield state, no inferred history for an unresolved
+ID, source-draft preservation and an uncertain warning without a repeated write.
+The private six-receipt download was 2,243 bytes and excluded token/CSRF fields.
+Nine inventory rows now cite the verified presets/commands/completion adaptation;
+all 515 upstream declarations remain accounted for. [Demo](moderation-advanced-demo.md).
+No deployment or live moderation acceptance is recorded.

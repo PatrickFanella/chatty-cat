@@ -133,3 +133,40 @@ func TestModerationBroadcasterStateAndRefreshLimit(t *testing.T) {
 		t.Fatal(r.Code, banReads)
 	}
 }
+func TestDirectNumericModerationContextAndShieldState(t *testing.T) {
+	f := setup(t)
+	cookies, _ := f.signin(t)
+	p := f.service.sessions[sha256.Sum256([]byte(cookies[0].Value))]
+	p.user.Scopes = append(p.user.Scopes, "user:read:moderated_channels", "moderator:manage:shield_mode")
+	lookups := 0
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/users":
+			lookups++
+			if r.URL.Query().Get("login") != "one" {
+				t.Error("numeric target must not be resolved as a login")
+			}
+			_, _ = w.Write([]byte(`{"data":[{"id":"123","login":"one"}]}`))
+		case "/moderation/channels":
+			_, _ = w.Write([]byte(`{"data":[{"broadcaster_id":"123"}]}`))
+		case "/moderation/shield_mode":
+			_, _ = w.Write([]byte(`{"data":[{"is_active":true,"private":"excluded"}]}`))
+		case "/chat/settings":
+			_, _ = w.Write([]byte(`{"data":[]}`))
+		default:
+			t.Error(r.URL)
+		}
+	}))
+	defer upstream.Close()
+	f.service.cfg.HelixURL = upstream.URL
+	r := f.request("GET", "/api/auth/moderation-context?channel=one&user=456&identity=id", cookies, nil)
+	var v moderationContext
+	if r.Code != 200 || json.Unmarshal(r.Body.Bytes(), &v) != nil || v.TargetKind != "id" || v.TargetID != "456" || v.ShieldState != "Active at this read" || lookups != 1 || strings.Contains(r.Body.String(), "excluded") {
+		t.Fatal(r.Code, r.Body, lookups)
+	}
+	for _, q := range []string{"user=0&identity=id", "user=alice&identity=id", "user=alice&identity=other"} {
+		if r := f.request("GET", "/api/auth/moderation-context?channel=one&"+q, cookies, nil); r.Code != http.StatusBadRequest {
+			t.Fatal(r.Code, r.Body)
+		}
+	}
+}

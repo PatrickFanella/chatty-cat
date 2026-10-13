@@ -7,7 +7,7 @@ import type { ChatMessage } from './protocol';
 export type SendResult = { sent: boolean; command?: boolean; action?: boolean; whisper?: boolean; recipient?: string; messageID?: string; error?: string; uncertain?: boolean };
 export function validateMessage(text: string): string | undefined {
   if (!text.trim() || [...text].length > 500 || /[\x00-\x1f\x7f-\x9f]/.test(text)) return 'Use 1–500 characters without line breaks or control characters';
-  if (text.trimStart().startsWith('/') && !/^\/(?:w|me|ban|timeout|unban|delete|clear|slow|slowoff|followers|followersoff|subscribers|subscribersoff|emoteonly|emoteonlyoff|uniquechat|uniquechatoff|r9kbeta|r9kbetaoff|announce|announceblue|announcegreen|announceorange|announcepurple|color|raid|unraid|mod|unmod|vip|unvip|block|unblock|shoutout)(?:\s|$)/i.test(text.trimStart())) return 'Unsupported slash command; open Help for supported commands';
+  if (text.trimStart().startsWith('/') && !/^\/(?:warn|shield|shieldoff|banid|untimeout|w|me|ban|timeout|unban|delete|clear|slow|slowoff|followers|followersoff|subscribers|subscribersoff|emoteonly|emoteonlyoff|uniquechat|uniquechatoff|r9kbeta|r9kbetaoff|announce|announceblue|announcegreen|announceorange|announcepurple|color|raid|unraid|mod|unmod|vip|unvip|block|unblock|shoutout)(?:\s|$)/i.test(text.trimStart())) return 'Unsupported slash command; open Help for supported commands';
   return undefined;
 }
 export function parseSendResult(data: unknown): SendResult {
@@ -48,6 +48,8 @@ export class Composer {
   stageReply(message:ChatMessage,text:string):void{if(!this.canInsert)throw new Error('Log in to stage a public reply');if(this.target!==message.channel&&this.draftFor(message.channel).trim())throw new Error('Finish or clear the destination draft before staging a reply');this.selectReply(message);if(this.reply!==message)throw new Error('Reply channel is unavailable');this.input.value=text;this.edit();}
   private blocked = '';
   private commands:readonly string[]=[];
+  private moderationReview:((text:string,channel:string)=>boolean)|undefined;
+  configureModeration(review:(text:string,channel:string)=>boolean):void{this.moderationReview=review;}
   private commandPreview:((text:string)=>boolean)|undefined;
   configureCommands(commands:readonly string[],preview:(text:string)=>boolean):void{this.commands=[...commands];this.commandPreview=preview;this.render();}
   get draft():string{return this.input.value;}
@@ -203,7 +205,7 @@ export class Composer {
     this.form.dispatchEvent(new Event('channelstatechange'));
   }
   private edit = (): void => { this.requestID = undefined; this.historyIndex = -1; this.saveDraft(); this.render();
-    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,[...this.commands,...this.localDispatch?LOCAL_COMMANDS:[]]);
+    this.completion = completions(this.input.value, this.input.selectionStart, this.input.selectionEnd, this.names, this.emotes,false,[...this.commands,...this.moderationReview?['/warn','/shield','/shieldoff','/banid','/untimeout']:[],...this.localDispatch?LOCAL_COMMANDS:[]]);
     this.completionIndex = 0; this.paintCompletion();
   };
   private clearReply = (): void => { this.reply = undefined; this.requestID = undefined; this.render(); };
@@ -251,7 +253,7 @@ export class Composer {
     if (!this.auth?.authenticated || !this.auth.csrf) return;
     if(getPresentation().overflow==='truncate'&&[...this.outgoing()].length>500&&!this.input.value.trimStart().startsWith('/')){this.input.value=[...this.outgoing()].slice(0,500).join('');this.edit();this.status.textContent='Truncated to 500 characters; review and press Send';return;}
     if (this.blocked && !/^\s*\//.test(this.input.value)) { this.status.textContent = this.blocked; return; }
-    try{if(this.commandPreview?.(wireMessage(this.input.value)))return;}catch(error){this.status.textContent=error instanceof Error?error.message:'Command preview failed';return;}
+    try{if(this.moderationReview?.(wireMessage(this.input.value),this.channel.value)){this.status.textContent='Review the moderation action in its workspace; confirmation sends separately';return;}if(this.commandPreview?.(wireMessage(this.input.value)))return;}catch(error){this.status.textContent=error instanceof Error?error.message:'Command preview failed';return;}
     const error = validateMessage(this.outgoing());
     if (error) { this.status.textContent = error; return; }
     const sendingAccount=this.auth.userID??this.auth.login,sendingGeneration=this.authGeneration;

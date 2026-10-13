@@ -370,7 +370,7 @@ const attention = new Attention(element('missed-mentions', HTMLButtonElement), (
 element('display-panel', HTMLDialogElement).addEventListener('change', event => { if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked) void attention.permission(); });
 
 element('alert-test',HTMLButtonElement).addEventListener('click',()=>{void attention.test().then(result=>{element('alert-test-status',HTMLElement).textContent=result;});});
-moderationPanel=new ModerationWorkspace(channels,archive,()=>currentWorkspaceID||channels.join(','));moderationPanel.setAuth(accountAuth);
+moderationPanel=new ModerationWorkspace(channels,archive,()=>currentWorkspaceID||channels.join(','));moderationPanel.setAuth(accountAuth);composer.configureModeration((text,channel)=>moderationPanel?.reviewCommand(text,channel)??false);
 userNotesPanel=new UserNotesPanel();userNotesPanel.setAccount(accountAuth?.authenticated?accountAuth.userID:undefined);
 inspector = new UserInspector(element('user-inspector', HTMLDialogElement), log, viewMessages, () => accountAuth, message => {localTargets.reply(message);composer.selectReply(message);}, login=>display.options.pn?pronouns.get(login).then(label=>display.options.pn?label:undefined):Promise.resolve(undefined),(id,login)=>userNotesPanel?.editor(id,login),message=>moderationPanel?.show(message));
 inspector.setAccount(accountAuth?.authenticated?accountAuth.userID:undefined);
