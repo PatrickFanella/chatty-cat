@@ -85,7 +85,7 @@ export class HistoryFiles {
   private exportButton: HTMLButtonElement;
   private pending: HistoryImport | undefined;
   private generation = 0;
-  constructor(root: HTMLElement, private channel: () => string, private messages: () => readonly ChatMessage[], private receive: (messages: readonly ChatMessage[]) => Promise<void>) {
+  constructor(root: HTMLElement, private channel: () => string, private messages: () => readonly ChatMessage[], private receive: (messages: readonly ChatMessage[]) => Promise<void>,private reviewedExport?:()=>void) {
     this.input = root.querySelector<HTMLInputElement>('#history-file')!; this.status = root.querySelector<HTMLElement>('#history-status')!;
     this.button = root.querySelector<HTMLButtonElement>('#history-import')!; this.exportButton = root.querySelector<HTMLButtonElement>('#history-export')!;
     this.input.addEventListener('change', this.preview); this.button.addEventListener('click', this.import); this.exportButton.addEventListener('click', this.export);
@@ -108,6 +108,7 @@ export class HistoryFiles {
   };
   private export = (): void => {
     if(privacyEnabled()){this.status.textContent='History export is disabled in privacy mode';return;}
+    if(this.reviewedExport){this.reviewedExport();return;}
     const blob = new Blob([JSON.stringify({ format: 'chatty-cat-history', version: 1, messages: this.messages() })], { type: 'application/json' });
     const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = 'chatty-cat-history-' + new Date().toISOString().slice(0, 10) + '.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };

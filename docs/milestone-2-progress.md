@@ -30,7 +30,7 @@ provider request was made. No M2 deployment is recorded yet.
 
 ## Remaining order and dependencies
 
-- #20: portable logs from the merged baseline.
+- #20: portable logs implemented for review; see below.
 - #48: account-isolated user notes after #27 account profiles.
 
 ## Public message/conversation bookmarks — #16
@@ -135,7 +135,8 @@ Reproducible demo and provider references: [VOD-context demo](vod-context-demo.m
 
 ## Observation comparison — #19
 
-Implemented for review. Compare activity opens aligned message-rate and viewer
+Merged in [PR #68](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/68).
+Compare activity opens aligned message-rate and viewer
 plots for one to six joined channels and a chosen window of up to 24 hours.
 Rates use receipt-time five-second means, averaged into at most 240 chart
 buckets per channel. Viewer points use actual polls and retain the poll's source
@@ -180,3 +181,46 @@ pending work and clear the same content. A delayed 24-hour preset remains valid.
 These are local fixture checks; no M2 production deployment is recorded.
 
 Reproducible demo: [observation comparison](observation-comparison-demo.md).
+
+## Portable public logs and archive retention — #20
+
+Implemented for review. Export logs opens a local date/channel/format preview
+before a separate download. Recovery includes all archived channels, with
+equal-time identity paging into parts of at most 1,000 records / 8 MB. Each part
+reports actual byte size, retained bounds, selected range and channel groups.
+Text logs have UTC, named local timezone/offset or epoch timestamps and readable
+moderation/system records. Structured files use the existing history import
+format. The body preview is capped at 20,000 characters; the file includes the
+whole prepared part.
+
+Only public channel commands and allowed public tags enter files. Whispers,
+private notes, account fields, unknown tags and quoted parent bodies are excluded.
+Retained later deletions/timeouts redact matching message bodies within their
+channel, including notices outside the selected export window. Session groups
+use retained archive metadata or actual live-poll intervals. Gaps stay unassigned;
+neither grouping proves continuous capture, complete sessions or current VOD
+availability. The archive may change between separately prepared parts.
+
+Retention keeps the previous default of 100,000 rows with no age limit. Controls
+allow 1,000–100,000 rows and no age limit or 7/30/90 days. Preview reports exact
+eligible removals and a capacity warning; Apply is separate and refuses a changed
+archive. The UI advises downloading every recovery part before reducing retention.
+Later saves enforce the configured policy. Policy-storage failure aborts removal.
+Account changes, privacy and filter changes invalidate prepared downloads;
+pending export/retention reads cannot restore stale previews.
+
+Verification: all 495 frontend tests and strict production build pass; the
+pinned 515-row source inventory remains valid. Chromium/native IndexedDB exported
+1,009 unique public records in 1,000/9-row JSON parts of 242,530/3,095 bytes.
+The files exclude all private sentinels and preserve channel-scoped redaction.
+An 88,112-byte text file includes named local timestamps, readable timeout,
+deletion and subscription notices. Native reimport of the first JSON part kept
+the stored row count unchanged. A reviewed capacity reduction predicted and
+removed exactly ten fixture rows, leaving 1,000. Privacy and account switching
+cleared the prepared file and disabled download. Opening/downloading/closing logs
+preserved the paused reader's message identity and offset. Focused tests cover stored-whisper rejection across
+archive readers, age enforcement, storage failure, stale plans and account/filter
+invalidation. These are local fixture checks; no M2 production deployment is
+recorded. #48 remains blocked by account profiles #27.
+
+Reproducible demo: [portable logs](portable-logs-demo.md).
