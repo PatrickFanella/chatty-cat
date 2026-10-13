@@ -1,5 +1,28 @@
 # M3 deployment verification — October 13, 2026
 
+## Later activation through PR #79
+
+Merged commit `8b7500a3775723d2b074e99c357fcc281620ca51` was subsequently
+packaged and activated with image
+`sha256:18b3fac6df07ef52ac0c40bd8a5310bc3dfa2f90259e05b70d84cc79deb042d6`.
+This includes the clip, marker, title/category and commercial controls from #79.
+All 26 transferred manifest hashes matched. Private loopback staging passed
+readiness and refused unauthenticated broadcaster-context access with HTTP 401.
+Packaged binary, browser bundle and source hashes matched the release manifest.
+The staging container was stopped and removed after activation.
+
+The public native browser loaded `main-6MKW__c8.js`, received readiness HTTP 200
+and broadcaster-context HTTP 401 while signed out, and downloaded the 718,278-byte
+source archive with SHA-256
+`7d821a279915bc12d63f5e9ddb97d2eca9f4810ccf551e945cb9816028a3ea83`.
+The existing hardened Docker runtime is healthy with zero restarts. The prior M3
+image and configuration are retained under `recovery/m3-8b7500a-20261013` for
+rollback. The activation invalidates pending OAuth flows; additional consent must
+use a fresh flow. PR #81's channel-replacement fix is not included in this release.
+Live Shield command evidence is recorded [separately](m3-live-acceptance-2026-10-13.md).
+
+## Initial activation through PR #78
+
 VERIFIED: the merged application through PR #78 is deployed on NUC and served
 through the public HTTPS edge. This verifies deployment and anonymous access
 boundaries. Live Twitch acceptance remains pending authentication and consent.
