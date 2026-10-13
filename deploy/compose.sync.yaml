@@ -1,0 +1,10 @@
+# Optional private device snapshots. Provision the host directory for UID/GID 10001,
+# mode 0700, before starting. Run one writer per directory; never share it with uploads.
+services:
+  chat:
+    environment:
+      CHATTHING_SYNC_DIR: /app/sync
+    volumes:
+      - type: bind
+        source: ${CHATTHING_SYNC_HOST_DIR:-./data/sync}
+        target: /app/sync

@@ -24,6 +24,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/cosmetics"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/devicesync"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
@@ -36,6 +37,7 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	Sync              *devicesync.Store
 	Cosmetics         *cosmetics.Service
 	WorkspaceChannels int
 	Subscriptions     int
@@ -104,6 +106,13 @@ func (s *Server) Close() {
 // Handler returns same-origin API and static asset routes.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	if s.cfg.Sync != nil {
+		var authorize devicesync.Authorize
+		if s.cfg.Auth != nil {
+			authorize = s.cfg.Auth.StorageAccount
+		}
+		s.cfg.Sync.Register(mux, authorize)
+	}
 	if s.cfg.Cosmetics != nil {
 		s.cfg.Cosmetics.Register(mux)
 	}
