@@ -1,6 +1,6 @@
 # Milestone 3 progress
 
-Deployment update, October 13: merged code through PR #78 is live. See the
+Deployment update, October 13: merged code through PR #83 is live. See the
 [deployment evidence and recovery](m3-deployment-2026-10-13.md). Earlier verification
 sections retain their implementation-time observations. Live Twitch acceptance
 has started: [Shield, metadata, private-feed reads and remaining gates](m3-live-acceptance-2026-10-13.md).
