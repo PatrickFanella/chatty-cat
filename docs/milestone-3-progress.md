@@ -168,3 +168,42 @@ channel/subject/treatment; no deployment or real moderation write is recorded.
 Sources: [suspicious-user events](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/),
 [add treatment](https://dev.twitch.tv/docs/api/reference/#add-suspicious-status-to-chat-user),
 [remove treatment](https://dev.twitch.tv/docs/api/reference/#remove-suspicious-status-from-chat-user).
+
+## Broadcaster poll lifecycle — #25
+
+The broadcaster poll panel reads the latest 20 provider polls and restores active
+state through explicit refresh/reconnect. Successful reads repeat every 15 seconds
+while the view is open; account/channel/privacy changes or closing the workspace
+cancel reads and clear private state. Scope and channel identity must establish the
+signed-in account as broadcaster. Moderator membership does not grant poll access.
+Explicit consent requests `channel:manage:polls`; supported read-only grants can
+observe counts without enabling actions. Twitch decides channel eligibility.
+
+Creation previews validate a 60-character title, two to five distinct choices of
+25 characters, duration 15–1,800 seconds and optional Channel Points vote cost
+1–1,000,000. Bits voting is unavailable. Confirmation starts a poll immediately.
+End leaves the poll/results public; End and archive ends it and removes public
+visibility. These are the provider's supported early-ending behaviors, not refunds
+or a separate cancel operation.
+
+A pending private receipt precedes each request. The server rechecks broadcaster
+identity/scope, reads current provider state and requires the exact active poll ID
+before ending. An active poll blocks new creation. Acknowledgements validate poll
+identity, status, definition and explicit nonnegative counts. Malformed success is
+uncertain; no write retries automatically. The view requires an explicit provider
+refresh before another action after uncertainty. Server receipt replay is bounded
+to 32 account-session requests and never sends an identical request twice.
+
+Verification: 557 frontend tests, strict TypeScript/production build, full Go race
+suite, vet and zero-issue lint. Tests cover definitions, provider response filtering,
+CSRF/actor/identity guards, stale active IDs, replay, pending receipts, account
+isolation and uncertainty. Native Chromium verified zero-write previews, creation
+with Channel Points options, ACTIVE → TERMINATED, provider restoration after
+closing/reopening, an uncertain archive with a retained receipt, and a separately
+reviewed successful archive. Only synthetic provider writes were used.
+[Demo](polls-demo.md). Live acceptance needs an approved eligible broadcaster
+channel. Poll command aliases remain planned in the source inventory.
+
+Sources: [read polls](https://dev.twitch.tv/docs/api/reference/#get-polls),
+[create](https://dev.twitch.tv/docs/api/reference/#create-poll),
+[end/archive](https://dev.twitch.tv/docs/api/reference/#end-poll).
