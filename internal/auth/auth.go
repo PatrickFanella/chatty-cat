@@ -74,6 +74,8 @@ type session struct {
 	autoModRequests                   int
 	pollReceipts                      map[string]pollReceipt
 	pollReceiptOrder                  []string
+	predictionReceipts                map[string]predictionReceipt
+	predictionReceiptOrder            []string
 	autoModReceipts                   map[string]autoModReceipt
 	autoModReceiptOrder               []string
 	personalPeers                     []*personalPeer
@@ -189,6 +191,8 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
 	mux.Handle("GET /api/auth/discovery", s.limit(s.discovery))
 	mux.Handle("GET /api/auth/moderation-context", s.limit(s.moderationContext))
+	mux.Handle("GET /api/auth/predictions", s.limit(s.predictions))
+	mux.Handle("POST /api/auth/predictions", s.limit(s.predictionAction))
 	mux.Handle("GET /api/auth/polls", s.limit(s.polls))
 	mux.Handle("POST /api/auth/polls", s.limit(s.pollAction))
 	mux.HandleFunc("GET /api/auth/automod/events", s.autoModEvents)
@@ -254,6 +258,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
+	if consent := r.URL.Query().Get("predictions"); consent == "manage" {
+		scopes += " " + predictionScope
+	} else if consent != "" {
+		http.Error(w, "Invalid prediction consent", 400)
+		return
+	}
 	if consent := r.URL.Query().Get("polls"); consent == "manage" {
 		scopes += " " + pollScope
 	} else if consent != "" {
@@ -290,7 +300,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if p := s.lookup(r); p != nil {
 		p.mu.Lock()
-		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope, suspiciousReadScope, suspiciousManageScope, pollScope} {
+		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope, suspiciousReadScope, suspiciousManageScope, pollScope, predictionScope} {
 			if slices.Contains(p.user.Scopes, scope) && !slices.Contains(strings.Fields(scopes), scope) {
 				scopes += " " + scope
 			}
@@ -517,6 +527,8 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["followsEnabled"] = slices.Contains(p.user.Scopes, "user:read:follows")
 			result["chattersEnabled"] = slices.Contains(p.user.Scopes, "moderator:read:chatters")
 			result["emotesEnabled"] = slices.Contains(p.user.Scopes, "user:read:emotes")
+			result["predictionsEnabled"] = slices.Contains(p.user.Scopes, predictionScope) || slices.Contains(p.user.Scopes, "channel:read:predictions")
+			result["predictionsManageEnabled"] = slices.Contains(p.user.Scopes, predictionScope)
 			result["pollsEnabled"] = slices.Contains(p.user.Scopes, pollScope) || slices.Contains(p.user.Scopes, "channel:read:polls")
 			result["pollsManageEnabled"] = slices.Contains(p.user.Scopes, pollScope)
 			result["suspiciousEnabled"] = slices.Contains(p.user.Scopes, suspiciousReadScope)

@@ -140,11 +140,11 @@ func (s *Service) readPolls(ctx context.Context, p *session) ([]providerPoll, in
 	}
 	return polls, http.StatusOK
 }
-func (s *Service) pollContext(ctx context.Context, p *session, r *http.Request, channel, expected string, write bool) int {
+func (s *Service) broadcasterContext(ctx context.Context, p *session, r *http.Request, channel, expected, scope string, write bool) int {
 	if s.lookup(r) != p || !s.check(ctx, p, time.Now()) {
 		return http.StatusUnauthorized
 	}
-	allowed := slices.Contains(p.user.Scopes, pollScope) || !write && slices.Contains(p.user.Scopes, "channel:read:polls")
+	allowed := slices.Contains(p.user.Scopes, scope) || !write && slices.Contains(p.user.Scopes, strings.Replace(scope, "channel:manage:", "channel:read:", 1))
 	if !allowed {
 		return http.StatusForbidden
 	}
@@ -173,7 +173,7 @@ func (s *Service) polls(w http.ResponseWriter, r *http.Request) {
 	defer end()
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if code := s.pollContext(ctx, p, r, channel, "", false); code != 200 {
+	if code := s.broadcasterContext(ctx, p, r, channel, "", pollScope, false); code != 200 {
 		writePoll(w, code, pollResult{Error: "Poll read unavailable; select your own broadcaster channel and grant poll consent"})
 		return
 	}
@@ -221,7 +221,7 @@ func (s *Service) pollAction(w http.ResponseWriter, r *http.Request) {
 		writePoll(w, 401, pollResult{Error: "Account changed"})
 		return
 	}
-	if code := s.pollContext(ctx, p, r, input.Channel, input.Broadcaster, true); code != 200 {
+	if code := s.broadcasterContext(ctx, p, r, input.Channel, input.Broadcaster, pollScope, true); code != 200 {
 		writePoll(w, code, pollResult{Error: "Broadcaster identity or poll consent unavailable"})
 		return
 	}
