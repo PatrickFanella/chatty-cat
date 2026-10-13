@@ -72,6 +72,7 @@ type session struct {
 	moderationRequests                int
 	autoModWindow                     time.Time
 	autoModRequests                   int
+	commercialUntil                   time.Time
 	pollReceipts                      map[string]pollReceipt
 	pollReceiptOrder                  []string
 	predictionReceipts                map[string]predictionReceipt
@@ -191,6 +192,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/auth/emotes", s.limit(s.emotes))
 	mux.Handle("GET /api/auth/discovery", s.limit(s.discovery))
 	mux.Handle("GET /api/auth/moderation-context", s.limit(s.moderationContext))
+	mux.Handle("GET /api/auth/broadcaster-context", s.limit(s.broadcastContextEndpoint))
 	mux.Handle("GET /api/auth/predictions", s.limit(s.predictions))
 	mux.Handle("POST /api/auth/predictions", s.limit(s.predictionAction))
 	mux.Handle("GET /api/auth/polls", s.limit(s.polls))
@@ -258,6 +260,12 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
+	if consent := r.URL.Query().Get("broadcast"); consent == "manage" {
+		scopes += " " + broadcastScope + " " + clipScope + " " + commercialScope
+	} else if consent != "" {
+		http.Error(w, "Invalid broadcaster consent", 400)
+		return
+	}
 	if consent := r.URL.Query().Get("predictions"); consent == "manage" {
 		scopes += " " + predictionScope
 	} else if consent != "" {
@@ -300,7 +308,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	if p := s.lookup(r); p != nil {
 		p.mu.Lock()
-		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope, suspiciousReadScope, suspiciousManageScope, pollScope, predictionScope} {
+		for _, scope := range []string{"user:read:follows", "moderator:read:chatters", "user:read:moderated_channels", autoModScope, suspiciousReadScope, suspiciousManageScope, pollScope, predictionScope, broadcastScope, clipScope, commercialScope} {
 			if slices.Contains(p.user.Scopes, scope) && !slices.Contains(strings.Fields(scopes), scope) {
 				scopes += " " + scope
 			}
@@ -536,6 +544,11 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["automodEnabled"] = slices.Contains(p.user.Scopes, autoModScope)
 			result["moderationReadEnabled"] = slices.Contains(p.user.Scopes, "user:read:moderated_channels")
 			permissions := []string{}
+			for _, scope := range []string{broadcastScope, clipScope, commercialScope} {
+				if slices.Contains(p.user.Scopes, scope) {
+					permissions = append(permissions, scope)
+				}
+			}
 			if slices.Contains(p.user.Scopes, suspiciousManageScope) {
 				permissions = append(permissions, suspiciousManageScope)
 			}

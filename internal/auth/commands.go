@@ -102,6 +102,27 @@ func parseCommand(text string) (chatCommand, error) {
 		if !channelPattern.MatchString(c.target) {
 			return c, errors.New("invalid Twitch username")
 		}
+	case "/clip":
+		c.scope = clipScope
+		return c, noArgs()
+	case "/marker", "/settitle", "/setgame":
+		c.scope = broadcastScope
+		c.text = strings.TrimSpace(text[len(fields[0]):])
+		max := 140
+		if c.name == "/setgame" {
+			max = 200
+		}
+		if c.text == "" && c.name != "/marker" || c.text != "" && !pollText(c.text, max) {
+			return c, errors.New("use a bounded plain broadcaster description/title/category")
+		}
+	case "/commercial":
+		c.scope = commercialScope
+		if err := number(30, 30, 180); err != nil {
+			return c, err
+		}
+		if c.duration%30 != 0 {
+			return c, errors.New("commercial duration must be a multiple of 30 seconds")
+		}
 	case "/shield", "/shieldoff":
 		c.scope = "moderator:manage:shield_mode"
 		return c, noArgs()
@@ -208,6 +229,9 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 	}
 	if !slices.Contains(p.user.Scopes, c.scope) {
 		return sendResult{Error: "Sign out and log in again to grant this command's permission"}, http.StatusForbidden
+	}
+	if slices.Contains([]string{"/clip", "/marker", "/settitle", "/setgame", "/commercial"}, c.name) {
+		return s.broadcastCommand(ctx, p, input, c)
 	}
 	if c.name == "/w" {
 		target, ok := s.resolveUser(ctx, p, c.target)

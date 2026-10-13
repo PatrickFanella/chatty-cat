@@ -21,22 +21,29 @@ var requestPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{16,64}$`)
 var messageIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
 
 type sendInput struct {
-	Channel               string `json:"channel"`
-	Message               string `json:"message"`
-	ReplyID               string `json:"replyID,omitempty"`
-	RequestID             string `json:"requestID"`
-	ExpectedBroadcasterID string `json:"expectedBroadcasterID,omitempty"`
-	ExpectedTargetID      string `json:"expectedTargetID,omitempty"`
+	Channel                   string `json:"channel"`
+	Message                   string `json:"message"`
+	ReplyID                   string `json:"replyID,omitempty"`
+	RequestID                 string `json:"requestID"`
+	ExpectedStreamID          string `json:"expectedStreamID,omitempty"`
+	ExpectedBroadcastRevision string `json:"expectedBroadcastRevision,omitempty"`
+	ExpectedBroadcasterID     string `json:"expectedBroadcasterID,omitempty"`
+	ExpectedTargetID          string `json:"expectedTargetID,omitempty"`
 }
 type sendResult struct {
-	Whisper   bool   `json:"whisper,omitempty"`
-	Recipient string `json:"recipient,omitempty"`
-	Action    bool   `json:"action,omitempty"`
-	Command   bool   `json:"command,omitempty"`
-	Sent      bool   `json:"sent"`
-	MessageID string `json:"messageID,omitempty"`
-	Error     string `json:"error,omitempty"`
-	Uncertain bool   `json:"uncertain,omitempty"`
+	ResourceID string `json:"resourceID,omitempty"`
+	URL        string `json:"url,omitempty"`
+	EditURL    string `json:"editURL,omitempty"`
+	Detail     string `json:"detail,omitempty"`
+	RetryAfter *int   `json:"retryAfter,omitempty"`
+	Whisper    bool   `json:"whisper,omitempty"`
+	Recipient  string `json:"recipient,omitempty"`
+	Action     bool   `json:"action,omitempty"`
+	Command    bool   `json:"command,omitempty"`
+	Sent       bool   `json:"sent"`
+	MessageID  string `json:"messageID,omitempty"`
+	Error      string `json:"error,omitempty"`
+	Uncertain  bool   `json:"uncertain,omitempty"`
 }
 type receipt struct {
 	input  sendInput
@@ -75,6 +82,10 @@ func (s *Service) send(w http.ResponseWriter, r *http.Request) {
 	}
 	if !channelPattern.MatchString(input.Channel) || !requestPattern.MatchString(input.RequestID) || (input.ReplyID != "" && !messageIDPattern.MatchString(input.ReplyID)) {
 		writeSend(w, 400, sendResult{Error: "Invalid channel or message identifier"})
+		return
+	}
+	if input.ExpectedStreamID != "" && !messageIDPattern.MatchString(input.ExpectedStreamID) || input.ExpectedBroadcastRevision != "" && !requestPattern.MatchString(input.ExpectedBroadcastRevision) {
+		writeSend(w, 400, sendResult{Error: "Invalid broadcaster review context"})
 		return
 	}
 	if input.ExpectedBroadcasterID != "" && !numericID(input.ExpectedBroadcasterID) || input.ExpectedTargetID != "" && !numericID(input.ExpectedTargetID) {
