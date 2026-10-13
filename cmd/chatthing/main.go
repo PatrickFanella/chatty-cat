@@ -14,6 +14,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/config"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/server"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/uploads"
 )
 
 func main() {
@@ -55,7 +56,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	app := server.New(server.Config{WorkspaceChannels: capacity, Subscriptions: subscriptions, Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
+	imageStore, err := uploads.New(uploads.Config{Directory: os.Getenv("CHATTHING_UPLOAD_DIR")})
+	if err != nil {
+		login.Close()
+		return err
+	}
+	defer func() {
+		if err := imageStore.Close(); err != nil {
+			slog.Error("upload storage close failed", "error", err)
+		}
+	}()
+	app := server.New(server.Config{Uploads: imageStore, WorkspaceChannels: capacity, Subscriptions: subscriptions, Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
 	defer app.Close()
 	httpServer := &http.Server{Addr: addr, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

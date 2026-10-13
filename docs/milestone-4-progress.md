@@ -13,18 +13,22 @@ adaptation. It saves named workspace copies, maps supported public appearance an
 text command definitions, excludes credentials/native scripts, and supplies a
 validated recovery export. A native built-app demo verified imported pane/command
 activation and return to the original draft and commands with zero provider writes.
-See [supported mappings, limits and demo](chatterino-import-demo.md). This change
-still needs PR merge and deployment; it is not a production acceptance claim.
+See [supported mappings, limits and demo](chatterino-import-demo.md). PR #89 is merged; deployment is still pending, and it is not a production acceptance claim.
 
 Completion and local nicknames (#33) now have reviewed profile-local preferences,
 prefix/fuzzy policies, canonical identity annotations, opt-in browser spellcheck
 and a bounded manual chatter read. Native dictionary/suggestion controls remain
 browser-owned. Tests and a built-app fixture cover Unicode, IME, aliases, permission
 and context isolation. See [behavior and verification](completion-demo.md).
-Merge, deployment and live acceptance remain separate.
+PR #90 is merged. Deployment and live acceptance remain separate.
 
-Remaining M4 work: optional cross-device sync (#29), self-hosted image uploads (#30; owner-selected Chatty Cat storage),
-live provider/cosmetic updates (#31), actual message-event context (#32), safe link previews/search (#44), and Unicode emoji catalog
+Self-hosted image uploads (#30) now have a reviewed browser flow, authenticated
+account-isolated storage, bounded raster re-encoding, idempotent retries, expiry
+and owner deletion. Hosting stays off until a dedicated durable directory is
+configured. See [limits, deployment and demo](image-uploads-demo.md).
+Production activation and live acceptance remain open.
+
+Remaining M4 work: optional cross-device sync (#29), live provider/cosmetic updates (#31), actual message-event context (#32), safe link previews/search (#44), and Unicode emoji catalog
 and styles (#45). External provider/configuration acceptance is recorded separately
 from implementation and fixture verification.
 

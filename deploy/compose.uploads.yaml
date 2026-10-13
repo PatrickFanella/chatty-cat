@@ -1,0 +1,7 @@
+# Optional local image hosting. Use with compose.yaml after preparing an owned directory.
+services:
+  chat:
+    environment:
+      CHATTHING_UPLOAD_DIR: /app/uploads
+    volumes:
+      - ${CHATTHING_UPLOAD_HOST_DIR:?Set the owned host upload directory}:/app/uploads

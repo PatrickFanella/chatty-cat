@@ -26,6 +26,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/uploads"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
@@ -37,6 +38,7 @@ type Config struct {
 	WorkspaceChannels int
 	Subscriptions     int
 	GiphyAPIKey       string
+	Uploads           *uploads.Store
 	Auth              *auth.Service
 	Assets            string
 	IRCURL            string
@@ -100,6 +102,13 @@ func (s *Server) Close() {
 // Handler returns same-origin API and static asset routes.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	if s.cfg.Uploads != nil {
+		var authorize uploads.Authorize
+		if s.cfg.Auth != nil {
+			authorize = s.cfg.Auth.StorageAccount
+		}
+		s.cfg.Uploads.Register(mux, authorize)
+	}
 	if s.cfg.Auth != nil {
 		s.cfg.Auth.Register(mux)
 	}
