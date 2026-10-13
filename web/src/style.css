@@ -454,3 +454,5 @@ html[data-privacy=true] #moderation-workspace {display:none!important;}
 @media(max-width:700px){.moderation-columns {grid-template-columns:1fr;}}
 
 #moderation-workspace textarea {display:block;width:100%;min-height:120px;max-height:300px;}
+
+.automod-list {max-height:350px;overflow:auto;overflow-wrap:anywhere;}

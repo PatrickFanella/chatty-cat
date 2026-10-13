@@ -94,3 +94,39 @@ The private six-receipt download was 2,243 bytes and excluded token/CSRF fields.
 Nine inventory rows now cite the verified presets/commands/completion adaptation;
 all 515 upstream declarations remain accounted for. [Demo](moderation-advanced-demo.md).
 No deployment or live moderation acceptance is recorded.
+
+## Private AutoMod review queue — #23
+
+Explicit `moderator:manage:automod` consent enables a server-held EventSub
+WebSocket with version-2 held/update subscriptions. Provider acceptance establishes
+channel eligibility; consent alone does not. The private queue validates actor,
+channel, subscription and event identity before exposing held text. It never feeds
+public chat, archive or statistics. Text renders as plain text.
+
+One channel per account and four tabs sharing the same login session use one hub;
+the service admits 16 hubs. Limits are 100 rows / 15 minutes, a 256 KB stream
+snapshot, 1,000 replay identifiers and 12 connection attempts per session/minute.
+Replay-budget exhaustion clears the queue rather than evicting resolution markers.
+Earlier or missed holds remain unavailable. Version 2 reports public blocked terms;
+private blocked-term coverage is not claimed.
+
+Allow/Deny previews freeze the actor, channel, subject and observed held event.
+Confirmation saves a pending private receipt before one provider request. The
+server rechecks session, scope, channel identity and live held state. Only the
+provider's 204 response confirms delivery; rejected and uncertain outcomes remain
+separate. Uncertain rows cannot be submitted again. Duplicate events cannot restore
+resolved rows. Reconnect transfers subscriptions after a new welcome; disconnect,
+revocation and account/privacy changes clear stale views.
+
+Verification: 546 frontend tests and production build; full Go race tests, vet and
+zero-issue lint. Focused tests cover stream handoff, two clients, consent boundaries,
+identity checks, idempotent receipts, uncertainty, capacity and expiry. Native
+Chromium verified one shared connection across two tabs, inert held text, zero-write
+preview, one confirmed decision, synchronized removal, duplicate suppression,
+reconnect and revocation cleanup. All provider writes used synthetic fixtures.
+[Reproducible demo](automod-demo.md). Live acceptance awaits an approved
+channel/target/action; no deployment or Twitch moderation write is recorded.
+
+Sources: [AutoMod subscriptions](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/),
+[WebSocket handoff](https://dev.twitch.tv/docs/eventsub/handling-websocket-events/),
+[held-message decisions](https://dev.twitch.tv/docs/api/reference/#manage-held-automod-messages).
