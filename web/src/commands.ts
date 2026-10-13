@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import {isLocalCommand} from './local-commands';
 import { validateMessage } from './composer';
 export interface CommandTemplate {trigger:string;name:string;group:string;body:string}
@@ -43,8 +44,8 @@ export class CommandStore {
  private items:CommandTemplate[]=[];
  private raw:string|null=null;
  error='';
- constructor(){try{this.raw=localStorage.getItem('chatthing:v1:commands');if(this.raw){if(this.raw.length>65536)throw new Error();this.items=parseCommandList(JSON.parse(this.raw));}}catch{this.error='Saved commands could not be read; existing data was retained';}}
+ constructor(){try{this.raw=localStorage.getItem(profileKey('chatthing:v1:commands'));if(this.raw){if(this.raw.length>65536)throw new Error();this.items=parseCommandList(JSON.parse(this.raw));}}catch{this.error='Saved commands could not be read; existing data was retained';}}
  all():CommandTemplate[]{return this.items.map(item=>({...item})).sort((a,b)=>a.group.localeCompare(b.group)||a.name.localeCompare(b.name));}
- save(items:CommandTemplate[]):void {if(this.error)throw new Error(this.error);const safe=parseCommandList(items);if(localStorage.getItem('chatthing:v1:commands')!==this.raw)throw new Error('Commands changed in another tab; reload before saving');const raw=JSON.stringify(safe);try{localStorage.setItem('chatthing:v1:commands',raw);}catch{throw new Error('Could not save commands; free browser storage and retry');}this.items=safe;this.raw=raw;}
+ save(items:CommandTemplate[]):void {if(this.error)throw new Error(this.error);const safe=parseCommandList(items);if(localStorage.getItem(profileKey('chatthing:v1:commands'))!==this.raw)throw new Error('Commands changed in another tab; reload before saving');const raw=JSON.stringify(safe);try{localStorage.setItem(profileKey('chatthing:v1:commands'),raw);}catch{throw new Error('Could not save commands; free browser storage and retry');}this.items=safe;this.raw=raw;}
  match(text:string):CommandTemplate|undefined{return this.items.find(item=>item.trigger.toLowerCase()===(text.trim().split(/\s/)[0]??'').toLowerCase());}
 }

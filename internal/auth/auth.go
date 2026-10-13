@@ -40,6 +40,7 @@ type pending struct {
 	binding  [32]byte
 	expires  time.Time
 	returnTo string
+	account  string
 }
 type tokens struct {
 	Access  string `json:"access_token"`
@@ -231,6 +232,11 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "open the configured public origin to log in", 400)
 		return
 	}
+	account := r.URL.Query().Get("account")
+	if account != "" && (len(account) > 32 || strings.IndexFunc(account, func(c rune) bool { return c < '0' || c > '9' }) >= 0) {
+		http.Error(w, "Invalid account profile", 400)
+		return
+	}
 	scopes := "user:write:chat user:read:emotes chat:read chat:edit " + commandScopes
 	switch r.URL.Query().Get("discovery") {
 	case "follows":
@@ -265,7 +271,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "login capacity reached", http.StatusServiceUnavailable)
 		return
 	}
-	s.pending[state] = pending{sha256.Sum256([]byte(binding)), time.Now().Add(stateLifetime), returnTo}
+	s.pending[state] = pending{binding: sha256.Sum256([]byte(binding)), expires: time.Now().Add(stateLifetime), returnTo: returnTo, account: account}
 	s.mu.Unlock()
 	s.cookie(w, "chatthing_oauth", binding, int(stateLifetime.Seconds()))
 	u, err := url.Parse(s.cfg.AuthorizeURL)
@@ -279,6 +285,9 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	q.Set("response_type", "code")
 	q.Set("scope", scopes)
 	q.Set("state", state)
+	if account != "" || r.URL.Query().Get("profile") == "add" {
+		q.Set("force_verify", "true")
+	}
 	u.RawQuery = q.Encode()
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
@@ -328,6 +337,10 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, authReturn(p.returnTo, "failed"), http.StatusSeeOther)
 		return
 	}
+	if p.account != "" && user.UserID != p.account {
+		http.Redirect(w, r, authReturn(p.returnTo, "account-mismatch"), http.StatusSeeOther)
+		return
+	}
 	sid := randomValue()
 	sess := &session{tokens: tok, user: user, csrf: randomValue(), expires: time.Now().Add(sessionLifetime), validated: time.Now()}
 	s.mu.Lock()
@@ -338,11 +351,20 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Switching accounts invalidates the old session rather than orphaning it.
+	var oldSession *session
 	if old, err := r.Cookie("chatthing_session"); err == nil {
-		delete(s.sessions, sha256.Sum256([]byte(old.Value)))
+		key := sha256.Sum256([]byte(old.Value))
+		oldSession = s.sessions[key]
+		delete(s.sessions, key)
 	}
 	s.sessions[sha256.Sum256([]byte(sid))] = sess
 	s.mu.Unlock()
+	if oldSession != nil {
+		oldSession.mu.Lock()
+		oldSession.invalid = true
+		oldSession.tokens = tokens{}
+		oldSession.mu.Unlock()
+	}
 	s.cookie(w, "chatthing_session", sid, int(sessionLifetime.Seconds()))
 	http.Redirect(w, r, p.returnTo, http.StatusSeeOther)
 }

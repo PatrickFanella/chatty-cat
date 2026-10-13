@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import { ChatConnection } from './connection';
 import { FloatingPanel } from './floating';
 import type { AuthStatus } from './auth';
@@ -15,7 +16,7 @@ export class Whispers {
   private status:HTMLElement;
   constructor(private root:HTMLElement,private trigger:HTMLButtonElement,private answer:(login:string)=>void,private alert:(message:ChatMessage)=>void,private observed:(message:ChatMessage,outgoing:boolean)=>void=()=>{}){
     this.log=root.querySelector<HTMLElement>('#whisper-log')!;this.status=root.querySelector<HTMLElement>('#whisper-status')!;
-    this.floating=new FloatingPanel(root,root.querySelector<HTMLElement>('#whisper-handle')!,root.querySelector<HTMLButtonElement>('#whisper-pin')!,'chatthing:v1:whispers:geometry');
+    this.floating=new FloatingPanel(root,root.querySelector<HTMLElement>('#whisper-handle')!,root.querySelector<HTMLButtonElement>('#whisper-pin')!,profileKey('chatthing:v1:whispers:geometry'));
     trigger.addEventListener('click',this.toggle);root.addEventListener('click',this.click);root.addEventListener('keydown',this.key);this.paint();
   }
   update(auth:AuthStatus|undefined):void {
@@ -26,7 +27,7 @@ export class Whispers {
       if(identity!==this.identity){this.unread=0;this.seen.clear();this.log.replaceChildren();this.close();}
       this.identity=identity;this.enabled=enabled;
       this.status.textContent=identity?enabled?'Connecting incoming whispers':'Log in again to enable whispers':'Log in with Twitch for whispers';
-      if(enabled){this.connection=new ChatConnection([],event=>{if(event.type==='message')this.receive(event.message);else this.status.textContent=event.detail||'Incoming whispers '+event.state;},'/api/auth/whispers');if(this.paused)this.connection.disconnect();else this.connection.start();}
+      if(enabled){this.connection=new ChatConnection([],event=>{if(this.identity!==identity)return;if(event.type==='message')this.receive(event.message);else this.status.textContent=event.detail||'Incoming whispers '+event.state;},'/api/auth/whispers');if(this.paused)this.connection.disconnect();else this.connection.start();}
     }
     this.trigger.disabled=!identity;this.paint();
   }

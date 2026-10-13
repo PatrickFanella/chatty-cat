@@ -1,3 +1,4 @@
+import {profileKey} from './account-profiles';
 import { PRESETS } from './display-data';
 import { AGE_SECONDS, familyCompare } from './picker-order';
 import { PickerCoverage } from './picker-coverage';
@@ -60,7 +61,7 @@ export class PickerModel {
     }));
   }
   constructor() {
-    try { this.options = parseOptions(JSON.parse(localStorage.getItem('chatthing:v1:picker:options') ?? 'null')); } catch { /* optional storage */ }
+    try { this.options = parseOptions(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:picker:options')) ?? 'null')); } catch { /* optional storage */ }
     this.options=pickerFromURL(this.options,new URL(location.href).searchParams);
   }
   setMetadata(channel: string, emotes: Record<string, Emote>): void { this.providers.set(channel, emotes); }
@@ -125,14 +126,14 @@ export class PickerModel {
   save(channel: string): void {
     this.load(channel);
     try {
-      localStorage.setItem('chatthing:v1:picker:options', JSON.stringify(this.options));
-      localStorage.setItem('chatthing:v1:picker:' + channel, JSON.stringify({ recent: this.recents.get(channel) ?? [], uses: [...(this.uses.get(channel) ?? [])].slice(-1000), coverage: this.coverage(channel).snapshot() }));
+      localStorage.setItem(profileKey('chatthing:v1:picker:options'), JSON.stringify(this.options));
+      localStorage.setItem(profileKey('chatthing:v1:picker:') + channel, JSON.stringify({ recent: this.recents.get(channel) ?? [], uses: [...(this.uses.get(channel) ?? [])].slice(-1000), coverage: this.coverage(channel).snapshot() }));
     } catch { /* optional storage */ }
   }
   private load(channel: string): void {
     if (this.loaded.has(channel)) return; this.loaded.add(channel);
     try {
-      const data: unknown = JSON.parse(localStorage.getItem('chatthing:v1:picker:' + channel) ?? 'null');
+      const data: unknown = JSON.parse(localStorage.getItem(profileKey('chatthing:v1:picker:') + channel) ?? 'null');
       if (!data || typeof data !== 'object') return;
       const record = data as Record<string, unknown>;
       this.coverages.set(channel, new PickerCoverage(record.coverage));

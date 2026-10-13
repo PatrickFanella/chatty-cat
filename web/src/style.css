@@ -437,3 +437,5 @@ html[data-privacy="true"] #comparison-panel { display:none!important; }
 #portable-logs fieldset label { display:inline-flex;gap:6px;margin:6px; }
 #portable-logs pre { white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto; }
 html[data-privacy="true"] #portable-logs { display:none!important; }
+
+[data-presentation-hide-account=true] #account-profiles-open,html[data-privacy=true] #account-profiles-open,html[data-privacy=true] #account-profiles {display:none!important;}

@@ -23,3 +23,4 @@ it('rejects invalid, oversized and unaccepted payloads', () => {
 it('continues on browsers without BroadcastChannel', () => {
   vi.stubGlobal('BroadcastChannel', undefined); const sync = new TabSync(vi.fn()); expect(() => sync.send(message)).not.toThrow(); sync.stop();
 });
+it('isolates accepted echoes by account and stops receiving when identity is unknown',()=>{vi.stubGlobal('BroadcastChannel',FakeChannel);const receive=vi.fn(),a=new TabSync(vi.fn()),b=new TabSync(receive);a.setAccount('42');b.setAccount('43');a.send(message);expect(receive).not.toHaveBeenCalled();b.setAccount('42');a.send(message);expect(receive).toHaveBeenCalledOnce();b.setAccount(undefined);a.send(message);expect(receive).toHaveBeenCalledOnce();a.stop();b.stop();});
