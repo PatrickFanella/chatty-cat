@@ -1,5 +1,10 @@
 # Milestone 3 progress
 
+Deployment update, October 13: merged code through PR #78 is live. See the
+[deployment evidence and recovery](m3-deployment-2026-10-13.md). Earlier verification
+sections retain their implementation-time observations. Live Twitch acceptance
+remains pending owner sign-in and consent; no live M3 write is recorded.
+
 All seven M2 issues are merged as of October 12, 2026, including user notes PR #71.
 M2 production deployment and owner/provider acceptance remain separate from merged
 code and local fixture checks. The original GIPHY provider gate remains in M0.
