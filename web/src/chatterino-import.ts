@@ -94,7 +94,8 @@ function layout(value:Record<string,unknown>,base:WorkspaceSnapshot,label:string
  }
  report.push('OS window geometry, popup type and nested split orientation are not restored');if(!workspaces.length)throw new Error('No supported Twitch channel layout found');return workspaces;
 }
-export function planChatterinoImport(sources:ChatterinoSources,current:WorkspaceSnapshot,label:string):ChatterinoImport{
+export function planChatterinoImport(sources:ChatterinoSources,current:WorkspaceSnapshot,label:string,channelLimit=24):ChatterinoImport{
+ if(!Number.isInteger(channelLimit)||channelLimit<1||channelLimit>24)throw new Error('Invalid workspace channel capacity');
  if(!label.trim()||label.trim().length>55||/[\x00-\x1f\x7f]/.test(label))throw new Error('Use an import name of 1–55 characters');
  for(const raw of Object.values(sources))if(new TextEncoder().encode(raw??'').length>256*1024)throw new Error('Each Chatterino file must be at most 256 KB');
  if(!Object.values(sources).some(v=>v?.trim()))throw new Error('Choose at least one Chatterino file');
@@ -102,6 +103,7 @@ export function planChatterinoImport(sources:ChatterinoSources,current:Workspace
  const report:string[]=[],base=sources.settings?.trim()?appearance(source(sources.settings,'settings.json'),current,report):parseSnapshot(current);
  if(sources.commands?.trim())base.settings.extras.commands=commands(source(sources.commands,'commands.json'),base.settings.extras.commands,report);
  const workspaces=sources.layout?.trim()?layout(source(sources.layout,'window-layout.json'),base,label.trim(),report):[{...parseSnapshot(base),id:'import-0',name:label.trim()}];
+ if(workspaces.some(w=>w.channels.length>channelLimit))throw new Error('Import exceeds current workspace channel capacity ('+channelLimit+')');
  report.push('Before: '+current.channels.map(c=>'#'+c).join(', ')+'; after: '+workspaces.map(w=>w.name+' ['+w.channels.map(c=>'#'+c).join(', ')+']').join('; '));
  return {workspaces,report};
 }

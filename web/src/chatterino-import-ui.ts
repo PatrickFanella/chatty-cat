@@ -14,7 +14,7 @@ export class ChatterinoImportPanel {
  private recovery=document.createElement('pre');
  private apply:HTMLButtonElement;
  private url:string|undefined;
- constructor(private store:WorkspaceStore,private capture:()=>WorkspaceSnapshot,private readonlyView=false){
+ constructor(private store:WorkspaceStore,private capture:()=>WorkspaceSnapshot,private readonlyView=false,private channelLimit=24){
   this.trigger.type='button';this.trigger.textContent='Import Chatterino';this.trigger.hidden=readonlyView;document.getElementById('workspace-open')?.after(this.trigger);
   this.root.setAttribute('aria-label','Import Chatterino settings');this.root.innerHTML='<h2>Import Chatterino settings</h2><p>Choose local Chatterino 2.5.6 JSON files or paste their contents. Review supported settings, commands and Twitch layouts before saving new workspace copies. Files stay in this browser. Credentials, private channel panes and native scripts are excluded. Current settings stay active until you switch workspaces.</p><label>Imported workspace name<input aria-label="Imported workspace name" maxlength="55" value="Chatterino"></label>';
   for(const [part,label] of [['settings','settings.json'],['layout','window-layout.json'],['commands','commands.json']] as const){
@@ -33,7 +33,7 @@ export class ChatterinoImportPanel {
  private review():void{
   this.invalidate();const sources:ChatterinoSources={};for(const input of this.root.querySelectorAll<HTMLTextAreaElement>('textarea[data-source]')){switch(input.dataset.source){case 'settings':sources.settings=input.value;break;case 'layout':sources.layout=input.value;break;case 'commands':sources.commands=input.value;break;}}
   const current=parseSnapshot(this.capture()),saved=this.store.all(),name=this.root.querySelector<HTMLInputElement>('[aria-label="Imported workspace name"]')!.value;
-  const plan=planChatterinoImport(sources,current,name);if(saved.length+plan.workspaces.length>20)throw new Error('Import exceeds 20 workspaces');workspaceFile([...saved,...plan.workspaces.map(w=>({...w,id:crypto.randomUUID()}))]);
+  const plan=planChatterinoImport(sources,current,name,this.channelLimit);if(saved.length+plan.workspaces.length>20)throw new Error('Import exceeds 20 workspaces');workspaceFile([...saved,...plan.workspaces.map(w=>({...w,id:crypto.randomUUID()}))]);
   const active=this.store.active,recovery=workspaceFile(saved.map(w=>active?.id===w.id?{...w,...current}:w));
   this.pending={plan,current:JSON.stringify(current),saved:JSON.stringify(saved),recovery};this.report.textContent='Existing workspaces retained: '+saved.map(w=>w.name).join(', ')+'\n'+plan.report.join('\n')+'\nNew copies: '+plan.workspaces.map(w=>w.name).join(', ');this.apply.disabled=false;this.status.textContent='Reviewed locally. Recovery export contains supported public settings and command text only. Originals stay saved; import sends no chat.';
  }

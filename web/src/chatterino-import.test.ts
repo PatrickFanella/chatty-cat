@@ -34,6 +34,7 @@ it('rejects malformed supported fields, duplicate commands and oversized/deep in
 });
 it('refuses a layout above pane/channel limits rather than silently dropping supported channels',()=>{
  expect(()=>planChatterinoImport({layout:JSON.stringify({windows:[{tabs:[{splits2:{type:'horizontal',items:Array.from({length:7},(_,i)=>split('channel'+i))}}]}]})},base(),'Import')).toThrow(/six/);
+ expect(()=>planChatterinoImport({layout:JSON.stringify(layout)},base(),'Import',1)).toThrow(/current workspace channel capacity/);
 });
 it('maps source font keys and separator settings into validated target appearance fields',()=>{
  const plan=planChatterinoImport({settings:JSON.stringify({appearance:{currentFontFamily:'Consolas',currentFontSize:18,messages:{separateMessages:true,alternateMessageBackground:false}}})},base(),'Fonts');

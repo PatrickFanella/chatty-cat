@@ -428,7 +428,7 @@ const commandPanel=new CommandPanel(composer,()=>{
  const room=selected?.tags['room-id']??[...store.messages].reverse().find(message=>message.channel===channel&&message.tags['room-id'])?.tags['room-id']??'';
  return {channel:{name:channel,id:room,title:metadata.get(channel)?.stream.title??'',game:metadata.get(channel)?.stream.game??''},account:{name:accountAuth?.login??'',id:accountAuth?.userID??''},message:selected?{name:selected.login,id:selected.id,text:selected.text.replace(/^\x01ACTION (.*)\x01$/s,'$1')}:undefined,input:composer.draft};
 },element('user-inspector',HTMLDialogElement),bootWorkspace?.settings.extras.commands);
-const chatterinoImport=new ChatterinoImportPanel(workspaceStore,captureWorkspace,!!panePopout||ephemeralPopout||overlay);
+const chatterinoImport=new ChatterinoImportPanel(workspaceStore,captureWorkspace,!!panePopout||ephemeralPopout||overlay,capacity.workspaceChannels);
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
