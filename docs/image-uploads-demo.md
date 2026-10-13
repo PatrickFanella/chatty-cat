@@ -22,7 +22,8 @@ Original filenames and provider credentials are not stored or placed in links.
 
 Hosted links are public and unpredictable, not access-controlled. Anyone with a
 link can copy the image. Deletion/expiry cannot recall downloaded copies or remove
-chat messages containing the link. Public responses use no-store caching and
+chat messages containing the link. Hosted images bypass the service-worker image cache; activation purges any old
+hosted-image cache entries. Public responses use no-store caching and
 nosniff/sandbox headers. Authentication, same-origin checks, CSRF and explicit
 account identity protect upload/list/delete. Only owner receipts are listed.
 
