@@ -11,7 +11,12 @@ cap; and a separate 128-entry emoji image cache. Native Twitch code-point ranges
 are unchanged. Assets are unmodified, licensed CC BY 4.0 and attributed in NOTICE
 and the picker. No third-party image request is needed for these emoji styles.
 
-646 frontend tests pass on the initial stack. A shared-link parser type error was
-corrected; production build and built-app acceptance are still being verified.
-The upload cache bypass and safe-link fixture follow-ups must be rebased in before
-opening this PR. Production deployment and font/provider acceptance remain separate.
+649 frontend tests and the production build passed after integrating the upload
+cache bypass and safe-link follow-ups. The additional portable-workspace regression
+now passes with the emoji fields included in its public allowlist. Cache tests
+cover hosted-upload bypass/purge and a separate 128-entry emoji bucket.
+
+The built Chrome fixture verified Unicode 17 images, category/tone filtering,
+click and focused Enter insertion, preserved Twitch emote identity, label style
+and preference/draft reload with a legacy workspace. It recorded zero provider
+writes. Production deployment and provider/font acceptance remain separate.

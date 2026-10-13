@@ -46,6 +46,12 @@ Built-app verification checked Unicode 17 distorted-face images, People & Body
 and medium-tone ballet-dancer filtering, click and focused Enter insertion at
 UTF-16 caret 8 (16 after a second insertion), label style and preference/draft
 reload. A legacy workspace missing the new fields initially reset preferences;
-the compatibility fix and its regression now preserve saved profile choices.
+the compatibility fix preserves saved profile choices, and the portable workspace
+allowlist now retains these new fields without retaining unknown credential keys.
 The message beside the emoji still used Twitch emote 25 with unchanged ranges.
 The fixture recorded zero provider writes. Live production acceptance is separate.
+
+For the built browser fixture, run `python3 web/test-support/emoji-browser-fixture.py`
+and open `http://127.0.0.1:5185/?channel=current&video=off`. It supplies a synthetic
+account and a public message with Unicode 17, a ZWJ/tone sequence and Twitch emote
+25. It has no Twitch write transport.
