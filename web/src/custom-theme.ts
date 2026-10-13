@@ -1,0 +1,29 @@
+export const themeFields=['background','panel','foreground','muted','border','accent'] as const;
+export type ThemeField=typeof themeFields[number];
+export interface CustomTheme {version:1;name:string;colors:Record<ThemeField,string>}
+export type ThemeFormat='native'|'chatterino';
+function object(value:unknown):Record<string,unknown>{if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Expected a theme object');return value as Record<string,unknown>;}
+function color(value:unknown):string{if(typeof value!=='string'||!/^#(?:[a-f0-9]{3}|[a-f0-9]{6})$/i.test(value))throw new Error('Theme colors must be opaque #RGB or #RRGGBB hex values');const hex=value.slice(1).toLowerCase();return '#'+(hex.length===3?[...hex].map(c=>c+c).join(''):hex);}
+export function parseTheme(value:unknown):CustomTheme {
+ const data=object(value);if(data.version!==1||Object.keys(data).some(k=>!['version','name','colors'].includes(k)))throw new Error('Use the version 1 color-only theme schema');
+ if(typeof data.name!=='string'||!data.name.trim()||data.name.length>80||/[\x00-\x1f\x7f]/.test(data.name))throw new Error('Theme name must be 1–80 printable characters');
+ const input=object(data.colors);if(Object.keys(input).some(k=>!themeFields.some(f=>f===k)))throw new Error('Unknown theme color field');
+ const colors={} as Record<ThemeField,string>;for(const field of themeFields)colors[field]=color(input[field]);return {version:1,name:data.name.trim(),colors};
+}
+// SVG color keywords from the pinned Chatterino 2.5.6 schema; no browser CSS parser.
+const colorNames=new Set(["aliceblue","antiquewhite","aqua","aquamarine","azure","beige","bisque","black","blanchedalmond","blue","blueviolet","brown","burlywood","cadetblue","chartreuse","chocolate","coral","cornflowerblue","cornsilk","crimson","cyan","darkblue","darkcyan","darkgoldenrod","darkgray","darkgreen","darkgrey","darkkhaki","darkmagenta","darkolivegreen","darkorange","darkorchid","darkred","darksalmon","darkseagreen","darkslateblue","darkslategray","darkslategrey","darkturquoise","darkviolet","deeppink","deepskyblue","dimgray","dimgrey","dodgerblue","firebrick","floralwhite","forestgreen","fuchsia","gainsboro","ghostwhite","gold","goldenrod","gray","grey","green","greenyellow","honeydew","hotpink","indianred","indigo","ivory","khaki","lavender","lavenderblush","lawngreen","lemonchiffon","lightblue","lightcoral","lightcyan","lightgoldenrodyellow","lightgray","lightgreen","lightgrey","lightpink","lightsalmon","lightseagreen","lightskyblue","lightslategray","lightslategrey","lightsteelblue","lightyellow","lime","limegreen","linen","magenta","maroon","mediumaquamarine","mediumblue","mediumorchid","mediumpurple","mediumseagreen","mediumslateblue","mediumspringgreen","mediumturquoise","mediumvioletred","midnightblue","mintcream","mistyrose","moccasin","navajowhite","navy","oldlace","olive","olivedrab","orange","orangered","orchid","palegoldenrod","palegreen","paleturquoise","palevioletred","papayawhip","peachpuff","peru","pink","plum","powderblue","purple","red","rosybrown","royalblue","saddlebrown","salmon","sandybrown","seagreen","seashell","sienna","silver","skyblue","slateblue","slategray","slategrey","snow","springgreen","steelblue","tan","teal","thistle","tomato","turquoise","violet","wheat","white","whitesmoke","yellow","yellowgreen","transparent"]);
+const mappings:Record<string,ThemeField>={'colors.accent':'accent','colors.messages.backgrounds.regular':'background','colors.messages.textColors.regular':'foreground','colors.messages.textColors.system':'muted','colors.splits.header.background':'panel','colors.splits.header.border':'border'};
+export function importTheme(raw:string,format:ThemeFormat):{theme:CustomTheme;unsupported:string[]} {
+ if(new TextEncoder().encode(raw).length>65536)throw new Error('Theme import exceeds 64 KiB');const data:unknown=JSON.parse(raw);if(format==='native')return {theme:parseTheme(data),unsupported:[]};
+ const root=object(data),colors:Partial<Record<ThemeField,string>>={},unsupported:string[]=[];let count=0;
+ const visit=(value:unknown,path:string,depth:number):void=>{if(depth>8||++count>512)throw new Error('Theme structure exceeds supported bounds');if(path.split('.').some(p=>['__proto__','prototype','constructor'].includes(p)))throw new Error('Unsafe theme field');
+  if(value&&typeof value==='object'&&!Array.isArray(value)){for(const [key,child] of Object.entries(value))visit(child,path?path+'.'+key:key,depth+1);return;}
+  if(typeof value!=='string'||value.length>300||/[;{}\x00-\x1f]|url\s*\(|javascript:|<|>/i.test(value))throw new Error('Theme import contains unsupported executable or asset data');
+  if(path==='$schema'){unsupported.push(path+' (metadata only; never fetched)');return;}
+  const field=mappings[path];if(field)colors[field]=color(value);else{if(path.startsWith('colors.')&&!/^#(?:[a-f0-9]{3}|[a-f0-9]{6}|[a-f0-9]{8}|[a-f0-9]{9}|[a-f0-9]{12})$/i.test(value)&&!colorNames.has(value))throw new Error('Invalid unsupported color at '+path);if(/:\/\/|data:/i.test(value))throw new Error('External assets are not theme colors');unsupported.push(path);}
+ };
+ visit(root,'',0);return {theme:parseTheme({version:1,name:'Imported Chatterino theme',colors}),unsupported:unsupported.sort()};
+}
+function luminance(hex:string):number{const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return rgb[0]!*.2126+rgb[1]!*.7152+rgb[2]!*.0722;}
+export function themeContrast(theme:CustomTheme):{label:string;ratio:number}[]{return (['background','panel'] as const).flatMap(bg=>(['foreground','muted','accent'] as const).map(fg=>{const a=luminance(theme.colors[bg]),b=luminance(theme.colors[fg]);return {label:fg+' on '+bg,ratio:(Math.max(a,b)+.05)/(Math.min(a,b)+.05)};}));}
+export const themeVariables:Record<ThemeField,string>={background:'--bg',panel:'--panel',foreground:'--fg',muted:'--muted',border:'--line',accent:'--accent'};
