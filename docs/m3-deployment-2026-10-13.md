@@ -1,5 +1,49 @@
 # M3 deployment verification — October 13, 2026
 
+## Journal safeguards activation through PR #83
+
+Merged commit `7932ddb97b3eb7eaa0c5b4fce0161486cab591ca` is now deployed,
+including #81's workspace replacement fix and #83's journal lifecycle/storage
+controls. The immutable runtime image is
+`sha256:67473058c73e247a968f3b91014b7c950e7e8435655fa672a3eabf7b7e6060a3`.
+All 26 transferred release manifest hashes matched. Private loopback staging passed
+readiness and returned HTTP 401 for the actual broadcaster-context route with the
+production Host header. Packaged binary/source hashes matched before activation.
+The staging container was stopped and removed after activation.
+
+NUC is healthy with zero restarts. Native public-browser readiness returned 200
+and signed-out broadcaster-context access returned 401. Loaded browser bundle
+`assets/main-DSa0Vqwp.js` matches SHA-256
+`acbf965d4bd1f7f9361bd8e05da89ddcbadb965b20ea94322fd4867b6f67935e`.
+The native downloaded public source archive is 721,137 bytes and matches SHA-256
+`05bd73b826f3e667dda5c2da6c8bce9083968408c7bf2e72901beeeb04c70654`.
+A standalone Python public request received edge HTTP 403; public acceptance was
+verified through the native browser, with no edge/security changes.
+
+The previous image, image selector, Compose file and current-link target remain
+under `recovery/journal-7932ddb-20261013` in the NUC runtime. Activation included an
+automatic rollback path on readiness/image mismatch; rollback was not needed.
+Existing runtime hardening, listener and private secret file were retained.
+
+Regular-browser basic sign-in renewed automatically as patrick__eff. The deployed
+workspace reports best-effort local storage and zero retained private receipts.
+Its reviewed empty recovery JSON was saved locally with private file permissions
+before any further live write. The regular-browser download event bridge timed
+out; this does not claim a verified browser download. Broadcaster consent renewal subsequently succeeded using the existing approved
+permissions. One reviewed write of the unchanged current channel title received
+provider confirmation and matching metadata readback. Receipt
+`3a2533c3-4e13-48a3-bc22-1c54888d1acd` at `2026-10-13T12:35:55.976Z` retained its
+confirmed outcome after closing moderation, opening/closing Accounts without a
+switch or forget, reopening moderation, and reloading the page. A reviewed recovery
+copy of that receipt was saved locally before the lifecycle check. No public chat
+message was sent, no title alteration remained, and no provider request was retried.
+This verifies the exercised production lifecycle after disk recovery; it does not
+recover the original four receipts or establish the earlier cause. #82 remains open.
+Controlled subject/message, actual private-event and eligible/live broadcaster
+acceptance still need external test conditions.
+
+Custom themes PR #84 is independently verified but is not included in this image.
+
 ## Later activation through PR #79
 
 Merged commit `8b7500a3775723d2b074e99c357fcc281620ca51` was subsequently
