@@ -1,4 +1,9 @@
 :root { color-scheme: dark; --bg:#151519; --panel:#1d1d24; --fg:#e8e6e3; --muted:#aaa4b7; --line:#34343e; --accent:#b9a5f0; font:14px/1.55 ui-monospace,Menlo,monospace; background:var(--bg); color:var(--fg) }
+:root[data-theme-reduced-motion] *, :root[data-theme-reduced-motion] *::before, :root[data-theme-reduced-motion] *::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; }
+#custom-theme-panel textarea { display:block; width:100%; min-height:160px; }
+#custom-theme-panel pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+.theme-sample { background:var(--bg); border:1px solid var(--line); padding:8px; margin:6px 0; }
+.theme-sample strong { color:var(--accent); } .theme-sample p { color:var(--fg); margin:4px 0; }
 :root[data-theme=light]:not([data-colour]) { color-scheme:light; --bg:#faf8f3; --panel:#efebe3; --fg:#27232c; --muted:#665d70; --line:#d5cedc; --accent:#654394 }
 * { box-sizing:border-box }
 body { margin:0; height:100dvh; display:flex; flex-direction:column; overflow:hidden }

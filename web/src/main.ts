@@ -10,6 +10,7 @@ import {streamHeader} from './stream-header';
 import {BookmarksPanel} from './bookmarks-ui';
 import {DiscoveryPanel} from './discovery';
 import {PresentationPanel} from './presentation-ui';
+import {CustomThemePanel} from './custom-theme-ui';
 import {getPresentation} from './presentation';
 import {LocalTargets,dispatchLocal,LOCAL_COMMANDS} from './local-commands';
 import {privacyEnabled} from './privacy';
@@ -379,6 +380,10 @@ identityCards.setAccount(accountAuth?.authenticated?accountAuth.userID:undefined
 const resources = new Resources(element('resources-panel', HTMLElement), element('resources-open', HTMLButtonElement), name => document.getElementById(name)?.click());
 function zoomChat(delta:number):void{const index=FONT_SIZES.indexOf(display.options.size),size=FONT_SIZES[Math.max(0,Math.min(FONT_SIZES.length-1,index+delta))];if(size)display.setOptions({...display.options,size});}
 const presentationPanel=new PresentationPanel(()=>{visualRevision++;scheduleRender();renderRoom();const data=metadata.get(channels[0]!);if(data)paintStreamInfo(data);});
+const customThemePanel=new CustomThemePanel();
+const themeChanged=():void=>{visualRevision++;picker.refresh(true);scheduleRender();};
+document.addEventListener('customthemechange',themeChanged);
+window.addEventListener('pagehide',()=>{document.removeEventListener('customthemechange',themeChanged);customThemePanel.stop();});
 rulePanel=new RulePanel(()=>{visualRevision++;scheduleRender();});
 function channelStep(delta:number):void{const index=channels.indexOf(composer.target);virtualLog.focusChannel(channels[(index+delta+channels.length)%channels.length]!);}
 const hotkeyActions={
