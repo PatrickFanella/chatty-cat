@@ -1,0 +1,13 @@
+# M4 optional device sync progress
+
+The server foundation for #29 provides an explicitly configured, private per-account snapshot store and same-origin authenticated API. Default storage is disabled. The browser setup/review/apply/export controls are the next step; this foundation does not close #29 or M4.
+
+The document accepts versioned workspaces, public bookmark excerpts, and the common display/presentation/picker/provider/link preferences. Field allowlists reject unknown/private record fields. Workspace reader positions are excluded. Bookmark notes/tags, whispers, private feedback, moderation journals, drafts and local aliases are not accepted as sync records. Browser value normalization and exact local apply review remain pending.
+
+Mutations require a fetched revision (If-Match), CSRF, current account header and a request ID. Concurrent writes produce one winner; unchanged request retries recover the last receipt. Deletion clears the active document but retains a minimal revision tombstone, so stale/offline clients cannot recreate deleted data. Newer revisions require another fetch and review. OAuth credentials remain server-held.
+
+Storage uses a dedicated 0700 directory, 0600 files, exclusive Linux/macOS locking, atomic rename and fsync. One current file per account is retained, including deletion tombstones: at most 1,024 accounts / 64 MiB total / two MiB per document. Startup validates records/digests and fails on unexpected or corrupt files; recognized incomplete pending writes are removed. HTTP input has size, depth, collection, token, deadline and concurrency bounds. Account/session authorization is checked again after body read. Reads and receipts use no-store and same-origin resource headers.
+
+Set CHATTHING_SYNC_DIR for native deployment, or use `docker compose -f compose.yaml -f deploy/compose.sync.yaml …` after provisioning its host directory for UID/GID 10001, mode 0700. Do not share the directory with uploads or another writer. This PR does not provision or enable production storage. Operator backups remain subject to their own retention; deletion clears this active snapshot rather than recalling downloaded copies or old backups.
+
+Verification: store race tests cover revision conflicts, idempotent retry, delete/recreate protection, locking, restart, isolation and quota rejection without replacing good data. API tests use real OAuth/session handlers for cross-account, CSRF, anonymous/stale-revision rejection and logout during body read. The 515-row pinned inventory is unchanged. Full Go checks are recorded with the PR; the browser flow remains pending.
