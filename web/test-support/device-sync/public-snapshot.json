@@ -1,0 +1,483 @@
+{
+  "format": "chatty-cat-device-sync",
+  "version": 1,
+  "workspaces": [
+    {
+      "channels": [
+        "one"
+      ],
+      "target": "one",
+      "focus": "log",
+      "settings": {
+        "version": 1,
+        "display": {
+          "colour": "lavender",
+          "variant": "contrast",
+          "shade": 7,
+          "font": "roobert",
+          "size": 18,
+          "lh": 1.4,
+          "weight": 400,
+          "spacing": 0,
+          "lines": 0,
+          "zebra": 2,
+          "times": 2,
+          "keywords": "",
+          "blocked": "",
+          "hidden": "",
+          "hideMode": "stub",
+          "pause": false,
+          "self": true,
+          "ping": false,
+          "notify": false,
+          "nbots": false,
+          "shadow": 0,
+          "eonly": 2,
+          "scrollback": 5000,
+          "anim": 3,
+          "rbw": 0,
+          "sub": "num-left",
+          "clean": false,
+          "cmodes": true,
+          "autoShade": false,
+          "rev": false,
+          "bartop": false,
+          "pn": true,
+          "split": 4,
+          "min": 0,
+          "hfs": 13,
+          "hpfs": -2,
+          "lw": 400,
+          "links": false,
+          "stitle": true,
+          "bauto": 0,
+          "peek": 2,
+          "yt": true,
+          "lkico": true,
+          "gifsafe": false,
+          "lbls": false
+        },
+        "extras": {
+          "picker": {
+            "options": {
+              "enabled": [
+                "Twitch",
+                "7TV",
+                "BTTV",
+                "FFZ",
+                "Emoji"
+              ],
+              "mixed": false,
+              "sort": "use",
+              "animation": "all",
+              "seenOnly": false,
+              "ages": true,
+              "ageRows": 0,
+              "names": true,
+              "zoom": 1,
+              "hold": true,
+              "holdPlus": true,
+              "frozen": false,
+              "emojiStyle": "native",
+              "emojiCategory": "all",
+              "emojiTone": "all"
+            },
+            "floating": {
+              "pinned": false,
+              "open": true
+            }
+          },
+          "video": {
+            "options": {
+              "channel": "one",
+              "volume": 0.5,
+              "muted": true,
+              "docked": false,
+              "rememberVolume": false
+            },
+            "floating": {
+              "pinned": false,
+              "open": true
+            }
+          },
+          "resources": {
+            "tab": "help",
+            "authors": {
+              "info": 0,
+              "sort": "area"
+            },
+            "floating": {
+              "pinned": false,
+              "open": false
+            }
+          },
+          "stats": {
+            "open": true,
+            "badgeOrder": "versions",
+            "scope": "60000",
+            "channel": "",
+            "excluded": "",
+            "windows": {
+              "users": "24",
+              "emotes": "3",
+              "badges": "3",
+              "links": "3"
+            }
+          },
+          "rail": {
+            "fraction": 0.3333333333333333,
+            "floating": []
+          },
+          "splits": {
+            "version": 1,
+            "enabled": false,
+            "active": "3cf94652-4b7a-48ce-8df1-110d822bfba8",
+            "tabs": [
+              {
+                "id": "3cf94652-4b7a-48ce-8df1-110d822bfba8",
+                "name": "Chat",
+                "active": "e8a4d695-982f-4c99-a35d-8a46cf09c053",
+                "panes": [
+                  {
+                    "id": "e8a4d695-982f-4c99-a35d-8a46cf09c053",
+                    "channels": [
+                      "one"
+                    ],
+                    "target": "one",
+                    "filter": "",
+                    "rules": [],
+                    "reverse": false,
+                    "pauseHover": true,
+                    "weight": 1,
+                    "unread": 0,
+                    "reader": null
+                  }
+                ]
+              }
+            ],
+            "closed": []
+          },
+          "hotkeys": {
+            "version": 1,
+            "bindings": {
+              "palette": "Alt+KeyK",
+              "compose": "Alt+KeyM",
+              "channel-next": "Alt+BracketRight",
+              "channel-prev": "Alt+BracketLeft",
+              "pane-next": "Alt+ArrowRight",
+              "pane-prev": "Alt+ArrowLeft",
+              "tab-next": "Alt+ArrowDown",
+              "tab-prev": "Alt+ArrowUp",
+              "pane-right": "Alt+Shift+ArrowRight",
+              "pane-left": "Alt+Shift+ArrowLeft",
+              "tab-right": "Alt+Shift+ArrowDown",
+              "tab-left": "Alt+Shift+ArrowUp",
+              "workspace": "Alt+KeyW",
+              "reconnect": "Alt+KeyR",
+              "zoom-in": "Alt+Equal",
+              "zoom-out": "Alt+Minus",
+              "pause": "Alt+KeyS",
+              "live": "Alt+KeyL",
+              "history": "Alt+KeyH",
+              "history-global": "Alt+Shift+KeyH",
+              "emotes": "Alt+KeyE",
+              "video": "Alt+KeyV",
+              "stats": "Alt+KeyT",
+              "settings": "Alt+KeyD",
+              "inbox": "Alt+KeyI",
+              "commands": "Alt+KeyC",
+              "shortcuts": "Alt+KeyB"
+            }
+          },
+          "presentation": {
+            "boldScale": 1,
+            "autoCloseUserPopup": true,
+            "uiScale": 1,
+            "showTimestamps": true,
+            "timestampFormat": "legacy",
+            "separators": "legacy",
+            "alternating": "legacy",
+            "fadeHistory": true,
+            "lastMessage": false,
+            "lastPattern": "solid",
+            "lastColor": "#7f2026",
+            "usernameMode": "both",
+            "boldUsernames": true,
+            "colorUsernames": true,
+            "colorMentions": true,
+            "findAllUsernames": false,
+            "collapseLines": 0,
+            "deletedLength": 50,
+            "hideModerated": false,
+            "hideModerationActions": false,
+            "hideDeletionActions": false,
+            "hideReplyContext": false,
+            "showReplyButton": true,
+            "stripReplyMention": true,
+            "showEmptyInput": true,
+            "showLength": true,
+            "showWait": true,
+            "overflow": "highlight",
+            "pulseSelf": false,
+            "scrollMultiplier": 1,
+            "smoothScroll": true,
+            "smoothNew": false,
+            "pauseHoverSeconds": 0,
+            "pauseModifier": "none",
+            "markers": true,
+            "hideScrollbar": false,
+            "rightClick": "mention",
+            "modifiedRightClick": "reply",
+            "rightClickModifier": "shift",
+            "mentionAt": false,
+            "mentionComma": true,
+            "showSendButton": true,
+            "hideSettings": false,
+            "hideAccount": false,
+            "animateOnlyFocused": false,
+            "headerViewers": true,
+            "headerTitle": true,
+            "headerUptime": true,
+            "headerGame": true,
+            "showJoins": false,
+            "showParts": false,
+            "loadHistory": true,
+            "historyLimit": 200,
+            "mutedChannels": "",
+            "showPronouns": false,
+            "paneScrollback": 100000
+          },
+          "commands": [],
+          "rules": {
+            "version": 1,
+            "rules": [],
+            "similarity": {
+              "enabled": false,
+              "threshold": 0.85,
+              "windowSeconds": 30,
+              "maxComparisons": 20,
+              "sameAuthorExempt": true,
+              "selfExempt": true,
+              "behavior": "dim",
+              "highlightSimilar": false
+            },
+            "preferences": {
+              "muted": false,
+              "quietStart": 0,
+              "quietEnd": 0
+            }
+          }
+        }
+      },
+      "readers": [],
+      "id": "e9487fe5-80c8-49b0-847e-6271485edd90",
+      "name": "Device A"
+    }
+  ],
+  "activeWorkspace": "e9487fe5-80c8-49b0-847e-6271485edd90",
+  "preferences": {
+    "display": {
+      "colour": "lavender",
+      "variant": "contrast",
+      "shade": 7,
+      "font": "roobert",
+      "size": 18,
+      "lh": 1.4,
+      "weight": 400,
+      "spacing": 0,
+      "lines": 0,
+      "zebra": 2,
+      "times": 2,
+      "keywords": "",
+      "blocked": "",
+      "hidden": "",
+      "hideMode": "stub",
+      "pause": false,
+      "self": true,
+      "ping": false,
+      "notify": false,
+      "nbots": false,
+      "shadow": 0,
+      "eonly": 2,
+      "scrollback": 5000,
+      "anim": 3,
+      "rbw": 0,
+      "sub": "num-left",
+      "clean": false,
+      "cmodes": true,
+      "autoShade": false,
+      "rev": false,
+      "bartop": false,
+      "pn": true,
+      "split": 4,
+      "min": 0,
+      "hfs": 13,
+      "hpfs": -2,
+      "lw": 400,
+      "links": false,
+      "stitle": true,
+      "bauto": 0,
+      "peek": 2,
+      "yt": true,
+      "lkico": true,
+      "gifsafe": false,
+      "lbls": false
+    },
+    "presentation": {
+      "boldScale": 1,
+      "autoCloseUserPopup": true,
+      "uiScale": 1,
+      "showTimestamps": true,
+      "timestampFormat": "legacy",
+      "separators": "legacy",
+      "alternating": "legacy",
+      "fadeHistory": true,
+      "lastMessage": false,
+      "lastPattern": "solid",
+      "lastColor": "#7f2026",
+      "usernameMode": "both",
+      "boldUsernames": true,
+      "colorUsernames": true,
+      "colorMentions": true,
+      "findAllUsernames": false,
+      "collapseLines": 0,
+      "deletedLength": 50,
+      "hideModerated": false,
+      "hideModerationActions": false,
+      "hideDeletionActions": false,
+      "hideReplyContext": false,
+      "showReplyButton": true,
+      "stripReplyMention": true,
+      "showEmptyInput": true,
+      "showLength": true,
+      "showWait": true,
+      "overflow": "highlight",
+      "pulseSelf": false,
+      "scrollMultiplier": 1,
+      "smoothScroll": true,
+      "smoothNew": false,
+      "pauseHoverSeconds": 0,
+      "pauseModifier": "none",
+      "markers": true,
+      "hideScrollbar": false,
+      "rightClick": "mention",
+      "modifiedRightClick": "reply",
+      "rightClickModifier": "shift",
+      "mentionAt": false,
+      "mentionComma": true,
+      "showSendButton": true,
+      "hideSettings": false,
+      "hideAccount": false,
+      "animateOnlyFocused": false,
+      "headerViewers": true,
+      "headerTitle": true,
+      "headerUptime": true,
+      "headerGame": true,
+      "showJoins": false,
+      "showParts": false,
+      "loadHistory": true,
+      "historyLimit": 200,
+      "mutedChannels": "",
+      "showPronouns": false,
+      "paneScrollback": 100000
+    },
+    "picker": {
+      "emojiStyle": "native",
+      "emojiCategory": "all",
+      "emojiTone": "all",
+      "enabled": [
+        "Twitch",
+        "7TV",
+        "BTTV",
+        "FFZ",
+        "Emoji"
+      ],
+      "mixed": false,
+      "sort": "use",
+      "animation": "all",
+      "seenOnly": false,
+      "ages": true,
+      "ageRows": 0,
+      "names": true,
+      "zoom": 1,
+      "hold": true,
+      "holdPlus": true,
+      "frozen": false
+    },
+    "provider": {
+      "version": 1,
+      "cosmetics": {
+        "FFZ": false,
+        "Chatterino": false
+      },
+      "providers": {
+        "7TV": {
+          "global": true,
+          "channel": true,
+          "live": true
+        },
+        "BTTV": {
+          "global": true,
+          "channel": true,
+          "live": true
+        },
+        "FFZ": {
+          "global": true,
+          "channel": true,
+          "live": true
+        },
+        "Twitch": {
+          "global": true,
+          "channel": true,
+          "live": true
+        }
+      },
+      "badges": {
+        "globalAuthority": true,
+        "channelAuthority": true,
+        "subscription": true,
+        "predictions": true,
+        "vanity": true
+      },
+      "animated": true,
+      "scale": 1
+    },
+    "links": {
+      "version": 1,
+      "enabled": false,
+      "tooltip": false,
+      "thumbnails": false,
+      "doubleClick": false,
+      "unshorten": false,
+      "lowercaseDomains": true,
+      "emoteTooltip": false,
+      "thumbnailSize": 240,
+      "streamSize": 360,
+      "searchEnabled": false,
+      "engineURL": "https://duckduckgo.com/?q={query}",
+      "engineName": "DuckDuckGo"
+    }
+  },
+  "bookmarks": [
+    {
+      "id": "bookmark-A",
+      "kind": "message",
+      "message": {
+        "id": "message-A",
+        "command": "PRIVMSG",
+        "channel": "one",
+        "login": "fixture",
+        "text": "public excerpt A",
+        "timestamp": 1,
+        "parent": "",
+        "root": "",
+        "target": "",
+        "duration": "",
+        "deleted": false
+      },
+      "context": [],
+      "created": 1,
+      "updated": 2
+    }
+  ]
+}

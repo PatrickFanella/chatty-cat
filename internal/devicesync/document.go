@@ -17,11 +17,12 @@ var channelPattern = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 var recordID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,80}$`)
 
 type Document struct {
-	Format      string            `json:"format"`
-	Version     int               `json:"version"`
-	Workspaces  []Workspace       `json:"workspaces,omitempty"`
-	Preferences map[string]any    `json:"preferences,omitempty"`
-	Bookmarks   *[]PublicBookmark `json:"bookmarks,omitempty"`
+	ActiveWorkspace string            `json:"activeWorkspace,omitempty"`
+	Format          string            `json:"format"`
+	Version         int               `json:"version"`
+	Workspaces      []Workspace       `json:"workspaces,omitempty"`
+	Preferences     map[string]any    `json:"preferences,omitempty"`
+	Bookmarks       *[]PublicBookmark `json:"bookmarks,omitempty"`
 }
 type Workspace struct {
 	ID       string            `json:"id"`
@@ -164,6 +165,9 @@ func CanonicalDocument(d Document) ([]byte, error) {
 		if !slicesHas([]string{"log", "message", "picker-open", "archive-open", "display-open", "video-open"}, w.Focus) {
 			return nil, errors.New("invalid workspace focus")
 		}
+	}
+	if d.ActiveWorkspace != "" && !seen[d.ActiveWorkspace] {
+		return nil, errors.New("active workspace is not selected")
 	}
 	if d.Preferences != nil {
 		if len(d.Preferences) != 5 || !preferencesSchema(d.Preferences) {
@@ -314,7 +318,7 @@ var extrasSchema = object(map[string]validator{
 		f["windows"] = object(fields("users emotes badges links"))
 		return object(f)
 	}(),
-	"rail": object(fields("fraction floating")), "presentation": presentationSchema, "splits": splitSchema, "hotkeys": object(map[string]validator{"version": scalar, "bindings": bindingsSchema}), "rules": rulesSchema, "commands": array(commandSchema, 32),
+	"rail": object(map[string]validator{"fraction": scalar, "floating": array(scalar, 3)}), "presentation": presentationSchema, "splits": splitSchema, "hotkeys": object(map[string]validator{"version": scalar, "bindings": bindingsSchema}), "rules": rulesSchema, "commands": array(commandSchema, 32),
 })
 var providerSchema = object(map[string]validator{"version": scalar, "animated": scalar, "scale": scalar, "badges": object(fields("globalAuthority channelAuthority subscription predictions vanity")), "cosmetics": object(fields("FFZ Chatterino")), "providers": object(map[string]validator{"7TV": object(fields("global channel live")), "BTTV": object(fields("global channel live")), "FFZ": object(fields("global channel live")), "Twitch": object(fields("global channel live"))})})
 var linkSchema = object(fields("version enabled tooltip thumbnails doubleClick unshorten lowercaseDomains emoteTooltip thumbnailSize streamSize searchEnabled engineURL engineName"))
