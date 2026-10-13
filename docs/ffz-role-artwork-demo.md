@@ -1,0 +1,9 @@
+# FFZ moderator and VIP artwork
+
+The existing public FFZ room response supplies mod_urls and vip_badge images. Metadata retains only safe HTTPS images for these two roles, preferring 2x then 1x/4x. No extra catalog request, account assignment or presence write is added. Missing or invalid artwork leaves native badge presentation intact.
+
+Provider and badge preferences now has separate moderator and VIP artwork switches. Both default on, matching the pinned Chatterino settings; old saved preferences receive these additive defaults. The existing channel-authority filter still controls visibility. An artwork image is shown only when the message actually supplies its native moderator/VIP badge tag. It changes no permission or role state. The tooltip attributes FFZ artwork. Image failure falls back to the native Twitch badge, then a literal role label. Shared-chat origin artwork uses source-room metadata and remains separate from receiving-room roles. These two settings are included in reviewed common-preference sync.
+
+Reproduce: build the web app and run `python3 web/test-support/provider-browser-fixture.py` from the repository root. Open http://127.0.0.1:5192/?channel=current&video=off. Enable Show channelAuthority badges if this profile previously hid them. Review/apply the FFZ moderator switch, then inspect Alice’s supplied moderator tag. Turn it off, review/apply and observe the native Twitch image. Reload to check persistence. An untagged user must receive no role image. Stop the fixture after the check.
+
+Native T3 preview verified both image choices, the FFZ attribution, persisted opt-out and zero fixture provider writes on 2026-10-13. Tests cover moderator image-failure fallback, absent tags, unsafe/oversized metadata, older saved preferences and source-room separation. Full suite/build/type/Go race/vet/lint results are recorded in the PR. Positive live acceptance in a channel configured with FFZ role artwork remains open.

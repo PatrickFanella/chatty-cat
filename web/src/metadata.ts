@@ -5,6 +5,7 @@ export type Provider = '7TV'|'BTTV'|'FFZ'|'Twitch';
 export interface EmoteSet {provider:Provider;scope:'global'|'channel';emotes:Record<string,Emote>}
 export interface ChannelMetadata {
   broadcasterID?:string;
+  ffzRoleBadges?:Partial<Record<'moderator'|'vip',Badge>>;
   emoteSets?:EmoteSet[];
   channel: string;
   emotes: Record<string, Emote>;
@@ -63,11 +64,13 @@ export function parseMetadata(value: unknown): ChannelMetadata | null {
     }
     badges[set] = parsed;
   }
+  let ffzRoleBadges:ChannelMetadata['ffzRoleBadges'];
+  if(value.ffzRoleBadges!==undefined){if(!object(value.ffzRoleBadges)||Object.keys(value.ffzRoleBadges).some(k=>k!=='moderator'&&k!=='vip'))return null;ffzRoleBadges={};for(const role of ['moderator','vip'] as const){const badge=value.ffzRoleBadges[role];if(badge===undefined)continue;if(!object(badge)||!image(badge.url)||typeof badge.title!=='string'||badge.title.length>300||typeof badge.description!=='string'||badge.description.length>1000)return null;ffzRoleBadges[role]={url:badge.url,title:badge.title,description:badge.description};}}
   const emoteUse:Record<string,number>=Object.create(null) as Record<string,number>;if(value.emoteUse!==undefined){if(!object(value.emoteUse))return null;for(const [code,count] of Object.entries(value.emoteUse).slice(0,4096)){if(code.length>100||typeof count!=='number'||!Number.isSafeInteger(count)||count<0)return null;emoteUse[code]=count;}}
   let lastVod:ChannelMetadata['lastVod'];if(value.lastVod!==undefined){const vod=value.lastVod;if(!object(vod)||typeof vod.start!=='string'||typeof vod.end!=='string'||typeof vod.url!=='string'||typeof vod.title!=='string'||!/^https:\/\/www\.twitch\.tv\/videos\/[0-9]{1,30}$/.test(vod.url))return null;const start=Date.parse(vod.start),end=Date.parse(vod.end);if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||end-start>604800000)return null;lastVod={start:vod.start,end:vod.end,url:vod.url,title:vod.title.slice(0,300)};}
   const stream = value.stream;
   if (typeof stream.uptime !== 'string' || typeof stream.viewers !== 'string' || typeof stream.title !== 'string' || stream.title.length>1000 || stream.uptime.length>500 || stream.viewers.length>100 || stream.game!==undefined&&(typeof stream.game!=='string'||stream.game.length>500)) return null;
-  return { channel: value.channel, ...(typeof value.broadcasterID==='string'?{broadcasterID:value.broadcasterID}:{}), emotes, ...(emoteSets?{emoteSets}:{}), badges, emoteUse, ...(lastVod?{lastVod}:{}), stream: { uptime: stream.uptime, viewers: stream.viewers, title: stream.title, ...(typeof stream.game==='string'?{game:stream.game}:{}) }, errors: value.errors as string[] };
+  return { channel: value.channel, ...(typeof value.broadcasterID==='string'?{broadcasterID:value.broadcasterID}:{}), emotes, ...(emoteSets?{emoteSets}:{}), ...(ffzRoleBadges?{ffzRoleBadges}:{}), badges, emoteUse, ...(lastVod?{lastVod}:{}), stream: { uptime: stream.uptime, viewers: stream.viewers, title: stream.title, ...(typeof stream.game==='string'?{game:stream.game}:{}) }, errors: value.errors as string[] };
 }
 
 export class MetadataClient {

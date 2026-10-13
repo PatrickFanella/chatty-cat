@@ -20,7 +20,7 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 		"/ffz/set/global":                     `{"sets":{"1":{"emoticons":[{"name":"Shared","urls":{"2":"//cdn.frankerfacez.com/emote/1/2"}}]}}}`,
 		"/7tv/users/twitch/123":               `{"emote_set":{"emotes":[{"id":"channel","name":"Shared","flags":1,"data":{"animated":true}},{"id":"channel7","name":"Channel7"}]}}`,
 		"/bttv/users/twitch/123":              `{"channelEmotes":[{"id":"channelB","code":"Shared"}],"sharedEmotes":[{"id":"sharedB","code":"SharedB","imageType":"gif"}]}`,
-		"/ffz/room/room":                      `{"sets":{"2":{"emoticons":[{"name":"Shared","urls":{"2":"https://cdn.frankerfacez.com/emote/2/2"}},{"name":"Anim","urls":{"2":"https://cdn.frankerfacez.com/emote/3/2"}}]}}}`,
+		"/ffz/room/room":                      `{"room":{"mod_urls":{"2":"//cdn.frankerfacez.com/room-badge/mod/2"},"vip_badge":{"1":"https://cdn.frankerfacez.com/room-badge/vip/1"}},"sets":{"2":{"emoticons":[{"name":"Shared","urls":{"2":"https://cdn.frankerfacez.com/emote/2/2"}},{"name":"Anim","urls":{"2":"https://cdn.frankerfacez.com/emote/3/2"}}]}}}`,
 		"/bttv/frankerfacez/users/twitch/123": `[{"code":"Anim","animated":true,"images":{"2x":"https://cdn.betterttv.net/frankerfacez_emote/3/2"}}]`,
 		"/ivr/badges/global":                  `[{"set_id":"subscriber","versions":[{"id":"1","image_url_2x":"https://badges.example/global","title":"Global"},{"id":"2","image_url_1x":"https://badges.example/2","title":"Two"}]}]`,
 		"/ivr/badges/channel":                 `[{"set_id":"subscriber","versions":[{"id":"1","image_url_2x":"https://badges.example/channel","title":"Channel","description":"Subscriber"}]}]`,
@@ -56,6 +56,9 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 	}
 	if got.BroadcasterID != "123" {
 		t.Fatal("public room ID missing")
+	}
+	if got.FFZRoleBadges["moderator"].URL != "https://cdn.frankerfacez.com/room-badge/mod/2" || got.FFZRoleBadges["vip"].Title != "VIP" {
+		t.Fatal("FFZ role artwork missing")
 	}
 	if len(got.EmoteSets) != 8 || got.EmoteSets[0].Scope != "global" || got.EmoteSets[3].Scope != "channel" {
 		t.Fatalf("provider scopes missing: %+v", got.EmoteSets)
@@ -241,5 +244,15 @@ func TestResponseLimits(t *testing.T) {
 				t.Fatal("invalid response accepted")
 			}
 		})
+	}
+}
+
+func TestFFZRoleImagesRejectUnsafeAndUseSafeFallback(t *testing.T) {
+	var sets ffzSets
+	sets.Room.Moderator = map[string]string{"2": "javascript:alert(1)", "1": "//cdn.frankerfacez.com/role/1"}
+	sets.Room.VIP = map[string]string{"2": "https://cdn.example/" + strings.Repeat("a", 2048), "1": "https://user:pass@cdn.example/vip"}
+	badges := ffzRoleBadges(sets)
+	if len(badges) != 1 || badges["moderator"].URL != "https://cdn.frankerfacez.com/role/1" {
+		t.Fatal("unsafe FFZ role image or missing safe fallback")
 	}
 }
