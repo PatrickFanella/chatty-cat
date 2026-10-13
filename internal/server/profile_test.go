@@ -14,7 +14,7 @@ func TestPublicProfileEndpoint(t *testing.T) {
 			http.Error(w, "missing", 404)
 			return
 		}
-		_, _ = w.Write([]byte(`[{"login":"alice","displayName":"Alice","bio":"public biography","logo":"https://example.com/image.png","followers":12,"access_token":"never forward","extra":"never forward"}]`))
+		_, _ = w.Write([]byte(`[{"id":"100","login":"alice","displayName":"Alice","bio":"public biography","logo":"https://example.com/image.png","followers":12,"access_token":"never forward","extra":"never forward"}]`))
 	}))
 	defer upstream.Close()
 	service := New(Config{Assets: t.TempDir(), MetadataEndpoints: metadata.Endpoints{IVR: upstream.URL}})
@@ -30,7 +30,7 @@ func TestPublicProfileEndpoint(t *testing.T) {
 		t.Fatal(response.Code, response.Body.String())
 	}
 	var profile map[string]any
-	if err := json.Unmarshal(response.Body.Bytes(), &profile); err != nil || profile["login"] != "alice" || profile["bio"] != "public biography" || profile["access_token"] != nil || profile["extra"] != nil {
+	if err := json.Unmarshal(response.Body.Bytes(), &profile); err != nil || profile["id"] != "100" || profile["login"] != "alice" || profile["bio"] != "public biography" || profile["access_token"] != nil || profile["extra"] != nil {
 		t.Fatal(profile, err)
 	}
 	if response = get("/api/users/bad!"); response.Code != 400 {

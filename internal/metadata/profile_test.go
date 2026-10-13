@@ -8,7 +8,7 @@ import (
 )
 
 func TestProfile(t *testing.T) {
-	body := `[{"login":"alice","displayName":"Alice","bio":"<script>text</script>","logo":"https://example.com/avatar.png","chatColor":"#123456","createdAt":"2020-01-01T00:00:00Z","followers":123,"roles":{"isPartner":true}}]`
+	body := `[{"id":"100","login":"alice","displayName":"Alice","bio":"<script>text</script>","logo":"https://example.com/avatar.png","chatColor":"#123456","createdAt":"2020-01-01T00:00:00Z","followers":123,"roles":{"isPartner":true}}]`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("login") != "alice" {
 			t.Error(r.URL)
@@ -18,7 +18,7 @@ func TestProfile(t *testing.T) {
 	defer server.Close()
 	service := New(server.Client(), Endpoints{IVR: server.URL})
 	profile, err := service.Profile(context.Background(), "alice")
-	if err != nil || profile.Login != "alice" || profile.Name != "Alice" || !profile.Partner || profile.Followers == nil || *profile.Followers != 123 || profile.Created == "" {
+	if err != nil || profile.ID != "100" || profile.Login != "alice" || profile.Name != "Alice" || !profile.Partner || profile.Followers == nil || *profile.Followers != 123 || profile.Created == "" {
 		t.Fatal(profile, err)
 	}
 	if _, err := service.Profile(context.Background(), "bad!"); err == nil {
