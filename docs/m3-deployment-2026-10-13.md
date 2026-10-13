@@ -29,9 +29,18 @@ Regular-browser basic sign-in renewed automatically as patrick__eff. The deploye
 workspace reports best-effort local storage and zero retained private receipts.
 Its reviewed empty recovery JSON was saved locally with private file permissions
 before any further live write. The regular-browser download event bridge timed
-out; this does not claim a verified browser download. Broadcaster consent renewal
-is waiting at Twitch's explicit Authorize form. No additional live provider write
-or production persistence acceptance is recorded; #82 remains open.
+out; this does not claim a verified browser download. Broadcaster consent renewal subsequently succeeded using the existing approved
+permissions. One reviewed write of the unchanged current channel title received
+provider confirmation and matching metadata readback. Receipt
+`3a2533c3-4e13-48a3-bc22-1c54888d1acd` at `2026-10-13T12:35:55.976Z` retained its
+confirmed outcome after closing moderation, opening/closing Accounts without a
+switch or forget, reopening moderation, and reloading the page. A reviewed recovery
+copy of that receipt was saved locally before the lifecycle check. No public chat
+message was sent, no title alteration remained, and no provider request was retried.
+This verifies the exercised production lifecycle after disk recovery; it does not
+recover the original four receipts or establish the earlier cause. #82 remains open.
+Controlled subject/message, actual private-event and eligible/live broadcaster
+acceptance still need external test conditions.
 
 Custom themes PR #84 is independently verified but is not included in this image.
 
