@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import {linkDefaults,setLinkPreferences} from './link-preferences';
 import { expect, it } from 'vitest';
 import { inlineImageSource, appendLinks, cleanURL, readableColor } from './links';
 it('removes tracking while preserving content and rejects non-http and credentials', () => {
@@ -29,7 +30,7 @@ it('recognizes public HTTPS image and Giphy paths without mistaking page anchors
  for(const url of ['https://example.com/wiki#/media/file.png','https://giphy.com.evil.test/gifs/cat-abc','http://example.com/a.gif','https://localhost/a.png','https://192.168.1.1/a.gif','https://user:pass@example.com/a.png'])expect(inlineImageSource(url)).toBeUndefined();
 });
 it('renders a bounded lazy inline image while retaining the readable URL',()=>{
- const root=document.createElement('span');appendLinks(root,'https://example.com/pic.png');
+ setLinkPreferences({...linkDefaults,thumbnails:true});const root=document.createElement('span');appendLinks(root,'https://example.com/pic.png');setLinkPreferences(linkDefaults);
  expect(root.querySelector<HTMLImageElement>('.chat-image')?.loading).toBe('lazy');expect(root.querySelector<HTMLImageElement>('.chat-image')?.referrerPolicy).toBe('no-referrer');expect(root.querySelector('.chat-link')?.textContent).toContain('example.com/pic.png');
  root.querySelector('.chat-image')?.dispatchEvent(new Event('error'));expect(root.querySelector('.chat-image-link')).toBeNull();expect(root.querySelector('.chat-link')).not.toBeNull();
 });

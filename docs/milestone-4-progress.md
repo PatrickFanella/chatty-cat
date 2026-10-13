@@ -28,7 +28,14 @@ and owner deletion. Hosting stays off until a dedicated durable directory is
 configured. See [limits, deployment and demo](image-uploads-demo.md).
 Production activation and live acceptance remain open.
 
-Remaining M4 work: optional cross-device sync (#29), live provider/cosmetic updates (#31), actual message-event context (#32), safe link previews/search (#44), and Unicode emoji catalog
+Safe link preferences and selection search (#44) now have explicit fetch consent,
+reviewed local policies, bounded preview sizes, double-click/keyboard opening,
+manual protected resolution and reviewed selection search. Privacy cancels pending
+requests and clears selections. See [behavior and verification](safe-links-demo.md).
+PR merge, deployment and provider acceptance remain separate.
+
+Remaining M4 work: optional cross-device sync (#29), live provider/cosmetic
+updates (#31), actual message-event context (#32), and Unicode emoji catalog
 and styles (#45). External provider/configuration acceptance is recorded separately
 from implementation and fixture verification.
 

@@ -1,3 +1,5 @@
+import {getLinkPreferences} from './link-preferences';
+import {privacyEnabled} from './privacy';
 import {getPresentation} from './presentation';
 import {youtubeVideo} from './youtube';
 import { twitterMirror } from './nitter';
@@ -18,6 +20,7 @@ function appendMentions(root:HTMLElement,text:string,users?:ReadonlyMap<string,b
 const TRACKING = /^(utm_.+|fbclid|gclid|dclid|mc_cid|mc_eid)$/i;
 export function cleanURL(raw: string): string | undefined {
   try {
+    if(raw.length>2048||/[\x00-\x20\x7f]/.test(raw))return undefined;
     const url = new URL(raw);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return undefined;
     for (const key of [...url.searchParams.keys()]) if (TRACKING.test(key)) url.searchParams.delete(key);
@@ -51,10 +54,10 @@ export function appendLinks(root: HTMLElement, text: string, users?:ReadonlyMap<
  let start=0;for(const {index,raw,href} of findLinks(text)){
   appendMentions(root,text.slice(start,index),users);
   const source=inlineImageSource(href);
-  if(source){const imageLink=document.createElement('a');imageLink.className='chat-image-link';imageLink.href=href;imageLink.target='_blank';imageLink.rel='noopener noreferrer';const image=document.createElement('img');image.src=source;image.alt='Image from '+new URL(href).hostname;image.className='chat-image';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>imageLink.remove(),{once:true});imageLink.append(image);root.append(imageLink);}
+  if(source&&getLinkPreferences().thumbnails&&!privacyEnabled()){const imageLink=document.createElement('a');imageLink.className='chat-image-link';imageLink.href=href;imageLink.target='_blank';imageLink.rel='noopener noreferrer';const image=document.createElement('img');image.src=source;image.alt='Image from '+new URL(href).hostname;image.className='chat-image';image.loading='lazy';image.decoding='async';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>imageLink.remove(),{once:true});imageLink.append(image);root.append(imageLink);}
 
-    const link = document.createElement('a'); link.href = twitterMirror(href) ?? href; link.dataset.canonicalURL = href; link.dataset.preview = href; link.textContent = document.documentElement.dataset.clean==='true' ? raw.replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/(?:index\.html?)?$/i,'') : raw;
-    link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'chat-link'; if(document.documentElement.dataset.lkico==='true'){const icon=document.createElement('img');icon.className='link-icon';icon.src='https://icons.duckduckgo.com/ip3/'+encodeURIComponent(new URL(href).hostname)+'.ico';icon.alt='';icon.loading='lazy';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});link.prepend(icon);}root.append(link); const preview = document.createElement('button'); preview.type = 'button'; preview.className = 'preview-button'; preview.dataset.preview = href; preview.setAttribute('aria-label', 'Preview ' + urlLabel(href)); root.append(preview);if(document.documentElement.dataset.yt!=='false'&&youtubeVideo(href)){const play=document.createElement('button');play.type='button';play.className='youtube-play';play.dataset.youtube=href;play.textContent='▶';play.setAttribute('aria-label','Load YouTube player');play.setAttribute('aria-expanded','false');root.append(play);} start=index+raw.length;
+    const link = document.createElement('a'); link.href = twitterMirror(href) ?? href; link.dataset.canonicalURL = href; link.dataset.preview = href; link.textContent = document.documentElement.dataset.clean==='true' ? raw.replace(/^https?:\/\//i,'').replace(/^www\./i,'').replace(/\/(?:index\.html?)?$/i,'') : (getLinkPreferences().lowercaseDomains?raw.replace(/^(https?:\/\/)?([^/?#]+)/i,(_all,scheme:string|undefined,host:string)=>(scheme??'')+host.toLowerCase()):raw);
+    link.target = '_blank'; link.rel = 'noopener noreferrer'; link.className = 'chat-link'; if(document.documentElement.dataset.lkico==='true'&&getLinkPreferences().thumbnails&&!privacyEnabled()){const icon=document.createElement('img');icon.className='link-icon';icon.src='https://icons.duckduckgo.com/ip3/'+encodeURIComponent(new URL(href).hostname)+'.ico';icon.alt='';icon.loading='lazy';icon.referrerPolicy='no-referrer';icon.addEventListener('error',()=>icon.remove(),{once:true});link.prepend(icon);}root.append(link); const preview = document.createElement('button'); preview.type = 'button'; preview.className = 'preview-button'; preview.dataset.preview = href; preview.setAttribute('aria-label', 'Preview ' + urlLabel(href)); root.append(preview);if(getLinkPreferences().unshorten&&!privacyEnabled()){const resolve=document.createElement('button');resolve.type='button';resolve.dataset.resolveLink=href;resolve.textContent='Resolve link';resolve.setAttribute('aria-label','Resolve '+urlLabel(href));root.append(resolve);}if(document.documentElement.dataset.yt!=='false'&&youtubeVideo(href)){const play=document.createElement('button');play.type='button';play.className='youtube-play';play.dataset.youtube=href;play.textContent='▶';play.setAttribute('aria-label','Load YouTube player');play.setAttribute('aria-expanded','false');root.append(play);} start=index+raw.length;
  }
  appendMentions(root,text.slice(start),users);
 }

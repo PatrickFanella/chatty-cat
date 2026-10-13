@@ -58,6 +58,7 @@ import { Attention } from './attention';
 import { AccountEmotes } from './account-emotes';
 import type { AuthStatus } from './auth';
 import { LinkPreview } from './preview';
+import {LinkTools} from './link-preferences';
 import { mountLifecycle } from './lifecycle';
 import { VideoPanel } from './video';
 import { TabSync } from './tab-sync';
@@ -436,13 +437,14 @@ const commandPanel=new CommandPanel(composer,()=>{
 const chatterinoImport=new ChatterinoImportPanel(workspaceStore,captureWorkspace,!!panePopout||ephemeralPopout||overlay);
 completionChatters=new CompletionChatters(()=>{const raw=metadata.get(composer.target)?.stream.viewers??'',viewers=/^(?:\d+|[1-9]\d{0,2}(?:,\d{3})+)$/.test(raw)?Number(raw.replaceAll(',','')):undefined;return {auth:accountAuth,channel:composer.target,viewers};},refreshCandidates);
 composer.configureExtraNames(()=>completionChatters?.names()??[]);
+const linkTools=new LinkTools(log,()=>{visualRevision++;scheduleRender();},!!panePopout||ephemeralPopout||overlay);
 const completionPreferences=new CompletionPreferencesPanel(()=>{visualRevision++;refreshCandidates();scheduleRender();},!!panePopout||ephemeralPopout||overlay,()=>completionChatters!.read());
 imageUploads=new ImageUploads(()=>({auth:accountAuth,channel:composer.target,canInsert:composer.canInsert}),url=>composer.insert(url),!!panePopout||ephemeralPopout||overlay);
 element('send-channel',HTMLSelectElement).addEventListener('change',()=>imageUploads?.contextChanged());
 const privacyControls=new PrivacyControls(workspaceStore,()=>currentWorkspaceID);
 const rememberFocus=(event:FocusEvent):void=>{if(event.target instanceof HTMLElement&&['log','message','picker-open','archive-open','display-open','video-open'].includes(event.target.id))workspaceFocus=event.target.id;};
 document.addEventListener('focusin',rememberFocus);
-window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();chatterinoImport.stop();completionPreferences.stop();completionChatters?.stop();imageUploads?.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
+window.addEventListener('pagehide',()=>{try{saveWorkspace();}catch{/* status is reported before an intentional switch; pagehide cannot prevent navigation */}hotkeys.stop();workspacePanel.stop();chatterinoImport.stop();completionPreferences.stop();completionChatters?.stop();imageUploads?.stop();linkTools.stop();inboxGeneration++;inboxPanel?.stop();rulePanel?.stop();presentationPanel.stop();commandPanel.stop();privacyControls.stop();document.removeEventListener('focusin',rememberFocus);});
 if(bootWorkspace)requestAnimationFrame(()=>{document.getElementById(bootWorkspace.focus)?.focus({preventScroll:true});});
 render();
 function scheduleRender(): void {
