@@ -1,5 +1,32 @@
 # Live M3 acceptance — October 13, 2026
 
+## Follow-up after theme deployment and renewed sign-in — 17:26 UTC
+
+The regular browser completed ordinary sign-in as `patrick__eff`. The moderation
+workspace and reviewed private export both identified account `69674313`. Refresh
+returned zero receipts with the unchanged 1,000-row / 30-day policy. The private
+backup from the controlled moderation check still contains four confirmed receipts
+for that same account, with file permissions `0600`. An empty reviewed export was
+saved separately; the backup was not overwritten or imported.
+
+The previous four-receipt reload check remains a dated successful observation,
+but retention across the subsequent deployment/sign-in sequence is not accepted.
+No retention apply, profile forgetting or site-data clearing was performed by the
+agent during this follow-up. Current sign-out and Forget profile code retain local
+journal data; no browser eviction log or database transition was captured. This
+does not establish sign-in or deployment as the cause. Issue #82 remains open.
+
+Fresh broadcaster context at `2026-10-13T17:26:55.022Z` verified actor and broadcaster
+ID `69674313`, broadcaster role, offline state and no Affiliate/Partner status.
+The owner can provide a test stream but has no eligible Affiliate/Partner channel.
+Live clip/marker checks are pending; poll/prediction creation and commercial checks
+remain blocked by broadcaster eligibility.
+
+Browser control disconnected during renewal of previously approved broadcaster
+consent. Consent completion could not be verified. No clip, marker or commercial
+action was previewed or confirmed during this follow-up, and no provider write was
+submitted. New live writes are paused while the empty journal is investigated.
+
 The owner authorized the controlled live checks and signed in as `patrick__eff`.
 The server verified account and broadcaster ID `69674313` for that account's own
 channel. No action targeted another channel or an unrelated chatter.
