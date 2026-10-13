@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Portable log fixture</title><h1>Portable log fixture</h1><p>Use a fresh profile. Seeding replaces this fixture origin's local public archive, stream observations and retention policy.</p><button id="seed">Seed and open portable logs demo</button><script>
+document.querySelector('#seed').onclick=async()=>{
+ const base=Date.now()-60000;
+ localStorage.removeItem('chatthing:v1:archive-retention');
+ localStorage.setItem('fixture-private-note','sentinel_private_note');
+ localStorage.setItem('chatthing:v1:stream-history',JSON.stringify({version:1,samples:[['one',[{at:base-1000,live:true,viewers:10,title:'Observed'},{at:base+40000,live:true,viewers:10,title:'Observed'}]]],archives:[]}));
+ const db=await new Promise((resolve,reject)=>{const q=indexedDB.open('chatthing-archive',1);q.onupgradeneeded=()=>{const s=q.result.createObjectStore('messages',{keyPath:'key'});s.createIndex('timestamp','timestamp');s.createIndex('channel-time',['channel','timestamp']);};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+ const tx=db.transaction('messages','readwrite'),store=tx.objectStore('messages');store.clear();const put=m=>store.put({key:m.channel+':'+m.id,channel:m.channel,timestamp:m.timestamp,message:m});
+ for(let i=0;i<1005;i++)put({id:'row-'+String(i).padStart(4,'0'),channel:'one',command:'PRIVMSG',login:i%2?'bob':'alice',text:'Public fixture log '+i,timestamp:base,tags:{access_token:'sentinel_token','reply-parent-msg-body':'sentinel_quote'}});
+ put({id:'row-0001',channel:'two',command:'PRIVMSG',login:'bob',text:'Other channel public text',timestamp:base,tags:{}});
+ put({id:'delete',channel:'one',command:'CLEARMSG',login:'alice',text:'sentinel_deleted_body',timestamp:base+10000,tags:{'target-msg-id':'row-0001'}});
+ put({id:'timeout',channel:'one',command:'CLEARCHAT',login:'',text:'bob',timestamp:base+20000,tags:{'ban-duration':'600'}});
+ put({id:'notice',channel:'one',command:'USERNOTICE',login:'alice',text:'Public user notice',timestamp:base+30000,tags:{'system-msg':'Alice subscribed'}});
+ put({id:'private',channel:'one',command:'WHISPER',login:'bob',text:'sentinel_private_body',timestamp:base,tags:{}});
+ await new Promise((resolve,reject)=>{tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});db.close();location.assign('/?channel=one,two&video=off');
+};
+</script></html>

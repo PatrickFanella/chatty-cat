@@ -1,3 +1,4 @@
+import {PortableLogsPanel} from './portable-logs-ui';
 import {ComparisonPanel} from './comparison-ui';
 import {VodContextPanel} from './vod-context-ui';
 import {ThreadsPanel} from './threads-ui';
@@ -176,6 +177,7 @@ let bookmarksPanel:BookmarksPanel|undefined;
 let threadsPanel:ThreadsPanel|undefined;
 let vodContext:VodContextPanel|undefined;
 let comparisonPanel:ComparisonPanel|undefined;
+let portableLogs:PortableLogsPanel|undefined;
 let accountAuth: AuthStatus | undefined;
 const sharePicker=(event:Event):void=>{if(event instanceof CustomEvent&&event.detail instanceof URL)picker.share(event.detail);};document.addEventListener('share-settings',sharePicker);
 const pickerLighting=new PickerLighting(log,element('emote-picker',HTMLElement));
@@ -187,7 +189,7 @@ const logKeyboard = new LogKeyboard(log,virtualLog,composer,()=>{if(!virtualLog.
 const whispers = new Whispers(element('whisper-panel', HTMLElement), element('whisper-open', HTMLButtonElement), login => {localTargets.whisper(login);composer.prepareWhisper(login);}, message => attention.whisper(message),(message,outgoing)=>{localTargets.whisper(message.login);inboxPanel?.whisper(message,outgoing);});
 const personalChat = new PersonalChat(channels, event => { if (event.type === 'message') { personalState.observe(event.message); if (event.message.command === 'ROOMSTATE') roomStates.observe(event.message); renderRoom(); } }, element('personal-status', HTMLElement), login => { personalState.reset(login); renderRoom(); });
 const personalTimer = setInterval(renderRoom, 1000);
-const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;comparisonPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');vodContext?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');threadsPanel?.setScope(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous',currentWorkspaceID||channels.join(','));discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
+const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => { localTargets.account(auth?.authenticated?auth.userID??auth.login??'':'');accountAuth = auth;portableLogs?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');comparisonPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');vodContext?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');threadsPanel?.setScope(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous',currentWorkspaceID||channels.join(','));discoveryPanel?.setAuth(auth);archiveSearch?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');bookmarksPanel?.setAccount(auth===undefined?undefined:auth.authenticated?auth.userID:'anonymous');if(inboxPanel?.setAccount(auth?.authenticated?auth.userID??'':'',auth?.authenticated?auth.login??'':''))void replayInbox(); whispers.update(auth); personalChat.update(auth); accountEmotes.update(auth, composer.target); const oldLogin = selfLogin; selfLogin = auth?.authenticated ? auth.login ?? '' : ''; if (oldLogin !== selfLogin){if(rulePanel)rulePanel.similarity=new SimilarMessages(rulePanel.similarity.options);visualRevision++;scheduleRender();} const wasEnabled = composer.canInsert; composer.setAuth(auth); picker.refresh(wasEnabled !== composer.canInsert); });
 log.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) return;
   const id = event.target.closest<HTMLButtonElement>('button[data-reply]')?.dataset.reply;
@@ -233,6 +235,8 @@ vodContext=new VodContextPanel(channel=>streamHistory.archives(channel));
 vodContext.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
 comparisonPanel=new ComparisonPanel(channels,rateTimeline,streamHistory,archive,message=>{void showArchived(message);},message=>vodContext?.show(message));
 comparisonPanel.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
+portableLogs=new PortableLogsPanel(channels,archive,streamHistory);
+portableLogs.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
 bookmarksPanel=new BookmarksPanel(log,viewMessages,archive,message=>{void showArchived(message);},message=>vodContext?.show(message));
 bookmarksPanel.setAccount(accountAuth===undefined?undefined:accountAuth.authenticated?accountAuth.userID:'anonymous');
 archiveSearch = new ArchiveSearch(element('archive-search', HTMLDialogElement), element('archive-open', HTMLButtonElement), archive, channels, (message) => { void showArchived(message); },message=>{element('archive-search',HTMLDialogElement).close();void bookmarksPanel?.capture(message);},message=>vodContext?.show(message));
@@ -243,7 +247,7 @@ const historyFiles = new HistoryFiles(element('archive-search', HTMLDialogElemen
     await archive.flush();
   }
   store.restore(messages.filter(message => channels.includes(message.channel))); store.save(); statsLedger.save(); scheduleRender();
-});
+},()=>{element('archive-search',HTMLDialogElement).close();portableLogs?.show();});
 window.addEventListener('pagehide', () => historyFiles.stop());
 const names = new Map<string, Map<string, true>>();
 const nativeCodes = new Map<string, Set<string>>();
@@ -505,5 +509,5 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });

@@ -432,3 +432,8 @@ html[data-privacy="true"] #vod-context { display:none!important; }
 #comparison-panel svg { width:100%;height:auto;min-height:120px; }
 #comparison-panel iframe { width:100%;height:300px; }
 html[data-privacy="true"] #comparison-panel { display:none!important; }
+
+#portable-logs { width:min(950px,95vw); }
+#portable-logs fieldset label { display:inline-flex;gap:6px;margin:6px; }
+#portable-logs pre { white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto; }
+html[data-privacy="true"] #portable-logs { display:none!important; }

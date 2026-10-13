@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { MessageArchive, matchesArchive } from './archive';
 import type { ChatMessage } from './protocol';
 const archives: MessageArchive[] = [];
-afterEach(async () => { for (const archive of archives.splice(0)) archive.stop(); await new Promise(resolve => setTimeout(resolve, 20)); await new Promise<void>((resolve, reject) => { const req = indexedDB.deleteDatabase('chatthing-archive'); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); }); });
+afterEach(async () => { vi.unstubAllGlobals();vi.restoreAllMocks();localStorage.removeItem('chatthing:v1:archive-retention'); for (const archive of archives.splice(0)) archive.stop(); await new Promise(resolve => setTimeout(resolve, 20)); await new Promise<void>((resolve, reject) => { const req = indexedDB.deleteDatabase('chatthing-archive'); req.onsuccess = () => resolve(); req.onerror = () => reject(req.error); }); });
 const message: ChatMessage = { id: 'id', command: 'PRIVMSG', channel: 'one', login: 'Alice', text: 'hello world', timestamp: 100, tags: {} };
 function archive() { const a = new MessageArchive(); archives.push(a); return a; }
 it('stores deduplicated messages and restores them after reopening', async () => {
@@ -64,4 +64,14 @@ it('recovers missing public excerpts without overwriting retained moderation sta
 });
 it('streams every channel row chronologically without the normal result cap and supports active cancellation',async()=>{
  const a=archive();for(let i=0;i<700;i++)a.add({...message,id:String(i),timestamp:i});a.add({...message,channel:'two'});const rows:ChatMessage[]=[];await a.scanChannel('one',m=>rows.push(m));expect(rows).toHaveLength(700);expect(rows[0]?.timestamp).toBe(0);expect(rows.at(-1)?.timestamp).toBe(699);const controller=new AbortController();let visited=0;await expect(a.scanChannel('one',()=>{if(++visited===50)controller.abort();},controller.signal)).rejects.toHaveProperty('name','AbortError');expect(visited).toBe(50);
+});
+it('previews age/cap retention without deleting, applies only a current reviewed plan, and persists future-save policy',async()=>{
+ localStorage.removeItem('chatthing:v1:archive-retention');const a=archive(),now=Date.now();a.add({...message,id:'old',timestamp:now-10*86400000});a.add({...message,id:'new',timestamp:now});const plan=await a.retentionPreview({rows:1000,days:7});expect(plan.remove).toBe(1);expect(await a.get('old',['one'])).toBeDefined();a.add({...message,id:'changed',timestamp:now+1});await expect(a.applyRetention(plan)).rejects.toThrow('changed');expect(await a.get('old',['one'])).toBeDefined();const current=await a.retentionPreview({rows:1000,days:7});await a.applyRetention(current);expect(await a.get('old',['one'])).toBeUndefined();a.add({...message,id:'old-again',timestamp:now-10*86400000});await a.flush();expect(await a.get('old-again',['one'])).toBeUndefined();localStorage.removeItem('chatthing:v1:archive-retention');
+});
+it('keeps archived records if retention policy storage fails',async()=>{localStorage.removeItem('chatthing:v1:archive-retention');const a=archive();a.add({...message,timestamp:0});const plan=await a.retentionPreview({rows:1000,days:7});const native=localStorage;vi.stubGlobal('localStorage',{getItem:(key:string)=>native.getItem(key),setItem:()=>{throw new Error('quota');},removeItem:(key:string)=>native.removeItem(key)});await expect(a.applyRetention(plan)).rejects.toThrow('quota');vi.unstubAllGlobals();expect(await a.get('id',['one'])).toBeDefined();localStorage.removeItem('chatthing:v1:archive-retention');});
+it('rejects private records already present in storage across every archive read path',async()=>{
+ const a=archive();a.add(message);await a.flush();
+ const db=await new Promise<IDBDatabase>((resolve,reject)=>{const q=indexedDB.open('chatthing-archive',1);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});
+ const tx=db.transaction('messages','readwrite');tx.objectStore('messages').put({key:'one:private',channel:'one',timestamp:101,message:{...message,id:'private',timestamp:101,command:'WHISPER',text:'private body'}});await new Promise<void>((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error);});db.close();
+ expect((await a.search({text:''})).map(m=>m.id)).toEqual(['id']);expect((await a.searchPage({text:''})).messages.map(m=>m.id)).toEqual(['id']);expect((await a.recent(['one'],100)).map(m=>m.id)).toEqual(['id']);expect(await a.get('private',['one'])).toBeUndefined();const rows:ChatMessage[]=[];await a.scanChannel('one',m=>rows.push(m));expect(rows.map(m=>m.id)).toEqual(['id']);
 });
