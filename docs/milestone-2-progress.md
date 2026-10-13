@@ -30,8 +30,7 @@ provider request was made. No M2 deployment is recorded yet.
 
 ## Remaining order and dependencies
 
-- #20: portable logs implemented for review; see below.
-- #48: account-isolated user notes after #27 account profiles.
+- #48: private user notes implemented for review on merged account profiles PR #70.
 
 ## Public message/conversation bookmarks — #16
 
@@ -184,7 +183,8 @@ Reproducible demo: [observation comparison](observation-comparison-demo.md).
 
 ## Portable public logs and archive retention — #20
 
-Implemented for review. Export logs opens a local date/channel/format preview
+Merged in [PR #69](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/69).
+Export logs opens a local date/channel/format preview
 before a separate download. Recovery includes all archived channels, with
 equal-time identity paging into parts of at most 1,000 records / 8 MB. Each part
 reports actual byte size, retained bounds, selected range and channel groups.
@@ -224,3 +224,34 @@ invalidation. These are local fixture checks; no M2 production deployment is
 recorded. #48 remains blocked by account profiles #27.
 
 Reproducible demo: [portable logs](portable-logs-demo.md).
+
+## Private user notes — #48
+
+Implemented for review on merged [account profiles PR #70](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/70).
+Clicked and hover user cards include a separate local note editor, keyed by stable
+Twitch user IDs within the current signed-in account. Public profile responses now
+allowlist the provider's numeric ID; missing/conflicting identities refuse note
+association. Imported message tags require a public identity lookup. A rename
+preserves the note; saving refreshes its login label.
+
+Plain-text notes have explicit Save/Delete, with limits of 200 users, 2,000 text
+characters per note and a 1 MB private backup per account. User notes offers a full
+backup preview and separate native download, reviewed import that requires the
+same account and keeps existing notes, and preview/apply for bulk deletion. Notes
+are not evicted by capacity or archive retention. Stale writes and storage errors
+preserve saved data. Privacy/account changes clear editors/transfers and cancel
+pending identity/import work; old user-card command responses cannot update a
+new account context. Notes never enter public message objects, logs or statistics.
+
+Verification: all 512 frontend tests and strict production build pass; full Go
+race tests, vet and zero-issue lint pass, with the 515-row inventory unchanged.
+Native Chromium checks cover creation/reopening, inert script-like plain text,
+rename preservation, Alice/Bob isolation, a 240-byte private backup, explicit bulk
+deletion and same-account recovery, per-user deletion and cross-account import
+refusal. A 90,605-byte public export contains 400 rows and no private note sentinel.
+Privacy removes card editors and clears the reviewed file. Regression tests cover
+malformed imports, bounds, quotas, stale edits, delayed imports and conflicting
+identity IDs. This is local fixture evidence; production deployment and real
+Twitch account consent remain unverified. M2 remains open until review/acceptance.
+
+Reproducible demo: [private user notes](user-notes-demo.md).

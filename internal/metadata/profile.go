@@ -10,6 +10,7 @@ import (
 
 // Profile contains only public Twitch presentation fields, never credentials.
 type Profile struct {
+	ID        string `json:"id"`
 	Login     string `json:"login"`
 	Name      string `json:"name"`
 	Bio       string `json:"bio"`
@@ -35,9 +36,9 @@ func (s *Service) Profile(ctx context.Context, login string) (Profile, error) {
 		return result, err
 	}
 	var users []struct {
-		Login, DisplayName, Bio, Logo, ChatColor, CreatedAt string
-		Followers                                           *int64
-		Roles                                               struct{ IsPartner, IsAffiliate bool }
+		ID, Login, DisplayName, Bio, Logo, ChatColor, CreatedAt string
+		Followers                                               *int64
+		Roles                                                   struct{ IsPartner, IsAffiliate bool }
 	}
 	if json.Unmarshal(data, &users) != nil || len(users) != 1 || users[0].Login != login {
 		return result, errors.New("invalid profile data")
@@ -45,6 +46,9 @@ func (s *Service) Profile(ctx context.Context, login string) (Profile, error) {
 	user := users[0]
 	clip := func(text string, max int) string { runes := []rune(text); return string(runes[:min(len(runes), max)]) }
 	result = Profile{Login: login, Name: clip(user.DisplayName, 100), Bio: clip(user.Bio, 1000), Image: safeImage(user.Logo), Color: user.ChatColor, Partner: user.Roles.IsPartner, Affiliate: user.Roles.IsAffiliate}
+	if regexp.MustCompile(`^[0-9]{1,32}$`).MatchString(user.ID) {
+		result.ID = user.ID
+	}
 	if result.Name == "" {
 		result.Name = login
 	}

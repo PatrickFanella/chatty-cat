@@ -50,6 +50,15 @@ func main() {
 	mux.HandleFunc("GET /fixture/seed", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "web/test-support/profiles-seed.html")
 	})
+	mux.HandleFunc("GET /api/users/{login}", func(w http.ResponseWriter, r *http.Request) {
+		login := r.PathValue("login")
+		if login != "viewer" && login != "renamed" {
+			http.Error(w, "Fixture profile missing", 404)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"id": "100", "login": login, "name": login, "bio": "Public fixture profile", "image": "", "color": "", "created": "", "followers": nil, "partner": false, "affiliate": false})
+	})
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "Fixture public provider unavailable", 404)
 	})
