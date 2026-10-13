@@ -1,3 +1,4 @@
+import {appendEmojiText} from './emoji';
 import {getLinkPreferences} from './link-preferences';
 import {privacyEnabled} from './privacy';
 import {getPresentation} from './presentation';
@@ -12,10 +13,10 @@ function appendMentions(root:HTMLElement,text:string,users?:ReadonlyMap<string,b
   const login=name.toLowerCase();
   if(!explicit&&(!getPresentation().findAllUsernames||!users?.has(login)))continue;
   const offset=match.index+(match[1]??match[3]??'').length;
-  root.append(document.createTextNode(text.slice(start,offset)));
+  appendEmojiText(root,text.slice(start,offset));
   const link=document.createElement('a');link.className='mention';link.dataset.mention=login;link.href='https://www.twitch.tv/'+login;link.target='_blank';link.rel='noopener noreferrer';link.textContent=(explicit?'@':'')+name;link.style.color=readableColor(userColors.get(login)??'',document.documentElement.dataset.theme==='light');if(login==='hasanabi')link.classList.add('rainbow');root.append(link);start=offset+name.length+(explicit?1:0);
  }
- root.append(document.createTextNode(text.slice(start)));
+ appendEmojiText(root,text.slice(start));
 }
 const TRACKING = /^(utm_.+|fbclid|gclid|dclid|mc_cid|mc_eid)$/i;
 export function cleanURL(raw: string): string | undefined {

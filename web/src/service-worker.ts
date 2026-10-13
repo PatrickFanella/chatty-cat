@@ -2,7 +2,8 @@
 export {};
 const worker = self as unknown as ServiceWorkerGlobalScope;
 const SHELL = 'chatthing-shell-v1'; const IMAGES = 'chatthing-images-v1'; const FONTS = 'chatthing-fonts-v1';
-const KEEP = new Set([SHELL, IMAGES, FONTS]);
+const EMOJI='chatthing-emoji-17-v1';
+const KEEP = new Set([SHELL, IMAGES, FONTS,EMOJI]);
 async function trim(cache: Cache, cap: number): Promise<void> { const keys = await cache.keys(); for (const key of keys.slice(0, Math.max(0, keys.length - cap))) await cache.delete(key); }
 async function put(cache: Cache, key: RequestInfo, response: Response, cap: number): Promise<void> { try { await cache.put(key, response); await trim(cache, cap); } catch { /* Cache quota denial must not prevent the network response. */ } }
 worker.addEventListener('install', event => {
@@ -32,6 +33,7 @@ worker.addEventListener('fetch', event => {
   // Login, chat, provider data and third-party embeds always use the network.
   if (url.origin === worker.location.origin && (url.pathname.startsWith('/api/')||url.pathname.startsWith('/uploads/'))) return;
   if(url.hostname==='giphy.com'||url.hostname.endsWith('.giphy.com'))return;
+  if(url.origin===worker.location.origin&&/^\/emoji\/twemoji-17\.0\.3\/[a-f0-9-]+\.svg$/.test(url.pathname)){event.respondWith(cachedAsset(request,EMOJI,128));return;}
   if (request.destination === 'image') { event.respondWith(cachedAsset(request, IMAGES, 600)); return; }
   if (request.destination === 'font' || url.hostname === 'fonts.googleapis.com') { event.respondWith(cachedAsset(request, FONTS, 100)); return; }
   if (url.origin === worker.location.origin && (request.mode === 'navigate' || url.pathname.startsWith('/assets/') || ['/manifest.webmanifest', '/favicon.ico'].includes(url.pathname))) event.respondWith(shell(request));

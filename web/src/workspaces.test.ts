@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { beforeEach, expect, it, vi } from 'vitest';
-import { WorkspaceStore, parseWorkspaceFile, workspaceFile } from './workspaces';
+import { WorkspaceStore, parseWorkspaceFile, workspaceFile,parseSnapshot } from './workspaces';
 import { defaultDisplay } from './display';
 import {SplitLayout} from './splits';
 import {defaultBindings} from './hotkeys';
@@ -47,3 +47,4 @@ it('round trips independent layouts and strips private fields inside panes',()=>
 it('exports only valid shortcut preferences and rejects conflicting workspace imports',()=>{
  const bindings=defaultBindings(),store=new WorkspaceStore();bindings.compose='Alt+KeyF';store.create('Keys',{...snapshot(),settings:{version:1,display:defaultDisplay(),extras:{hotkeys:{version:1,bindings,token:'secret'}}}});expect(workspaceFile(store.all())).not.toContain('secret');expect(store.all()[0]?.settings.extras.hotkeys).toEqual({version:1,bindings});bindings.compose=bindings.palette??'';expect(()=>store.create('Bad',{...snapshot(),settings:{version:1,display:defaultDisplay(),extras:{hotkeys:{version:1,bindings}}}})).toThrow(/conflicting/);
 });
+it('keeps supported emoji style/category/tone in portable snapshots and drops unknown secrets',()=>{const value=parseSnapshot({channels:['one'],target:'one',focus:'log',readers:[],settings:{version:1,display:{},extras:{picker:{options:{emojiStyle:'image',emojiCategory:'People & Body',emojiTone:'1f3fd',oauthToken:'private-canary'}}}}});expect(value.settings.extras.picker).toMatchObject({options:{emojiStyle:'image',emojiCategory:'People & Body',emojiTone:'1f3fd'}});expect(JSON.stringify(value)).not.toContain('private-canary');});

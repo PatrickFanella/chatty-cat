@@ -35,7 +35,7 @@ function publicExtras(value:unknown,channels:readonly string[]):Record<string,un
  for(const part of ['picker','video','resources','stats','rail']){
   const v=value[part];if(!object(v))continue;
   let data:Record<string,unknown>={};
-  if(part==='picker'){if(object(v.options))data.options=fields(v.options,['enabled','mixed','sort','animation','seenOnly','ages','ageRows','names','zoom','hold','holdPlus','frozen']);}
+  if(part==='picker'){if(object(v.options))data.options=fields(v.options,['enabled','mixed','sort','animation','seenOnly','ages','ageRows','names','zoom','hold','holdPlus','frozen','emojiStyle','emojiCategory','emojiTone']);}
   if(part==='video'){if(object(v.options))data.options=fields(v.options,['channel','volume','muted','docked','rememberVolume']);}
   if(part==='resources'){data=fields(v,['tab']);if(object(v.authors))data.authors=fields(v.authors,['info','sort']);}
   if(part==='stats'){data=fields(v,['open','badgeOrder','scope','channel','excluded']);if(object(v.windows))data.windows=fields(v.windows,['users','emotes','badges','links']);}

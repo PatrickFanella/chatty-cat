@@ -2,7 +2,7 @@ import {profileKey} from './account-profiles';
 import { PRESETS } from './display-data';
 import { AGE_SECONDS, familyCompare } from './picker-order';
 import { PickerCoverage } from './picker-coverage';
-import { EMOJIS, EMOJI_KW } from './emoji';
+import { EMOJIS, EMOJI_KW,EMOJI_GROUPS,emojiEntry,observedEmoji,setEmojiStyle } from './emoji';
 import { tokenize, type Emote } from './tokens';
 import type { ChatMessage, ConnectionState } from './protocol';
 
@@ -10,10 +10,11 @@ export const SOURCES = ['Twitch', '7TV', 'BTTV', 'FFZ', 'Emoji'] as const;
 export type Source = typeof SOURCES[number];
 export interface PickerItem { code: string; source: Source; emote?: Emote; keywords: string }
 export interface PickerOptions {
+  emojiStyle:'native'|'image'|'labels';emojiCategory:string;emojiTone:string;
   enabled: Source[]; mixed: boolean; sort: 'use' | 'az'; animation: 'all' | 'animated' | 'still';
   seenOnly: boolean; ages: boolean; ageRows: number; names: boolean; zoom: number; hold: boolean; holdPlus: boolean; frozen: boolean;
 }
-export const defaultOptions = (): PickerOptions => ({ enabled: [...SOURCES], mixed: false, sort: 'use', animation: 'all', seenOnly: false, ages: true, ageRows: 0, names: true, zoom: 1, hold: true, holdPlus: true, frozen: false });
+export const defaultOptions = (): PickerOptions => ({ emojiStyle:'native',emojiCategory:'all',emojiTone:'all',enabled: [...SOURCES], mixed: false, sort: 'use', animation: 'all', seenOnly: false, ages: true, ageRows: 0, names: true, zoom: 1, hold: true, holdPlus: true, frozen: false });
 export function parseOptions(value: unknown): PickerOptions {
   const result = defaultOptions();
   if (!value || typeof value !== 'object') return result;
@@ -24,8 +25,13 @@ export function parseOptions(value: unknown): PickerOptions {
   if (data.sort === 'use' || data.sort === 'az') result.sort = data.sort;
   if (data.animation === 'all' || data.animation === 'animated' || data.animation === 'still') result.animation = data.animation;
   if (typeof data.zoom === 'number' && [.5, .75, 1, 4 / 3, 1.5, 5 / 3, 2].includes(data.zoom)) result.zoom = data.zoom;
+  if(data.emojiStyle==='native'||data.emojiStyle==='image'||data.emojiStyle==='labels')result.emojiStyle=data.emojiStyle;
+  if(typeof data.emojiCategory==='string'&&(data.emojiCategory==='all'||EMOJI_GROUPS.includes(data.emojiCategory)))result.emojiCategory=data.emojiCategory;
+  if(typeof data.emojiTone==='string'&&['all','none','1f3fb','1f3fc','1f3fd','1f3fe','1f3ff','mixed'].includes(data.emojiTone))result.emojiTone=data.emojiTone;
   return result;
 }
+export function restorePickerOptions(current:PickerOptions,value:unknown):PickerOptions{const parsed=parseOptions(value);if(!value||typeof value!=='object'||Array.isArray(value))return parsed;if(!('emojiStyle' in value))parsed.emojiStyle=current.emojiStyle;if(!('emojiCategory' in value))parsed.emojiCategory=current.emojiCategory;if(!('emojiTone' in value))parsed.emojiTone=current.emojiTone;return parsed;}
+function matchesEmoji(item:PickerItem,options:PickerOptions):boolean{if(item.source!=='Emoji')return true;const entry=emojiEntry(item.code);if(!entry||options.emojiCategory!=='all'&&entry.group!==options.emojiCategory)return false;if(options.emojiTone==='all')return true;if(options.emojiTone==='none')return !entry.tones.length;if(options.emojiTone==='mixed')return new Set(entry.tones).size>1;return entry.tones.includes(options.emojiTone);}
 function group(source: string): Source | undefined { return SOURCES.find((item) => source.startsWith(item)); }
 interface Usage { count: number; last: number }
 export class PickerModel {
@@ -62,7 +68,7 @@ export class PickerModel {
   }
   constructor() {
     try { this.options = parseOptions(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:picker:options')) ?? 'null')); } catch { /* optional storage */ }
-    this.options=pickerFromURL(this.options,new URL(location.href).searchParams);
+    this.options=pickerFromURL(this.options,new URL(location.href).searchParams);setEmojiStyle(this.options.emojiStyle);
   }
   setMetadata(channel: string, emotes: Record<string, Emote>): void { this.providers.set(channel, emotes); }
   catalog(channel: string): PickerItem[] {
@@ -82,6 +88,7 @@ export class PickerModel {
     const catalog = this.catalog(channel);
     const use = this.uses.get(channel);
     return catalog.filter((item) => options.enabled.includes(item.source)
+      && matchesEmoji(item,options)
       && (!options.seenOnly || (use?.get(item.code)?.last ?? 0) > 0)
       && (!q || (item.code + ' ' + item.keywords).toLowerCase().includes(q))
       && (options.animation === 'all' || (item.emote?.animated === true) === (options.animation === 'animated')))
@@ -114,8 +121,7 @@ export class PickerModel {
     this.seen.set(message.channel, seen);
     const used = tokens.flatMap((token) => token.type === 'emote' ? [token.emote.code] : []);
     // Emoji entries include variation selectors and multi-codepoint sequences.
-    const emojiSet = new Set(EMOJIS);
-    for (const word of message.text.split(/\s+/)) if (emojiSet.has(word)) used.push(word);
+    used.push(...observedEmoji(message.text));
     const uses = this.uses.get(message.channel) ?? new Map<string, Usage>();
     for (const code of new Set(used)) { const old = uses.get(code); uses.delete(code); uses.set(code, { count: (old?.count ?? 0) + 1, last: Math.max(old?.last ?? 0, message.timestamp) }); }
     while (uses.size > 4096) { const first = uses.keys().next().value; if (first) uses.delete(first); else break; }
@@ -124,7 +130,7 @@ export class PickerModel {
   resetOrder(channel:string):void {this.load(channel);this.uses.set(channel,new Map());this.save(channel);}
   saveAll(): void { for (const channel of this.loaded) this.save(channel); }
   save(channel: string): void {
-    this.load(channel);
+    this.load(channel);setEmojiStyle(this.options.emojiStyle);
     try {
       localStorage.setItem(profileKey('chatthing:v1:picker:options'), JSON.stringify(this.options));
       localStorage.setItem(profileKey('chatthing:v1:picker:') + channel, JSON.stringify({ recent: this.recents.get(channel) ?? [], uses: [...(this.uses.get(channel) ?? [])].slice(-1000), coverage: this.coverage(channel).snapshot() }));
@@ -171,8 +177,8 @@ export function pickerFromURL(saved:PickerOptions,query:URLSearchParams):PickerO
  if(query.has('eptabs')){const wanted=(query.get('eptabs')??'').toLowerCase().split(',');const sources=SOURCES.filter(source=>wanted.includes(source.toLowerCase()));data.enabled=wanted.includes('none')?[]:sources.length?sources:[...SOURCES];}
  if(query.has('epage')){const value=query.get('epage')===''?1:Number(query.get('epage'));if([0,1,2].includes(value)){data.ageRows=value;}}
  if(query.has('epanim')){const wanted=(query.get('epanim')??'').split(',');const animated=wanted.includes('anim')||wanted.includes('animf'),still=wanted.includes('still');data.animation=animated&&!still?'animated':still&&!animated?'still':'all';data.frozen=wanted.includes('animf')&&!wanted.includes('anim');}
- return parseOptions(data);
+ return parseOptions({...data,emojiStyle:query.get('emstyle')??data.emojiStyle,emojiCategory:query.get('emcat')??data.emojiCategory,emojiTone:query.get('emtone')??data.emojiTone});
 }
 export function pickerURL(options:PickerOptions,url:URL):void {
- const q=url.searchParams;q.set('epmix',options.mixed?'1':'0');q.set('epnames',options.names?'1':'0');q.set('epzoom',Object.keys(ZOOMS).find(key=>ZOOMS[key]===options.zoom)??'');q.set('epsort',options.sort==='az'?'az':options.seenOnly?'useseen':'use');q.set('ephold',options.hold?options.holdPlus?'2':'1':'0');q.set('eptabs',options.enabled.length?options.enabled.map(source=>source.toLowerCase()).join(','):'none');q.set('epage',String(options.ageRows));q.set('epmarkers',options.ages?'1':'0');q.set('epanim',[...(options.animation!=='still'?[options.frozen?'animf':'anim']:[]),...(options.animation!=='animated'?['still']:[])].join(','));
+ const q=url.searchParams;q.set('emstyle',options.emojiStyle);q.set('emcat',options.emojiCategory);q.set('emtone',options.emojiTone);q.set('epmix',options.mixed?'1':'0');q.set('epnames',options.names?'1':'0');q.set('epzoom',Object.keys(ZOOMS).find(key=>ZOOMS[key]===options.zoom)??'');q.set('epsort',options.sort==='az'?'az':options.seenOnly?'useseen':'use');q.set('ephold',options.hold?options.holdPlus?'2':'1':'0');q.set('eptabs',options.enabled.length?options.enabled.map(source=>source.toLowerCase()).join(','):'none');q.set('epage',String(options.ageRows));q.set('epmarkers',options.ages?'1':'0');q.set('epanim',[...(options.animation!=='still'?[options.frozen?'animf':'anim']:[]),...(options.animation!=='animated'?['still']:[])].join(','));
 }
