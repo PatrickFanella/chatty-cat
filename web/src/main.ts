@@ -1,3 +1,4 @@
+import {ProviderPanel,getProviderPreferences,selectProviderMetadata,reconcileProviderMetadata} from './provider-preferences';
 import {ModerationWorkspace} from './moderation-ui';
 import {UserNotesPanel} from './user-notes-ui';
 import {getProfileScope,profileKey} from './account-profiles';
@@ -456,7 +457,9 @@ function paintStreamInfo(data:ChannelMetadata):void{const p=getPresentation();
     if(data.lastVod){const archiveLink=document.createElement('a');archiveLink.href=data.lastVod.url;archiveLink.target='_blank';archiveLink.rel='noopener noreferrer';archiveLink.textContent='Latest archive · '+new Date(data.lastVod.start).toLocaleDateString();archiveLink.title=data.lastVod.title+' · '+new Date(data.lastVod.start).toLocaleString()+' → '+new Date(data.lastVod.end).toLocaleString()+' · '+Math.round((Date.parse(data.lastVod.end)-Date.parse(data.lastVod.start))/60000)+' minutes';streamInfo.append(' · ',archiveLink);}
     streamInfo.title = data.errors.length ? `Some metadata unavailable: ${data.errors.join(', ')}` : data.stream.title;
   }
-const metadataClient = new MetadataClient(channels, (data) => {
+const rawMetadata=new Map<string,ChannelMetadata>();
+function applyProviderData(data:ChannelMetadata):void{
+  data=selectProviderMetadata(data,getProviderPreferences());
   const previous = metadata.get(data.channel);
   if (JSON.stringify([previous?.emotes, previous?.badges]) !== JSON.stringify([data.emotes, data.badges])) visualRevision++;
   metadata.set(data.channel, data);statsLedger.reconcile(data.channel);streamHistory.observe(data);
@@ -465,9 +468,13 @@ const metadataClient = new MetadataClient(channels, (data) => {
   if (data.stream.uptime && !data.errors.includes('stream uptime')) attention.stream(data.channel, !/offline|not streaming|not live|not online|not found/i.test(data.stream.uptime), data.stream.title);
   if(data.channel===channels[0])paintStreamInfo(data);
   scheduleRender();
+}
+const metadataClient = new MetadataClient(channels, (data) => {
+ const next=reconcileProviderMetadata(data,rawMetadata.get(data.channel),getProviderPreferences());rawMetadata.set(data.channel,next);applyProviderData(next);
 }, (channel) => {
   if (channel === channels[0]) streamInfo.title = 'Stream metadata unavailable; chat continues';
 });
+const providerPanel=new ProviderPanel(()=>{for(const data of rawMetadata.values())applyProviderData(data);visualRevision++;scheduleRender();},()=>{const accepted=metadataClient.refresh();if(accepted)rawMetadata.clear();return accepted;},!!panePopout||ephemeralPopout||overlay);
 metadataClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);threadsPanel?.observe(message);scheduleRender();}},store.messages);
 function liveSources():string[]{return capacityRefused?[]:overlay?channels.slice(0,6):virtualLog.sources();}
@@ -541,7 +548,7 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards?.stop();userNotesPanel?.stop();moderationPanel?.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector?.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards?.stop();userNotesPanel?.stop();moderationPanel?.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); providerPanel.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector?.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
 
 }
