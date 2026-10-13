@@ -444,3 +444,11 @@ html[data-privacy="true"] #portable-logs { display:none!important; }
 #user-notes textarea,#identity-preview textarea,#user-inspector textarea {display:block;width:min(100%,500px);min-height:90px;}
 #user-notes pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;}
 html[data-privacy=true] #user-notes,html[data-privacy=true] #user-notes-open,[data-presentation-hide-account=true] #user-notes-open {display:none!important;}
+
+#moderation-workspace {width:min(1100px,95vw);}
+.moderation-columns {display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+#moderation-workspace label {display:block;margin:8px 0;}
+#moderation-workspace pre {white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;}
+.moderation-columns section {max-height:500px;overflow:auto;}
+html[data-privacy=true] #moderation-workspace {display:none!important;}
+@media(max-width:700px){.moderation-columns {grid-template-columns:1fr;}}

@@ -228,6 +228,9 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 		if !ok {
 			return sendResult{Error: "Channel lookup failed; command was not sent"}, http.StatusBadGateway
 		}
+		if input.ExpectedBroadcasterID != "" && input.ExpectedBroadcasterID != broadcaster {
+			return sendResult{Error: "Channel identity changed; review the action again"}, http.StatusConflict
+		}
 		if strings.HasPrefix(c.scope, "channel:manage:") && broadcaster != p.user.UserID {
 			return sendResult{Error: "This command requires the selected channel's broadcaster account"}, http.StatusForbidden
 		}
@@ -274,6 +277,9 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 			target, ok := s.resolveUser(ctx, p, c.target)
 			if !ok {
 				return sendResult{Error: "User not found; command was not sent"}, http.StatusNotFound
+			}
+			if input.ExpectedTargetID != "" && input.ExpectedTargetID != target {
+				return sendResult{Error: "User identity changed; review the action again"}, http.StatusConflict
 			}
 			path = "/moderation/bans"
 			if c.name == "/unban" {

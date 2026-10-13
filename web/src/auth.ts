@@ -10,6 +10,7 @@ export type AuthStatus = {
   chattersEnabled?: boolean;
   emotesEnabled?: boolean;
   personalChatEnabled?: boolean;
+	moderationReadEnabled?:boolean;
   whispersEnabled?: boolean;
   commandPermissions?: string[];
 };
@@ -30,6 +31,7 @@ export function parseAuthStatus(value: unknown): AuthStatus {
     result.whispersEnabled = data["whispersEnabled"] === true;
     result.personalChatEnabled = data["personalChatEnabled"] === true;
     result.emotesEnabled = data["emotesEnabled"] === true;
+	result.moderationReadEnabled=data['moderationReadEnabled']===true;
     const allowed = ["moderator:manage:banned_users", "moderator:manage:chat_messages", "moderator:manage:chat_settings", "moderator:manage:announcements", "user:manage:chat_color", "user:manage:whispers", "channel:manage:raids", "channel:manage:moderators", "channel:manage:vips", "user:manage:blocked_users", "moderator:manage:shoutouts"];
     result.commandPermissions = Array.isArray(data["commandPermissions"]) ? allowed.filter(scope => (data["commandPermissions"] as unknown[]).includes(scope)) : [];
     for (const key of ['login', 'userID', 'csrf'] as const) {

@@ -1,0 +1,49 @@
+# Milestone 3 progress
+
+All seven M2 issues are merged as of October 12, 2026, including user notes PR #71.
+M2 production deployment and owner/provider acceptance remain separate from merged
+code and local fixture checks. The original GIPHY provider gate remains in M0.
+
+## Permission-aware moderation workspace — #21
+
+Implementation starts from merged `11152cf`. The workspace is an independent
+dialog with retained user history beside staged actions and a private journal.
+History uses paged archive queries, stable author IDs where available and disclosed
+name-match fallback, with retained moderation redaction. It does not fetch missing
+chat history or replace the main reader.
+
+Provider context verifies the actor as broadcaster, moderator, viewer or unknown.
+Moderator membership requires explicit `user:read:moderated_channels` consent;
+scans stop at five 100-channel pages and do not infer a role from a truncated list.
+Public room settings are timestamped reads. Current ban/timeout reads are limited
+to supported broadcaster authorization; unavailable state remains labelled.
+Sources: [moderated channels](https://dev.twitch.tv/docs/api/reference/#get-moderated-channels),
+[chat settings](https://dev.twitch.tv/docs/api/reference/#get-chat-settings), and
+[banned users](https://dev.twitch.tv/docs/api/reference/#get-banned-users).
+
+Preview has no provider writes. Confirm stores a pending private receipt, rechecks
+role/scopes/identities, and sends once. The existing server command path checks
+expected channel/user IDs before delivery. Confirmed, rejected and uncertain
+outcomes remain distinct; uncertain outcomes have no automatic retry. Scope
+consent alone does not establish moderator membership.
+
+The journal uses a separate IndexedDB database, with transactional account states
+and a 1 MB export bound. Defaults are 1,000 rows / 30 days; pending outcomes are
+protected from automatic pruning. Explicit retention preview/apply can remove
+eligible rows, including unresolved receipts, after a private recovery export.
+Account/privacy changes clear private views and cancel stale work. Receipts never
+enter public chat, archive or statistics. Provider writes in verification are
+restricted to the local synthetic fixture until a live destination is approved.
+
+Verification: 526 frontend tests, strict TypeScript and production build pass.
+Full Go race tests, vet and zero-issue lint pass; the 515-row inventory is unchanged.
+Native Chromium verified 201 unique equal-time messages in three pages, deletion
+redaction, zero-write previews, confirmed/rejected/uncertain outcomes, revoked-role
+and expected-ID rejection before provider writes, native journal/public downloads,
+account isolation/restoration, explicit retention and privacy cleanup. The six-row
+private download was 2,430 bytes; the 46,180-byte public log excludes the private
+reason and deleted text. Reasons are sent to Twitch for ban/timeout actions.
+
+Reproducible demo: [moderation workspace](moderation-workspace-demo.md).
+Live moderation acceptance remains pending an approved channel/target/action.
+This implementation is for review; no M3 deployment or live write is recorded.

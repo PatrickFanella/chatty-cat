@@ -21,10 +21,12 @@ var requestPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{16,64}$`)
 var messageIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
 
 type sendInput struct {
-	Channel   string `json:"channel"`
-	Message   string `json:"message"`
-	ReplyID   string `json:"replyID,omitempty"`
-	RequestID string `json:"requestID"`
+	Channel               string `json:"channel"`
+	Message               string `json:"message"`
+	ReplyID               string `json:"replyID,omitempty"`
+	RequestID             string `json:"requestID"`
+	ExpectedBroadcasterID string `json:"expectedBroadcasterID,omitempty"`
+	ExpectedTargetID      string `json:"expectedTargetID,omitempty"`
 }
 type sendResult struct {
 	Whisper   bool   `json:"whisper,omitempty"`
@@ -73,6 +75,10 @@ func (s *Service) send(w http.ResponseWriter, r *http.Request) {
 	}
 	if !channelPattern.MatchString(input.Channel) || !requestPattern.MatchString(input.RequestID) || (input.ReplyID != "" && !messageIDPattern.MatchString(input.ReplyID)) {
 		writeSend(w, 400, sendResult{Error: "Invalid channel or message identifier"})
+		return
+	}
+	if input.ExpectedBroadcasterID != "" && !numericID(input.ExpectedBroadcasterID) || input.ExpectedTargetID != "" && !numericID(input.ExpectedTargetID) {
+		writeSend(w, 400, sendResult{Error: "Invalid expected moderation identity"})
 		return
 	}
 	if !utf8.ValidString(input.Message) || strings.TrimSpace(input.Message) == "" || utf8.RuneCountInString(input.Message) > 500 || strings.IndexFunc(input.Message, unicode.IsControl) >= 0 {
