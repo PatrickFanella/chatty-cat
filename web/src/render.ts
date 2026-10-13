@@ -1,3 +1,4 @@
+import {cosmeticBadges} from './cosmetics';
 import {getProviderPreferences,showBadge} from './provider-preferences';
 import {getPresentation,formatTimestamp,usernameLabel} from './presentation';
 import {getLocalNickname} from './completion-preferences';
@@ -123,6 +124,7 @@ export function messageRow(message: ChatMessage, metadata?: ChannelMetadata, fro
       badges.append(chip);
     }
   }
+  for(const badge of cosmeticBadges(message.tags['user-id']??'')){const image=document.createElement('img');image.className='badge cosmetic-badge';image.src=badge.url;image.alt='['+badge.provider+' cosmetic: '+badge.title+']';image.title=badge.provider+' cosmetic · '+badge.title+' · not a Twitch role';image.loading='lazy';image.referrerPolicy='no-referrer';image.addEventListener('error',()=>image.replaceWith(document.createTextNode(image.alt)),{once:true});badges.append(image);}
   row.append(time, channel);
   const sub=document.createElement('span');sub.className='sub-months';
   const months=/(?:^|,)subscriber\/(\d+)(?:,|$)/.exec(message.tags['badge-info']??'')?.[1];

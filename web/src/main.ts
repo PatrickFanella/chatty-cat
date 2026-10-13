@@ -1,3 +1,4 @@
+import {CosmeticClient} from './cosmetics';
 import {ProviderPanel,getProviderPreferences,selectProviderMetadata,reconcileProviderMetadata} from './provider-preferences';
 import {ModerationWorkspace} from './moderation-ui';
 import {UserNotesPanel} from './user-notes-ui';
@@ -474,8 +475,9 @@ const metadataClient = new MetadataClient(channels, (data) => {
 }, (channel) => {
   if (channel === channels[0]) streamInfo.title = 'Stream metadata unavailable; chat continues';
 });
-const providerPanel=new ProviderPanel(()=>{for(const data of rawMetadata.values())applyProviderData(data);visualRevision++;scheduleRender();},()=>{const accepted=metadataClient.refresh();if(accepted)rawMetadata.clear();return accepted;},!!panePopout||ephemeralPopout||overlay);
-metadataClient.start();
+const cosmeticClient=new CosmeticClient(()=>store.messages.slice(-100).map(message=>message.tags['user-id']??''),()=>{visualRevision++;scheduleRender();},(_providers,detail)=>providerPanel.cosmeticsStatus(detail));
+const providerPanel=new ProviderPanel(()=>{cosmeticClient.preferencesChanged();for(const data of rawMetadata.values())applyProviderData(data);visualRevision++;scheduleRender();},()=>{const accepted=metadataClient.refresh();if(accepted)rawMetadata.clear();return accepted;},!!panePopout||ephemeralPopout||overlay);
+metadataClient.start();cosmeticClient.start();
 const recovery = new ChatRecovery(channels[0]!, message=>{if(store.add(message)){archive.add(message);threadsPanel?.observe(message);scheduleRender();}},store.messages);
 function liveSources():string[]{return capacityRefused?[]:overlay?channels.slice(0,6):virtualLog.sources();}
 const pageCoverage = new PageCoverage(liveSources(), message=>{if(store.add(message)){archive.add(message);threadsPanel?.observe(message);scheduleRender();}});
@@ -548,7 +550,7 @@ animation.addEventListener('click', () => {
 });
 setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
-window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards?.stop();userNotesPanel?.stop();moderationPanel?.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); providerPanel.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector?.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
+window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards?.stop();userNotesPanel?.stop();moderationPanel?.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop(); providerPanel.stop(); cosmeticClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector?.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
 
 }
