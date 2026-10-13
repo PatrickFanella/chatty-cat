@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const commandScopes = "moderator:manage:banned_users moderator:manage:chat_messages moderator:manage:chat_settings moderator:manage:announcements user:manage:chat_color user:manage:whispers channel:manage:raids channel:manage:moderators channel:manage:vips user:manage:blocked_users moderator:manage:shoutouts"
+const commandScopes = "moderator:manage:banned_users moderator:manage:chat_messages moderator:manage:chat_settings moderator:manage:announcements user:manage:chat_color user:manage:whispers channel:manage:raids channel:manage:moderators channel:manage:vips user:manage:blocked_users moderator:manage:shoutouts moderator:manage:warnings moderator:manage:shield_mode"
 
 type chatCommand struct {
 	name, scope, target, reason, text string
@@ -29,6 +29,9 @@ func parseCommand(text string) (chatCommand, error) {
 		return c, errors.New("empty command")
 	}
 	c.name = strings.ToLower(fields[0])
+	if c.name == "/untimeout" {
+		c.name = "/unban"
+	}
 	args := fields[1:]
 	noArgs := func() error {
 		if len(args) != 0 {
@@ -90,6 +93,26 @@ func parseCommand(text string) (chatCommand, error) {
 			return c, errors.New("specify action text")
 		}
 		c.text = strings.TrimSpace(text[len(fields[0]):])
+	case "/shield", "/shieldoff":
+		c.scope = "moderator:manage:shield_mode"
+		return c, noArgs()
+	case "/banid":
+		c.scope = "moderator:manage:banned_users"
+		if len(args) == 0 || !numericID(args[0]) || args[0][0] == '0' {
+			return c, errors.New("use /banid numeric-user-id [reason]")
+		}
+		c.target = args[0]
+		c.reason = strings.Join(args[1:], " ")
+	case "/warn":
+		c.scope = "moderator:manage:warnings"
+		if len(args) < 2 {
+			return c, errors.New("use /warn username reason")
+		}
+		c.target = strings.ToLower(strings.TrimPrefix(args[0], "@"))
+		c.reason = strings.Join(args[1:], " ")
+		if !channelPattern.MatchString(c.target) {
+			return c, errors.New("invalid Twitch username")
+		}
 	case "/ban", "/timeout", "/unban":
 		c.scope = "moderator:manage:banned_users"
 		if len(args) == 0 {
@@ -239,7 +262,7 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 		switch c.name {
 		case "/raid", "/mod", "/unmod", "/vip", "/unvip", "/shoutout":
 			target, ok := s.resolveUser(ctx, p, c.target)
-			if !ok {
+			if !ok || !numericID(target) {
 				return sendResult{Error: "User not found; command was not sent"}, http.StatusNotFound
 			}
 			if target == broadcaster {
@@ -273,13 +296,22 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 		case "/unraid":
 			method, path = http.MethodDelete, "/raids"
 			params.Del("moderator_id")
-		case "/ban", "/timeout", "/unban":
-			target, ok := s.resolveUser(ctx, p, c.target)
+		case "/shield", "/shieldoff":
+			method, path = http.MethodPut, "/moderation/shield_mode"
+			payload["is_active"] = c.name == "/shield"
+		case "/ban", "/timeout", "/unban", "/warn", "/banid":
+			target, ok := c.target, true
+			if c.name != "/banid" {
+				target, ok = s.resolveUser(ctx, p, c.target)
+			}
 			if !ok {
 				return sendResult{Error: "User not found; command was not sent"}, http.StatusNotFound
 			}
 			if input.ExpectedTargetID != "" && input.ExpectedTargetID != target {
 				return sendResult{Error: "User identity changed; review the action again"}, http.StatusConflict
+			}
+			if (c.name == "/banid" || c.name == "/warn") && (target == broadcaster || target == p.user.UserID) {
+				return sendResult{Error: "Choose another target; self/broadcaster actions are unavailable"}, http.StatusBadRequest
 			}
 			path = "/moderation/bans"
 			if c.name == "/unban" {
@@ -295,6 +327,9 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 					data["reason"] = c.reason
 				}
 				payload["data"] = data
+				if c.name == "/warn" {
+					path = "/moderation/warnings"
+				}
 			}
 		case "/delete", "/clear":
 			method, path = http.MethodDelete, "/moderation/chat"
@@ -357,10 +392,41 @@ func (s *Service) command(ctx context.Context, p *session, input sendInput) (sen
 			return sendResult{Error: "Command result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
 		}
 	}
+	if slices.Contains([]string{"/warn", "/shield", "/shieldoff", "/banid"}, c.name) && status != http.StatusOK {
+		return sendResult{Error: "Moderation result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+	}
 	if status == http.StatusOK {
 		var confirmation struct{ Data []json.RawMessage }
 		if json.Unmarshal(response, &confirmation) != nil || len(confirmation.Data) != 1 {
 			return sendResult{Error: "Command result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+		}
+		if c.name == "/banid" {
+			var v struct {
+				Broadcaster string `json:"broadcaster_id"`
+				User        string `json:"user_id"`
+			}
+			if json.Unmarshal(confirmation.Data[0], &v) != nil || v.Broadcaster != params.Get("broadcaster_id") || v.User != c.target {
+				return sendResult{Error: "Numeric ban result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
+		}
+		if c.name == "/warn" {
+			var v struct {
+				Broadcaster string `json:"broadcaster_id"`
+				Moderator   string `json:"moderator_id"`
+				User        string `json:"user_id"`
+				Reason      string `json:"reason"`
+			}
+			if json.Unmarshal(confirmation.Data[0], &v) != nil || v.Broadcaster != params.Get("broadcaster_id") || v.Moderator != p.user.UserID || v.User != payload["data"].(map[string]any)["user_id"] || v.Reason != c.reason {
+				return sendResult{Error: "Warning result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
+		}
+		if c.name == "/shield" || c.name == "/shieldoff" {
+			var v struct {
+				Active *bool `json:"is_active"`
+			}
+			if json.Unmarshal(confirmation.Data[0], &v) != nil || v.Active == nil || *v.Active != (c.name == "/shield") {
+				return sendResult{Error: "Shield result could not be confirmed; check Twitch before retrying", Uncertain: true}, http.StatusBadGateway
+			}
 		}
 		if c.name == "/raid" {
 			var raid struct {

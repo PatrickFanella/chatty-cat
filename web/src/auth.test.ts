@@ -28,3 +28,4 @@ describe('auth boundary', () => {
     await expect(logout('csrf')).rejects.toThrow('Could not sign out');
   });
 });
+it('retains warning and Shield Mode command permissions while excluding unknown scopes',()=>{const value=parseAuthStatus({enabled:true,authenticated:true,loginURL:'http://127.0.0.1:5197/api/auth/login',userID:'42',login:'moderator',csrf:'fixture',commandPermissions:['moderator:manage:warnings','moderator:manage:shield_mode','unknown:secret']});expect(value.commandPermissions).toEqual(['moderator:manage:warnings','moderator:manage:shield_mode']);});

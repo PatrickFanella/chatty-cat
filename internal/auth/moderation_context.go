@@ -19,18 +19,29 @@ type moderationContext struct {
 	At            int64          `json:"at"`
 	Settings      map[string]any `json:"settings"`
 	TargetState   string         `json:"targetState"`
+	TargetKind    string         `json:"targetKind"`
+	ShieldState   string         `json:"shieldState"`
 }
 
 func (s *Service) moderationContext(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	for key, values := range q {
-		if (key != "channel" && key != "user") || len(values) != 1 {
+		if (key != "channel" && key != "user" && key != "identity") || len(values) != 1 {
 			http.Error(w, "Invalid moderation context query", http.StatusBadRequest)
 			return
 		}
 	}
 	channel, target := q.Get("channel"), q.Get("user")
-	if !s.sameHost(r) || !channelPattern.MatchString(channel) || !channelPattern.MatchString(target) {
+	idMode := q.Get("identity") == "id"
+	if q.Get("identity") != "" && !idMode {
+		http.Error(w, "Invalid target identity mode", http.StatusBadRequest)
+		return
+	}
+	if idMode && (!numericID(target) || target[0] == '0') {
+		http.Error(w, "Use a positive numeric user ID", http.StatusBadRequest)
+		return
+	}
+	if !s.sameHost(r) || !channelPattern.MatchString(channel) || (!idMode && !channelPattern.MatchString(target)) {
 		http.Error(w, "Choose a valid channel and user", http.StatusBadRequest)
 		return
 	}
@@ -61,12 +72,20 @@ func (s *Service) moderationContext(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Channel identity unavailable", http.StatusBadGateway)
 		return
 	}
-	user, ok := s.resolveUser(r.Context(), p, target)
+	user, ok := target, true
+	if !idMode {
+		user, ok = s.resolveUser(r.Context(), p, target)
+	}
 	if !ok || !numericID(user) {
 		http.Error(w, "User identity unavailable", http.StatusNotFound)
 		return
 	}
 	result := moderationContext{Account: p.user.UserID, Channel: channel, BroadcasterID: broadcaster, Target: target, TargetID: user, Role: "unknown", RoleDetail: "Grant user:read:moderated_channels to verify moderator membership", At: now.UnixMilli(), Settings: map[string]any{}, TargetState: "Unavailable: only the broadcaster can read current bans through this API"}
+	result.TargetKind = "login"
+	result.ShieldState = "Unavailable; grant Shield Mode read/manage permission and verify channel role"
+	if idMode {
+		result.TargetKind = "id"
+	}
 	if broadcaster == p.user.UserID {
 		result.Role = "broadcaster"
 		result.RoleDetail = "Authenticated user ID matches the selected broadcaster"
@@ -126,6 +145,23 @@ func (s *Service) moderationContext(w http.ResponseWriter, r *http.Request) {
 			}
 			seen[cursor] = true
 			result.RoleDetail = "Membership scan reached its 500-channel limit; selected role remains unknown"
+		}
+	}
+	if (result.Role == "moderator" || result.Role == "broadcaster") && (slices.Contains(p.user.Scopes, "moderator:read:shield_mode") || slices.Contains(p.user.Scopes, "moderator:manage:shield_mode")) {
+		data, status, ok := s.helix(r.Context(), p, http.MethodGet, "/moderation/shield_mode?"+url.Values{"broadcaster_id": {broadcaster}, "moderator_id": {p.user.UserID}}.Encode(), nil)
+		if ok && status == http.StatusOK {
+			var v struct {
+				Data []struct {
+					Active *bool `json:"is_active"`
+				}
+			}
+			if json.Unmarshal(data, &v) == nil && len(v.Data) == 1 && v.Data[0].Active != nil {
+				if *v.Data[0].Active {
+					result.ShieldState = "Active at this read"
+				} else {
+					result.ShieldState = "Inactive at this read"
+				}
+			}
 		}
 	}
 	data, status, ok := s.helix(r.Context(), p, http.MethodGet, "/chat/settings?broadcaster_id="+url.QueryEscape(broadcaster), nil)
