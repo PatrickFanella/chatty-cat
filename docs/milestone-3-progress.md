@@ -252,3 +252,57 @@ their provider acceptance remains pending login and deployment.
 Sources: [prediction reads](https://dev.twitch.tv/docs/api/reference/#get-predictions),
 [creation](https://dev.twitch.tv/docs/api/reference/#create-prediction),
 [lock/cancel/resolve](https://dev.twitch.tv/docs/api/reference/#end-prediction).
+
+## Clip, marker and broadcaster management actions — #41
+
+`/clip`, `/marker`, `/settitle`, `/setgame` and `/commercial` composer submissions
+open a private broadcaster review and preserve the source draft. Explicit consent
+requests clip, broadcast-management and commercial permissions. The review shows
+actor/channel IDs, live/offline state, stream ID, prior title/category and scope.
+Marker/metadata/commercial writes require the broadcaster account in this adaptation;
+editor membership/writes remain explicitly unavailable. Clip permissions and
+VOD/ad eligibility remain subject to provider authorization.
+
+Clip, marker and commercial actions require a verified live stream. Commercials
+also require observed affiliate/partner status. Metadata updates work offline.
+Expected broadcaster/stream IDs and a reviewed metadata revision are checked before
+writes. Category search is bounded to 20 results; ambiguous names cannot choose
+an ID. Explicit selected IDs are revalidated through the provider.
+
+Confirmation saves a pending private receipt before one request. A clip's accepted
+capture response does not confirm publication: bounded reads wait up to 60 seconds
+for matching clip, broadcaster and creator IDs. Clip/edit links appear only after
+published confirmation and use validated Twitch URLs. Unknown publication returns
+an uncertain receipt without another capture request. Markers require exact ID,
+creation timestamp, position and description acknowledgement. Title/category
+changes require matching readback. Commercial acknowledgement validates requested
+length and cooldown; the server rejects a known cooldown before another provider
+write. Actual served ad duration may differ from the requested length.
+
+Malformed/unavailable responses remain uncertain, with no automatic retry.
+Account/permission changes clear staged actions; privacy/closure clears private
+forms/results/links. A shared guard prevents concurrent writes across workspace
+panels. Permission polling now updates every child panel, including read-only
+poll/prediction state. Public composer drafts remain intact.
+
+Verification: 571 frontend tests and production build; full Go race suite, vet and
+zero-issue lint. Tests cover identities/scopes, live/offline and offline metadata,
+stale revisions, ambiguity, marker acknowledgement, unpublished clips/cancellation,
+unsafe URLs, cooldown, pending-before-write and privacy/permission propagation.
+Native Chromium verified zero-write preview, published clip links, marker creation,
+title/category readback, explicit choice among identical category names, commercial
+acknowledgement/cooldown rejection, uncertain marker without retry, and composer
+staging with its draft preserved. The six provider write attempts were synthetic:
+five confirmed actions and one uncertain marker. Rate/cooldown refusals did not
+increase the provider count. [Demo](broadcaster-actions-demo.md).
+
+Six inventory rows now cite the verified adaptation. Broadcaster markers remain
+partial because editor writes are unavailable; the 515-row inventory reports 158
+implemented, 265 planned, 38 partial, 38 platform-limited and 16 companion-only.
+Live checks are owner-authorized but blocked on shared-browser Twitch login/consent
+and production deployment after the PR stack merges. No real M3 write is recorded.
+
+Sources: [clip capture/publication](https://dev.twitch.tv/docs/api/reference/#create-clip),
+[markers](https://dev.twitch.tv/docs/api/reference/#create-stream-marker),
+[channel updates](https://dev.twitch.tv/docs/api/reference/#modify-channel-information),
+[commercials](https://dev.twitch.tv/docs/api/reference/#start-commercial).
