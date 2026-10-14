@@ -56,7 +56,7 @@ export function parseMetadata(value: unknown): ChannelMetadata | null {
     }
   }
   const badges: Record<string, Record<string, Badge>> = Object.create(null) as Record<string, Record<string, Badge>>;
-  if(Object.keys(value.badges).length>256)return null;
+  if(Object.keys(value.badges).length>1024)return null;
   for (const [set, versions] of Object.entries(value.badges)) {
     if (!set || set.length>100 || !object(versions) || Object.keys(versions).length>256) return null;
     const parsed: Record<string, Badge> = Object.create(null) as Record<string, Badge>;

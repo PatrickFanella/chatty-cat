@@ -5,6 +5,12 @@ const valid = { emoteUse:{Wave:42}, channel: 'room', errors: ['FFZ channel'], st
   emotes: { Wave: { code: 'Wave', url: 'https://cdn.example/wave', staticUrl: '', source: '7TV', animated: true, zeroWidth: false } },
   badges: { subscriber: { '1': { url: 'https://cdn.example/badge', title: 'Subscriber', description: 'One month' } } },
 };
+it('accepts the live Twitch catalog size while retaining category and version bounds',()=>{
+ const badges=(count:number)=>Object.fromEntries(Array.from({length:count},(_,i)=>['badge'+i,valid.badges.subscriber]));
+ expect(Object.keys(parseMetadata({...valid,badges:badges(420)})?.badges??{})).toHaveLength(420);
+ expect(parseMetadata({...valid,badges:badges(1025)})).toBeNull();
+ expect(parseMetadata({...valid,badges:{subscriber:Object.fromEntries(Array.from({length:257},(_,i)=>[''+i,valid.badges.subscriber['1']]))}})).toBeNull();
+});
 describe('metadata wire boundary', () => {
   it('retains normalized data and partial-provider failures', () => expect(parseMetadata(valid)).toEqual(valid));
   it.each([null, [], {}, { ...valid, channel: '../room' }, { ...valid, stream: { title: 1 } }, { ...valid, errors: [42] }])('rejects malformed responses', (value) => expect(parseMetadata(value)).toBeNull());
