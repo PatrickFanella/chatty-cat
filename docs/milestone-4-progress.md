@@ -1,6 +1,6 @@
 # Milestone 4 progress
 
-M4 implementation through tested commit `5892994` is now deployed with local upload/sync storage and configured optional provider services. See [deployment evidence and remaining acceptance](m4-deployment-2026-10-13.md). Owner-confirmed upload, workspace-sync and provider-activity browser checks are recorded in the [roadmap checkpoint](roadmap.md#live-acceptance-checkpoint--october-13-2026). Remaining provider/EventSub acceptance and the documented source-cache freshness issue remain open; M4 is not complete.
+M4 implementation through tested commit `5892994` is now deployed with local upload/sync storage and configured optional provider services. See [deployment evidence and remaining acceptance](m4-deployment-2026-10-13.md). Owner-confirmed upload, workspace-sync and provider-activity browser checks are recorded in the [roadmap checkpoint](roadmap.md#live-acceptance-checkpoint--october-13-2026). Device sync #29 is accepted and closed. The source-cache mismatch has cleared on public-browser recheck. Remaining provider/EventSub acceptance stays open; M4 is not complete.
 
 The isolated account-profile foundation (#27) is merged. Custom themes #84 are
 merged and deployed at `3568fa4`, with public preview/revert verified and no
