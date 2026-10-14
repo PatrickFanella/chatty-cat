@@ -1,5 +1,5 @@
 import type {ChatMessage} from './protocol';
-export const LOCAL_COMMANDS=['/clearmessages','/uptime','/openurl','/copy','/user','/usercard','/reply','/r','/whisper','/msg','.w','/requests','/help','/disconnect','/reconnect','/popout','/popup','/ignore','/unignore','/follow','/unfollow'] as const;
+export const LOCAL_COMMANDS=['/streamlink','/clearmessages','/uptime','/openurl','/copy','/user','/usercard','/reply','/r','/whisper','/msg','.w','/requests','/help','/disconnect','/reconnect','/popout','/popup','/ignore','/unignore','/follow','/unfollow'] as const;
 export function isLocalCommand(text:string):boolean{return (LOCAL_COMMANDS as readonly string[]).includes(text.trim().split(/\s/)[0]!.toLowerCase());}
 export class LocalTargets {
  private identity='';publicReply:ChatMessage|undefined;recipient='';
@@ -7,12 +7,13 @@ export class LocalTargets {
  reply(message:ChatMessage):void{if(this.identity&&message.id&&message.command==='PRIVMSG')this.publicReply={...message,tags:{...message.tags}};}
  whisper(login:string):void{if(this.identity&&/^[a-z0-9_]{1,25}$/i.test(login))this.recipient=login.toLowerCase();}
 }
-export interface LocalContext {channel:string;uptime:string;targets:LocalTargets;open:(url:string)=>boolean;copy:(text:string)=>Promise<void>;clear:(channel:string)=>void;user:(login:string,channel:string)=>boolean;ignore:(login:string,hide:boolean)=>void;connection:(connect:boolean)=>void;popout:(channel:string)=>boolean;reply:(message:ChatMessage,text:string)=>void;stage:(text:string)=>void;help:()=>void}
+export interface LocalContext {playback?:(channel:string)=>void;channel:string;uptime:string;targets:LocalTargets;open:(url:string)=>boolean;copy:(text:string)=>Promise<void>;clear:(channel:string)=>void;user:(login:string,channel:string)=>boolean;ignore:(login:string,hide:boolean)=>void;connection:(connect:boolean)=>void;popout:(channel:string)=>boolean;reply:(message:ChatMessage,text:string)=>void;stage:(text:string)=>void;help:()=>void}
 function login(value:string):string{const result=value.replace(/^#/,'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(result))throw new Error('Choose a valid Twitch user or channel');return result;}
 function open(url:string,c:LocalContext):void{if(!c.open(url))throw new Error('Allow popups to open this link');}
 export async function dispatchLocal(text:string,c:LocalContext):Promise<string|undefined>{
  const command=text.trim().split(/\s/)[0]!.toLowerCase();if(!isLocalCommand(text))return undefined;if(text.length>2000||/[\x00-\x1f\x7f-\x9f]/.test(text))throw new Error('Local commands must be one line of at most 2,000 characters');const arg=text.trim().slice(command.length).trim(),args=arg?arg.split(/\s+/):[];
  switch(command){
+ case '/streamlink':if(args.length>1)throw new Error('Use /streamlink [joined channel]; review quality and tool in the playback panel');if(!c.playback)throw new Error('Desktop playback setup is unavailable in this view');c.playback(login(args[0]??c.channel));return 'Desktop playback setup opened; pair, choose a configured Streamlink tool and quality, then review and confirm launch separately';
  case '/clearmessages':if(arg)throw new Error('Use /clearmessages in the current channel');c.clear(c.channel);return 'Cleared the local view of #'+c.channel+'; history and Twitch chat are retained';
  case '/uptime':return '#'+c.channel+' uptime: '+(c.uptime||'metadata unavailable');
  case '/openurl':{let u:URL;try{u=new URL(arg);}catch{throw new Error('Use /openurl with an HTTP(S) URL');}if(!['http:','https:'].includes(u.protocol)||u.username||u.password)throw new Error('Only HTTP(S) links without credentials are supported');open(u.href,c);return 'Opened link';}

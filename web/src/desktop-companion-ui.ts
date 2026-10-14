@@ -21,13 +21,13 @@ export class DesktopPlaybackPanel{
  private open=():void=>{if(privacyEnabled())return;this.channel.replaceChildren();for(const c of this.channels()){const o=document.createElement('option');o.value=c;o.textContent='#'+c;this.channel.append(o);}this.channel.value=this.current();this.clear();this.overlay.discardReview();this.root.showModal();};
  private edit=():void=>{if(!this.uncertain)this.clear();};
  private privacy=():void=>{if(privacyEnabled()){this.disconnect();this.root.close();}};
- openReview(kind:'playback'|'overlay'):void{
+ openReview(kind:'playback'|'overlay',channel=this.current()):void{
   if(this.hidden)throw new Error('Open desktop review from the main workspace');
   const auth=this.auth();if(privacyEnabled()||!auth?.authenticated||!auth.userID||getProfileScope()!==auth.userID)throw new Error('Use the current signed-in account outside privacy mode');
   if(this.busy||this.uncertain)throw new Error('Resolve the current companion request before opening another review');
   if(document.querySelector('dialog[open]:not([data-rail="true"])'))throw new Error('Close the current dialog before opening desktop review');
-  if(!this.channels().includes(this.current()))throw new Error('Select a joined channel before opening desktop review');
-  this.open();if(kind==='overlay')this.overlay.focusSettings();else{this.quality.scrollIntoView?.({block:'nearest'});this.quality.focus();}
+  if(!this.channels().includes(channel))throw new Error('Select a joined channel before opening desktop review');
+  this.open();this.channel.value=channel;if(kind==='overlay')this.overlay.focusSettings();else{this.quality.scrollIntoView?.({block:'nearest'});this.quality.focus();}
  }
  authChanged():void{if(this.client.authChanged())this.disconnect();else if(this.pending?.account!==this.auth()?.userID)this.clear();}
  stop():void{this.disconnect();this.trigger.removeEventListener('click',this.open);this.root.removeEventListener('change',this.edit);document.removeEventListener('privacychange',this.privacy);this.trigger.remove();this.root.remove();}
