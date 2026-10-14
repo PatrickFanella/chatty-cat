@@ -1,6 +1,6 @@
 # M4 deployment — October 13, 2026
 
-Tested commit `58929944f62344f9b436b3fc11f01ad64f3939c1` is deployed at https://chat.subcult.tv. Runtime image is `sha256:70c72d9c339af73381cdfbb7c9938a3cb99d6fb459b9eb8ef1171d33f762612c`. The release includes the merged M4 work through PR #106 plus the reviewed activity and live-data corrections in PRs #107–109; PR #107 is merged, while #108 and #109 remain open as of this record. Deployment does not close M4.
+Tested commit `58929944f62344f9b436b3fc11f01ad64f3939c1` is deployed at https://chat.subcult.tv. Runtime image is `sha256:70c72d9c339af73381cdfbb7c9938a3cb99d6fb459b9eb8ef1171d33f762612c`. The release includes the merged M4 work through PR #106 plus the reviewed activity and live-data corrections in PRs #107–109; PRs #107–110 are now merged (verified during the roadmap update). Deployment does not close M4.
 
 All 3,971 transferred artifact hashes matched the clean release manifest. Loopback staging verified readiness, enabled upload/sync configuration, signed-out private-route rejection and packaged binary/browser/source hashes. The correction staging used separate directories, avoiding the production sync writer. Staging was stopped and removed before activation. Activation guarded the previous image, current link, Compose file and private environment hash, and included automatic rollback on readiness/runtime mismatch. No rollback was needed.
 
@@ -22,4 +22,14 @@ Public bundle `assets/main-D_3ktAC2.js` matches SHA-256 `70811571a6f88ebca80a4b8
 
 Recovery is root-only at `recovery/m4-5892994-20261013`. `sudo .../rollback.sh --check` passed without mutation. Running it without `--check` restores the preceding M4 image/current link with the same data mounts; it retains all upload and sync data. The earlier `recovery/m4-4615a35-20261013` receipt retains the pre-M4 theme image and configuration. Actual rollback and reboot were not exercised. Backend activation ended in-memory Twitch sessions.
 
-Remaining acceptance requires a fresh real `patrick__eff` session: reviewed upload/receipt/public read/delete and storage persistence; private sync publish/read/conflict/delete with another isolated profile; linked-provider activity with its own reviewed start/stop; controlled provider emote changes and badge events; and the supplemental public/own-message EventSub cases with their required consent and external conditions. The shared preview is prepared for Twitch sign-in. Earlier M3 private-event/journal and eligible/live broadcaster gates remain separate. Fixture results and a healthy deployment do not replace these account/provider checks.
+## Live acceptance checkpoint — October 13, 2026
+
+The owner completed these checks at `chat.subcult.tv` as `patrick__eff` in regular browsers:
+
+- **Image hosting (#30):** reviewed upload, public image display, receipt persistence after reload, owner deletion and public-link 404 passed.
+- **Device sync (#29):** published saved workspaces, fetched the same revision after reload and in a second isolated browser, applied the snapshot with the expected channels/layout, then deleted it. A subsequent fetch showed no active snapshot; both browsers retained their local workspaces. The agent also verified the published revision in the production store before deletion.
+- **Provider activity (#31):** reviewed `patrick__eff` in `#hasanabi` with BTTV and 7TV, started the session and observed Live, then stopped it. The owner confirmed the session ended and the active toolbar indicator disappeared. This proves the observed browser flow; BTTV sends are not delivery receipts, and independent provider-side presence readback was not captured.
+
+M4 remains open. Controlled live emote changes and cosmetic badge events, supplemental public/own-message EventSub cases with consent and suitable external conditions, and the documented source-cache freshness issue remain outstanding. Sync conflict/lost-receipt/recovery cases retain fixture evidence; they were not repeated in production. Upload persistence across a server restart or reboot was not exercised. Native feature limitations and earlier M3 private-event/journal and eligible broadcaster gates remain separate.
+
+The shared preview and regular browsers have separate sessions. The owner performed these account checks in regular browsers. Fixture results and a healthy deployment do not replace the remaining account/provider checks.
