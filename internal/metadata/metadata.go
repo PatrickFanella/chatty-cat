@@ -51,8 +51,15 @@ type Stream struct {
 	Game    string `json:"game"`
 }
 
+type SevenTVContext struct {
+	UserID       string `json:"userID"`
+	ChannelSetID string `json:"channelSetID"`
+	GlobalSetID  string `json:"globalSetID"`
+}
+
 // Channel contains metadata for one room; Errors identifies partial failures.
 type Channel struct {
+	SevenTV       *SevenTVContext             `json:"sevenTV,omitempty"`
 	FFZRoleBadges map[string]Badge            `json:"ffzRoleBadges,omitempty"`
 	BroadcasterID string                      `json:"broadcasterID,omitempty"`
 	EmoteSets     []EmoteSet                  `json:"emoteSets"`
@@ -96,6 +103,7 @@ type Service struct {
 	flights    map[string]*flight
 	permits    chan struct{}
 	cacheBytes int
+	refreshes  map[string]time.Time
 }
 
 // New constructs a provider service. Empty endpoints select production defaults.
@@ -110,7 +118,50 @@ func New(client *http.Client, endpoints Endpoints, readers ...PublicReader) *Ser
 	if len(readers) > 0 {
 		read = readers[0]
 	}
-	return &Service{publicRead: read, client: client, endpoints: endpoints, cache: make(map[string]cacheEntry), flights: make(map[string]*flight), permits: make(chan struct{}, 8)}
+	return &Service{publicRead: read, client: client, endpoints: endpoints, refreshes: map[string]time.Time{}, cache: make(map[string]cacheEntry), flights: make(map[string]*flight), permits: make(chan struct{}, 8)}
+}
+
+// Expire only a selected provider URL, after any older fetch finishes. Retain its
+// last good bytes for failure fallback and bound forced reads independently of views.
+func (s *Service) expire(ctx context.Context, address string) error {
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		s.mu.Lock()
+		now := time.Now()
+		if now.Before(s.refreshes[address]) {
+			s.mu.Unlock()
+			return nil
+		}
+		if running := s.flights[address]; running != nil {
+			s.mu.Unlock()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-running.done:
+				continue
+			}
+		}
+		if len(s.refreshes) >= 256 {
+			for key, until := range s.refreshes {
+				if !now.Before(until) {
+					delete(s.refreshes, key)
+				}
+			}
+			if len(s.refreshes) >= 256 {
+				s.mu.Unlock()
+				return errors.New("provider refresh capacity reached")
+			}
+		}
+		s.refreshes[address] = now.Add(30 * time.Second)
+		if old, ok := s.cache[address]; ok {
+			old.expires = time.Time{}
+			s.cache[address] = old
+		}
+		s.mu.Unlock()
+		return nil
+	}
 }
 
 func (s *Service) get(ctx context.Context, address string, ttl time.Duration) ([]byte, error) {
@@ -213,12 +264,37 @@ var idPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,100}$`)
 // Load combines globals then channel sets in the original provider precedence.
 // A failed provider leaves the others available and names the missing source.
 func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
+	return s.load(ctx, channel, nil)
+}
+
+// Refresh bypasses only explicitly selected 7TV/BTTV provider caches, at most once per URL per 30 seconds.
+func (s *Service) Refresh(ctx context.Context, channel string, providers []string) (Channel, error) {
+	selected := map[string]bool{}
+	if len(providers) < 1 || len(providers) > 2 {
+		return Channel{}, errors.New("invalid provider refresh selection")
+	}
+	for _, provider := range providers {
+		if provider != "7TV" && provider != "BTTV" || selected[provider] {
+			return Channel{}, errors.New("invalid provider refresh selection")
+		}
+		selected[provider] = true
+	}
+	return s.load(ctx, channel, selected)
+}
+func (s *Service) load(ctx context.Context, channel string, refresh map[string]bool) (Channel, error) {
 	result := Channel{Channel: channel, EmoteUse: make(map[string]int64), Emotes: make(map[string]Emote), Badges: make(map[string]map[string]Badge), Errors: []string{}}
 	if !channelPattern.MatchString(channel) {
 		return result, errors.New("invalid channel")
 	}
 	var mu sync.Mutex
 	get := func(name, address string, ttl time.Duration) []byte {
+		if refresh[strings.SplitN(name, " ", 2)[0]] {
+			if err := s.expire(ctx, address); err != nil {
+				mu.Lock()
+				result.Errors = append(result.Errors, name+" refresh unavailable")
+				mu.Unlock()
+			}
+		}
 		data, err := s.get(ctx, address, ttl)
 		if err != nil {
 			mu.Lock()
@@ -324,7 +400,10 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 	}
 	var global7 sevenSet
 	var channel7 struct {
-		Set sevenSet `json:"emote_set"`
+		Set  sevenSet `json:"emote_set"`
+		User struct {
+			ID string `json:"id"`
+		} `json:"user"`
 	}
 	var globalB []bttvEmote
 	var channelB struct {
@@ -338,6 +417,19 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 	decode("7TV channel", stvUser, &channel7)
 	decode("BTTV channel", bttvUser, &channelB)
 	decode("FFZ channel", ffzRoom, &channelF)
+	seven := SevenTVContext{}
+	if idPattern.MatchString(global7.ID) {
+		seven.GlobalSetID = global7.ID
+	}
+	if idPattern.MatchString(channel7.Set.ID) {
+		seven.ChannelSetID = channel7.Set.ID
+	}
+	if idPattern.MatchString(channel7.User.ID) {
+		seven.UserID = channel7.User.ID
+	}
+	if seven != (SevenTVContext{}) {
+		result.SevenTV = &seven
+	}
 	result.FFZRoleBadges = ffzRoleBadges(channelF)
 	sets := []EmoteSet{
 		{Provider: "7TV", Scope: "global", Emotes: make(map[string]Emote)},
@@ -429,6 +521,7 @@ func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 }
 
 type sevenSet struct {
+	ID     string `json:"id"`
 	Emotes []struct {
 		ID, Name string
 		Flags    int

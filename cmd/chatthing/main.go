@@ -15,6 +15,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/config"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/cosmetics"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/devicesync"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/providerservices"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/server"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/uploads"
 )
@@ -54,6 +55,10 @@ func run() error {
 		return err
 	}
 	capacity = min(capacity, subscriptions)
+	optionalProviders, err := providerservices.Parse(os.Getenv("CHATTHING_PROVIDER_SERVICES"))
+	if err != nil {
+		return err
+	}
 	login, err := auth.New(auth.Config{WorkspaceChannels: capacity, ChatSubscriptions: subscriptions, ClientID: os.Getenv("TWITCH_CLIENT_ID"), ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"), PublicURL: os.Getenv("CHATTHING_PUBLIC_URL")})
 	if err != nil {
 		return err
@@ -82,7 +87,7 @@ func run() error {
 			slog.Error("sync storage close failed", "error", err)
 		}
 	}()
-	app := server.New(server.Config{Sync: syncStore, Cosmetics: cosmeticService, Uploads: imageStore, WorkspaceChannels: capacity, Subscriptions: subscriptions, Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
+	app := server.New(server.Config{ProviderServices: optionalProviders, Sync: syncStore, Cosmetics: cosmeticService, Uploads: imageStore, WorkspaceChannels: capacity, Subscriptions: subscriptions, Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
 	defer app.Close()
 	httpServer := &http.Server{Addr: addr, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -3,6 +3,7 @@ package metadata
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,10 +17,10 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 	responses := map[string]string{
 		"/se/room/stats":                      `{"bttvEmotes":[{"emote":"Shared","amount":42}]}`,
 		"/ivr/user":                           `[{"id":"123"}]`,
-		"/7tv/emote-sets/global":              `{"emotes":[{"id":"global","name":"Shared","flags":1,"data":{"animated":true}},{"id":"overlay","name":"Overlay","flags":1}]}`,
+		"/7tv/emote-sets/global":              `{"id":"global-set","emotes":[{"id":"global","name":"Shared","flags":1,"data":{"animated":true}},{"id":"overlay","name":"Overlay","flags":1}]}`,
 		"/bttv/emotes/global":                 `[{"id":"bglobal","code":"Shared","imageType":"gif"}]`,
 		"/ffz/set/global":                     `{"sets":{"1":{"emoticons":[{"name":"Shared","urls":{"2":"//cdn.frankerfacez.com/emote/1/2"}}]}}}`,
-		"/7tv/users/twitch/123":               `{"emote_set":{"emotes":[{"id":"channel","name":"Shared","flags":1,"data":{"animated":true}},{"id":"channel7","name":"Channel7"}]}}`,
+		"/7tv/users/twitch/123":               `{"user":{"id":"owner-7tv"},"emote_set":{"id":"channel-set","emotes":[{"id":"channel","name":"Shared","flags":1,"data":{"animated":true}},{"id":"channel7","name":"Channel7"}]}}`,
 		"/bttv/users/twitch/123":              `{"channelEmotes":[{"id":"channelB","code":"Shared"}],"sharedEmotes":[{"id":"sharedB","code":"SharedB","imageType":"gif"}]}`,
 		"/ffz/room/room":                      `{"room":{"mod_urls":{"2":"//cdn.frankerfacez.com/room-badge/mod/2"},"vip_badge":{"1":"https://cdn.frankerfacez.com/room-badge/vip/1"}},"sets":{"2":{"emoticons":[{"name":"Shared","urls":{"2":"https://cdn.frankerfacez.com/emote/2/2"}},{"name":"Anim","urls":{"2":"https://cdn.frankerfacez.com/emote/3/2"}}]}}}`,
 		"/bttv/frankerfacez/users/twitch/123": `[{"code":"Anim","animated":true,"images":{"2x":"https://cdn.betterttv.net/frankerfacez_emote/3/2"}}]`,
@@ -54,6 +55,9 @@ func TestLoadPrecedenceAndBadges(t *testing.T) {
 	got, err := s.Load(context.Background(), "room")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if got.SevenTV == nil || got.SevenTV.GlobalSetID != "global-set" || got.SevenTV.ChannelSetID != "channel-set" || got.SevenTV.UserID != "owner-7tv" {
+		t.Fatal("7TV public event context missing", got.SevenTV)
 	}
 	if got.BroadcasterID != "123" {
 		t.Fatal("public room ID missing")
@@ -267,5 +271,83 @@ func TestSevenTVVisibilityMetadata(t *testing.T) {
 	add7(emotes, set)
 	if emotes["Listed"].Unlisted || !emotes["Unlisted"].Unlisted || emotes["Disallowed"].Code != "" {
 		t.Fatal("7TV visibility flags lost")
+	}
+}
+
+func TestOptionalProviderRefreshRetainsOtherCachesAndLimitsRepeatedReads(t *testing.T) {
+	var version atomic.Int32
+	version.Store(1)
+	var seven, other atomic.Int32
+	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/7tv/") {
+			seven.Add(1)
+			_, _ = fmt.Fprintf(w, `{"id":"global-set","emotes":[{"id":"emote%d","name":"Version%d","data":{"listed":true}}]}`, version.Load(), version.Load())
+			return
+		}
+		other.Add(1)
+		if r.URL.Path == "/ivr/user" {
+			_, _ = w.Write([]byte(`[{"id":"123"}]`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/badges/") || strings.Contains(r.URL.Path, "/bttv/") {
+			_, _ = w.Write([]byte(`[]`))
+			return
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer host.Close()
+	service := New(host.Client(), testEndpoints(host.URL))
+	first, err := service.Load(context.Background(), "room")
+	if err != nil || first.Emotes["Version1"].Code == "" {
+		t.Fatal("initial provider metadata")
+	}
+	reads := other.Load()
+	version.Store(2)
+	fresh, err := service.Refresh(context.Background(), "room", []string{"7TV"})
+	if err != nil || fresh.Emotes["Version2"].Code == "" || other.Load() != reads || seven.Load() != 4 {
+		t.Fatal("selected refresh did not preserve other caches", seven.Load(), other.Load(), reads)
+	}
+	version.Store(3)
+	limited, err := service.Refresh(context.Background(), "room", []string{"7TV"})
+	if err != nil || limited.Emotes["Version2"].Code == "" || seven.Load() != 4 {
+		t.Fatal("refresh bypassed cooldown")
+	}
+	if _, err := service.Refresh(context.Background(), "room", []string{"https://other.example"}); err == nil {
+		t.Fatal("arbitrary refresh source accepted")
+	}
+}
+
+func TestProviderRefreshWaitsForOlderInFlightData(t *testing.T) {
+	started, finish := make(chan struct{}), make(chan struct{})
+	var calls atomic.Int32
+	host := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		if calls.Add(1) == 1 {
+			close(started)
+			<-finish
+			_, _ = w.Write([]byte(`{"version":1}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"version":2}`))
+	}))
+	defer host.Close()
+	service := New(host.Client(), Endpoints{})
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	old := make(chan []byte, 1)
+	go func() { data, _ := service.get(ctx, host.URL, time.Minute); old <- data }()
+	<-started
+	fresh := make(chan []byte, 1)
+	go func() {
+		if err := service.expire(ctx, host.URL); err != nil {
+			fresh <- nil
+			return
+		}
+		data, _ := service.get(ctx, host.URL, time.Minute)
+		fresh <- data
+	}()
+	close(finish)
+	<-old
+	if got := string(<-fresh); got != `{"version":2}` || calls.Load() != 2 {
+		t.Fatal("older flight restored stale provider data", got, calls.Load())
 	}
 }
