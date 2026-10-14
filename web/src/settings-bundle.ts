@@ -1,7 +1,7 @@
 import type {DisplayOptions} from './display';
 export interface SettingsBundle {version:1;display:DisplayOptions;extras:Record<string,unknown>}
-export type SettingsPart='picker'|'resources'|'video'|'stats'|'rail'|'splits'|'hotkeys'|'rules'|'presentation'|'commands';
-const PARTS:SettingsPart[]=['picker','resources','video','stats','rail','splits','hotkeys','rules','presentation','commands'];
+export type SettingsPart='picker'|'resources'|'video'|'stats'|'rail'|'splits'|'hotkeys'|'rules'|'presentation'|'commands'|'workbench';
+const PARTS:SettingsPart[]=['picker','resources','video','stats','rail','splits','hotkeys','rules','presentation','commands','workbench'];
 function extras(value:unknown):Record<string,unknown> {
  const result:Record<string,unknown>={};if(!value||typeof value!=='object'||Array.isArray(value))return result;
  try {const raw=JSON.stringify(value);if(new TextEncoder().encode(raw).length>256*1024)return result;const data=JSON.parse(raw) as Record<string,unknown>,commands=data.commands;delete data.commands;if(JSON.stringify(data).length>65536)return result;for(const key of PARTS)if(data[key]&&typeof data[key]==='object'&&!Array.isArray(data[key]))result[key]=data[key];if(Array.isArray(commands)&&JSON.stringify(commands).length<=65536)result.commands=commands;}catch{/* malformed optional bundle */}return result;

@@ -1,0 +1,194 @@
+/* Shell: top bar, workbench, panel chrome, menus, palette and the dialog content reset. Chat rows are untouched. */
+:root { --shell-radius:6px; --shell-shadow:0 16px 48px rgb(0 0 0 / .45); --shell-chrome:28px; --shell-ease:160ms cubic-bezier(.2,.7,.2,1); }
+html[data-shell] header, html[data-shell] #privacy-toolbar, html[data-shell] .stage { display:none !important; }
+html[data-shell] body { display:flex; flex-direction:column; }
+
+/* ---- Top bar ---- */
+#topbar { flex:none; display:flex; align-items:center; gap:6px; height:38px; padding:0 8px 0 4px; background:var(--panel); border-bottom:1px solid var(--line); font-size:12px; color:var(--muted); user-select:none; }
+#topbar button { background:transparent; border:1px solid transparent; border-radius:var(--shell-radius); color:inherit; padding:4px 8px; line-height:1.2; min-height:26px; }
+#topbar button:hover, #topbar button[aria-expanded=true] { background:color-mix(in srgb,var(--fg) 8%,transparent); border-color:transparent; color:var(--fg); }
+#topbar .tb-brand { padding:2px 6px; display:inline-flex; align-items:center; }
+#topbar .tb-brand .brand { gap:7px; }
+#topbar .tb-brand strong { font-weight:600; letter-spacing:.01em; }
+#topbar .tb-icon { width:26px; padding:0; font-size:16px; line-height:1; }
+#topbar .tb-channels { display:flex; align-items:center; gap:2px; min-width:0; overflow:hidden; }
+#topbar #joined-channels { display:flex; align-items:center; gap:2px; min-width:0; overflow:hidden; }
+#topbar #joined-channels form, #topbar #joined-channels .channel-capacity, #topbar #joined-channels .send-channel-chips { display:none; }
+#topbar #joined-channels .capacity-notice { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+#topbar .joined-channel { display:inline-flex; align-items:center; gap:2px; padding:2px 4px 2px 8px; border-radius:999px; border:1px solid transparent; white-space:nowrap; font-size:12px; }
+#topbar .joined-channel a { color:var(--channel-color,var(--fg)); text-decoration:none; }
+#topbar .joined-channel a:first-child::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--channel-color,var(--accent)); margin-right:6px; vertical-align:1px; }
+#topbar .joined-channel a[aria-label^=Leave] { color:var(--muted); padding:0 4px; opacity:0; transition:opacity var(--shell-ease); }
+#topbar .joined-channel:hover a[aria-label^=Leave], #topbar .joined-channel:focus-within a[aria-label^=Leave] { opacity:1; }
+#topbar .joined-channel:hover { background:color-mix(in srgb,var(--fg) 6%,transparent); }
+#topbar .tb-state { display:inline-flex; align-items:center; gap:6px; font-size:11px; }
+#topbar .tb-state #status { display:none; }
+#topbar .tb-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); box-shadow:0 0 0 2px color-mix(in srgb,var(--muted) 25%,transparent); }
+#topbar[data-state=connected] .tb-dot { background:var(--good,#63ba8e); box-shadow:0 0 0 2px color-mix(in srgb,var(--good,#63ba8e) 25%,transparent); }
+#topbar[data-state=reconnecting] .tb-dot { background:#d9a441; animation:tb-pulse 1.2s ease-in-out infinite; }
+#topbar[data-state=failed] .tb-dot { background:var(--danger,#c94a4a); }
+@keyframes tb-pulse { 50% { opacity:.3; } }
+#topbar .tb-spacer { flex:1; }
+#topbar .tb-rate { display:flex; align-items:center; opacity:.8; }
+#topbar #rate { width:72px; height:18px; }
+#topbar .tb-search { display:inline-flex; align-items:center; gap:10px; padding:3px 6px 3px 10px; border:1px solid var(--line); background:color-mix(in srgb,var(--bg) 60%,transparent); min-width:150px; color:var(--muted); }
+#topbar .tb-search:hover { border-color:var(--accent); }
+#topbar kbd, .shell-menu kbd, #shell-palette kbd { font:inherit; font-size:10px; color:var(--muted); border:1px solid var(--line); border-radius:4px; padding:0 4px; line-height:1.5; margin-left:auto; }
+#topbar .tb-account { display:flex; align-items:center; gap:6px; }
+#topbar #login { border-color:var(--line); }
+#topbar #account { font-size:11px; max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#topbar #account:empty { display:none; }
+#topbar #account-emotes, #topbar #personal-status { display:none; }
+@media (max-width:700px) { #topbar .tb-search span { display:none; } #topbar .tb-search { min-width:0; } #topbar .tb-rate, #topbar .tb-state-text { display:none; } #topbar .tb-brand strong { display:none; } }
+
+/* ---- Centre column (stream line, log, composer) ---- */
+.wb-centre > #stream, .wb-centre > #room-state { padding:3px 12px; font-size:11px; border-bottom:1px solid var(--line); color:var(--muted); background:var(--bg); }
+.wb-centre > #stream { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wb-centre > #stream:empty { display:none; }
+.wb-centre > #offline { padding:4px 12px; font-size:11px; }
+.wb-centre > #app-update { margin:4px 12px; }
+html[data-shell] main#log { padding:6px 12px; }
+html[data-shell] #composer { padding:6px 12px; gap:6px; }
+html[data-shell] #composer #message { padding:6px 10px; }
+html[data-shell] #picker-open { border-color:transparent; background:transparent; color:var(--muted); }
+html[data-shell] #picker-open:hover, html[data-shell] #picker-open[aria-expanded=true] { color:var(--fg); background:color-mix(in srgb,var(--fg) 8%,transparent); }
+html[data-shell] footer { padding:3px 12px; gap:12px; font-size:10px; border-top:1px solid var(--line); min-height:20px; opacity:.85; }
+html[data-shell] footer a { color:var(--muted); }
+html[data-shell] footer button { padding:1px 8px; font-size:11px; }
+
+/* ---- Workbench grid ---- */
+#workbench { flex:1; min-height:0; display:flex; flex-direction:column; --wb-left:360px; --wb-right:380px; --wb-bottom:260px; }
+.wb-row { flex:1; min-height:0; display:flex; }
+.wb-centre { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; }
+.wb-zone { display:flex; min-width:0; min-height:0; overflow:hidden; background:var(--panel); }
+.wb-zone[hidden] { display:none; }
+.wb-zone[data-zone=left], .wb-zone[data-zone=right] { flex:0 0 min(var(--wb-left),45vw); width:min(var(--wb-left),45vw); flex-direction:column; }
+.wb-zone[data-zone=right] { flex-basis:min(var(--wb-right),45vw); width:min(var(--wb-right),45vw); }
+.wb-zone[data-zone=bottom] { flex:0 0 min(var(--wb-bottom),50dvh); height:min(var(--wb-bottom),50dvh); flex-direction:row; }
+.wb-splitter { flex:none; background:var(--line); transition:background var(--shell-ease); touch-action:none; }
+.wb-splitter[hidden] { display:none; }
+.wb-splitter[data-zone=left], .wb-splitter[data-zone=right] { width:4px; cursor:col-resize; }
+.wb-splitter[data-zone=bottom] { height:4px; cursor:row-resize; }
+.wb-splitter:hover, .wb-splitter:focus-visible, .wb-share:hover, .wb-share:focus-visible { background:var(--accent); outline:none; }
+.wb-share { flex:none; background:var(--line); touch-action:none; }
+.wb-zone[data-zone=bottom] > .wb-share { width:4px; cursor:col-resize; }
+.wb-zone:not([data-zone=bottom]) > .wb-share { height:4px; cursor:row-resize; }
+.wb-share[hidden] { display:none; }
+body.wb-resizing, body.wb-resizing * { cursor:inherit !important; user-select:none !important; }
+body.wb-dragging { user-select:none; cursor:grabbing; }
+body.wb-dragging iframe { pointer-events:none; }
+.wb-zone.wb-drop { outline:2px dashed var(--accent); outline-offset:-2px; }
+.wb-zone.wb-drop:empty, #workbench[data-dragging] .wb-zone[hidden].wb-drop { display:flex; min-width:120px; min-height:80px; }
+.wb-panel.wb-drop-before { box-shadow:inset 0 3px 0 var(--accent); }
+.wb-zone[data-zone=bottom] .wb-panel.wb-drop-before { box-shadow:inset 3px 0 0 var(--accent); }
+#workbench[data-drop=left] .wb-splitter[data-zone=left], #workbench[data-drop=right] .wb-splitter[data-zone=right], #workbench[data-drop=bottom] .wb-splitter[data-zone=bottom] { background:var(--accent); }
+
+/* ---- Managed panels (docked and floating) ---- */
+.wb-panel { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; background:var(--panel); }
+.wb-panel[hidden] { display:none; }
+.wb-panel[data-placement=docked] { flex:1 1 0; }
+.wb-panel[data-placement=floating] { position:fixed; z-index:30; resize:both; border:1px solid var(--popline,var(--line)); border-radius:var(--shell-radius); box-shadow:var(--shell-shadow); min-width:240px; min-height:160px; }
+.wb-panel > * { position:static !important; inset:auto !important; width:auto !important; height:auto !important; max-width:none !important; max-height:none !important; min-width:0 !important; min-height:0 !important; margin:0 !important; border:0 !important; border-radius:0 !important; resize:none !important; box-shadow:none !important; flex:1 1 0; overflow:auto; padding:10px 12px; background:transparent; }
+.wb-panel > dialog { display:flex; }
+.wb-panel > dialog:not([open]) { display:none; }
+.wb-panel > * > .wb-chrome { margin:-10px -12px 10px !important; position:sticky !important; top:-10px; z-index:2; }
+.wb-panel > * > button[id$="-close"], .wb-panel > * > [data-action=close], .wb-panel #video-close, .wb-panel #picker-close, .wb-panel #stats-close, .wb-panel .rail-float, .wb-panel #video-handle, .wb-panel #picker-handle, .wb-panel #whisper-handle, .wb-panel #resources-handle, .wb-panel #video-pin, .wb-panel #picker-pin, .wb-panel #whisper-pin, .wb-panel #resources-pin, .wb-panel #video-dock { display:none !important; }
+.wb-panel > #video-panel #video-player { min-height:200px !important; }
+.wb-panel > #emote-picker #picker-grid { min-height:80px !important; }
+.wb-chrome { display:flex; width:100%; flex:0 0 auto; align-items:center; gap:2px; height:var(--shell-chrome); padding:0 4px 0 12px; font-size:11px; color:var(--muted); background:color-mix(in srgb,var(--fg) 4%,var(--panel)); border-bottom:1px solid var(--line); flex:none; user-select:none; }
+.wb-chrome .wb-title { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:grab; font-weight:600; letter-spacing:.04em; text-transform:uppercase; font-size:10px; }
+.wb-chrome .wb-title:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:3px; }
+body.wb-dragging .wb-title { cursor:grabbing; }
+.wb-chrome button { width:22px; height:22px; padding:0; border:0; border-radius:4px; background:transparent; color:var(--muted); font-size:14px; line-height:1; }
+.wb-chrome button:hover { background:color-mix(in srgb,var(--fg) 10%,transparent); color:var(--fg); border:0; }
+/* Chrome inside a modal dialog becomes the dialog title bar. */
+dialog:not(.wb-panel > *) > .wb-chrome { margin:-16px -16px 14px; }
+html[data-privacy="true"] .wb-chrome { display:none; }
+
+/* ---- Menus ---- */
+.shell-menu { position:fixed; z-index:60; min-width:220px; max-width:min(360px,calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto; padding:6px; background:var(--panel); border:1px solid var(--popline,var(--line)); border-radius:8px; box-shadow:var(--shell-shadow); font-size:12px; color:var(--fg); }
+.shell-menu-section + .shell-menu-section { border-top:1px solid var(--line); margin-top:6px; padding-top:6px; }
+.shell-menu-wide { max-width:min(960px,calc(100vw - 16px)); column-width:230px; column-gap:12px; column-fill:balance; padding:8px 12px; }
+.shell-menu-wide .shell-menu-section { break-inside:avoid; border-top:0; margin-top:0; padding-top:6px; padding-bottom:6px; }
+.shell-menu-wide .shell-menu-section:first-child { padding-top:0; }
+.shell-menu-title { padding:4px 10px 2px; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.shell-menu-item { display:flex; align-items:center; gap:10px; width:100%; padding:5px 10px; border:0; border-radius:4px; background:transparent; color:inherit; text-align:left; font:inherit; font-size:12px; }
+.shell-menu-item:hover, .shell-menu-item:focus-visible { background:color-mix(in srgb,var(--accent) 16%,transparent); outline:none; border:0; }
+.shell-menu-item:disabled { opacity:.45; }
+.shell-menu-item[aria-checked=true]::after { content:'✓'; margin-left:auto; color:var(--accent); }
+.shell-menu-item[aria-checked=true] kbd { margin-left:0; }
+.shell-menu-item span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.shell-menu.tb-join { padding:12px; min-width:280px; }
+.shell-menu.tb-join form { display:flex; flex-wrap:wrap; gap:6px; }
+.shell-menu.tb-join form label { flex-basis:100%; font-size:11px; color:var(--muted); }
+.shell-menu.tb-join form input { flex:1; width:auto; }
+.shell-menu.tb-join p { margin:8px 0 0; font-size:11px; color:var(--muted); }
+
+/* ---- Command palette ---- */
+#shell-palette { width:min(620px,calc(100vw - 24px)); padding:0; border-radius:10px; overflow:hidden; margin-top:12vh; display:none; }
+#shell-palette[open] { display:flex; flex-direction:column; }
+#shell-palette::backdrop { background:rgb(0 0 0 / .35); }
+#shell-palette input { width:100%; border:0; border-bottom:1px solid var(--line); border-radius:0; padding:14px 16px; font-size:15px; background:transparent; }
+#shell-palette input:focus-visible { outline:none; }
+.shell-palette-list { max-height:min(420px,60dvh); overflow:auto; padding:6px; }
+.shell-palette-option { display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:6px; cursor:pointer; font-size:13px; }
+.shell-palette-option[aria-selected=true] { background:color-mix(in srgb,var(--accent) 16%,transparent); }
+.shell-palette-option.is-unavailable { opacity:.45; }
+.shell-palette-label { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.shell-palette-context { font-size:10px; color:var(--muted); letter-spacing:.06em; text-transform:uppercase; }
+.shell-palette-status { margin:0; padding:8px 16px; font-size:12px; color:var(--muted); }
+.shell-palette-status:empty { display:none; }
+
+/* ---- Dialog frame and content reset ---- */
+html[data-shell] dialog { padding:16px; border:1px solid var(--popline,var(--line)); border-radius:8px; box-shadow:var(--shell-shadow); font-size:13px; line-height:1.45; }
+html[data-shell] dialog::backdrop { background:rgb(0 0 0 / .4); }
+/* Loose content: text blocks span the width, controls flow inline, labelled fields form a responsive grid. */
+html[data-shell] dialog[open]:not(#shell-palette), html[data-shell] dialog[open] > :is(form,fieldset,section,div:not([class])) { display:flex; flex-wrap:wrap; align-items:flex-start; align-content:flex-start; gap:8px 12px; }
+html[data-shell] dialog[open] > :is(fieldset,section) { align-items:flex-start; }
+html[data-shell] dialog :is(p,h1,h2,h3,h4,ul,ol,table,pre,textarea,fieldset,section,form,hr,output,.log,[role=log],[role=status]:not(span)) { flex-basis:100%; min-width:0; margin:0; }
+html[data-shell] dialog :is(p,h1,h2,h3,h4,ul,ol,table,pre,textarea,fieldset,section,form,hr,output,.log,[role=log],[role=status]:not(span)):not(:first-child) { margin:0; }
+html[data-shell] dialog p { max-width:72ch; color:var(--muted); font-size:12px; line-height:1.55; }
+html[data-shell] dialog :is(h1,h2) { font-size:14px; font-weight:600; }
+html[data-shell] dialog :is(h3,h4,legend) { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+html[data-shell] dialog fieldset { border:1px solid var(--line); border-radius:var(--shell-radius); padding:10px 12px 12px; }
+html[data-shell] dialog fieldset:not(:has(label:not([hidden]))) { display:none; }
+html[data-shell] dialog label { display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--muted); flex:1 1 200px; max-width:100%; min-width:0; }
+html[data-shell] dialog label:has(> input[type=checkbox], > input[type=radio]) { flex-direction:row; align-items:center; gap:8px; flex:0 1 auto; color:var(--fg); font-size:12px; padding:3px 0; }
+html[data-shell] dialog label:has(> textarea) { flex-basis:100%; }
+html[data-shell] dialog label > :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { width:100%; font-size:13px; color:var(--fg); }
+html[data-shell] dialog :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { padding:5px 8px; border-radius:var(--shell-radius); min-width:0; }
+html[data-shell] dialog textarea { width:100%; }
+html[data-shell] dialog input:is([type=checkbox],[type=radio]) { width:auto; margin:0; }
+html[data-shell] dialog button { padding:4px 10px; font-size:12px; border-radius:var(--shell-radius); }
+html[data-shell] dialog > button[id$="-close"], html[data-shell] dialog > [data-action=close] { order:99; margin-left:auto; }
+html[data-shell] dialog [role=status]:empty { display:none; }
+html[data-shell] dialog ul, html[data-shell] dialog ol { padding-left:20px; }
+html[data-shell] dialog table { border-collapse:collapse; font-size:12px; }
+html[data-shell] dialog :is(td,th) { padding:4px 8px; border-bottom:1px solid var(--line); text-align:left; }
+html[data-shell] #display-panel { width:min(960px,calc(100vw - 24px)); }
+html[data-shell] #display-panel > input[type=search] { flex:1 1 280px; }
+html[data-shell] #display-panel label:has(> input[type=checkbox]) { flex-direction:row; align-items:center; }
+html[data-shell] #display-panel form { flex-basis:100%; display:flex; flex-wrap:wrap; gap:10px; margin:0; }
+html[data-shell] #display-panel form { align-items:flex-start; }
+html[data-shell] #display-panel form fieldset { flex:1 1 300px; display:flex; flex-wrap:wrap; align-content:flex-start; gap:6px 12px; }
+html[data-shell] #display-panel form fieldset legend { padding:0 6px; }
+html[data-shell] #display-panel form fieldset > label { flex:1 1 140px; }
+html[data-shell] #display-panel form fieldset > label:has(> input[type=checkbox]) { flex:1 1 180px; }
+html[data-shell] #display-panel [aria-label="Saved display settings"] { display:inline-flex; gap:6px; flex-basis:auto; }
+html[data-shell] #display-url { flex-basis:100%; margin:0; }
+html[data-shell] #stats-panel { width:min(1000px,calc(100vw - 24px)); }
+
+/* ---- Row controls added by the rebuild: quiet until the row is hovered or focused ---- */
+html[data-shell] #log .row :is(.thread-open,.bookmark-message,.permalink,.parent-jump,.reply) { font-size:10px; line-height:1.5; border-color:transparent; background:transparent; color:var(--muted); width:0; padding:0; margin:0; border-width:0; overflow:hidden; opacity:0; vertical-align:middle; white-space:nowrap; max-height:1.6em; }
+html[data-shell] #log .row:is(:hover,:focus-within) :is(.thread-open,.bookmark-message,.permalink,.parent-jump,.reply) { width:auto; padding:0 5px; margin-right:6px; border-width:1px; opacity:1; }
+html[data-shell] #log .row .preview-button { border-color:transparent; background:transparent; color:var(--muted); }
+html[data-shell] #log .row :is(.thread-open,.bookmark-message,.permalink,.parent-jump,.reply,.preview-button):hover { color:var(--fg); border-color:var(--line); }
+html[data-shell] #panel-rail .wb-chrome { display:none; }
+/* The chrome title replaces the modules' own move handles and pin buttons. */
+html[data-shell] :is(#picker-handle,#picker-pin,#video-handle,#video-pin,#video-dock,#whisper-handle,#whisper-pin,#resources-handle,#resources-pin) { display:none; }
+
+/* ---- Modes that the old header handled ---- */
+html[data-overlay="true"] body > #workbench { display:flex !important; }
+html[data-overlay="true"] #topbar, html[data-overlay="true"] .wb-zone, html[data-overlay="true"] .wb-splitter, html[data-overlay="true"] .wb-centre > :not(.chat-workspace):not(#log) { display:none !important; }
+html[data-overlay="true"] .wb-centre, html[data-overlay="true"] .wb-row { background:transparent !important; }
+@media (prefers-reduced-motion:reduce) { #topbar .tb-dot { animation:none; } }
