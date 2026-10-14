@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Reviewed desktop command fixture</title>
+<button id="commands-open">Commands</button>
+<label>Local command <input id="command" value="/streamlink #one"></label>
+<button id="run">Run local command</button><p id="result" role="status"></p>
+<script type="module">
+import {setProfileScope} from '/src/account-profiles.ts';
+import {DesktopPlaybackPanel} from '/src/desktop-companion-ui.ts';
+import {dispatchLocal,LocalTargets} from '/src/local-commands.ts';
+setProfileScope('42');window.fixtureRequests=[];
+window.fetch=(...args)=>{window.fixtureRequests.push(args);throw new Error('This setup fixture must not make requests');};
+window.fixturePanel=new DesktopPlaybackPanel(()=>({enabled:true,authenticated:true,userID:'42',csrf:'fixture',loginURL:'/fixture'}),()=>['one','two'],()=> 'two');
+const refuse=()=>{throw new Error('Only desktop setup is exercised by this fixture');};
+const context={channel:'two',uptime:'',targets:new LocalTargets(),playback:channel=>window.fixturePanel.openReview('playback',channel),open:refuse,copy:refuse,clear:refuse,user:refuse,ignore:refuse,connection:refuse,popout:refuse,reply:refuse,stage:refuse,help:refuse};
+document.querySelector('#run').onclick=async()=>{try{document.querySelector('#result').textContent=await dispatchLocal(document.querySelector('#command').value,context);}catch(e){document.querySelector('#result').textContent=e.message;}};
+</script>

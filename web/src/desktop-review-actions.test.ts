@@ -28,6 +28,13 @@ it('keeps new bindings unbound in old snapshots and respects editable, modal and
 });
 it('refuses review entry from hidden popout/OBS views',()=>{setup(true);expect(()=>desktop!.openReview('overlay')).toThrow('main workspace');expect(desktop!.root.open).toBe(false);});
 import {profileKey} from './account-profiles';
+import {dispatchLocal,LocalTargets,type LocalContext} from './local-commands';
+it('routes /streamlink to a joined channel without IPC and rejects unavailable views/channels',async()=>{
+ const fetcher=setup();const c:LocalContext={channel:'two',uptime:'',targets:new LocalTargets(),playback:channel=>desktop!.openReview('playback',channel),open:vi.fn(()=>true),copy:vi.fn(async()=>{}),clear:vi.fn(),user:vi.fn(()=>true),ignore:vi.fn(),connection:vi.fn(),popout:vi.fn(()=>true),reply:vi.fn(),stage:vi.fn(),help:vi.fn()};
+ await dispatchLocal('/streamlink #one',c);expect(desktop!.root.open).toBe(true);expect(desktop!.root.querySelector<HTMLSelectElement>('[aria-label="Desktop playback channel"]')?.value).toBe('one');expect(fetcher).not.toHaveBeenCalled();expect(Array.from(desktop!.root.querySelectorAll('button')).find(b=>b.textContent==='Launch reviewed playback')?.disabled).toBe(true);
+ desktop!.root.close();await expect(dispatchLocal('/streamlink unjoined',c)).rejects.toThrow('joined channel');expect(desktop!.root.open).toBe(false);
+ setProfileScope('anonymous');await expect(dispatchLocal('/streamlink',c)).rejects.toThrow('signed-in');expect(fetcher).not.toHaveBeenCalled();
+});
 function importStorage(bindings:Record<string,string>):void{localStorage.setItem(profileKey('chatthing:v1:hotkeys'),JSON.stringify({version:1,bindings}));}
 it('discards a previous overlay review when reopening playback setup',async()=>{
  const fetcher=setup();fetcher.mockImplementation((url:string)=>Promise.resolve(new Response(JSON.stringify(url.endsWith('/v1/pair')?{version:1,account:'42',token:'b'.repeat(64)}:{version:1,platform:'darwin',tools:[],jobs:[],overlayAvailable:true}))));
