@@ -1,0 +1,7 @@
+<!doctype html><html><head><title>Reply thread focus fixture</title><link rel="stylesheet" href="/src/style.css"></head><body><button id="archive-open">Outside focus</button><label><input id="enabled" type="checkbox">Hide on outside focus</label><button id="open">Open retained thread</button><div><main id="log"></main></div><output id="reply"></output><script type="module">
+import {ThreadsPanel} from '/src/threads-ui.ts';
+import {parsePresentation,setPresentation} from '/src/presentation.ts';
+const message={id:'root',channel:'one',command:'PRIVMSG',login:'alice',text:'Retained public thread',timestamp:1,tags:{}};
+const panel=new ThreadsPanel(document.querySelector('#log'),()=>[message],{get:async()=>message,scanChannel:async(c,visit)=>visit(message)},['one'],()=>document.querySelector('#reply').textContent='Reply staged');panel.setScope('fixture','workspace');
+document.querySelector('#enabled').onchange=e=>setPresentation(parsePresentation({autoCloseThreadPopup:e.target.checked}));document.querySelector('#open').onclick=()=>panel.open(message);
+</script></body></html>

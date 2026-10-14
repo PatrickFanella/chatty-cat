@@ -26,6 +26,7 @@ function at(value:Record<string,unknown>,path:string):unknown{
  let next:unknown=value;for(const part of path.split('/')){if(!record(next)||!Object.hasOwn(next,part))return undefined;next=next[part];}return next;
 }
 const booleans=[
+ ['behaviour/autoCloseThreadPopup','autoCloseThreadPopup'],
  ['appearance/messages/showTimestamps','showTimestamps'],['appearance/messages/fadeMessageHistory','fadeHistory'],
  ['appearance/messages/hideModerated','hideModerated'],['appearance/messages/hideModerationActions','hideModerationActions'],
  ['appearance/messages/hideDeletionActions','hideDeletionActions'],['appearance/hideReplyContext','hideReplyContext'],
