@@ -33,3 +33,6 @@ The owner completed these checks at `chat.subcult.tv` as `patrick__eff` in regul
 M4 remains open. Controlled live emote changes and cosmetic badge events, supplemental public/own-message EventSub cases with consent and suitable external conditions, remain outstanding. The earlier source-cache mismatch has cleared on public-browser recheck; both source URLs now match the deployed release hash. Sync conflict/lost-receipt/recovery cases retain fixture evidence; they were not repeated in production. Upload persistence across a server restart or reboot was not exercised. Native feature limitations and earlier M3 private-event/journal and eligible broadcaster gates remain separate.
 
 The shared preview and regular browsers have separate sessions. The owner performed these account checks in regular browsers. Fixture results and a healthy deployment do not replace the remaining account/provider checks.
+
+
+Public-context connection acceptance: on October 13, the owner granted the required access and connected from the signed-in browser. The panel reported “Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded”. This passes consent/connection and does not establish a positive shared-chat, reward, streak, effect or private hold/update event. Those controlled-event checks remain open under #32.

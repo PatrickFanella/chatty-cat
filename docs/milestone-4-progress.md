@@ -48,3 +48,6 @@ The optional BTTV/7TV read-service layer (#31) now has reviewed opt-ins, bounded
 This work does not close the earlier M3 production journal persistence gate or
 remaining controlled-subject, private-event and eligible/live broadcaster checks.
 Theme changes are local preferences and introduce no provider writes.
+
+
+Public-context connection acceptance: on October 13, the owner granted the required access and connected from the signed-in browser. The panel reported “Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded”. This passes consent/connection and does not establish a positive shared-chat, reward, streak, effect or private hold/update event. Those controlled-event checks remain open under #32.

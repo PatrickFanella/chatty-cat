@@ -90,3 +90,6 @@ The [Chatterino inventory](chatterino-coverage.csv) and [report](chatterino-cove
 ## Legacy parity exception
 
 The remaining original GIPHY cache/proxy gate is tracked in [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4). Direct client lookup works. Provider approval or explicit acceptance of that supported adaptation is required to close the gate.
+
+
+Public-context connection acceptance: on October 13, the owner granted the required access and connected from the signed-in browser. The panel reported “Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded”. This passes consent/connection and does not establish a positive shared-chat, reward, streak, effect or private hold/update event. Those controlled-event checks remain open under #32.
