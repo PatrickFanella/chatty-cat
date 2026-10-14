@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Web extensions fixture</title><button id="commands-open">Commands</button><button id="seed">Fixture: stage example file</button><textarea id="draft" aria-label="Fixture staged draft"></textarea><script type="module">
+import {setProfileScope} from '/src/account-profiles.ts';
+import {ExtensionsPanel} from '/src/extensions-ui.ts';
+setProfileScope('42');localStorage.setItem('fixture-private-canary','PRIVATE-ACCOUNT-CANARY');
+window.fixtureAuth={enabled:true,authenticated:true,loginURL:'http://127.0.0.1:5174/api/auth/login',userID:'42',login:'alice',csrf:'CSRF-CANARY'};
+window.fixturePanel=new ExtensionsPanel(()=>window.fixtureAuth,()=> 'one',text=>{document.getElementById('draft').value=text;});
+document.getElementById('seed').addEventListener('click',()=>{const manifest={format:'chatty-cat-extension',version:1,id:'channel-note',name:'Channel note',permissions:['context:channel','input:text','composer:stage'],commands:[{id:'note',title:'Format note',template:'Note for #{{channel}}: {{input}}'}],views:[{id:'channel',title:'Channel view',template:'Selected public channel: #{{channel}}'}]};const transfer=new DataTransfer();transfer.items.add(new File([JSON.stringify(manifest)],'channel-note.json',{type:'application/json'}));document.querySelector('input[type=file]').files=transfer.files;});
+</script></html>

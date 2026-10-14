@@ -1,0 +1,9 @@
+{
+  "format": "chatty-cat-extension",
+  "version": 1,
+  "id": "channel-note",
+  "name": "Channel note",
+  "permissions": ["context:channel", "input:text", "composer:stage"],
+  "commands": [{"id": "note", "title": "Format a channel note", "template": "Note for #{{channel}}: {{input}}"}],
+  "views": [{"id": "channel", "title": "Current public channel", "template": "Selected public channel: #{{channel}}"}]
+}
