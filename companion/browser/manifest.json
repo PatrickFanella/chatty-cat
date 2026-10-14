@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Chatty Cat watched-channel companion",
+  "version": "0.1.0",
+  "description": "Explicitly send the active Twitch channel to a paired Chatty Cat tab.",
+  "permissions": ["activeTab", "storage"],
+  "background": {"service_worker": "background.js", "type": "module"},
+  "action": {"default_popup": "popup.html"},
+  "externally_connectable": {"matches": ["https://chat.subcult.tv/*"]}
+}
