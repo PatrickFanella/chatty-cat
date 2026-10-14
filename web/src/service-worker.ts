@@ -15,7 +15,16 @@ worker.addEventListener('install', event => {
   })());
 });
 worker.addEventListener('activate', event => {
-  event.waitUntil((async () => { for (const name of await caches.keys()) if (name.startsWith('chatthing-') && !KEEP.has(name)) await caches.delete(name); const images=await caches.open(IMAGES);for(const request of await images.keys()){const host=new URL(request.url).hostname;if(host==='giphy.com'||host.endsWith('.giphy.com')||new URL(request.url).origin===worker.location.origin&&new URL(request.url).pathname.startsWith('/uploads/'))await images.delete(request);}
+  event.waitUntil((async () => { for (const name of await caches.keys()) if (name.startsWith('chatthing-') && !KEEP.has(name)) await caches.delete(name);
+    // Opaque responses have padded quota costs (roughly 7 MiB each in Chromium).
+    // Remove only regenerable asset entries; IndexedDB journals are untouched.
+    for (const bucket of [IMAGES,FONTS]) {
+      const cache=await caches.open(bucket);
+      for (const request of await cache.keys()) {
+        const url=new URL(request.url),response=await cache.match(request);
+        if (response?.type==='opaque'||url.hostname==='giphy.com'||url.hostname.endsWith('.giphy.com')||url.origin===worker.location.origin&&url.pathname.startsWith('/uploads/')) await cache.delete(request);
+      }
+    }
     await worker.clients.claim(); })());
 });
 worker.addEventListener('message', event => { if (event.data === 'activate-update') void worker.skipWaiting(); });
@@ -25,8 +34,8 @@ async function shell(request: Request): Promise<Response> {
   catch (error) { const cached = await cache.match(request.mode === 'navigate' ? '/' : key); if (cached) return cached; throw error; }
 }
 async function cachedAsset(request: Request, bucket: string, cap: number): Promise<Response> {
-  const cache = await caches.open(bucket); const hit = await cache.match(request); if (hit) return hit;
-  const response = await fetch(request); if (response.ok || response.type === 'opaque') await put(cache, request, response.clone(), cap); return response;
+  const cache = await caches.open(bucket); const hit = await cache.match(request); if (hit && hit.type !== 'opaque') return hit; if (hit) await cache.delete(request);
+  const response = await fetch(request); if (response.ok && response.type !== 'opaque') await put(cache, request, response.clone(), cap); return response;
 }
 worker.addEventListener('fetch', event => {
   const request = event.request; const url = new URL(request.url); if (request.method !== 'GET' || !['https:', 'http:'].includes(url.protocol)) return;
