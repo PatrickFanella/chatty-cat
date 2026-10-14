@@ -4,9 +4,9 @@ M5 starts from merged main `857a413`. M4 remains open for #32's controlled live 
 
 | Issue | State | Next acceptance |
 | --- | --- | --- |
-| #35 desktop playback | PR #113 merged; paired Go helper and reviewed web launch verified locally | Desktop installation and real-stream playback; Linux/Windows native checks |
+| #35 desktop playback | Accepted and closed October 14 on deployed 26ea533 | macOS real video/audio-only playback verified; Linux/Windows native playback unverified |
 | #36 watched-channel browser companion | PR #114 merged; MV3 active-tab bridge with explicit pairing and reviewed workspace action | Installed-extension round trip, focus/removal acceptance |
-| #37 sandboxed web extensions | PR #115 merged; versioned declarative text commands/views with reviewed grants and opaque-frame runtime | Deployed owner acceptance |
+| #37 sandboxed web extensions | Accepted and closed October 14 on deployed 26ea533 | Production signed-in install/run/stage/reload/disable/remove verified for version 1 |
 | #38 owner-configured IRC relay | PR #117 merged as `502ce9b` after all four hosted checks passed; account-bound TLS relay and isolated bounded history | Approved endpoint/credentials and live owner-network acceptance |
 | #47 paired desktop overlay | PR #118 merged as `27174e7` after all four hosted checks passed; paired macOS host and native recovery/geometry fixtures | Installed production-origin and native menu-bar owner acceptance; Linux/Windows unavailable |
 
@@ -38,3 +38,10 @@ The standalone browser fixture and 775 frontend tests passed, along with build
 and Go race/vet. The declaration remains partial because this web panel defaults
 to staying open and does not reproduce native window-focus semantics. See
 [reply-thread focus evidence](reply-thread-demo.md#optional-focus-dismissal).
+
+## October 14 acceptance
+
+Current main through #126 is deployed. #35 and #37 are accepted for their
+documented adaptations; #36 and #38 remain open. #47 is closed as an
+implementation issue, with its installed native acceptance still separate.
+See [deployment and closeout evidence](remaining-acceptance-2026-10-14.md).
