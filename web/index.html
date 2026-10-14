@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
   <link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <meta property="og:title" content="Chatty Cat"><meta property="og:description" content="Self-hosted Twitch chat client. Six merged channels, your display settings."><meta property="og:image" content="/og.png"><meta name="twitter:card" content="summary_large_image">
-  <title>Chatty Cat · rebuild</title>
+  <meta property="og:title" content="Chatty Cat"><meta property="og:description" content="Self-hosted Twitch chat client. Six merged channels, your display settings."><meta property="og:image" content="https://chat.subcult.tv/og.png"><meta name="twitter:card" content="summary_large_image">
+  <title>Chatty Cat — Self-hosted Twitch chat client</title>
+  <meta name="description" content="Self-hosted Twitch chat client. Six merged channels, your display settings.">
+  <link rel="canonical" href="https://chat.subcult.tv/">
+  <meta property="og:url" content="https://chat.subcult.tv/">
+  <link rel="stylesheet" href="/seo.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&family=Atkinson+Hyperlegible+Mono:wght@400;600&family=Comic+Neue:wght@300;400;700&family=Fira+Code:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Inter&family=JetBrains+Mono:wght@400;600&family=Lexend:wght@400;600&family=Shantell+Sans:wght@300..700&family=Source+Code+Pro:wght@400;600&family=Source+Sans+3&family=VT323&display=swap">
 </head>
 <body>
   <header><button id="header-min" data-short="↕" type="button" aria-label="Cycle header: full, strip, graph">Header ↕</button>
-    <div class="brand"><svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" shape-rendering="crispEdges"><path class="cat-face" d="M2 2h2.02v2.02h-2.02zM20 2h2.02v2.02h-2.02zM2 4h2.02v2.02h-2.02zM4 4h2.02v2.02h-2.02zM18 4h2.02v2.02h-2.02zM20 4h2.02v2.02h-2.02zM2 6h2.02v2.02h-2.02zM4 6h2.02v2.02h-2.02zM6 6h2.02v2.02h-2.02zM16 6h2.02v2.02h-2.02zM18 6h2.02v2.02h-2.02zM20 6h2.02v2.02h-2.02zM2 8h20.02v2.02h-20.02zM2 10h20.02v2.02h-20.02zM2 12h2.02v2.02h-2.02zM8 12h8.02v2.02h-8.02zM20 12h2.02v2.02h-2.02zM2 14h20.02v2.02h-20.02zM2 16h8.02v2.02h-8.02zM14 16h8.02v2.02h-8.02zM4 18h16.02v2.02h-16.02zM6 20h12.02v2.02h-12.02z"/><path class="cat-cursor" d="M10 16h4.02v2.02h-4.02z"/></svg><strong>Chatty Cat</strong></div>
+    <div class="brand"><svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" shape-rendering="crispEdges"><path class="cat-face" d="M2 2h2.02v2.02h-2.02zM20 2h2.02v2.02h-2.02zM2 4h2.02v2.02h-2.02zM4 4h2.02v2.02h-2.02zM18 4h2.02v2.02h-2.02zM20 4h2.02v2.02h-2.02zM2 6h2.02v2.02h-2.02zM4 6h2.02v2.02h-2.02zM6 6h2.02v2.02h-2.02zM16 6h2.02v2.02h-2.02zM18 6h2.02v2.02h-2.02zM20 6h2.02v2.02h-2.02zM2 8h20.02v2.02h-20.02zM2 10h20.02v2.02h-20.02zM2 12h2.02v2.02h-2.02zM8 12h8.02v2.02h-8.02zM20 12h2.02v2.02h-2.02zM2 14h20.02v2.02h-20.02zM2 16h8.02v2.02h-8.02zM14 16h8.02v2.02h-8.02zM4 18h16.02v2.02h-16.02zM6 20h12.02v2.02h-12.02z"/><path class="cat-cursor" d="M10 16h4.02v2.02h-4.02z"/></svg><h1 class="brand-title">Chatty Cat</h1></div>
     <form id="channels"><label for="channel">Channels</label><input id="channel" name="channel" autocomplete="off" spellcheck="false" maxlength="155"><button>Join</button></form>
     <span id="status" role="status">Connecting…</span>
     <button id="theme" type="button" aria-label="Toggle light theme">◐</button>
