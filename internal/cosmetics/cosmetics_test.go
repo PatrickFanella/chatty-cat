@@ -121,3 +121,15 @@ func TestExactNumericIDs(t *testing.T) {
 		}
 	}
 }
+
+func TestChatterinoSkipsMalformedAssignmentsWithoutDiscardingValidBadges(t *testing.T) {
+	data := []byte(`{"badges":[{"tooltip":"Supporter","image2":"https://fourtf.com/badge.png","users":["42","not-a-twitch-id","",9007199254740993,true,null,{},1.5]}]}`)
+	badges, err := parseCatalog("Chatterino", data)
+	if err != nil || len(badges) != 2 || len(badges["42"]) != 1 || len(badges["9007199254740993"]) != 1 {
+		t.Fatalf("valid assignments discarded: %d users, %v", len(badges), err)
+	}
+	large := strings.Replace(string(data), `"42","not-a-twitch-id","",9007199254740993,true,null,{},1.5`, strings.Repeat(`"invalid",`, 100000)+`"42"`, 1)
+	if _, err := parseCatalog("Chatterino", []byte(large)); err == nil {
+		t.Fatal("malformed assignments bypassed the catalog count limit")
+	}
+}
