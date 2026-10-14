@@ -31,3 +31,10 @@ Independent gaps remain: exact Chatterino action arguments/defaults and direct n
 The local `/streamlink [joined channel]` command now opens desktop playback setup without a companion request or native execution. Current/named channel parsing, joined-channel/account/view guards and explicit pairing/tool/quality/review/confirmation remain bounded by the existing panel. The full frontend suite passes 769 tests and build; native browser setup checks are recorded in [playback evidence](desktop-playback-demo.md). Direct automatic command launch remains unsupported.
 
 Overlay first-open guidance now follows a successful current-account native receipt, with account-local activation, a request-free reopen button and late-response guards after teardown. The upstream knowledge-level row remains partial because native bit-field import/sync is unsupported. [Guide fixtures](desktop-overlay-demo.md#first-open-guide), all 772 frontend tests and build passed; installed acceptance is still pending.
+
+The reply-thread panel now supports opt-in dismissal when focus moves outside it,
+with saved views/read state retained and reviewed import/portable preferences.
+The standalone browser fixture and 775 frontend tests passed, along with build
+and Go race/vet. The declaration remains partial because this web panel defaults
+to staying open and does not reproduce native window-focus semantics. See
+[reply-thread focus evidence](reply-thread-demo.md#optional-focus-dismissal).

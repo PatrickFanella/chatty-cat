@@ -50,3 +50,5 @@ it('maps reviewed overlay background and content-shadow fields without native wi
  const plan=planChatterinoImport({settings:JSON.stringify({appearance:{overlay:{backgroundOpacity:128,shadow:true,shadowOpacity:200,shadowColor:'#abc',shadowOffsetX:-3,shadowOffsetY:4,shadowRadius:6}},native:{script:'SECRET'}})},base(),'Overlay');
  expect(plan.workspaces[0]?.settings.extras.presentation).toMatchObject({overlayBackgroundOpacity:128,overlayShadow:true,overlayShadowOpacity:200,overlayShadowColor:'#aabbcc',overlayShadowOffsetX:-3,overlayShadowOffsetY:4,overlayShadowRadius:6});expect(JSON.stringify(plan)).not.toContain('SECRET');
 });
+
+it('imports the reply-thread focus preference into reviewed portable presentation',()=>{const plan=planChatterinoImport({settings:JSON.stringify({behaviour:{autoCloseThreadPopup:true}})},base(),'Imported');expect(plan.workspaces[0]?.settings.extras.presentation).toMatchObject({autoCloseThreadPopup:true});});

@@ -34,7 +34,7 @@ Each CSV row records its exact upstream path/action, location, current state, im
 | Companion-only | Native behavior needs explicit pairing with an installed integration; linked issues remain open. |
 | Platform-limited | Native/debug behavior has no supported direct browser equivalent; the limitation is recorded. |
 
-Current CSV declaration totals are 217 implemented, 54 partial, 186 planned, 11 companion-only and 47 platform-limited. The original audit counted 139 implemented, 37 partial, 285 planned, 16 companion-only and 38 platform-limited. These are **not feature-parity percentages**. Counts include supported web adaptations and repeated source declarations. Exact native defaults and platform limitations remain separate from adaptation acceptance; the matrix also records working features without an equivalent declaration.
+Current CSV declaration totals are 217 implemented, 55 partial, 185 planned, 11 companion-only and 47 platform-limited. The original audit counted 139 implemented, 37 partial, 285 planned, 16 companion-only and 38 platform-limited. These are **not feature-parity percentages**. Counts include supported web adaptations and repeated source declarations. Exact native defaults and platform limitations remain separate from adaptation acceptance; the matrix also records working features without an equivalent declaration.
 
 ## M5 declaration review — October 13, 2026
 

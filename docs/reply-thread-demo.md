@@ -69,3 +69,22 @@ channel.close();
 
 Stop the fixture server with Ctrl+C. This verifies the local browser behavior;
 Twitch sends and production deployment require separate acceptance checks.
+
+## Optional focus dismissal
+
+Presentation → Hide reply threads when focus moves outside the panel is off by
+default. Enable it with Preview/Apply. Moving focus between thread controls keeps
+the panel open; moving to the composer or another outside control hides it while
+retaining views and read state. Threads reopens the panel. A focus loss without
+a known destination (such as switching applications) leaves it open. This adapts
+Chatterino's native popup setting to the persistent web panel; native popup
+defaults and window-focus behavior remain different. The preference participates
+in reviewed workspace/device sync and Chatterino settings import.
+
+For a standalone synthetic check, run `npm --prefix web run dev -- --port 5184`
+and open `http://127.0.0.1:5184/test-support/thread-focus.html`. Enable Hide on
+outside focus, open the retained thread, move focus between its controls, then
+focus Outside focus. Reopen with Threads and confirm the retained message. This
+fixture was checked in the T3 browser on October 14: internal focus kept the
+panel open, outside focus hid it, and reopening restored its one retained row.
+All 775 frontend tests, the production build and Go race/vet checks passed.

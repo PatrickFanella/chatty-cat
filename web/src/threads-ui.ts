@@ -1,3 +1,4 @@
+import {getPresentation} from './presentation';
 import type {MessageArchive} from './archive';
 import {PRIVACY_KEY,privacyEnabled} from './privacy';
 import type {ChatMessage} from './protocol';
@@ -15,8 +16,9 @@ export class ThreadsPanel {
   this.copy=this.button('Copy reviewed thread',()=>{if(privacyEnabled()||this.copy.disabled)return;void navigator.clipboard.writeText(this.preview.textContent??'').then(()=>{this.status.textContent='Reviewed public context copied';}).catch(()=>{this.status.textContent='Clipboard unavailable; select the preview text to copy';});});this.copy.disabled=true;
   this.root.append(note,this.search,this.button('Refresh retained thread',()=>{void this.load();}),this.button('Mark thread read',()=>{const view=this.active(),data=view&&this.loaded.get(threadKey(view));if(view&&data){this.views.markRead(view,data);this.paintTabs();}}),this.status,this.results,this.button('Preview public context',()=>{const view=this.active(),data=view&&this.loaded.get(threadKey(view));this.preview.textContent=data?('Public retained thread context; missing parents: '+(data.missing().join(', ')||'none')+(data.truncated?' · truncated at 500 messages':'')+'\n'+data.context(this.search.value)):'';this.copy.disabled=!this.preview.textContent;}),this.preview,this.copy);
   // Keep thread scrolling separate; the host restores chat anchors when width changes.
-  this.root.className='thread-panel';this.log.parentElement?.append(this.root);log.addEventListener('click',this.clicked);document.addEventListener('privacychange',this.privacy);window.addEventListener('storage',this.storage);document.addEventListener('visibilitychange',this.visible);
+  this.root.addEventListener('focusout',this.focusOut);this.root.className='thread-panel';this.log.parentElement?.append(this.root);log.addEventListener('click',this.clicked);document.addEventListener('privacychange',this.privacy);window.addEventListener('storage',this.storage);document.addEventListener('visibilitychange',this.visible);
  }
+ private focusOut=(event:FocusEvent):void=>{if(this.root.hidden||privacyEnabled()||!getPresentation().autoCloseThreadPopup||!(event.relatedTarget instanceof Node)||this.root.contains(event.relatedTarget))return;try{this.views.state.open=false;this.views.save();this.setHidden(true);}catch(e){this.error(e);}};
  private setHidden(hidden:boolean):void{if(this.root.hidden!==hidden)this.layoutChange(()=>{this.root.hidden=hidden;});}
  private button(name:string,action:()=>void):HTMLButtonElement{const button=document.createElement('button');button.type='button';button.textContent=name;button.addEventListener('click',()=>{try{if(!privacyEnabled())action();}catch(e){this.error(e);}});return button;}
  private error(error:unknown):void{this.status.textContent=error instanceof Error?error.message:'Public thread unavailable';}
@@ -45,5 +47,5 @@ export class ThreadsPanel {
  private visible=():void=>{if(!document.hidden&&!this.root.hidden)this.paintRows();};
  private privacy=():void=>{if(privacyEnabled())this.reset();else{try{this.views.reload();this.setHidden(!this.views.state.open);this.paintTabs();void this.load();}catch(e){this.error(e);}}};
  private storage=(event:StorageEvent):void=>{if(event.key===this.views.key){this.reset();try{this.views.reload();this.setHidden(privacyEnabled()||!this.views.state.open);this.paintTabs();if(!privacyEnabled())void this.load();}catch(e){this.error(e);}}else if(event.key===PRIVACY_KEY||event.key===null)this.privacy();};
- stop():void{this.reset();this.log.removeEventListener('click',this.clicked);this.trigger.removeEventListener('click',this.toggle);document.removeEventListener('privacychange',this.privacy);window.removeEventListener('storage',this.storage);document.removeEventListener('visibilitychange',this.visible);this.root.remove();this.trigger.remove();}
+ stop():void{this.root.removeEventListener('focusout',this.focusOut);this.reset();this.log.removeEventListener('click',this.clicked);this.trigger.removeEventListener('click',this.toggle);document.removeEventListener('privacychange',this.privacy);window.removeEventListener('storage',this.storage);document.removeEventListener('visibilitychange',this.visible);this.root.remove();this.trigger.remove();}
 }
