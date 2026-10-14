@@ -46,8 +46,7 @@ an existing photo library or general data directory. Validate with
 `docker compose ... config --quiet` without printing expanded secrets. The normal
 Compose deployment stays disabled unless this override is selected.
 
-This change prepares hosting; production mounting, release and live acceptance
-have not happened. Do not point the test fixture at a production upload directory.
+Production mounting and activation are recorded in [the M4 deployment evidence](m4-deployment-2026-10-13.md). Authenticated upload/delete and persistence acceptance remain open. Do not point the test fixture at a production upload directory.
 
 ## Reproducible demo
 

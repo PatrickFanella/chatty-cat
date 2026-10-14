@@ -206,7 +206,7 @@ func parseCatalog(provider string, data []byte) (map[string][]Badge, error) {
 			URLs    map[string]string `json:"urls"`
 			Image1  string            `json:"image1"`
 			Image2  string            `json:"image2"`
-			Users   []catalogID       `json:"users"`
+			Users   []json.RawMessage `json:"users"`
 		}
 		Users map[string][]catalogID `json:"users"`
 	}
@@ -231,16 +231,32 @@ func parseCatalog(provider string, data []byte) (map[string][]Badge, error) {
 				raw = badge.URLs["1"]
 			}
 			users = wire.Users[key]
+			assignments += len(users)
 		case "Chatterino":
 			title = badge.Tooltip
 			raw = badge.Image2
 			if raw == "" {
 				raw = badge.Image1
 			}
-			users = badge.Users
+			// Chatterino's public catalog can contain stale non-ID strings.
+			// Isolate those assignments while retaining valid exact IDs. Count
+			// every input entry, including rejected ones, toward the hard limit.
+			assignments += len(badge.Users)
+			if assignments > 100000 {
+				return nil, errors.New("cosmetic assignments exceed limit")
+			}
+			for _, rawID := range badge.Users {
+				var value catalogID
+				if json.Unmarshal(rawID, &value) == nil {
+					users = append(users, value)
+				}
+			}
 			key = raw
 		default:
 			return nil, errors.New("unknown cosmetic provider")
+		}
+		if assignments > 100000 {
+			return nil, errors.New("cosmetic assignments exceed limit")
 		}
 		if seen[key] || len(title) == 0 || len(title) > 200 {
 			return nil, errors.New("invalid cosmetic badge")
@@ -253,8 +269,7 @@ func parseCatalog(provider string, data []byte) (map[string][]Badge, error) {
 		entry := Badge{Provider: provider, URL: address, Title: title}
 		for _, value := range users {
 			id := string(value)
-			assignments++
-			if assignments > 100000 || !accountID.MatchString(id) || len(result[id]) >= 8 {
+			if !accountID.MatchString(id) || len(result[id]) >= 8 {
 				return nil, errors.New("invalid cosmetic assignments")
 			}
 			result[id] = append(result[id], entry)
