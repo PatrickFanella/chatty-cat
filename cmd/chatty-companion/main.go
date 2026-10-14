@@ -23,10 +23,10 @@ func main() {
 	}
 }
 func run() error {
-	configPath := flag.String("config", "", "owner-reviewed local JSON configuration (required)")
+	configPath := flag.String("config", "", "owner-reviewed local playback/overlay JSON configuration (required)")
 	flag.Parse()
 	if *configPath == "" {
-		return fmt.Errorf("use -config with a local executable allowlist")
+		return fmt.Errorf("use -config with a local playback/overlay executable allowlist")
 	}
 	f, err := os.Open(*configPath)
 	if err != nil {
@@ -61,7 +61,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	server := &http.Server{Handler: service, ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second, IdleTimeout: 15 * time.Second, MaxHeaderBytes: 8192}
-	fmt.Printf("Chatty Cat companion on %s for %s\nPairing code (one use, expires in five minutes): %s\nCtrl+C revokes pairing and stops managed playback.\n", companion.Address, config.Origin, service.PairCode())
+	fmt.Printf("Chatty Cat companion on %s for %s\nPairing code (one use, expires in five minutes): %s\nCtrl+C revokes pairing and stops managed playback and overlays.\n", companion.Address, config.Origin, service.PairCode())
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 3*time.Second)

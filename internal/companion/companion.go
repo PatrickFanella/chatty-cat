@@ -32,8 +32,9 @@ type Tool struct {
 	Requires   []string `json:"requires,omitempty"`
 }
 type Config struct {
-	Origin string `json:"origin"`
-	Tools  []Tool `json:"tools"`
+	Origin            string `json:"origin"`
+	Tools             []Tool `json:"tools"`
+	OverlayExecutable string `json:"overlayExecutable,omitempty"`
 }
 type ToolStatus struct {
 	ID        string `json:"id"`
@@ -49,20 +50,33 @@ type Job struct {
 	ExitCode *int   `json:"exitCode,omitempty"`
 }
 type Service struct {
-	config         Config
-	mu             sync.Mutex
-	code           string
-	codeUntil      time.Time
-	attempts       int
-	token, account string
-	expires        time.Time
-	jobs           []*Job
-	ctx            context.Context
-	cancel         context.CancelFunc
-	start          func(string, []string, func(int))
-	wg             sync.WaitGroup
-	closed         bool
-	slots          chan struct{}
+	config           Config
+	mu               sync.Mutex
+	code             string
+	codeUntil        time.Time
+	attempts         int
+	token, account   string
+	expires          time.Time
+	jobs             []*Job
+	ctx              context.Context
+	cancel           context.CancelFunc
+	start            func(string, []string, func(int))
+	wg               sync.WaitGroup
+	closed           bool
+	slots            chan struct{}
+	overlay          *overlayHost
+	overlayReceipts  map[string]overlayReceipt
+	overlaySupported func() bool
+}
+
+type overlayReceipt struct {
+	Body  overlayAction
+	State OverlayState
+}
+type overlayAction struct {
+	Kind     string           `json:"kind"`
+	ID       string           `json:"requestID"`
+	Settings *OverlaySettings `json:"settings,omitempty"`
 }
 
 var identifier = regexp.MustCompile(`^[a-z0-9_-]{1,32}$`)
@@ -80,8 +94,8 @@ func opaque() string {
 }
 func New(c Config) (*Service, error) {
 	u, err := url.Parse(c.Origin)
-	if err != nil || u.User != nil || u.Host == "" || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || u.Opaque != "" || (u.Scheme != "https" && (u.Scheme != "http" || (u.Hostname() != "127.0.0.1" && u.Hostname() != "localhost"))) || len(c.Tools) == 0 || len(c.Tools) > 8 {
-		return nil, errors.New("configure an exact HTTPS origin (or HTTP loopback) and one to eight tools")
+	if err != nil || u.User != nil || u.Host == "" || u.RawQuery != "" || u.Fragment != "" || u.Path != "" || u.Opaque != "" || (u.Scheme != "https" && (u.Scheme != "http" || (u.Hostname() != "127.0.0.1" && u.Hostname() != "localhost"))) || len(c.Tools) == 0 && c.OverlayExecutable == "" || len(c.Tools) > 8 || c.OverlayExecutable != "" && !filepath.IsAbs(c.OverlayExecutable) {
+		return nil, errors.New("configure an exact HTTPS origin (or HTTP loopback), with playback tools or an absolute overlay executable")
 	}
 	seen := map[string]bool{}
 	for _, t := range c.Tools {
@@ -115,8 +129,9 @@ func New(c Config) (*Service, error) {
 		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	s := &Service{config: c, code: opaque(), codeUntil: time.Now().Add(5 * time.Minute), ctx: ctx, cancel: cancel, slots: make(chan struct{}, 16)}
+	s := &Service{config: c, code: opaque(), codeUntil: time.Now().Add(5 * time.Minute), ctx: ctx, cancel: cancel, slots: make(chan struct{}, 16), overlayReceipts: map[string]overlayReceipt{}}
 	s.start = s.execute
+	s.overlaySupported = s.platformOverlayAvailable
 	return s, nil
 }
 func (s *Service) PairCode() string { return s.code }
@@ -125,6 +140,10 @@ func (s *Service) Close() {
 	s.closed = true
 	s.token = ""
 	s.cancel()
+	if s.overlay != nil {
+		s.overlay.close()
+		s.overlay = nil
+	}
 	s.mu.Unlock()
 	s.wg.Wait()
 }
@@ -274,6 +293,10 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "DELETE" && r.URL.Path == "/v1/pair":
 		s.token = ""
 		s.cancel()
+		if s.overlay != nil {
+			s.overlay.close()
+			s.overlay = nil
+		}
 		s.mu.Unlock()
 		w.WriteHeader(204)
 	case r.Method == "GET" && r.URL.Path == "/v1/status":
@@ -281,7 +304,10 @@ func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, t := range s.config.Tools {
 			tools = append(tools, ToolStatus{t.ID, t.Label, available(t)})
 		}
-		respond(w, 200, map[string]any{"version": 1, "platform": runtime.GOOS, "tools": tools, "jobs": s.jobs})
+		respond(w, 200, map[string]any{"version": 1, "platform": runtime.GOOS, "tools": tools, "jobs": s.jobs, "overlayAvailable": s.overlaySupported()})
+		s.mu.Unlock()
+	case r.URL.Path == "/v1/overlay" && (r.Method == "GET" || r.Method == "POST"):
+		s.overlayHTTP(w, r)
 		s.mu.Unlock()
 	case r.Method == "POST" && r.URL.Path == "/v1/launch":
 		var body struct {
