@@ -41,7 +41,7 @@ PR merge, deployment and production acceptance remain separate.
 
 Optional cross-device sync (#29) now has a private revision-checked store and an explicit browser select/review/publish/apply/delete/export flow. A two-profile built-app demo verified lost-receipt retry, destination restore with local private annotations retained, and stale-client rejection after deletion. See [sync progress](device-sync-progress.md) and [demo](device-sync-demo.md). Production storage setup and live-account acceptance remain open.
 
-Remaining M4 work includes exact provider/cosmetic controls (#31), additional public EventSub metadata (#32), and deployment/live acceptance. Public shared-chat/reward/streak context and private own-message feedback have separate fixture evidence. External provider/configuration acceptance remains distinct from implementation and local verification.
+Remaining M4 work includes exact provider/cosmetic controls (#31), remaining provider services and deployment/live acceptance. Supplemental public EventSub metadata (#32) is implemented with a projection that omits bodies and an explicit connection; see [the demo](eventsub-public-context-demo.md). Public shared-chat/reward/streak context and private own-message feedback have separate fixture evidence. External provider/configuration acceptance remains distinct from implementation and local verification.
 
 This work does not close the earlier M3 production journal persistence gate or
 remaining controlled-subject, private-event and eligible/live broadcaster checks.

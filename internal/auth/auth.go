@@ -92,6 +92,7 @@ type Service struct {
 	cfg                                     Config
 	autoModHubs                             map[string]*autoModHub
 	userHoldHubs                            map[string]*autoModHub
+	chatContextHubs                         map[string]*autoModHub
 	suspiciousHubs                          map[string]*autoModHub
 	chatBudget                              *chatlimits.Budget
 	origin                                  string
@@ -199,6 +200,7 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/auth/polls", s.limit(s.polls))
 	mux.Handle("POST /api/auth/polls", s.limit(s.pollAction))
 	mux.HandleFunc("GET /api/auth/user-holds/events", s.userHoldEvents)
+	mux.HandleFunc("GET /api/auth/chat-context/events", s.chatContextEvents)
 	mux.HandleFunc("GET /api/auth/automod/events", s.autoModEvents)
 	mux.HandleFunc("GET /api/auth/suspicious/events", s.suspiciousEvents)
 	mux.Handle("POST /api/auth/automod/decision", s.limit(s.autoModDecision))
@@ -290,6 +292,14 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 		scopes += " " + userChatReadScope
 	} else if consent != "" {
 		http.Error(w, "Invalid own-message feedback consent", http.StatusBadRequest)
+		return
+	}
+	if consent := r.URL.Query().Get("context"); consent == "read" {
+		if !strings.Contains(" "+scopes+" ", " "+userChatReadScope+" ") {
+			scopes += " " + userChatReadScope
+		}
+	} else if consent != "" {
+		http.Error(w, "Invalid public context consent", http.StatusBadRequest)
 		return
 	}
 	if consent := r.URL.Query().Get("automod"); consent == "read" {
@@ -550,6 +560,7 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			result["suspiciousEnabled"] = slices.Contains(p.user.Scopes, suspiciousReadScope)
 			result["suspiciousManageEnabled"] = slices.Contains(p.user.Scopes, suspiciousManageScope)
 			result["userFeedbackEnabled"] = slices.Contains(p.user.Scopes, userChatReadScope)
+			result["chatContextEnabled"] = slices.Contains(p.user.Scopes, userChatReadScope)
 			result["automodEnabled"] = slices.Contains(p.user.Scopes, autoModScope)
 			result["moderationReadEnabled"] = slices.Contains(p.user.Scopes, "user:read:moderated_channels")
 			permissions := []string{}
