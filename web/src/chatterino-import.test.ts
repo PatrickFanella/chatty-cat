@@ -46,3 +46,7 @@ it('retains a large validated command and pane bundle when capturing portable pr
  expect(JSON.stringify(workspace.settings.extras).length).toBeGreaterThan(65536);
  const parsed=parseBundle(workspace.settings,defaultDisplay);expect(parsed?.extras.commands).toHaveLength(30);expect(parsed?.extras.splits).toMatchObject({enabled:true});
 });
+it('maps reviewed overlay background and content-shadow fields without native window commands',()=>{
+ const plan=planChatterinoImport({settings:JSON.stringify({appearance:{overlay:{backgroundOpacity:128,shadow:true,shadowOpacity:200,shadowColor:'#abc',shadowOffsetX:-3,shadowOffsetY:4,shadowRadius:6}},native:{script:'SECRET'}})},base(),'Overlay');
+ expect(plan.workspaces[0]?.settings.extras.presentation).toMatchObject({overlayBackgroundOpacity:128,overlayShadow:true,overlayShadowOpacity:200,overlayShadowColor:'#aabbcc',overlayShadowOffsetX:-3,overlayShadowOffsetY:4,overlayShadowRadius:6});expect(JSON.stringify(plan)).not.toContain('SECRET');
+});
