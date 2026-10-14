@@ -1,5 +1,7 @@
 # Milestone 4 progress
 
+M4 implementation through tested commit `5892994` is now deployed with local upload/sync storage and configured optional provider services. See [deployment evidence and remaining acceptance](m4-deployment-2026-10-13.md). Real-account checks and the documented source-cache freshness issue remain open; M4 is not complete.
+
 The isolated account-profile foundation (#27) is merged. Custom themes #84 are
 merged and deployed at `3568fa4`, with public preview/revert verified and no
 production preference saved. See [release evidence](m3-deployment-2026-10-13.md). Custom color themes (#34)
