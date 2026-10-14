@@ -25,6 +25,10 @@ The owner completed these checks at `chat.subcult.tv` as `patrick__eff` in regul
 
 M4 remains open. Controlled live emote changes and cosmetic badge events, supplemental public/own-message EventSub cases with consent and suitable external conditions, remain outstanding. The earlier source-cache mismatch has cleared on public-browser recheck; both source URLs now match the deployed release hash. Sync conflict/lost-receipt/recovery cases retain fixture evidence; they were not repeated in production. Upload persistence across a server restart or reboot was not exercised. Native feature limitations and earlier M3 private-event/journal and eligible broadcaster gates remain separate.
 
+## M5 implementation started
+
+Work proceeds in independently reviewed slices: paired desktop playback (#35), watched-channel browser companion (#36), sandboxed extensions (#37), owner-configured IRC (#38) and paired desktop overlay (#47). See [current M5 evidence and remaining acceptance](milestone-5-progress.md). M4's live-event gate remains separate.
+
 ## Implementation issues
 
 | Issue | Deliverable | Blocking issues |
