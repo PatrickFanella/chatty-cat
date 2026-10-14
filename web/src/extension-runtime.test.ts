@@ -1,0 +1,8 @@
+// @vitest-environment happy-dom
+import {afterEach,expect,it,vi} from 'vitest';
+import {ExtensionRuntime,renderExtensionText} from './extension-runtime';
+import {parseExtension} from './extensions';
+const value={format:'chatty-cat-extension',version:1,id:'test',name:'Test',permissions:['context:channel','input:text'],commands:[{id:'one',title:'One',template:'Channel {{channel}}: {{input}}'}],views:[]};
+afterEach(()=>{document.body.replaceChildren();vi.useRealTimers();});
+it('interprets only bounded text and never evaluates code or HTML',()=>{expect(renderExtensionText('x {{input}}','# {{token}} <script>fetch("/api/auth/session")</script>','one')).toContain('<script>');expect(()=>renderExtensionText('{{input}}'.repeat(100),'x'.repeat(500),'one')).toThrow('output');expect(()=>renderExtensionText('test','', 'https://evil.test')).toThrow();});
+it('allocates an opaque no-network frame and tears it down on cancellation/deadline',async()=>{const runtime=new ExtensionRuntime();const result=runtime.run(parseExtension(value),'command','one','note','one');const frame=document.querySelector('iframe')!;expect(frame.getAttribute('sandbox')).toBe('allow-scripts');expect(frame.srcdoc).toContain("connect-src 'none'");expect(frame.srcdoc).toContain("worker-src 'none'");expect(frame.srcdoc).not.toContain('note');runtime.stop();await expect(result).rejects.toThrow('cancelled');expect(document.querySelector('iframe')).toBeNull();vi.useFakeTimers();const next=runtime.run(parseExtension(value),'command','one','','one');const rejection=expect(next).rejects.toThrow('two seconds');await vi.advanceTimersByTimeAsync(2001);await rejection;expect(document.querySelector('iframe')).toBeNull();});
