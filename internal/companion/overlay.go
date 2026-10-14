@@ -11,23 +11,41 @@ import (
 	"net/http"
 	"net/url"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"sync"
 	"time"
 )
 
 type OverlaySettings struct {
-	Channel      string  `json:"channel"`
-	Opacity      float64 `json:"opacity"`
-	Scale        float64 `json:"scale"`
-	Width        int     `json:"width"`
-	Height       int     `json:"height"`
-	Shadow       bool    `json:"shadow"`
-	ClickThrough bool    `json:"clickThrough"`
+	Channel      string             `json:"channel"`
+	Opacity      float64            `json:"opacity"`
+	Scale        float64            `json:"scale"`
+	Width        int                `json:"width"`
+	Height       int                `json:"height"`
+	Shadow       bool               `json:"shadow"`
+	ClickThrough bool               `json:"clickThrough"`
+	Appearance   *OverlayAppearance `json:"appearance,omitempty"`
+}
+
+type OverlayAppearance struct {
+	BackgroundOpacity int    `json:"backgroundOpacity"`
+	Shadow            bool   `json:"shadow"`
+	ShadowOpacity     int    `json:"shadowOpacity"`
+	ShadowColor       string `json:"shadowColor"`
+	ShadowOffsetX     int    `json:"shadowOffsetX"`
+	ShadowOffsetY     int    `json:"shadowOffsetY"`
+	ShadowRadius      int    `json:"shadowRadius"`
+}
+
+var overlayColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+func (v OverlayAppearance) Valid() bool {
+	return v.BackgroundOpacity >= 0 && v.BackgroundOpacity <= 255 && v.ShadowOpacity >= 0 && v.ShadowOpacity <= 255 && overlayColor.MatchString(v.ShadowColor) && v.ShadowOffsetX >= -20 && v.ShadowOffsetX <= 20 && v.ShadowOffsetY >= -20 && v.ShadowOffsetY <= 20 && v.ShadowRadius >= 0 && v.ShadowRadius <= 40
 }
 
 func (v OverlaySettings) Valid() bool {
-	return channelID.MatchString(v.Channel) && !math.IsNaN(v.Opacity) && !math.IsNaN(v.Scale) && v.Opacity >= .2 && v.Opacity <= 1 && v.Scale >= .5 && v.Scale <= 2 && v.Width >= 240 && v.Width <= 1600 && v.Height >= 200 && v.Height <= 1600
+	return channelID.MatchString(v.Channel) && !math.IsNaN(v.Opacity) && !math.IsNaN(v.Scale) && v.Opacity >= .2 && v.Opacity <= 1 && v.Scale >= .5 && v.Scale <= 2 && v.Width >= 240 && v.Width <= 1600 && v.Height >= 200 && v.Height <= 1600 && (v.Appearance == nil || v.Appearance.Valid())
 }
 
 type OverlayState struct {

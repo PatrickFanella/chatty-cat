@@ -465,3 +465,9 @@ html[data-privacy=true] #moderation-workspace {display:none!important;}
 
 .message-context,.source-badges {display:inline-block;font-size:.8em;color:var(--muted);margin-inline:.35em;padding-inline:.25em;border:1px solid var(--line);border-radius:3px;overflow-wrap:anywhere}
 .source-badges .source-badge {vertical-align:middle}
+
+/* Overlay row alpha is independent of foreground opacity; content shadow includes images. */
+html[data-overlay="true"] #log {filter:var(--overlay-content-shadow,none)}
+html[data-overlay="true"] #log .row {background:color-mix(in srgb,var(--bg) var(--overlay-background-alpha,0%),transparent)}
+html[data-overlay="true"][data-presentation-alternating="on"] #log .row[data-position]:nth-child(even) {background:color-mix(in srgb,var(--panel) var(--overlay-background-alpha,0%),transparent)}
+html[data-overlay="true"] #log .row.keyword-match {background:color-mix(in srgb,var(--rule-color,var(--accent)) var(--overlay-background-alpha,0%),transparent)}

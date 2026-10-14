@@ -1,3 +1,4 @@
+import {validOverlayAppearance,type OverlayAppearance} from './overlay-appearance';
 import type {AuthStatus} from './auth';
 import {getProfileScope} from './account-profiles';
 import {privacyEnabled} from './privacy';
@@ -31,8 +32,8 @@ export class DesktopCompanion{
  authChanged():boolean{const identity=this.identity();if(identity!==this.observed){this.observed=identity;this.disconnect();return true;}return false;}
 }
 
-export interface OverlaySettings {channel:string;opacity:number;scale:number;width:number;height:number;shadow:boolean;clickThrough:boolean}
+export interface OverlaySettings {channel:string;opacity:number;scale:number;width:number;height:number;shadow:boolean;clickThrough:boolean;appearance?:OverlayAppearance}
 export interface OverlayState {open:boolean;interactive:boolean;settings:OverlaySettings;x:number;y:number;recovery:string}
 export interface OverlayAction {kind:'open'|'update'|'recover'|'close';requestID:string;settings?:OverlaySettings}
-export function validOverlaySettings(v:unknown):v is OverlaySettings{return record(v)&&typeof v.channel==='string'&&/^[a-z0-9_]{1,25}$/.test(v.channel)&&typeof v.opacity==='number'&&v.opacity>=.2&&v.opacity<=1&&typeof v.scale==='number'&&v.scale>=.5&&v.scale<=2&&Number.isInteger(v.width)&&Number(v.width)>=240&&Number(v.width)<=1600&&Number.isInteger(v.height)&&Number(v.height)>=200&&Number(v.height)<=1600&&typeof v.shadow==='boolean'&&typeof v.clickThrough==='boolean';}
+export function validOverlaySettings(v:unknown):v is OverlaySettings{return record(v)&&typeof v.channel==='string'&&/^[a-z0-9_]{1,25}$/.test(v.channel)&&typeof v.opacity==='number'&&v.opacity>=.2&&v.opacity<=1&&typeof v.scale==='number'&&v.scale>=.5&&v.scale<=2&&Number.isInteger(v.width)&&Number(v.width)>=240&&Number(v.width)<=1600&&Number.isInteger(v.height)&&Number(v.height)>=200&&Number(v.height)<=1600&&typeof v.shadow==='boolean'&&typeof v.clickThrough==='boolean'&&(v.appearance===undefined||validOverlayAppearance(v.appearance));}
 export function parseOverlayState(v:unknown):OverlayState{if(!record(v)||typeof v.open!=='boolean'||typeof v.interactive!=='boolean'||typeof v.recovery!=='string'||v.recovery.length>200||!Number.isSafeInteger(v.x)||!Number.isSafeInteger(v.y)||v.open&&!validOverlaySettings(v.settings))throw new Error('Invalid native overlay state');return v as unknown as OverlayState;}

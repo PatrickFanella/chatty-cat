@@ -122,3 +122,31 @@ func TestOverlayPairingReceiptsAccountAndProcessCleanup(t *testing.T) {
 		t.Fatal("host retained after unpair")
 	}
 }
+
+func TestOverlayAppearanceCannotInjectCSSOrURLsThroughPairedHTTP(t *testing.T) {
+	executable, e := os.Executable()
+	if e != nil {
+		t.Fatal(e)
+	}
+	s, e := New(Config{Origin: "https://chat.subcult.tv", OverlayExecutable: executable})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	s.overlaySupported = func() bool { return true }
+	token := pair(t, s)
+	settings := OverlaySettings{Channel: "room", Opacity: 1, Scale: 1, Width: 400, Height: 600, Appearance: &OverlayAppearance{BackgroundOpacity: 128, Shadow: true, ShadowOpacity: 128, ShadowColor: "#123456", ShadowOffsetX: -3, ShadowOffsetY: 4, ShadowRadius: 6}}
+	for _, color := range []string{"red;url(https://evil.example)", "#123456;opacity:0", "#123"} {
+		settings.Appearance.ShadowColor = color
+		if w := request(s, "POST", "/v1/overlay", s.config.Origin, token, "42", overlayAction{Kind: "open", ID: "appearance", Settings: &settings}); w.Code != 400 {
+			t.Fatal("unsafe shadow color", w.Code)
+		}
+	}
+	if s.overlay != nil {
+		t.Fatal("invalid appearance opened a process")
+	}
+	settings.Appearance.ShadowColor = "#123456"
+	if w := request(s, "POST", "/v1/overlay", s.config.Origin, token, "42", overlayAction{Kind: "open", ID: "appearance", Settings: &settings}); w.Code != 200 || !strings.Contains(w.Body.String(), `"backgroundOpacity":128`) {
+		t.Fatal(w.Code, w.Body.String())
+	}
+}

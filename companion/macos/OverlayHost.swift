@@ -2,6 +2,29 @@ import AppKit
 import WebKit
 import CryptoKit
 
+struct Appearance: Codable {
+    let backgroundOpacity: Int
+    let shadow: Bool
+    let shadowOpacity: Int
+    let shadowColor: String
+    let shadowOffsetX: Int
+    let shadowOffsetY: Int
+    let shadowRadius: Int
+    var valid: Bool {
+        (0...255).contains(backgroundOpacity) && (0...255).contains(shadowOpacity) &&
+        shadowColor.range(of: "^#[0-9a-fA-F]{6}$", options: .regularExpression) != nil &&
+        (-20...20).contains(shadowOffsetX) && (-20...20).contains(shadowOffsetY) && (0...40).contains(shadowRadius)
+    }
+    var styles: [String: String] {
+        let hex = String(shadowColor.dropFirst())
+        let rgb = stride(from: 0, to: 6, by: 2).map { offset -> Int in
+            let start = hex.index(hex.startIndex, offsetBy: offset)
+            return Int(hex[start..<hex.index(start, offsetBy: 2)], radix: 16)!
+        }
+        return ["--overlay-background-alpha": String(Double(backgroundOpacity) / 255 * 100) + "%",
+                "--overlay-content-shadow": shadow ? "drop-shadow(\(shadowOffsetX)px \(shadowOffsetY)px \(shadowRadius)px rgba(\(rgb.map(String.init).joined(separator: ",")),\(Double(shadowOpacity) / 255)))" : "none"]
+    }
+}
 struct Settings: Codable {
     let channel: String
     var opacity: Double
@@ -10,10 +33,11 @@ struct Settings: Codable {
     var height: Int
     var shadow: Bool
     var clickThrough: Bool
+    let appearance: Appearance?
     var valid: Bool {
         channel.range(of: "^[a-z0-9_]{1,25}$", options: .regularExpression) != nil &&
         opacity.isFinite && (0.2...1).contains(opacity) && scale.isFinite && (0.5...2).contains(scale) &&
-        (240...1600).contains(width) && (200...1600).contains(height)
+        (240...1600).contains(width) && (200...1600).contains(height) && (appearance?.valid ?? true)
     }
 }
 struct Configuration: Codable { let url: String; let account: String; let settings: Settings }
@@ -96,8 +120,14 @@ struct State: Codable { let open: Bool; let interactive: Bool; let settings: Set
         web.pageZoom = next.scale
         window.ignoresMouseEvents = next.clickThrough
         window.setContentSize(NSSize(width: next.width, height: next.height))
-        clampGeometry(); saveGeometry()
+        clampGeometry(); saveGeometry(); applyAppearance()
     }
+    func applyAppearance() {
+        let appearance = settings.appearance ?? Appearance(backgroundOpacity: 0, shadow: false, shadowOpacity: 255, shadowColor: "#000000", shadowOffsetX: 2, shadowOffsetY: 2, shadowRadius: 8)
+        guard let raw = try? JSONEncoder().encode(appearance.styles), let json = String(data: raw, encoding: .utf8) else { return }
+        web.evaluateJavaScript("(() => { const styles = " + json + "; for (const [key, value] of Object.entries(styles)) document.documentElement.style.setProperty(key, value); })()", completionHandler: nil)
+    }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { applyAppearance() }
     func clampGeometry() {
         let screen = NSScreen.screens.first(where: { $0.visibleFrame.intersects(window.frame) }) ?? NSScreen.main
         guard let screen else { return }; let bounds = screen.visibleFrame; var frame = window.frame
