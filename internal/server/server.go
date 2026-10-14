@@ -26,6 +26,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/cosmetics"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/devicesync"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/ircrelay"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/providerservices"
@@ -38,6 +39,7 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	IRCRelay          *ircrelay.Service
 	ProviderServices  []providerservices.Provider
 	Sync              *devicesync.Store
 	Cosmetics         *cosmetics.Service
@@ -101,6 +103,9 @@ func (s *Server) Close() {
 	s.wg.Wait()
 	s.client.CloseIdleConnections()
 	s.previews.Close()
+	if s.cfg.IRCRelay != nil {
+		s.cfg.IRCRelay.Close()
+	}
 	if s.cfg.Auth != nil {
 		s.cfg.Auth.Close()
 	}
@@ -109,6 +114,19 @@ func (s *Server) Close() {
 // Handler returns same-origin API and static asset routes.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	if s.cfg.IRCRelay != nil {
+		var authorize ircrelay.Authorize
+		if s.cfg.Auth != nil {
+			authorize = s.cfg.Auth.StorageAccount
+		}
+		s.cfg.IRCRelay.Register(mux, authorize)
+	} else {
+		mux.HandleFunc("GET /api/irc/config", func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"enabled": false, "protocol": "irc-tls", "maxMessages": 500})
+		})
+	}
 	if s.cfg.Sync != nil {
 		var authorize devicesync.Authorize
 		if s.cfg.Auth != nil {
