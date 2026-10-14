@@ -15,7 +15,7 @@ export interface Subscription {type:string;condition:Record<string,string>}
 export function providerEventPlan(metadata:readonly ChannelMetadata[],p:ProviderPreferences,allowed:readonly LiveProvider[]):{bttv:string[];sevenTV:Subscription[]}{
  const rooms=metadata.slice(0,24),subscriptions=new Map<string,Subscription>();
  const add=(type:string,condition:Record<string,string>):void=>{const s={type,condition};subscriptions.set(JSON.stringify(s),s);};
- const bttv=allowed.includes('BTTV')&&p.cosmetics.BTTV?[...new Set(rooms.map(m=>m.broadcasterID).filter(twitchID))]:[];
+ const bttv=allowed.includes('BTTV')&&(p.cosmetics.BTTV||p.activity.BTTV)?[...new Set(rooms.map(m=>m.broadcasterID).filter(twitchID))]:[];
  if(allowed.includes('7TV')&&p.sevenTVEventAPI){for(const room of rooms){
   const seven=room.sevenTV,options=p.providers['7TV'];
   if(options.live){if(options.global&&id(seven?.globalSetID))add('emote_set.update',{object_id:seven.globalSetID});if(options.channel){if(id(seven?.channelSetID))add('emote_set.update',{object_id:seven.channelSetID});if(id(seven?.userID))add('user.update',{object_id:seven.userID});}}

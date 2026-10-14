@@ -7,6 +7,7 @@ spec=importlib.util.spec_from_file_location('provider_fixture',Path(__file__).wi
 base=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 base.MOCK=base.MOCK.replace("'display-name':'Alice',emotes", "'display-name':'Alice','user-id':'2',emotes")+'''<script>
+window.fixtureActivityWrites=[];const nativeFetch=window.fetch.bind(window);window.fetch=(url,options)=>{if(String(url).startsWith('https://7tv.io/v3/users/twitch/'))return Promise.resolve(new Response(JSON.stringify({id:'42',platform:'TWITCH',user:{id:'own7tv'}}),{headers:{'Content-Type':'application/json'}}));if(String(url)==='https://7tv.io/v3/users/own7tv/presences'){window.fixtureActivityWrites.push({url,method:options.method,body:JSON.parse(options.body),credentials:options.credentials,headers:options.headers});return Promise.resolve(new Response(null,{status:204}));}return nativeFetch(url,options);};
 window.fixtureProviderSockets=[];
 const PublicSocket=window.WebSocket;
 window.WebSocket=class{static OPEN=1;constructor(url){if(!String(url).startsWith('wss://'))return new PublicSocket(url);this.url=url;this.readyState=0;this.bufferedAmount=0;this.sent=[];window.fixtureProviderSockets.push(this);setTimeout(()=>{this.readyState=1;this.onopen?.();if(url.includes('7tv'))this.deliver({op:1,d:{heartbeat_interval:45000,subscription_limit:500}});},20);}send(value){this.sent.push(JSON.parse(value));}close(){this.readyState=3;}deliver(value){this.onmessage?.({data:JSON.stringify(value)});}};
