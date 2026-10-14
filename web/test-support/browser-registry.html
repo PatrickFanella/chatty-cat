@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Browser companion registry fixture</title>
+<button id="commands-open">Commands</button>
+<p>Synthetic account 42 and compatible extension IDs. The runtime is a fixture; no installed-extension or provider acceptance is implied.</p>
+<script type="module">
+import {setProfileScope} from '/src/account-profiles.ts';
+import {BrowserCompanionRegistry} from '/src/browser-companion-registry.ts';
+import {BrowserCompanionPanel} from '/src/browser-companion-ui.ts';
+setProfileScope('42');
+const registry=new BrowserCompanionRegistry('42');
+if(!registry.all().length){registry.remember('a'.repeat(32),'First fixture companion');registry.remember('b'.repeat(32),'Second fixture companion');}
+window.fixtureMessages=[];
+window.chrome={runtime:{sendMessage:(id,message,callback)=>{window.fixtureMessages.push({id,kind:message.kind});queueMicrotask(()=>callback({ok:true,version:1,account:'42',...(message.kind==='pair'?{token:'c'.repeat(64)}:{watched:null})}));}}};
+window.fixtureAuth={enabled:true,authenticated:true,userID:'42',csrf:'fixture-only',loginURL:'/fixture-login'};
+window.fixturePanel=new BrowserCompanionPanel(()=>window.fixtureAuth,()=>[],()=>'',()=>{throw new Error('Fixture never opens a real workspace');});
+</script>
