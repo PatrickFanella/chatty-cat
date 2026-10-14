@@ -1,6 +1,6 @@
 # Milestone 4 progress
 
-M4 implementation through tested commit `5892994` is now deployed with local upload/sync storage and configured optional provider services. See [deployment evidence and remaining acceptance](m4-deployment-2026-10-13.md). Owner-confirmed upload, workspace-sync and provider-activity browser checks are recorded in the [roadmap checkpoint](roadmap.md#live-acceptance-checkpoint--october-13-2026). Remaining provider/EventSub acceptance and the documented source-cache freshness issue remain open; M4 is not complete.
+M4 implementation through tested commit `5892994` is now deployed with local upload/sync storage and configured optional provider services. See [deployment evidence and remaining acceptance](m4-deployment-2026-10-13.md). Owner-confirmed upload, workspace-sync and provider-activity browser checks are recorded in the [roadmap checkpoint](roadmap.md#live-acceptance-checkpoint--october-13-2026). Device sync #29 is accepted and closed. The source-cache mismatch has cleared on public-browser recheck. Remaining provider/EventSub acceptance stays open; M4 is not complete.
 
 The isolated account-profile foundation (#27) is merged. Custom themes #84 are
 merged and deployed at `3568fa4`, with public preview/revert verified and no
@@ -48,3 +48,6 @@ The optional BTTV/7TV read-service layer (#31) now has reviewed opt-ins, bounded
 This work does not close the earlier M3 production journal persistence gate or
 remaining controlled-subject, private-event and eligible/live broadcaster checks.
 Theme changes are local preferences and introduce no provider writes.
+
+
+Public-context connection acceptance: on October 13, the owner granted the required access and connected from the signed-in browser. The panel reported “Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded”. This passes consent/connection and does not establish a positive shared-chat, reward, streak, effect or private hold/update event. Those controlled-event checks remain open under #32.
