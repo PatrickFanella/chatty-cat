@@ -80,21 +80,27 @@ export class MetadataClient {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private generation=0;
   private stopped=false;
+  private hints=new Map<string,Map<string,number>>();private hintRevision=0;private hintTimer:ReturnType<typeof setTimeout>|undefined;
 
   constructor(private channels: string[], private readonly receive: (data: ChannelMetadata) => void,
     private readonly failure: (channel: string) => void) {}
 
   private lastRefresh=-Infinity;
   start(): void { void this.poll(); }
-  refresh():boolean{if(this.stopped||Date.now()-this.lastRefresh<30000)return false;this.lastRefresh=Date.now();this.generation++;this.abort.abort();this.abort=new AbortController();if(this.timer!==null)clearTimeout(this.timer);this.timer=null;void this.poll();return true;}
-  stop(): void {this.stopped=true;this.generation++; this.abort.abort(); if (this.timer !== null) clearTimeout(this.timer); }
-  setChannels(channels:readonly string[]):void{const next=[...new Set(channels)].sort();if(next.join(',')===[...this.channels].sort().join(',')||this.stopped)return;this.channels=next;this.generation++;this.abort.abort();this.abort=new AbortController();if(this.timer!==null)clearTimeout(this.timer);this.timer=null;void this.poll();}
+  refresh():boolean{if(this.stopped||Date.now()-this.lastRefresh<30000)return false;this.lastRefresh=Date.now();clearTimeout(this.hintTimer);this.hintTimer=undefined;this.generation++;this.abort.abort();this.abort=new AbortController();if(this.timer!==null)clearTimeout(this.timer);this.timer=null;void this.poll();return true;}
+  requestProviderRefresh(provider:'BTTV'|'7TV',channel:string):void{
+    if(this.stopped||!this.channels.slice(0,24).includes(channel))return;
+    let row=this.hints.get(channel);if(!row){row=new Map();this.hints.set(channel,row);}row.set(provider,++this.hintRevision);
+    if(!this.refresh()&&this.hintTimer===undefined)this.hintTimer=setTimeout(()=>{this.hintTimer=undefined;if(this.hints.size)this.refresh();},Math.max(1,30000-(Date.now()-this.lastRefresh)));
+  }
+  stop(): void {this.stopped=true;clearTimeout(this.hintTimer);this.hints.clear();this.generation++; this.abort.abort(); if (this.timer !== null) clearTimeout(this.timer); }
+  setChannels(channels:readonly string[]):void{const next=[...new Set(channels)].sort();if(next.join(',')===[...this.channels].sort().join(',')||this.stopped)return;this.channels=next;for(const key of this.hints.keys())if(!next.includes(key))this.hints.delete(key);this.generation++;this.abort.abort();this.abort=new AbortController();if(this.timer!==null)clearTimeout(this.timer);this.timer=null;void this.poll();}
 
   private async poll(): Promise<void> {
     const generation=this.generation,abort=this.abort,channels=[...this.channels];let index=0;
-    const worker=async():Promise<void>=>{while(index<channels.length&&!abort.signal.aborted&&!this.stopped){const channel=channels[index++]!;
+    const worker=async():Promise<void>=>{while(index<channels.length&&!abort.signal.aborted&&!this.stopped){const channel=channels[index++]!;const hints=new Map(this.hints.get(channel));const providers=[...hints.keys()].sort();
       try {
-        const res = await fetch('/api/channels/' + encodeURIComponent(channel), {
+        const res = await fetch('/api/channels/' + encodeURIComponent(channel)+(providers.length?'?refresh='+encodeURIComponent(providers.join(',')):''), {
           signal: AbortSignal.any([abort.signal, AbortSignal.timeout(25000)]),
         });
         if (!res.ok) throw new Error('metadata fetch failed');
@@ -106,7 +112,10 @@ export class MetadataClient {
         const value:unknown=JSON.parse(new TextDecoder().decode(bytes));
         const data = parseMetadata(value);
         if (!data || data.channel !== channel) throw new Error('invalid metadata');
-        if (!abort.signal.aborted&&generation===this.generation&&!this.stopped) this.receive(data);
+        if (!abort.signal.aborted&&generation===this.generation&&!this.stopped) {
+          const current=this.hints.get(channel);for(const [provider,revision] of hints)if(current?.get(provider)===revision)current.delete(provider);if(!current?.size)this.hints.delete(channel);
+          this.receive(data);
+        }
       } catch { if (!abort.signal.aborted&&generation===this.generation&&!this.stopped) this.failure(channel); }
     }};
     await Promise.all(Array.from({length:Math.min(4,channels.length)},()=>worker()));
