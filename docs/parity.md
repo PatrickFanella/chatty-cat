@@ -69,7 +69,7 @@ has been compared to the original and the evidence recorded. Completion evidence
 - [x] X/Twitter preview cards, quoted media, Nitter selection and graceful failure.
 - [x] Generic hover previews and provider-specific worker behavior; redirect
   disclosure, TTL, timeouts, cached failures and unsafe-destination rejection.
-- [ ] GIF title lookup, safe mode, limits and cache behavior; pronouns.
+- [x] GIF title lookup, safe mode, limits and accepted direct uncached lookup; pronouns.
 
 ## Display and resources
 
@@ -1671,3 +1671,18 @@ passed isolated readiness/health, non-root identity and source-archive checks
 with zero restarts; its test container was stopped. The public 320×568 check
 kept 320 px body/chat width, 227 px chat height, one chat column in rail mode,
 no video iframe with `video=off` and connected chat.
+
+
+## Final legacy gate accepted — October 14, 2026
+
+The owner explicitly accepted direct, uncached GIPHY lookup as the supported
+adaptation for #4. The legacy media cache/proxy is not implemented; any future
+cache/proxy requires the applicable provider approval. Attribution, exact returned
+URLs, PG-13 safe mode, request budgets and failure links remain supported. The
+owner-facing Help panel explains this adaptation. Focused GIPHY/service-worker
+checks pass nine tests, including cache exclusion and retained exact URLs.
+
+All 44 legacy acceptance gates are now checked for the documented supported
+adaptations. This does not establish complete native Chatterino parity or close
+the roadmap's controlled-event, journal, IRC or companion acceptance gates.
+Earlier dated 43-of-44 checkpoints remain historical observations.
