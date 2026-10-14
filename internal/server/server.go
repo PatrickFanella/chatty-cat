@@ -28,6 +28,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/irc"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/metadata"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/preview"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/providerservices"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/uploads"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -37,6 +38,7 @@ var channelName = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 
 // Config holds deployment settings and upstream addresses for integration tests.
 type Config struct {
+	ProviderServices  []providerservices.Provider
 	Sync              *devicesync.Store
 	Cosmetics         *cosmetics.Service
 	WorkspaceChannels int
@@ -80,6 +82,7 @@ func New(cfg Config) *Server {
 	if cfg.RecentURL == "" {
 		cfg.RecentURL = "https://recent-messages.robotty.de/api/v2/recent-messages/"
 	}
+	cfg.ProviderServices = append([]providerservices.Provider{}, cfg.ProviderServices...)
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &http.Client{Timeout: 10 * time.Second}
 	var read metadata.PublicReader
@@ -158,6 +161,18 @@ func (s *Server) Handler() http.Handler {
 			Subscriptions     int    `json:"subscriptions"`
 		}{s.cfg.GiphyAPIKey, chatlimits.PaneChannels, s.cfg.WorkspaceChannels, s.cfg.Subscriptions}); err != nil {
 			slog.Debug("public configuration response closed", "error", err)
+		}
+	})
+	mux.HandleFunc("GET /api/provider-services/config", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		if err := json.NewEncoder(w).Encode(struct {
+			Providers      []providerservices.Provider `json:"providers"`
+			MaxChannels    int                         `json:"maxChannels"`
+			MaxSockets     int                         `json:"maxSockets"`
+			RefreshSeconds int                         `json:"refreshSeconds"`
+		}{s.cfg.ProviderServices, 24, 3, 30}); err != nil {
+			slog.Debug("optional provider capability response closed")
 		}
 	})
 	mux.HandleFunc("GET /api/chat", s.chat)
@@ -242,6 +257,27 @@ func (s *Server) linkPreview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) channelMetadata(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	var refresh []string
+	if values, exists := r.URL.Query()["refresh"]; exists {
+		if len(values) != 1 || len(r.URL.Query()) != 1 {
+			http.Error(w, "invalid provider refresh selection", http.StatusBadRequest)
+			return
+		}
+		parsed, err := providerservices.Parse(values[0])
+		if err != nil || len(parsed) == 0 {
+			http.Error(w, "invalid provider refresh selection", http.StatusBadRequest)
+			return
+		}
+		for _, provider := range parsed {
+			if !providerservices.Allows(s.cfg.ProviderServices, string(provider)) {
+				http.Error(w, "optional provider service is not configured", http.StatusForbidden)
+				return
+			}
+			refresh = append(refresh, string(provider))
+		}
+	}
+
 	channel := strings.ToLower(r.PathValue("channel"))
 	if !channelName.MatchString(channel) {
 		http.Error(w, "invalid channel", http.StatusBadRequest)
@@ -267,7 +303,13 @@ func (s *Server) channelMetadata(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer stop()
-	data, err := s.metadata.Load(ctx, channel)
+	var data metadata.Channel
+	var err error
+	if len(refresh) > 0 {
+		data, err = s.metadata.Refresh(ctx, channel, refresh)
+	} else {
+		data, err = s.metadata.Load(ctx, channel)
+	}
 	if err != nil {
 		http.Error(w, "metadata temporarily unavailable", http.StatusServiceUnavailable)
 		return

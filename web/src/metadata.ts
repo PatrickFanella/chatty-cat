@@ -5,6 +5,7 @@ export type Provider = '7TV'|'BTTV'|'FFZ'|'Twitch';
 export interface EmoteSet {provider:Provider;scope:'global'|'channel';emotes:Record<string,Emote>}
 export interface ChannelMetadata {
   broadcasterID?:string;
+  sevenTV?:{userID:string;channelSetID:string;globalSetID:string};
   ffzRoleBadges?:Partial<Record<'moderator'|'vip',Badge>>;
   emoteSets?:EmoteSet[];
   channel: string;
@@ -42,6 +43,7 @@ export function parseMetadata(value: unknown): ChannelMetadata | null {
     || !object(value.emotes) || !object(value.badges) || !object(value.stream)
     || !Array.isArray(value.errors) || value.errors.length>64 || !value.errors.every((error: unknown) => typeof error === 'string' && error.length<=300)) return null;
   if(value.broadcasterID!==undefined&&(typeof value.broadcasterID!=='string'||!/^[0-9]{1,32}$/.test(value.broadcasterID)))return null;
+  let sevenTV:ChannelMetadata['sevenTV'];if(value.sevenTV!==undefined){const v=value.sevenTV;const id=(v:unknown):v is string=>typeof v==='string'&&(v===''||/^[A-Za-z0-9_-]{1,100}$/.test(v));if(!object(v)||Object.keys(v).some(k=>!['userID','channelSetID','globalSetID'].includes(k))||!id(v.userID)||!id(v.channelSetID)||!id(v.globalSetID))return null;sevenTV={userID:v.userID,channelSetID:v.channelSetID,globalSetID:v.globalSetID};}
   const emotes=parseEmotes(value.emotes);if(!emotes)return null;
   let emoteSets:EmoteSet[]|undefined;
   if(value.emoteSets!==undefined){
@@ -70,7 +72,7 @@ export function parseMetadata(value: unknown): ChannelMetadata | null {
   let lastVod:ChannelMetadata['lastVod'];if(value.lastVod!==undefined){const vod=value.lastVod;if(!object(vod)||typeof vod.start!=='string'||typeof vod.end!=='string'||typeof vod.url!=='string'||typeof vod.title!=='string'||!/^https:\/\/www\.twitch\.tv\/videos\/[0-9]{1,30}$/.test(vod.url))return null;const start=Date.parse(vod.start),end=Date.parse(vod.end);if(!Number.isFinite(start)||!Number.isFinite(end)||end<=start||end-start>604800000)return null;lastVod={start:vod.start,end:vod.end,url:vod.url,title:vod.title.slice(0,300)};}
   const stream = value.stream;
   if (typeof stream.uptime !== 'string' || typeof stream.viewers !== 'string' || typeof stream.title !== 'string' || stream.title.length>1000 || stream.uptime.length>500 || stream.viewers.length>100 || stream.game!==undefined&&(typeof stream.game!=='string'||stream.game.length>500)) return null;
-  return { channel: value.channel, ...(typeof value.broadcasterID==='string'?{broadcasterID:value.broadcasterID}:{}), emotes, ...(emoteSets?{emoteSets}:{}), ...(ffzRoleBadges?{ffzRoleBadges}:{}), badges, emoteUse, ...(lastVod?{lastVod}:{}), stream: { uptime: stream.uptime, viewers: stream.viewers, title: stream.title, ...(typeof stream.game==='string'?{game:stream.game}:{}) }, errors: value.errors as string[] };
+  return { channel: value.channel, ...(sevenTV?{sevenTV}:{}), ...(typeof value.broadcasterID==='string'?{broadcasterID:value.broadcasterID}:{}), emotes, ...(emoteSets?{emoteSets}:{}), ...(ffzRoleBadges?{ffzRoleBadges}:{}), badges, emoteUse, ...(lastVod?{lastVod}:{}), stream: { uptime: stream.uptime, viewers: stream.viewers, title: stream.title, ...(typeof stream.game==='string'?{game:stream.game}:{}) }, errors: value.errors as string[] };
 }
 
 export class MetadataClient {
