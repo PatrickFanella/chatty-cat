@@ -4,6 +4,8 @@ Audit [#5](https://git.subcult.tv/subculture-collective/chatty-cat/issues/5) is 
 
 Reviewed 2026-10-12 against Chatty Cat `8501a49a826e9b26be9ddb0b6be676d80a887ddc` (main including merged parity PR [#2](https://git.subcult.tv/subculture-collective/chatty-cat/issues/2) and roadmap PR [#39](https://git.subcult.tv/subculture-collective/chatty-cat/issues/39)). This audit changes documentation and adds an inventory checker; it changes no runtime code or deployment.
 
+The M5 declaration review below was refreshed on October 13 against merged `27174e7` (PRs #113–#118). Earlier matrix/demo evidence retains its original revision and date; it does not establish current production acceptance. The CSV's M5 entries now distinguish delivered adaptations from exact upstream controls that remain missing.
+
 ## Reference and scope
 
 The immutable upstream reference is [commit 5921016f36ecc94afa2f0bf303e08c596d4e85fe](https://github.com/Chatterino/chatterino2/tree/5921016f36ecc94afa2f0bf303e08c596d4e85fe), resolved from annotated tag `v2.5.6`. [Source metadata](chatterino-source.json) records the tag object and SHA-256 hashes. Upstream identifiers and binding facts come from MIT-licensed Chatterino source; this report adds our own coverage assessment and acceptance requirements.
@@ -32,7 +34,21 @@ Each CSV row records its exact upstream path/action, location, current state, im
 | Companion-only | Native behavior needs explicit pairing with an installed integration; linked issues remain open. |
 | Platform-limited | Native/debug behavior has no supported direct browser equivalent; the limitation is recorded. |
 
-Declaration totals are 139 implemented, 37 partial, 285 planned, 16 companion-only and 38 platform-limited. These are **not feature-parity percentages**. Counts include supported web adaptations and repeated source declarations. Exact native defaults and platform limitations remain separate from adaptation acceptance; the matrix also records working features without an equivalent declaration.
+Current CSV declaration totals are 210 implemented, 55 partial, 192 planned, 11 companion-only and 47 platform-limited. The original audit counted 139 implemented, 37 partial, 285 planned, 16 companion-only and 38 platform-limited. These are **not feature-parity percentages**. Counts include supported web adaptations and repeated source declarations. Exact native defaults and platform limitations remain separate from adaptation acceptance; the matrix also records working features without an equivalent declaration.
+
+## M5 declaration review — October 13, 2026
+
+All five M5 implementation slices are merged, with #117 and #118 qualified by four hosted push/PR checks each. This is implementation progress; M5 acceptance and full parity remain open.
+
+| Family | Merged behavior and evidence | Exact remaining boundary |
+| --- | --- | --- |
+| #35 playback | Owner-configured executable/dependency/argument allowlist, paired account/origin, reviewed channel/quality launch and duplicate receipts; [setup and fixtures](desktop-playback-demo.md) | No custom URI schemes or `/streamlink` chat-command execution. Exact split-player hotkeys remain missing. Installed real-stream and Linux/Windows runtime checks remain pending. |
+| #36 watched channel | MV3 active-tab bridge and reviewed workspace opening; [protocol and tests](browser-companion-demo.md) | Installed Chromium round trip, focus and removal checks remain pending. Multiple extension registration, arbitrary process attachment and Firefox/Safari are unsupported. |
+| #37 extensions | Account-local declarative command/view manifests, reviewed grants and opaque-frame runtime; [contract](web-extensions-demo.md) | Executable Lua/JavaScript, REPL and native REPL font settings are unsupported. Per-extension enablement does not reproduce every upstream global switch. Deployed owner acceptance remains pending. |
+| #38 IRC | Account-bound owner-configured TLS endpoints, channel/private conversations and shared search/virtual rendering; [TLS fixture](irc-relay-demo.md) | No arbitrary `/raw`, SASL, persistent IRC archives or full membership model. Approved network/identity acceptance remains pending. |
+| #47 overlay | Paired macOS floating-window, zoom, whole-window opacity, OS window shadow, click-through/recovery and geometry; [native fixtures](desktop-overlay-demo.md) | Whole-window opacity is not background-only opacity; OS window shadow is not customizable text shadow. Exact split hotkeys, custom shadow parameters, onboarding state, autorun and native theme-file watching remain missing. Production-origin/menu-bar acceptance and Linux/Windows hosts remain unavailable or pending as documented. |
+
+The checker passed all 515 immutable upstream declarations, hashes, row identities and evidence paths after this reconciliation. No declaration was removed or promoted merely because its family has a merged PR. Rows outside these M5 families retain their prior classifications and require separate review when their evidence changes. The earlier feature matrix below retains the original audit's feature-level assessment; use this checkpoint and the milestone documents for the M5 implementation update.
 
 ## Feature coverage and acceptance
 

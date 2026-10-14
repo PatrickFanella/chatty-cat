@@ -8,7 +8,7 @@ M5 starts from merged main `857a413`. M4 remains open for #32's controlled live 
 | #36 watched-channel browser companion | PR #114 merged; MV3 active-tab bridge with explicit pairing and reviewed workspace action | Installed-extension round trip, focus/removal acceptance |
 | #37 sandboxed web extensions | PR #115 merged; versioned declarative text commands/views with reviewed grants and opaque-frame runtime | Deployed owner acceptance |
 | #38 owner-configured IRC relay | PR #117 merged as `502ce9b` after all four hosted checks passed; account-bound TLS relay and isolated bounded history | Approved endpoint/credentials and live owner-network acceptance |
-| #47 paired desktop overlay | Implemented paired macOS AppKit/WebKit host, reviewed controls and native recovery/geometry fixtures | PR/CI merge, installed production-origin and native menu-bar owner acceptance; Linux/Windows unavailable |
+| #47 paired desktop overlay | PR #118 merged as `27174e7` after all four hosted checks passed; paired macOS host and native recovery/geometry fixtures | Installed production-origin and native menu-bar owner acceptance; Linux/Windows unavailable |
 
 See [desktop playback setup, boundaries and demo](desktop-playback-demo.md). The playback contract is reusable by a desktop shell; an embedded Streamlink pane is not implemented by an external-player launch.
 
@@ -19,3 +19,5 @@ See [web extension contract, compatibility and native-browser demo](web-extensio
 See [IRC setup, supported subset and reproducible checks](irc-relay-demo.md). Local TLS fixtures and UI tests qualify the implementation; owner-network acceptance is still pending. PR #116 merged as `6ecbb07` after all four hosted push/PR checks passed, establishing the verification workflow for subsequent slices.
 
 See [desktop overlay installation, recovery and native fixtures](desktop-overlay-demo.md). Native macOS fixture success does not establish production-origin use or Linux/Windows support. The browser-only OBS overlay remains independent of companion pairing.
+
+The [M5 declaration review](chatterino-coverage.md#m5-declaration-review--october-13-2026) reconciles merged behavior against exact upstream controls. Independent implementation gaps remain: split playback/overlay shortcuts, custom text-shadow semantics, multiple browser-extension registration and the documented native/IRC/plugin limits. Family implementation is not declaration parity. The next bounded web slice is configurable actions that open the paired playback/overlay review flow without launching a process or opening a native window before confirmation.
