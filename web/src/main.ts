@@ -423,6 +423,7 @@ function reloadProviderMetadata():boolean{const accepted=metadataClient.refresh(
 const hotkeyActions={
  palette:()=>element('actions-open',HTMLButtonElement).click(),shortcuts:()=>element('hotkeys-open',HTMLButtonElement).click(),
  accounts:()=>document.dispatchEvent(new Event('open-account-profiles')),compose:()=>composer.focusTyping(''),workspace:()=>{if(panePopout)throw new Error('Manage workspaces in the main view');element('workspace-open',HTMLButtonElement).click();},
+ 'desktop-playback':()=>desktopPlayback?.openReview('playback'),'desktop-overlay':()=>desktopPlayback?.openReview('overlay'),
  'channel-next':()=>channelStep(1),'channel-prev':()=>channelStep(-1),
  'pane-next':()=>virtualLog.moveFocus('pane',1),'pane-prev':()=>virtualLog.moveFocus('pane',-1),
  'tab-next':()=>virtualLog.moveFocus('tab',1),'tab-prev':()=>virtualLog.moveFocus('tab',-1),
@@ -437,7 +438,7 @@ const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element(
  ...(extensionsPanel?.actions()??[]),
  ...(panePopout?[]:workspaceStore.all()).map(workspace=>({id:'workspace:'+workspace.id,label:'Workspace: '+workspace.name,context:'workspace preview',run:()=>workspacePanel.previewSwitch(workspace.id)})),
  ...virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(tab=>[{id:'tab:'+tab.id,label:'Tab: '+tab.name,context:'chat',run:()=>virtualLog.selectTab(tab.id)},...tab.panes.map((pane,index)=>({id:'pane:'+pane.id,label:'Pane: '+tab.name+' / '+(index+1)+' '+pane.channels.join(', '),context:'chat',run:()=>{virtualLog.selectTab(tab.id);virtualLog.selectPane(pane.id);}}))]):[],
-],id=>ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled);
+],id=>id==='desktop-playback'||id==='desktop-overlay'?!!desktopPlayback&&!!accountAuth?.authenticated&&!panePopout&&!ephemeralPopout&&!overlay&&!composer.sending:ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled);
 virtualLog.manageKeyboard();
 
 if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);pendingReaders=bootWorkspace.readers.length?bootWorkspace.readers:undefined;follow=!pendingReaders;render();hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}

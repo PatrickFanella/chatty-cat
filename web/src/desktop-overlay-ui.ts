@@ -29,4 +29,6 @@ export class DesktopOverlayControls {
  private render():void{this.status.textContent=this.state?.open?'Native overlay '+(this.state.interactive?'interactive':'click-through')+' at '+this.state.x+','+this.state.y+'. '+this.state.recovery:'Native overlay closed';}
  private clear():void{this.pending=undefined;this.confirm.disabled=true;this.review.textContent='';}
  reset():void{this.generation++;this.busy=false;this.available=false;clearTimeout(this.timer);this.state=undefined;this.clear();this.status.textContent='Overlay unpaired. Use native recovery if local revocation could not be delivered.';}
+ focusSettings():void{this.root.scrollIntoView?.({block:'nearest'});this.opacity.focus();}
+ discardReview():void{this.clear();}
 }
