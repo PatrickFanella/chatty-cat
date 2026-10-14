@@ -25,7 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	service, err := companion.New(companion.Config{Origin: "http://127.0.0.1:5195", Tools: []companion.Tool{{ID: "fixture", Label: "Fixture child (no stream)", Executable: executable, Arguments: []string{"--playback-fixture", "{url}", "{quality}"}}, {ID: "missing", Label: "Missing player", Executable: "/missing/chatty-cat-player", Arguments: []string{"{url}"}}}})
+	service, err := companion.New(companion.Config{Origin: "http://127.0.0.1:5195", OverlayExecutable: os.Getenv("CHATTHING_OVERLAY_FIXTURE_HOST"), Tools: []companion.Tool{{ID: "fixture", Label: "Fixture child (no stream)", Executable: executable, Arguments: []string{"--playback-fixture", "{url}", "{quality}"}}, {ID: "missing", Label: "Missing player", Executable: "/missing/chatty-cat-player", Arguments: []string{"{url}"}}}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,6 +37,11 @@ func main() {
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
+			return
+		}
+		if r.URL.Query().Get("overlay") == "1" {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = fmt.Fprint(w, `<!doctype html><title>Controlled overlay window</title><body style="background:transparent;color:white"><h1>Public overlay fixture</h1><p>No Twitch connection or provider writes. Use the native Cat Overlay menu to recover interaction.</p></body>`)
 			return
 		}
 		w.Header().Set("Cache-Control", "no-store")
