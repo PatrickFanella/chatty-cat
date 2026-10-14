@@ -1,6 +1,6 @@
 # Optional provider event services progress
 
-The next #31 layer enables optional BTTV/7TV event and cosmetic services. The configuration contract is implemented; browser subscriptions, badge parsing/retention, explicit activity controls and their fixtures remain pending. This foundation does not close #31 or M4.
+The next #31 layer enables optional BTTV/7TV event and cosmetic services. The configuration contract and browser read subscriptions with bounded badge parsing/retention are implemented. Explicit activity controls and positive deployed provider acceptance remain pending. This foundation does not close #31 or M4.
 
 CHATTHING_PROVIDER_SERVICES is an empty-by-default, closed list of BTTV and/or 7TV. Invalid or duplicate names fail CLI startup before starting auth services. The capability endpoint /api/provider-services/config exposes only allowed names and fixed browser limits (24 channels, three sockets, 30-second provider refresh interval). It contains no credential or arbitrary provider URL. The existing catalog configuration for FFZ/Chatterino is separate.
 
@@ -11,3 +11,10 @@ When the operator has configured a provider, /api/channels/{channel}?refresh=7TV
 Read probes on 2026-10-13 accepted both fixed provider socket endpoints from Go and from a native T3 tab at chat.subcult.tv. 7TV sent its hello and acknowledged a cosmetic.create subscription for patrick__eff’s public channel. No account announcement, activity/presence call, chat message or moderation action was sent. These probes establish endpoint/protocol availability, not positive badge assignment or live emote-change acceptance.
 
 The browser layer will keep optional connections off until both operator configuration and reviewed profile opt-in allow them. It must close on privacy/account changes, bound frames/subscriptions/retention, preserve Twitch role separation, and keep activity announcements behind a separate explicit consent path. Relevant pinned implementations are Chatterino 2.5.6 BttvLiveUpdateClient, SeventvEventAPI and SeventvAPI. Current [7TV protocol reference](https://github.com/SevenTV/EventAPI) is archived; its linked successor and live handshake/ack must be checked when wiring the client. Fixed endpoints are wss://sockets.betterttv.net/ws and wss://events.7tv.io/v3.
+
+
+The browser read layer now uses reviewed profile opt-ins, separate BTTV/7TV cosmetic toggles and a 7TV Event API toggle. It subscribes only to current public chat sources (at most 24), using one BTTV socket and up to two 7TV shards with 80 subscriptions each. Socket addresses are fixed. No account identity announcement, Identify/Signal frame or presence request is sent. Default profiles make no optional configuration request or socket connection.
+
+See [the reproducible read-service demo](provider-events-demo.md). Badge state is bounded to 128 7TV definitions, 256 public users, eight 7TV references per user and 15-minute retention. Cosmetic images are restricted to each provider's CDN and remain labeled separately from Twitch roles. Definitions and assignments can arrive in either order. Unknown event kinds and non-badge cosmetics are ignored.
+
+Event hints request complete metadata through the provider-specific server refresh contract, preserving existing emote precedence and native Twitch ranges. Hints coalesce across the 30-second client cooldown and do not reconnect chat. Privacy, account/session changes and page teardown close sockets and clear cosmetic state; stale callbacks cannot restore it. Configuration is rechecked once a minute while opted in. Capability removal closes subscriptions. Socket, heartbeat, frame, byte or configuration failure stops automatic reconnection; the user may explicitly reconnect, with a 30-second attempt cooldown.
