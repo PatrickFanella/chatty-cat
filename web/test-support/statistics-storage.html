@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Statistics storage recovery fixture</title><link rel="stylesheet" href="/src/style.css"><h1>Statistics storage recovery fixture</h1><p>Only synthetic public counts at this loopback origin are moved. No Twitch requests.</p><main id="controls"></main><pre id="result"></pre><button id="check">Check restored counts and untouched records</button><script type="module">
+import {StatisticsStorageControls} from '/src/stats-storage-ui.ts';
+import {StatsLedger} from '/src/stats-ledger.ts';
+const key='chatthing:v1:stats:counts:one',raw=JSON.stringify({version:1,since:0,seen:['one:receipt'],pending:[],rows:[[ ['one','users','alice'],3,[],[] ]]});
+localStorage.setItem(key,raw);localStorage.setItem('fixture-retained-history','keep');
+new StatisticsStorageControls(document.getElementById('controls'));
+document.getElementById('check').onclick=async()=>{const ledger=new StatsLedger(['one'],()=>({}));ledger.bootstrap([{id:'receipt',command:'PRIVMSG',channel:'one',login:'alice',text:'hello',timestamp:Date.now(),tags:{}}]);await ledger.ready;document.getElementById('result').textContent=JSON.stringify({localOriginal:localStorage.getItem(key)!==null,untouched:localStorage.getItem('fixture-retained-history'),ranks:ledger.ranks('users',0)},null,2);};
+</script></html>
