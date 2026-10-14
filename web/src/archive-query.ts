@@ -6,6 +6,7 @@ import {findLinks} from './links';
 export const archiveFields=['text','sender','channel','badge','emote','domain','is','regex','after','before','source','sourcebadge','reward','streak','effect'] as const;
 export type ArchiveField=typeof archiveFields[number];
 export interface ArchiveClause {field:ArchiveField;values:readonly string[];negated:boolean}
+export interface ArchiveIdentityPolicy{valid:(field:'sender'|'channel',name:string)=>boolean;normalize:(value:string)=>string}
 export interface StructuredArchiveQuery {source:string;clauses:readonly ArchiveClause[];matches:(message:ChatMessage)=>boolean}
 function field(raw:string):ArchiveField {
  const name=raw==='from'?'sender':raw==='in'?'channel':raw;
@@ -39,7 +40,7 @@ function timestamp(raw:string):number {
  if(!Number.isFinite(result)||result<0||!Number.isFinite(dayValue)||new Date(dayValue).toISOString().slice(0,10)!==day)throw new Error('Choose a valid date from 1970 onward');
  return result;
 }
-function compile(clause:ArchiveClause):(m:ChatMessage)=>boolean {
+function compile(clause:ArchiveClause,identity?:ArchiveIdentityPolicy):(m:ChatMessage)=>boolean {
  const {field,values}=clause;
  const checks=values.map(raw=>{
   const needle=raw.toLowerCase();
@@ -47,8 +48,8 @@ function compile(clause:ArchiveClause):(m:ChatMessage)=>boolean {
    case 'text':return (m:ChatMessage)=>(m.text+' '+(m.tags['system-msg']??'')).toLowerCase().includes(needle);
    case 'regex':{const match=compilePattern(raw,true,false);return (m:ChatMessage)=>match(m.text+(m.tags['system-msg']?' '+m.tags['system-msg']:''));}
    case 'sender':case 'channel':{
-    const name=needle.replace(/^[#@]/,'');if(!/^[a-z0-9_]{1,25}$/.test(name))throw new Error('Use a Twitch login for '+field);
-    return (m:ChatMessage)=>(field==='sender'?m.login:m.channel).toLowerCase()===name;
+    const name=identity?identity.normalize(raw):needle.replace(/^[#@]/,'');if(identity?!identity.valid(field,name):!/^[a-z0-9_]{1,25}$/.test(name))throw new Error(identity?'Invalid '+field+' identity':'Use a Twitch login for '+field);
+    return (m:ChatMessage)=>(identity?identity.normalize(field==='sender'?m.login:m.channel):(field==='sender'?m.login:m.channel).toLowerCase())===name;
    }
    case 'badge':{
     if(!/^[a-z0-9_-]{1,80}$/.test(needle))throw new Error('Use a badge name, for example subscriber or moderator');
@@ -82,7 +83,7 @@ function compile(clause:ArchiveClause):(m:ChatMessage)=>boolean {
  });
  return m=>clause.negated?!checks.some(check=>check(m)):checks.some(check=>check(m));
 }
-export function parseArchiveQuery(source:string):StructuredArchiveQuery {
+export function parseArchiveQuery(source:string,identity?:ArchiveIdentityPolicy):StructuredArchiveQuery {
  if(source.length>1000)throw new Error('Keep the query within 1,000 characters');
  const tokens=split(source.trim(),'space');if(tokens.length>32)throw new Error('Use at most 32 filter clauses');
  const clauses:ArchiveClause[]=tokens.map(token=>{
@@ -92,7 +93,7 @@ export function parseArchiveQuery(source:string):StructuredArchiveQuery {
   if(values.length>10)throw new Error('Use at most 10 alternatives per filter');
   return {field:keyed?field(match[1]!.toLowerCase()):'text',values,negated};
  });
- const predicates=clauses.map(compile);return {source,clauses,matches:m=>predicates.every(match=>match(m))};
+ const predicates=clauses.map(c=>compile(c,identity));return {source,clauses,matches:m=>predicates.every(match=>match(m))};
 }
 export function formatArchiveClause(field:ArchiveField,values:readonly string[],negated=false):string {
  const result=(negated?'-':'')+field+':'+values.map(v=>JSON.stringify(v)).join(',');parseArchiveQuery(result);return result;

@@ -15,6 +15,7 @@ import (
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/config"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/cosmetics"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/devicesync"
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/ircrelay"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/providerservices"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/server"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/uploads"
@@ -87,7 +88,15 @@ func run() error {
 			slog.Error("sync storage close failed", "error", err)
 		}
 	}()
-	app := server.New(server.Config{ProviderServices: optionalProviders, Sync: syncStore, Cosmetics: cosmeticService, Uploads: imageStore, WorkspaceChannels: capacity, Subscriptions: subscriptions, Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
+	ircNetworks, err := ircrelay.Load(os.Getenv("CHATTHING_IRC_CONFIG"))
+	if err != nil {
+		return err
+	}
+	ircRelay, err := ircrelay.New(ircNetworks)
+	if err != nil {
+		return err
+	}
+	app := server.New(server.Config{IRCRelay: ircRelay, ProviderServices: optionalProviders, Sync: syncStore, Cosmetics: cosmeticService, Uploads: imageStore, WorkspaceChannels: capacity, Subscriptions: subscriptions, Assets: assets, Auth: login, GiphyAPIKey: os.Getenv("GIPHY_API_KEY")})
 	defer app.Close()
 	httpServer := &http.Server{Addr: addr, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
