@@ -29,6 +29,8 @@ Bindings use physical key codes: `KeyM` means the M key; `Mod` means Command or 
 | Search saved history | chat | `Alt+KeyH` |
 | Toggle emote picker | chat | `Alt+KeyE` |
 | Toggle video | chat | `Alt+KeyV` |
+| Open desktop playback setup and review | chat | Unbound |
+| Open native overlay setup and review | chat | Unbound |
 | Open statistics | chat | `Alt+KeyT` |
 | Open display settings | chat | `Alt+KeyD` |
 | Open conversation inbox | chat | `Alt+KeyI` |
@@ -36,3 +38,5 @@ Bindings use physical key codes: `KeyM` means the M key; `Mod` means Command or 
 | Edit keyboard shortcuts | chat | `Alt+KeyB` |
 
 The splits context requires independent panes. Quick-switch destinations include joined send channels, saved workspaces and current tabs/panes. A pane popout stays within its saved channel group; workspace edits belong in the main view.
+
+Desktop playback and native-overlay actions are available in the signed-in main workspace. They open the setup/review dialog for the selected send channel and focus the relevant controls. Opening or binding either action makes no companion request: pairing, review and confirmation remain separate. They are unbound by default, so older shortcut snapshots gain no new active chord. Existing dialog, text-field, IME and privacy guards apply. The device-sync allowlist includes these public binding IDs; pairing capabilities remain page-local and are never exported.

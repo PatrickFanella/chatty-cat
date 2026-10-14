@@ -23,6 +23,8 @@ export const ACTIONS=[
  {id:'history-global',label:'Search joined-channel history',context:'chat',binding:'Alt+Shift+KeyH'},
  {id:'emotes',label:'Toggle emote picker',context:'chat',binding:'Alt+KeyE'},
  {id:'video',label:'Toggle video',context:'chat',binding:'Alt+KeyV'},
+ {id:'desktop-playback',label:'Open desktop playback setup and review',context:'chat',binding:''},
+ {id:'desktop-overlay',label:'Open native overlay setup and review',context:'chat',binding:''},
  {id:'stats',label:'Open statistics',context:'chat',binding:'Alt+KeyT'},
  {id:'settings',label:'Open display settings',context:'chat',binding:'Alt+KeyD'},
  {id:'inbox',label:'Open conversation inbox',context:'chat',binding:'Alt+KeyI'},
