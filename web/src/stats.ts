@@ -1,3 +1,4 @@
+import {StatisticsStorageControls} from './stats-storage-ui';
 import {profileKey} from './account-profiles';
 import { privacyEnabled } from './privacy';
 import {badgeGroups,renderBadgeReference} from './stats-badges';
@@ -42,12 +43,14 @@ export function rateGraph(buckets: readonly number[], label: string, gaps: reado
 }
 export class StatsPanel {
   private bundleDispose:()=>void;
+  private storageControls:StatisticsStorageControls|undefined;
   private timer: ReturnType<typeof setInterval>;
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
   private badgeOrder:HTMLSelectElement;
   constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private header: HTMLElement, private messages: () => readonly ChatMessage[], private emotes: (channel: string) => Record<string, Emote>, channels: string[],private timeline?:RateSeries,private ledger?:StatsLedger,private seeds:(channel:string)=>Record<string,number>=()=>({}),private streams?:StreamHistory,private badges:(channel:string)=>ChannelMetadata['badges']=()=>({})) {
+    if(ledger&&typeof indexedDB!=='undefined')this.storageControls=new StatisticsStorageControls(dialog);
     this.badgeOrder=dialog.querySelector<HTMLSelectElement>('#stats-badge-order')!;
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!; this.channel = dialog.querySelector<HTMLSelectElement>('#stats-channel')!; this.exclusions = dialog.querySelector<HTMLInputElement>('#stats-exclusions')!;
     for (const channel of channels) { const option = document.createElement('option'); option.value = channel; option.textContent = '#' + channel; this.channel.append(option); }
@@ -104,7 +107,7 @@ export class StatsPanel {
       }
     }
     if(this.ledger){
-     const note=document.createElement('p');note.textContent='Observed totals since '+new Date(this.ledger.since).toLocaleString()+(this.ledger.limited?' · Aggregate capacity reached; some new keys or buckets were omitted':'')+(this.ledger.storageFailed?' · Counts could not be saved in this browser':'');body.append(note);
+     const note=document.createElement('p');note.textContent=(this.ledger.storageLoading?'Loading saved observed totals…':'Observed totals since '+new Date(this.ledger.since).toLocaleString())+(this.ledger.limited?' · Aggregate capacity reached; some new keys or buckets were omitted':'')+(this.ledger.storageFailed?' · Counts could not be saved in this browser':'');body.append(note);
      for(const kind of ['users','emotes','badges','links'] as StatKind[]){const control=this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="'+kind+'"]');const hours=Number(control?.value??(kind==='users'?'24':'3'));let rows=this.ledger.ranks(kind,Number.isFinite(hours)?hours:0,this.channel.value,new Set([...excluded,'fossabot','blammobot']),now);
       if(kind==='emotes'&&control?.value==='se'){const totals=new Map<string,number>();for(const channel of this.channel.value?[this.channel.value]:[...this.channel.options].map(option=>option.value).filter(Boolean))for(const [name,count] of Object.entries(this.seeds(channel)))totals.set(name,(totals.get(name)??0)+count);rows=[...totals].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,50);}
       const section=document.createElement('section'),heading=document.createElement('h3');heading.textContent={users:'Top chatters',emotes:'Top emotes',badges:'Badge versions',links:'Top links'}[kind];section.append(heading);const list=document.createElement('ol');for(const row of rows){const item=document.createElement('li');if(kind==='links'){const link=document.createElement('a');link.href=row.name;link.textContent=row.name;link.target='_blank';link.rel='noopener noreferrer';item.append(link,' · '+row.count.toLocaleString());}else item.textContent=row.name+' · '+row.count.toLocaleString();list.append(item);}if(!rows.length){const item=document.createElement('li');item.textContent='None recorded';list.append(item);}section.append(list);body.append(section);
@@ -124,5 +127,5 @@ export class StatsPanel {
       for (const row of rows) { const item = document.createElement('li'); item.textContent = `${row.name} · ${row.count.toLocaleString()}`; list.append(item); } section.append(list); body.append(section);
     }
   };
-  stop(): void { this.bundleDispose(); clearInterval(this.timer); this.trigger.removeEventListener('click', this.open); this.dialog.querySelector('#stats-close')?.removeEventListener('click', this.close); this.dialog.removeEventListener('close', this.closed); this.dialog.removeEventListener('change', this.change); }
+  stop(): void { this.storageControls?.stop(); this.bundleDispose(); clearInterval(this.timer); this.trigger.removeEventListener('click', this.open); this.dialog.querySelector('#stats-close')?.removeEventListener('click', this.close); this.dialog.removeEventListener('close', this.closed); this.dialog.removeEventListener('change', this.change); }
 }
