@@ -12,19 +12,22 @@ import (
 	"sync"
 	"time"
 
+	"git.subcult.tv/subculture-collective/chatty-cat/internal/chatlimits"
 	"github.com/coder/websocket"
 )
 
 type autoModHub struct {
-	mu      sync.Mutex
-	state   *autoModState
-	signals *suspiciousState
-	holds   *userHoldState
-	service *Service
-	session *session
-	ctx     context.Context
-	cancel  context.CancelFunc
-	peers   map[chan struct{}]bool
+	mu        sync.Mutex
+	state     *autoModState
+	signals   *suspiciousState
+	holds     *userHoldState
+	context   *chatContextState
+	chatLease *chatlimits.Lease
+	service   *Service
+	session   *session
+	ctx       context.Context
+	cancel    context.CancelFunc
+	peers     map[chan struct{}]bool
 }
 
 func (h *autoModHub) notifyLocked() {
@@ -35,8 +38,9 @@ func (h *autoModHub) notifyLocked() {
 		}
 	}
 }
+func (h *autoModHub) userScoped() bool { return h.holds != nil || h.context != nil }
 func (h *autoModHub) scope() string {
-	if h.holds != nil {
+	if h.userScoped() {
 		return userChatReadScope
 	}
 	if h.signals != nil {
@@ -45,12 +49,15 @@ func (h *autoModHub) scope() string {
 	return autoModScope
 }
 func (h *autoModHub) version() string {
-	if h.signals != nil || h.holds != nil {
+	if h.signals != nil || h.userScoped() {
 		return "1"
 	}
 	return "2"
 }
 func (h *autoModHub) registry() map[string]*autoModHub {
+	if h.context != nil {
+		return h.service.chatContextHubs
+	}
 	if h.holds != nil {
 		return h.service.userHoldHubs
 	}
@@ -61,6 +68,9 @@ func (h *autoModHub) registry() map[string]*autoModHub {
 }
 func (h *autoModHub) invalidateLocked(detail string) {
 	h.state.invalidate(detail)
+	if h.context != nil {
+		h.context.clear()
+	}
 	if h.holds != nil {
 		h.holds.clear()
 	}
@@ -73,6 +83,9 @@ func (h *autoModHub) snapshot() any {
 	defer h.mu.Unlock()
 	if h.ctx.Err() != nil && h.state.active {
 		h.invalidateLocked("Private connection ended; earlier private events are unavailable")
+	}
+	if h.context != nil {
+		return h.context.snapshot()
 	}
 	if h.holds != nil {
 		return h.holds.snapshot()
@@ -102,9 +115,10 @@ func (h *autoModHub) detach(peer chan struct{}) {
 type privateFeed string
 
 const (
-	autoModFeed    privateFeed = "automod"
-	suspiciousFeed privateFeed = "suspicious"
-	userHoldFeed   privateFeed = "user-holds"
+	autoModFeed     privateFeed = "automod"
+	suspiciousFeed  privateFeed = "suspicious"
+	userHoldFeed    privateFeed = "user-holds"
+	chatContextFeed privateFeed = "chat-context"
 )
 
 func (s *Service) privateHubKindFor(p *session, account, channel, broadcaster string, kind privateFeed) (*autoModHub, chan struct{}, error) {
@@ -122,7 +136,13 @@ func (s *Service) privateHubKindFor(p *session, account, channel, broadcaster st
 	if s.userHoldHubs == nil {
 		s.userHoldHubs = map[string]*autoModHub{}
 	}
+	if s.chatContextHubs == nil {
+		s.chatContextHubs = map[string]*autoModHub{}
+	}
 	hubs := s.autoModHubs
+	if kind == chatContextFeed {
+		hubs = s.chatContextHubs
+	}
 	if kind == userHoldFeed {
 		hubs = s.userHoldHubs
 	}
@@ -136,11 +156,24 @@ func (s *Service) privateHubKindFor(p *session, account, channel, broadcaster st
 	}
 	fresh := h == nil
 	if fresh {
-		if len(s.autoModHubs)+len(s.suspiciousHubs)+len(s.userHoldHubs) >= 16 {
+		if len(s.autoModHubs)+len(s.suspiciousHubs)+len(s.userHoldHubs)+len(s.chatContextHubs) >= 16 {
 			return nil, nil, errors.New("private moderation capacity reached; reconnect later")
+		}
+		var lease *chatlimits.Lease
+		if kind == chatContextFeed {
+			var err error
+			lease, err = s.chatBudget.Acquire(account, 1)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 		ctx, cancel := context.WithCancel(s.ctx)
 		h = &autoModHub{state: newAutoModState(account, channel, broadcaster), service: s, session: p, ctx: ctx, cancel: cancel, peers: map[chan struct{}]bool{}}
+		h.chatLease = lease
+		if kind == chatContextFeed {
+			h.context = newChatContextState(h.state)
+			h.state.detail = "Connecting public context; earlier supplemental metadata unavailable"
+		}
 		if kind == userHoldFeed {
 			h.holds = newUserHoldState(h.state)
 			h.state.detail = "Connecting own-message feedback; earlier private events unavailable"
@@ -168,6 +201,9 @@ func (s *Service) autoModEvents(w http.ResponseWriter, r *http.Request) { s.priv
 func (s *Service) suspiciousEvents(w http.ResponseWriter, r *http.Request) {
 	s.privateEvents(w, r, true)
 }
+func (s *Service) chatContextEvents(w http.ResponseWriter, r *http.Request) {
+	s.privateEventsKind(w, r, chatContextFeed)
+}
 func (s *Service) userHoldEvents(w http.ResponseWriter, r *http.Request) {
 	s.privateEventsKind(w, r, userHoldFeed)
 }
@@ -179,8 +215,9 @@ func (s *Service) privateEvents(w http.ResponseWriter, r *http.Request, suspicio
 	s.privateEventsKind(w, r, kind)
 }
 func (s *Service) privateEventsKind(w http.ResponseWriter, r *http.Request, kind privateFeed) {
+	w.Header().Set("Cache-Control", "no-store")
 	scope := autoModScope
-	if kind == userHoldFeed {
+	if kind == userHoldFeed || kind == chatContextFeed {
 		scope = userChatReadScope
 	}
 	if kind == suspiciousFeed {
@@ -246,6 +283,9 @@ func (s *Service) privateEventsKind(w http.ResponseWriter, r *http.Request, kind
 		snapshot := newAutoModState(account, channel, broadcaster)
 		snapshot.invalidate(err.Error())
 		var value any = snapshot.snapshot()
+		if kind == chatContextFeed {
+			value = newChatContextState(snapshot).snapshot()
+		}
 		if kind == userHoldFeed {
 			value = newUserHoldState(snapshot).snapshot()
 		}
@@ -297,6 +337,9 @@ func (s *Service) privateEventsKind(w http.ResponseWriter, r *http.Request, kind
 				return
 			}
 		case <-peer:
+			if kind == chatContextFeed {
+				continue
+			} // Public context snapshots are capped at one per two seconds.
 			if !validSession() {
 				return
 			}
@@ -365,7 +408,7 @@ func dialEventSub(ctx context.Context, raw string) (*websocket.Conn, eventSubFra
 }
 func (h *autoModHub) subscribe(ctx context.Context, sessionID, kind string) (string, error) {
 	condition := map[string]string{"broadcaster_user_id": h.state.broadcaster}
-	if h.holds != nil {
+	if h.userScoped() {
 		condition["user_id"] = h.state.account
 	} else {
 		condition["moderator_user_id"] = h.state.account
@@ -402,7 +445,7 @@ func (h *autoModHub) subscribe(ctx context.Context, sessionID, kind string) (str
 		return "", errors.New("private subscription could not be verified")
 	}
 	v := response.Data[0]
-	if !messageIDPattern.MatchString(v.ID) || v.Type != kind || v.Version != h.version() || v.Status != "enabled" || v.Condition.Broadcaster != h.state.broadcaster || (h.holds == nil && v.Condition.Moderator != h.state.account) || (h.holds != nil && v.Condition.User != h.state.account) || v.Transport.Method != "websocket" || v.Transport.SessionID != sessionID {
+	if !messageIDPattern.MatchString(v.ID) || v.Type != kind || v.Version != h.version() || v.Status != "enabled" || v.Condition.Broadcaster != h.state.broadcaster || (!h.userScoped() && v.Condition.Moderator != h.state.account) || (h.userScoped() && v.Condition.User != h.state.account) || v.Transport.Method != "websocket" || v.Transport.SessionID != sessionID {
 		return "", errors.New("private subscription identity could not be verified")
 	}
 	return v.ID, nil
@@ -431,6 +474,9 @@ func readEventSub(ctx context.Context, conn *websocket.Conn, keepalive int, out 
 }
 func (h *autoModHub) run() {
 	defer func() {
+		if h.chatLease != nil {
+			h.chatLease.Release()
+		}
 		h.mu.Lock()
 		if h.state.active {
 			h.invalidateLocked("Private connection ended; earlier private events are unavailable")
@@ -447,6 +493,12 @@ func (h *autoModHub) run() {
 	if !allowedEventSubURL(h.service.cfg.EventSubURL, h.service.cfg.EventSubURL) {
 		h.fail("Private EventSub endpoint unavailable")
 		return
+	}
+	if h.context != nil {
+		if err := h.service.chatBudget.Wait(h.ctx, h.state.account, chatlimits.Join, nil); err != nil {
+			h.fail("Public context join cancelled; reconnect explicitly")
+			return
+		}
 	}
 	conn, welcome, err := dialEventSub(h.ctx, h.service.cfg.EventSubURL)
 	if err != nil {
@@ -470,6 +522,9 @@ func (h *autoModHub) run() {
 	if h.signals != nil {
 		kinds = []string{"channel.suspicious_user.message", "channel.suspicious_user.update"}
 	}
+	if h.context != nil {
+		kinds = []string{chatMessageKind, chatNoticeKind}
+	}
 	for _, kind := range kinds {
 		id, err := h.subscribe(subscribeCtx, welcome.Payload.Session.ID, kind)
 		if err != nil {
@@ -490,6 +545,9 @@ func (h *autoModHub) run() {
 	}
 	if h.signals != nil {
 		h.state.detail = "Live private suspicious-user signals (100 users / 15 minutes); earlier/missing signals unavailable"
+	}
+	if h.context != nil {
+		h.state.detail = "Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded"
 	}
 	h.notifyLocked()
 	h.mu.Unlock()
@@ -551,6 +609,9 @@ func (h *autoModHub) run() {
 				}
 				h.mu.Lock()
 				duplicate := h.state.seen[frame.Metadata.ID]
+				if h.context != nil && !duplicate {
+					h.context.reserveReplaySlot()
+				}
 				exhausted := len(h.state.seen) >= 1000
 				if !exhausted && !duplicate && messageIDPattern.MatchString(frame.Metadata.ID) {
 					h.state.seen[frame.Metadata.ID] = true
@@ -582,7 +643,9 @@ func (h *autoModHub) run() {
 			}
 			h.mu.Lock()
 			changed := false
-			if h.holds != nil {
+			if h.context != nil {
+				changed = h.context.observe(incoming.data)
+			} else if h.holds != nil {
 				changed = h.holds.observe(incoming.data)
 			} else if h.signals != nil {
 				changed = h.signals.observe(incoming.data)

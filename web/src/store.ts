@@ -38,6 +38,13 @@ export class MessageStore {
     return true;
   }
 
+  // Context may update tags on retained public rows, never insert a row or alter its body.
+  enrichPublic(update:(message:ChatMessage)=>ChatMessage):ChatMessage[]{
+    const changed:ChatMessage[]=[];
+    const next=this.messages.map(previous=>{if(previous.command!=='PRIVMSG'&&previous.command!=='USERNOTICE')return previous;const value=update(previous);if(value===previous)return previous;if(value.id!==previous.id||value.channel!==previous.channel||value.command!==previous.command||value.login!==previous.login||value.text!==previous.text||value.timestamp!==previous.timestamp)throw new Error('Context enrichment may only update public tags');changed.push(value);return value;});
+    if(changed.length){this.messages.length=0;this.ids.clear();for(const message of next)this.add(message);}return changed;
+  }
+
   restore(messages: readonly ChatMessage[]): void {
     const merged = new Map<string, ChatMessage>();
     for (const message of messages) merged.set(this.identity(message), message);

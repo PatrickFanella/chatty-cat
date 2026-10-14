@@ -13,6 +13,7 @@ export type AuthStatus = {
 	moderationReadEnabled?:boolean;
   automodEnabled?:boolean;
  userFeedbackEnabled?:boolean;
+ chatContextEnabled?:boolean;
  predictionsEnabled?:boolean;
  predictionsManageEnabled?:boolean;
  pollsEnabled?:boolean;
@@ -47,6 +48,7 @@ export function parseAuthStatus(value: unknown): AuthStatus {
  result.suspiciousManageEnabled=data['suspiciousManageEnabled']===true;
  result.automodEnabled=data['automodEnabled']===true;
  result.userFeedbackEnabled=data['userFeedbackEnabled']===true;
+ result.chatContextEnabled=data['chatContextEnabled']===true;
     result.moderationReadEnabled=data['moderationReadEnabled']===true;
     const allowed = ["channel:manage:broadcast","clips:edit","channel:edit:commercial","moderator:manage:suspicious_users","moderator:manage:banned_users", "moderator:manage:chat_messages", "moderator:manage:chat_settings", "moderator:manage:announcements", "user:manage:chat_color", "user:manage:whispers", "channel:manage:raids", "channel:manage:moderators", "channel:manage:vips", "user:manage:blocked_users", "moderator:manage:shoutouts", "moderator:manage:warnings", "moderator:manage:shield_mode"];
     result.commandPermissions = Array.isArray(data["commandPermissions"]) ? allowed.filter(scope => (data["commandPermissions"] as unknown[]).includes(scope)) : [];
