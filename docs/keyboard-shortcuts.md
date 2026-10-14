@@ -1,5 +1,7 @@
 # Keyboard actions
 
+Press **Ctrl+K** (Command+K on macOS) or click **Search** in the top bar to open the command palette. It lists every panel and tool, the keyboard actions below with their current bindings, and quick-switch destinations. Panels and tools are also grouped in the menu behind the cat mark. Inside a panel, the title bar's placement menu docks it left, right or at the bottom, floats it, or returns it to a dialog; drag the title to move it, and Escape closes a docked or floating panel. Alt+Arrow keys reorder a docked panel; arrow keys nudge a floating one.
+
 Open **Actions** or press **Alt+K** to search actions and quick-switch destinations. Select a result with Up/Down and Enter, or click it. Workspace destinations open a preview; Apply confirms the switch. Actions never send chat messages.
 
 Open **Shortcuts** to record or edit bindings. Save applies only conflict-free bindings. Leave a binding blank to disable it. Restore default shortcuts resets only bindings. Workspace exports include these public preferences.

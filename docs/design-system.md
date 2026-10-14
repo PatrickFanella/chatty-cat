@@ -149,11 +149,28 @@ Rules:
 
 ## Components
 
-- **Header.** The inline pixel cat (22px, `.brand-mark`) beside the name in `--accent`,
-  stage label in `--muted` at 11px, channel form, status,
-  theme toggle, login, account status, panel buttons, the rate sparkline and the freeze
-  toggle. Three modes on `data-min`: full, strip (controls hidden, status and login kept)
-  and graph (the sparkline stretches to fill at 32px tall).
+- **Top bar.** One 38px row on `--panel`: the pixel cat and name as the menu button,
+  joined-channel chips with a `+` to join more, a connection dot (`--good` live, amber
+  reconnecting, `--danger` failed) with a short state word, the rate sparkline, the
+  search button (Ctrl+K or Command+K) and the login or account control. Nothing else is
+  a button in the bar. The original header stays in the document, hidden, so feature
+  modules keep inserting their trigger buttons there; `src/shell/registry.ts` mirrors
+  every one of them as a command. The `data-min` header modes and the strip and graph
+  variants no longer apply.
+- **Menu and palette.** The cat opens a column menu grouped as Chat, View, Account,
+  Moderation, Providers, Integrations and Help, with bindings as `kbd` hints and the
+  current placement of docked panels. The palette is a 620px dialog with one search box
+  over the same commands, the keyboard actions and quick-switch targets; prefix,
+  substring and subsequence matches rank in that order.
+- **Workbench.** The chat column sits between three dock zones (left, right, bottom)
+  separated by 4px `--line` splitters that turn `--accent` on hover or focus. Any dialog
+  or panel gets a 28px chrome bar: uppercase 10px title (the drag handle), a placement
+  menu (dock left, right or bottom, float, open as dialog, move, close) and a close
+  button. Docked panels stack with share splitters between them; floating panels are
+  fixed, resizable, 6px-cornered on `--popline` with the panel shadow. Dragging a title
+  detaches the panel; dropping within 40px of an edge or onto a zone docks it. The
+  "columns and rail" display option docks video, emotes and stats on the right. Layout
+  persists per profile and travels in workspaces as the `workbench` settings part.
 - **Notice bars.** The offline bar sits on `--panel` with a `--danger` bottom rule. The
   update-ready control is a normal button. The stream bar and room-state bar are 12px
   `--muted` on a `--line` rule.
@@ -169,14 +186,17 @@ Rules:
 - **Emote picker.** A fixed, resizable 560×440 panel on `--panel` with a 6px corner,
   header search, tab and setting rows at 12px, a grid of `--picker-cell` (64px) buttons
   and a recent row. The handle moves it; geometry is saved.
-- **Floating panels** (video, whispers, help and resources). A title row with a keyboard
-  movable handle, pin and close. Pinned panels dock into the rail, where they lose their
-  fixed position and take full width.
-- **Dialogs** (display settings, stats, archive search, user inspector). `--panel` with a
-  `--line` border, 6px corner, 800px wide at most, backdrop black at 53%.
+- **Dialogs.** `--panel` with a `--popline` border, 8px corner, the panel shadow and a
+  40% black backdrop; 16px padding with the chrome bar bleeding to the edges. Content is
+  normalised by `src/shell/shell.css`: paragraphs, headings, fieldsets and sections span
+  the width; labelled fields form a responsive grid at 200px minimum; checkbox labels
+  stay inline; loose buttons flow in rows. Display settings are grouped into Theme,
+  Type, Rows, Filters, Alerts, Composer, Links and cards, Layout and Motion fieldsets.
+  Video, whispers, help and the emote picker keep their own open and close logic but
+  dock and float through the workbench like any dialog.
 - **Cards** (identity preview, link preview). Fixed 360 and 380px panes with 12px padding
   that follow the dialog frame; `--popline` is the hue-neutral frame colour for popups.
-- **Rate sparkline.** 100×26 in the header, `--accent` stroke; stretches in graph mode.
+- **Rate sparkline.** 72×18 in the top bar, `--accent` stroke.
   Stats dialog graphs are 80px tall in `--accent`.
 
 ## States
@@ -189,7 +209,8 @@ Rules:
 | Offline | The offline bar; sending disabled; saved history stays readable |
 | Update ready | The reload button appears under the header |
 | Disabled control | 60% opacity, default cursor |
-| Hover | Button border turns `--accent` |
+| Hover | Button border turns `--accent`; top bar and chrome buttons tint 8% `--fg` |
+| Row controls | Thread, bookmark, reply and permalink controls collapse until the row is hovered or focused |
 | Selected completion | `--line` background, `--accent` text |
 | Pressed toggle | `aria-pressed="true"` draws the `--accent` border and text |
 | Target message | 1px accent outline on `--panel` |

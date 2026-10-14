@@ -60,7 +60,7 @@ import { linkFingerprint } from './links';
 import { PickerLighting } from './picker-lighting';
 import { IdentityCards } from './identity-cards';
 import { Pronouns } from './pronouns';
-import { PanelRail } from './rail';
+import { PanelRail,type RailPanel } from './rail';
 import { ChatRecovery } from './recovery';
 import { PageCoverage } from './page-coverage';
 import { LogKeyboard } from './log-keyboard';
@@ -85,6 +85,8 @@ import { HistoryFiles } from './history-import';
 import { ArchiveSearch } from './archive-ui';
 import { RoomStates } from './room';
 import './style.css';
+import './shell/shell.css';
+import {startShell,type Shell} from './shell';
 import { mountAuth } from './auth';
 import { Composer } from './composer';
 import { PickerModel } from './picker-model';
@@ -171,7 +173,8 @@ if(capacityRefused){capacityNotice.textContent=status.textContent=announcer.text
 const store = new MessageStore(channels);
 const rateTimeline=new RateTimeline(element('rate',HTMLElement),channels);
 const videoPanel = new VideoPanel(element('video-panel', HTMLElement), element('video-open', HTMLButtonElement), channels);
-rail=new PanelRail(log,[{name:'video',root:element('video-panel',HTMLElement),show:open=>videoPanel.showRail(open),float:()=>videoPanel.float(),isOpen:()=>!element('video-panel',HTMLElement).hidden},{name:'emotes',root:element('emote-picker',HTMLElement),show:open=>picker.showRail(open),isOpen:()=>!element('emote-picker',HTMLElement).hidden},{name:'stats',root:element('stats-panel',HTMLDialogElement),show:open=>statsPanel.showRail(open),float:()=>statsPanel.float(),isOpen:()=>element('stats-panel',HTMLDialogElement).open}]);
+const railPanels:RailPanel[]=[{name:'video',root:element('video-panel',HTMLElement),show:open=>videoPanel.showRail(open),float:()=>videoPanel.float(),isOpen:()=>!element('video-panel',HTMLElement).hidden},{name:'emotes',root:element('emote-picker',HTMLElement),show:open=>picker.showRail(open),isOpen:()=>!element('emote-picker',HTMLElement).hidden},{name:'stats',root:element('stats-panel',HTMLDialogElement),show:open=>statsPanel.showRail(open),float:()=>statsPanel.float(),isOpen:()=>element('stats-panel',HTMLDialogElement).open}];
+rail=new PanelRail(log,railPanels);
 window.addEventListener('resize',scheduleRender);
 const statsLedger=new StatsLedger(channels,channel=>metadata.get(channel)?.emotes??{});statsLedger.bootstrap(store.messages);
 const streamHistory = new StreamHistory(channels);
@@ -327,9 +330,10 @@ log.addEventListener('click', () => { accountEmotes.update(accountAuth, composer
 
 
 function messageKey(message: ChatMessage): string { return message.channel + ':' + (message.id || [message.command, message.timestamp, message.login, message.text, message.tags['system-msg'] ?? ''].join(':')); }
+let shell:Shell|undefined;
 function render(): void {
   renderQueued = false;
-  rail?.set(overlay?1:display.options.split);
+  if(shell)shell.workbench.setRail(overlay?1:display.options.split,railPanels);else rail?.set(overlay?1:display.options.split);
   document.documentElement.style.setProperty('--composer-bottom',element('composer',HTMLFormElement).getBoundingClientRect().bottom+'px');
   store.setCap(display.options.scrollback);
   const messages = overlay?(archiveView??store.messages).filter(message=>channels.slice(0,6).includes(message.channel)):virtualLog.layout.enabled?store.messages:archiveView ?? store.messages;
@@ -433,12 +437,14 @@ const hotkeyActions={
  pause:()=>{if(virtualLog.layout.enabled)virtualLog.hold();else follow=false;latest.hidden=false;},live:()=>latest.click(),
  history:()=>archiveSearch?.show(composer.target),'history-global':()=>archiveSearch?.show(),emotes:()=>element('picker-open',HTMLButtonElement).click(),video:()=>element('video-open',HTMLButtonElement).click(),stats:()=>element('stats-open',HTMLButtonElement).click(),settings:()=>element('display-open',HTMLButtonElement).click(),inbox:()=>inboxPanel?.show(),commands:()=>commandPanel.openPanel(),
 } satisfies Record<ActionID,()=>void>;
-const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element('hotkeys-open',HTMLButtonElement),id=>hotkeyActions[id](),()=>[
+const paletteExtra=()=>[
  ...(panePopout?virtualLog.layout.activePane.channels:channels).map(channel=>({id:'channel:'+channel,label:'Send channel: '+channel,context:'chat',run:()=>virtualLog.focusChannel(channel)})),
  ...(extensionsPanel?.actions()??[]),
  ...(panePopout?[]:workspaceStore.all()).map(workspace=>({id:'workspace:'+workspace.id,label:'Workspace: '+workspace.name,context:'workspace preview',run:()=>workspacePanel.previewSwitch(workspace.id)})),
  ...virtualLog.layout.enabled?virtualLog.layout.tabs.flatMap(tab=>[{id:'tab:'+tab.id,label:'Tab: '+tab.name,context:'chat',run:()=>virtualLog.selectTab(tab.id)},...tab.panes.map((pane,index)=>({id:'pane:'+pane.id,label:'Pane: '+tab.name+' / '+(index+1)+' '+pane.channels.join(', '),context:'chat',run:()=>{virtualLog.selectTab(tab.id);virtualLog.selectPane(pane.id);}}))]):[],
-],id=>id==='desktop-playback'||id==='desktop-overlay'?!!desktopPlayback&&!!accountAuth?.authenticated&&!panePopout&&!ephemeralPopout&&!overlay&&!composer.sending:ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled);
+];
+const actionAvailable=(id:string):boolean=>id==='desktop-playback'||id==='desktop-overlay'?!!desktopPlayback&&!!accountAuth?.authenticated&&!panePopout&&!ephemeralPopout&&!overlay&&!composer.sending:ACTIONS.find(action=>action.id===id)?.context!=='splits'||virtualLog.layout.enabled;
+const hotkeys=new HotkeyPanel(element('actions-open',HTMLButtonElement),element('hotkeys-open',HTMLButtonElement),id=>hotkeyActions[id](),paletteExtra,actionAvailable);
 virtualLog.manageKeyboard();
 
 if(bootWorkspace){display.setOptions(panePopout?{...bootWorkspace.settings.display,split:1}:bootWorkspace.settings.display);render();restoreBundle(bootWorkspace.settings);pendingReaders=bootWorkspace.readers.length?bootWorkspace.readers:undefined;follow=!pendingReaders;render();hydrateHistory();composer.setTarget(panePopout&&virtualLog.layout.enabled?virtualLog.layout.activePane.target:bootWorkspace.target);}
@@ -596,5 +602,6 @@ setInterval(() => store.save(), 15000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) {store.save();statsLedger.save();} });
 window.addEventListener('pagehide', () => { store.save(); hydrationAbort.abort(); identityCards?.stop();userNotesPanel?.stop();moderationPanel?.stop(); pronouns.stop(); portableLogs?.stop(); comparisonPanel?.stop(); vodContext?.stop(); threadsPanel?.stop(); rail?.stop(); logKeyboard.stop(); virtualLog.stop(); connection.stop(); metadataClient.stop();providerActivity?.stop();providerEvents?.stop(); providerPanel.stop();userHoldPanel?.stop();chatContextPanel?.stop();deviceSyncPanel?.stop();desktopPlayback?.stop();browserCompanion?.stop();extensionsPanel?.stop();ircRelayPanel?.stop(); cosmeticClient.stop(); stopAuth(); personalChat.stop(); whispers.stop(); clearInterval(personalTimer); accountEmotes.stop(); composer.stop(); navigation.stop(); pickerLighting.stop();document.removeEventListener('share-settings',sharePicker);picker.stop(); archiveSearch.stop(); bookmarksPanel?.stop(); archive.stop(); statsPanel.stop();statsLedger.save();rateTimeline.stop(); display.stop(); attention.stop(); resources.stop(); inspector?.stop(); tabSync.stop(); videoPanel.stop(); stopLifecycle(); linkPreview.stop();socialCards.stop(); });
 window.addEventListener('pageshow', (event) => { if (event.persisted) location.reload(); });
-
+if(!overlay){rail?.set(0);shell=startShell({actions:ACTIONS,run:id=>hotkeyActions[id as ActionID](),available:actionAvailable,extra:()=>paletteExtra().map(entry=>({id:entry.id,label:entry.label,context:entry.context,enabled:'enabled' in entry?(entry as {enabled?:boolean}).enabled:undefined,run:entry.run}))});shell.workbench.setRail(display.options.split,railPanels);}
+window.addEventListener('pagehide',()=>shell?.stop());
 }
