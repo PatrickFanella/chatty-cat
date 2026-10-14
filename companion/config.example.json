@@ -1,0 +1,12 @@
+{
+  "origin": "https://chat.subcult.tv",
+  "tools": [
+    {
+      "id": "streamlink-mpv",
+      "label": "Streamlink with mpv",
+      "executable": "/opt/homebrew/bin/streamlink",
+      "arguments": ["--player", "/opt/homebrew/bin/mpv", "{url}", "{quality}"],
+      "requires": ["/opt/homebrew/bin/mpv"]
+    }
+  ]
+}
