@@ -471,3 +471,6 @@ html[data-overlay="true"] #log {filter:var(--overlay-content-shadow,none)}
 html[data-overlay="true"] #log .row {background:color-mix(in srgb,var(--bg) var(--overlay-background-alpha,0%),transparent)}
 html[data-overlay="true"][data-presentation-alternating="on"] #log .row[data-position]:nth-child(even) {background:color-mix(in srgb,var(--panel) var(--overlay-background-alpha,0%),transparent)}
 html[data-overlay="true"] #log .row.keyword-match {background:color-mix(in srgb,var(--rule-color,var(--accent)) var(--overlay-background-alpha,0%),transparent)}
+
+dialog[aria-label="Browser companion"] label { display:block; margin:.5rem 0; }
+dialog[aria-label="Browser companion"] label input:not([type="checkbox"]), dialog[aria-label="Browser companion"] label select { display:block; max-width:100%; }

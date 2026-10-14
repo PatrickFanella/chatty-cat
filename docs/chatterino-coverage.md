@@ -128,7 +128,7 @@ go test -race -count=1 ./internal/auth ./internal/irc
 
 Result: **11 frontend files / 72 tests passed**; both Go packages passed with race detection and cache bypass. These cover composer/caret handling, fixed keyboard navigation, archive/import, virtual rows, settings bundles, alerts, native tokens/rendering, private whispers and auth/command/provider boundaries. The inventory checker passed all 515 declarations and source hashes. The broader build/CI/deployment and every planned feature were not rerun or accepted by these focused checks.
 
-Earlier owner acceptance in parity.md includes actual sign-in, visible public send/reply, subscriber emotes, whisper receipt, message deletion, sound and OS notifications. That evidence remains dated; mock provider tests do not establish every moderation/broadcaster permission or provider delivery outcome. Original-app GIPHY cache/proxy acceptance is still open in [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4).
+Earlier owner acceptance in parity.md includes actual sign-in, visible public send/reply, subscriber emotes, whisper receipt, message deletion, sound and OS notifications. That evidence remains dated; mock provider tests do not establish every moderation/broadcaster permission or provider delivery outcome. On October 14 the owner accepted direct, uncached GIPHY lookup as the supported adaptation for [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4); original cache/proxy behavior remains unavailable without provider approval.
 
 ## Reproducible browser demo
 

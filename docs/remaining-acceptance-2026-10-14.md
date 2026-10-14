@@ -77,8 +77,8 @@ installed workspace/focus/removal round trip remain in progress. Browser automat
 rejects chrome:// extension management and chrome-extension:// popup navigation;
 manual popup actions are required. #38 still needs the owner's approved network,
 credentials and identity; no network was invented or configured. #32 needs
-controlled positive Twitch events. #4 needs explicit owner acceptance of direct
-uncached GIPHY lookup or written provider approval. #47's installed native overlay
+controlled positive Twitch events. #4's direct, uncached GIPHY adaptation was explicitly accepted by the owner on
+October 14; the checklist and owner-facing help now record it. #47's installed native overlay
 acceptance remains separate from its closed implementation issue.
 
 ## Validation
@@ -87,3 +87,7 @@ All 777 frontend tests, strict check/build, Go race suite and vet pass. Both new
 service-worker regressions fail on the previous code and pass with the correction.
 All four hosted push/PR checks passed on `8b2e747` immediately before #126 merged
 as `26ea533`. No synthetic result is treated as live Twitch/provider acceptance.
+
+The browser-companion pairing fields now have visible labels for the optional
+local name, actual extension ID, one-use code and destination, following observed
+confusion during manual pairing. This changes presentation only.
