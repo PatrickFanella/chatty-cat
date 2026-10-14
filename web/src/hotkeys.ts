@@ -11,6 +11,7 @@ export const ACTIONS=[
  {id:'pane-left',label:'Move pane left',context:'splits',binding:'Alt+Shift+ArrowLeft'},
  {id:'tab-right',label:'Move tab right',context:'splits',binding:'Alt+Shift+ArrowDown'},
  {id:'tab-left',label:'Move tab left',context:'splits',binding:'Alt+Shift+ArrowUp'},
+ {id:'accounts',label:'Open account profiles',context:'chat',binding:'Alt+KeyA'},
  {id:'workspace',label:'Manage workspaces',context:'chat',binding:'Alt+KeyW'},
  {id:'reload-emotes',label:'Reload provider emote metadata',context:'chat',binding:'F5'},
  {id:'reconnect',label:'Reconnect public chat',context:'chat',binding:'Alt+KeyR'},

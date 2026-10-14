@@ -410,7 +410,7 @@ function channelStep(delta:number):void{const index=channels.indexOf(composer.ta
 function reloadProviderMetadata():boolean{const accepted=metadataClient.refresh();if(accepted)rawMetadata.clear();return accepted;}
 const hotkeyActions={
  palette:()=>element('actions-open',HTMLButtonElement).click(),shortcuts:()=>element('hotkeys-open',HTMLButtonElement).click(),
- compose:()=>composer.focusTyping(''),workspace:()=>{if(panePopout)throw new Error('Manage workspaces in the main view');element('workspace-open',HTMLButtonElement).click();},
+ accounts:()=>document.dispatchEvent(new Event('open-account-profiles')),compose:()=>composer.focusTyping(''),workspace:()=>{if(panePopout)throw new Error('Manage workspaces in the main view');element('workspace-open',HTMLButtonElement).click();},
  'channel-next':()=>channelStep(1),'channel-prev':()=>channelStep(-1),
  'pane-next':()=>virtualLog.moveFocus('pane',1),'pane-prev':()=>virtualLog.moveFocus('pane',-1),
  'tab-next':()=>virtualLog.moveFocus('tab',1),'tab-prev':()=>virtualLog.moveFocus('tab',-1),

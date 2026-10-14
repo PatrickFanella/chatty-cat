@@ -12,7 +12,7 @@ export type Token = { type: 'text'; text: string } | { type: 'emote'; emote: Emo
 function nativeEmote(id: string, code: string, light: boolean): Emote {
   const base = `https://static-cdn.jtvnw.net/emoticons/v2/${id}`;
   const tone = light ? 'light' : 'dark';
-  return { code, url: `${base}/animated/${tone}/2.0`, staticUrl: `${base}/default/${tone}/2.0`,
+  return { code, url: `${base}/animated/${tone}/2.0`, staticUrl: `${base}/static/${tone}/2.0`,
     source: 'Twitch', animated: true, zeroWidth: false };
 }
 

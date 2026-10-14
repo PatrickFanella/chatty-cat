@@ -51,11 +51,12 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
   for (const [index,token] of tokens.entries()) {
     if (token.type === 'text') {
       const value = token.text;
-      if(getProviderPreferences().removeSpacesBetweenEmotes&&/^[ \t]+$/.test(value)&&tokens[index-1]?.type==='emote'&&tokens[index+1]?.type==='emote'){const gap=document.createElement('span');gap.className='emote-gap';gap.style.fontSize='0';gap.textContent=value;text.append(gap);}else appendLinks(text, value, users);
+      if(getProviderPreferences().images&&getProviderPreferences().removeSpacesBetweenEmotes&&/^[ \t]+$/.test(value)&&tokens[index-1]?.type==='emote'&&tokens[index+1]?.type==='emote'){const gap=document.createElement('span');gap.className='emote-gap';gap.style.fontSize='0';gap.textContent=value;text.append(gap);}else appendLinks(text, value, users);
       if (value.trim()) stack = null;
     } else {
+      if(!getProviderPreferences().images&&token.emote.source!=='Cheer'){text.append(document.createTextNode(token.emote.code));stack=null;continue;}
       const image = emoteImage(token.emote, frozen);
-      if (token.emote.zeroWidth && stack) {
+      if (token.emote.zeroWidth && getProviderPreferences().zeroWidth && stack) {
         image.classList.add('overlay');image.style.height='100%';
         stack.append(image);
       } else {
@@ -67,7 +68,7 @@ export function messageText(message: ChatMessage, metadata: ChannelMetadata | un
       if(token.emote.source==='Cheer'){const amount=/[0-9]+$/.exec(token.emote.code)?.[0];if(amount){const label=document.createElement('span');label.className='cheer-amount';label.textContent=amount;label.title=amount+' bits';text.append(label);}}
     }
   }
-  if (tokens.some((token) => token.type === 'emote') && tokens.every((token) => token.type === 'emote' || !token.text.trim())) text.classList.add('emote-only');
+  if (getProviderPreferences().images&&tokens.some((token) => token.type === 'emote') && tokens.every((token) => token.type === 'emote' || !token.text.trim())) text.classList.add('emote-only');
   return text;
 }
 
