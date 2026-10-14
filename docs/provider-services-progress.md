@@ -1,6 +1,6 @@
 # Optional provider event services progress
 
-The next #31 layer enables optional BTTV/7TV event and cosmetic services. The configuration contract and browser read subscriptions with bounded badge parsing/retention are implemented. Explicit reviewed activity sessions are also implemented; positive deployed provider acceptance remains pending. This foundation does not close #31 or M4.
+The next #31 layer enables optional BTTV/7TV event and cosmetic services. The configuration contract and browser read subscriptions with bounded badge parsing/retention are implemented. Explicit reviewed activity sessions are also implemented; the owner-confirmed start/Live/stop flow is recorded below; controlled provider-event acceptance remains pending. This foundation does not close #31 or M4.
 
 CHATTHING_PROVIDER_SERVICES is an empty-by-default, closed list of BTTV and/or 7TV. Invalid or duplicate names fail CLI startup before starting auth services. The capability endpoint /api/provider-services/config exposes only allowed names and fixed browser limits (24 channels, three sockets, 30-second provider refresh interval). It contains no credential or arbitrary provider URL. The existing catalog configuration for FFZ/Chatterino is separate.
 
@@ -27,3 +27,6 @@ NUC staging on 2026-10-13 exposed a distinct catalog parsing defect: the live Ch
 
 
 A deployed browser read check then exposed a separate metadata boundary issue: Twitch now supplied 420 badge categories, exceeding the browser's 256-category limit. That rejected the complete metadata response, including valid broadcaster/7TV IDs, so optional subscriptions had no targets. The category bound is now 1,024, retaining the 256-version-per-category and eight-MiB response limits. Regression coverage accepts the observed 420-category shape and rejects 1,025 categories or 257 versions. The real public metadata capture parsed successfully with 420 badge categories and 443 emotes after the correction.
+
+
+On October 13, the owner reviewed activity sharing as `patrick__eff` (Twitch 69674313) in `#hasanabi` (Twitch 207813352) with BTTV and 7TV, started it and reported Live. After Stop, the owner confirmed the session ended and the active toolbar indicator disappeared. BTTV delivery and independent provider-side presence readback remain unconfirmed. Controlled live emote changes and cosmetic badge events remain open.

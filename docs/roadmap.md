@@ -15,6 +15,16 @@ The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatt
 | M4 — Portability, emotes and media | Account profiles, safe imports, optional device sync, custom themes, media uploads, provider updates and composer refinements. |
 | M5 — Companion and ecosystem | Opt-in external playback, browser companion, sandboxed extensions and owner-configured IRC support. No automatic native execution from web content. |
 
+## Live acceptance checkpoint — October 13, 2026
+
+The owner completed these checks at `chat.subcult.tv` as `patrick__eff` in regular browsers:
+
+- **Image hosting (#30):** reviewed upload, public image display, receipt persistence after reload, owner deletion and public-link 404 passed.
+- **Device sync (#29):** published saved workspaces, fetched the same revision after reload and in a second isolated browser, applied the snapshot with the expected channels/layout, then deleted it. A subsequent fetch showed no active snapshot; both browsers retained their local workspaces. The agent also verified the published revision in the production store before deletion.
+- **Provider activity (#31):** reviewed `patrick__eff` in `#hasanabi` with BTTV and 7TV, started the session and observed Live, then stopped it. The owner confirmed the session ended and the active toolbar indicator disappeared. This proves the observed browser flow; BTTV sends are not delivery receipts, and independent provider-side presence readback was not captured.
+
+M4 remains open. Controlled live emote changes and cosmetic badge events, supplemental public/own-message EventSub cases with consent and suitable external conditions, and the documented source-cache freshness issue remain outstanding. Sync conflict/lost-receipt/recovery cases retain fixture evidence; they were not repeated in production. Upload persistence across a server restart or reboot was not exercised. Native feature limitations and earlier M3 private-event/journal and eligible broadcaster gates remain separate.
+
 ## Implementation issues
 
 | Issue | Deliverable | Blocking issues |
