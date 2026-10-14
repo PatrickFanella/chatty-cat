@@ -1,0 +1,16 @@
+# NUC override for its existing compose.nuc.yaml release deployment.
+# Prepare these separate private directories for UID/GID 10001 before starting.
+services:
+  chat:
+    environment:
+      CHATTHING_UPLOAD_DIR: /app/uploads
+      CHATTHING_SYNC_DIR: /app/sync
+      CHATTHING_PROVIDER_SERVICES: BTTV,7TV
+      CHATTHING_COSMETIC_PROVIDERS: FFZ,Chatterino
+    volumes:
+      - type: bind
+        source: /srv/apps/projects/chatty-cat/shared/uploads
+        target: /app/uploads
+      - type: bind
+        source: /srv/apps/projects/chatty-cat/shared/sync
+        target: /app/sync
