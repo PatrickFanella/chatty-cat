@@ -32,7 +32,7 @@ import { streamHeader } from './stream-header';
 import { BookmarksPanel } from './bookmarks-ui';
 import { DiscoveryPanel } from './discovery';
 import { PresentationPanel } from './presentation-ui';
-import { CustomThemePanel } from './custom-theme-ui';
+import { CustomThemeRuntime } from './custom-theme-runtime';
 import { getPresentation } from './presentation';
 import { LocalTargets, dispatchLocal, LOCAL_COMMANDS } from './local-commands';
 import { privacyEnabled } from './privacy';
@@ -1087,7 +1087,7 @@ export async function startMain(): Promise<void> {
     const data = metadata.get(channels[0]!);
     if (data) paintStreamInfo(data);
   });
-  const customThemePanel = new CustomThemePanel();
+  const customThemeRuntime = new CustomThemeRuntime();
   const emojiStyleChanged = (): void => {
     visualRevision++;
     scheduleRender();
@@ -1102,7 +1102,7 @@ export async function startMain(): Promise<void> {
   document.addEventListener('customthemechange', themeChanged);
   window.addEventListener('pagehide', () => {
     document.removeEventListener('customthemechange', themeChanged);
-    customThemePanel.stop();
+    customThemeRuntime.stop();
   });
   rulePanel = new RulePanel(() => {
     visualRevision++;
@@ -2015,6 +2015,18 @@ export async function startMain(): Promise<void> {
           ({ LinkPreferencesPanel }) =>
             () =>
               new LinkPreferencesPanel(),
+        ),
+    });
+    lazyPanels.register({
+      id: 'custom-theme-panel',
+      title: 'Custom themes',
+      group: 'view',
+      keywords: 'colors palette import contrast',
+      load: () =>
+        import('./custom-theme-ui').then(
+          ({ CustomThemePanel }) =>
+            () =>
+              new CustomThemePanel(customThemeRuntime),
         ),
     });
     shell.registry.register({

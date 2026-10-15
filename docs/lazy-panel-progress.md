@@ -1,8 +1,8 @@
 # Lazy panel conversion
 
 Issue [#130](https://git.subcult.tv/subculture-collective/chatty-cat/issues/130)
-remains open. Four editors now use the lifecycle: **IRC conversations**,
-**Chatterino import**, **Completion** and **Link preferences**. Other panels still
+remains open. Five editors now use the lifecycle: **IRC conversations**,
+**Chatterino import**, **Completion**, **Link preferences** and **Custom themes**. Other panels still
 construct eagerly. The application has not reached the issue's startup-DOM or
 closed-panel timer acceptance gates. The sections below retain each slice's
 local evidence rather than treating it as a new full resource qualification.
@@ -143,9 +143,53 @@ heap or CPU savings. All 813 tests across 177 frontend files, the strict
 production build and the formatter check passed locally. Existing happy-dom
 stylesheet-fetch teardown warnings remain separate from the passing assertions.
 
-Custom themes remain eager because their constructor applies saved colors and
-subscribes to cross-tab updates. Its runtime/editor split is the next batch;
-defer only the editor after preserving those startup responsibilities.
+The following slice separates the custom-theme runtime from its editor.
+
+## Third slice — custom-theme editor
+
+`CustomThemeRuntime` now owns initial saved-color application, the original
+inline-palette baseline, account/storage guards and cross-tab storage updates.
+It constructs no editor DOM. `CustomThemePanel` loads through the shared lifecycle
+on first open or saved open placement, receiving that existing runtime. Its
+stable `custom-theme-panel` ID is unchanged, so named placements remain usable.
+
+Review, bounded native/Chatterino import, contrast reporting, explicit preview,
+apply, built-in palette and export retain their existing actions. Closing or
+stopping the editor clears temporary import/review/motion state and restores
+saved colors. Only application teardown restores the original inline palette;
+editor disposal leaves the runtime and its storage listener active. A stopped
+runtime ignores late editor paints, covering application/editor teardown order.
+Malformed remote data retains the last valid colors and blocks saving over the
+bad bytes. Valid storage changes invalidate an editor review before another apply.
+
+Local validation passed: 819 tests across 178 frontend files, strict production
+build, formatter and diff checks. Fixtures cover startup colors without an
+editor, valid/invalid remote changes and storage clearing, account boundaries,
+stale/quota writes, privacy cleanup, preview reversion and silent teardown.
+Existing happy-dom stylesheet-fetch teardown warnings remain.
+
+Chromium 154 checks used an isolated anonymous local profile and synthetic colors:
+
+- Saved colors apply before editor construction or a page request for its chunk.
+- A simulated storage event updates applied colors with the editor still absent.
+  Browser incognito tabs have separate storage here, so this is not a real
+  shared-storage two-tab browser qualification.
+- The palette opens the editor with saved data and one workbench chrome bar.
+  Docking left and reloading restores it. Closing and reloading defers its root
+  and chunk while the saved colors remain active.
+- A temporary preview leaves storage unchanged; after the close event, saved
+  colors return and import text is empty. Overlay mode keeps saved colors without
+  constructing or requesting the editor.
+- The installed worker cache contains the unopened editor chunk. After stopping
+  the local application service, the cached shell reloads with saved colors and
+  the palette opens the editor. Status reports the service disconnected. This
+  tests application-origin unavailability, not every external network offline.
+
+The final main entry is 345.33 kB gzip versus 346.56 kB before this slice; the
+custom-theme editor chunk is 2.17 kB gzip. The runtime/parser remains available
+at startup and the editor is precached. These figures do not establish total
+download, CPU or heap savings. The large main-chunk warning remains. No production
+deployment or full #130 resource acceptance is claimed.
 
 ## Continue the conversion
 
@@ -161,8 +205,8 @@ These are entry/chunk measurements, not a claim of lower total installed bytes
 or measured heap/CPU savings. The manifest also precaches the optional diagnostic
 chunk for offline use; the page still does not execute it until requested.
 
-The next useful batch is the custom-theme runtime/editor split, followed by
-other passive editors after checking their settings/model initialization paths.
+Continue with other passive editors after checking their settings/model
+initialization paths and consumers outside their dialogs.
 Measure startup DOM, loaded chunks and timer owners with the resource readout
 for each batch. Leave picker/rate scheduling changes and the shared scheduler's
 quantitative acceptance distinguishable from this lifecycle work.

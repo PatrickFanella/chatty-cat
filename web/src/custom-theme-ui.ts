@@ -1,34 +1,21 @@
-import { getProfileScope, profileKey } from './account-profiles';
+import type { Panel } from './shell/panels';
+import type { CustomThemeRuntime } from './custom-theme-runtime';
 import { privacyEnabled } from './privacy';
-import {
-  importTheme,
-  parseTheme,
-  themeContrast,
-  themeVariables,
-  type CustomTheme,
-  type ThemeFormat,
-} from './custom-theme';
-export class CustomThemePanel {
+import { importTheme, themeContrast, type CustomTheme, type ThemeFormat } from './custom-theme';
+export class CustomThemePanel implements Panel {
+  readonly id = 'custom-theme-panel';
+  readonly title = 'Custom themes';
+  readonly group = 'view';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private source = document.createElement('textarea');
   private format = document.createElement('select');
   private status = document.createElement('p');
   private report = document.createElement('pre');
   private motion = document.createElement('input');
-  private saved: CustomTheme | null = null;
   private candidate: CustomTheme | undefined;
-  private raw: string | null = null;
-  private account = getProfileScope();
-  private key = profileKey('chatthing:v1:custom-theme');
-  private baseline = new Map<string, string>();
-  private saveBlocked = false;
-  constructor() {
-    this.root.id = 'custom-theme-panel';
+  constructor(private runtime: CustomThemeRuntime) {
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Custom color themes');
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Custom themes';
-    document.getElementById('display-open')?.after(this.trigger);
     const title = document.createElement('h2');
     title.textContent = 'Custom color themes';
     const help = document.createElement('p');
@@ -80,7 +67,7 @@ export class CustomThemePanel {
       this.button('Review theme', () => this.review()),
       this.button('Preview across workspace', () => {
         this.requireCandidate();
-        this.paint(this.candidate!);
+        this.runtime.paint(this.candidate!);
         this.status.textContent =
           'Temporary preview across chat, picker, resources and moderation. Apply to save or Revert to restore.';
       }),
@@ -96,23 +83,13 @@ export class CustomThemePanel {
       this.status,
     );
     this.root.insertBefore(samples, this.report);
-    for (const variable of Object.values(themeVariables))
-      this.baseline.set(variable, document.documentElement.style.getPropertyValue(variable));
     this.source.addEventListener('input', this.invalidate);
     this.format.addEventListener('change', this.invalidate);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     document.addEventListener('privacychange', this.privacy);
-    window.addEventListener('storage', this.storage);
+    this.runtime.addEventListener('change', this.storage);
     document.body.append(this.root);
-    try {
-      this.raw = localStorage.getItem(this.key);
-      if (this.raw && this.raw !== 'null') this.saved = importTheme(this.raw, 'native').theme;
-    } catch {
-      this.saveBlocked = true;
-      this.status.textContent = 'Saved theme could not be read; existing data retained. Check storage before saving.';
-    }
-    this.paint(this.saved);
+    this.status.textContent = this.runtime.error;
   }
   private button(label: string, action: () => void): HTMLButtonElement {
     const button = document.createElement('button');
@@ -121,7 +98,7 @@ export class CustomThemePanel {
     button.addEventListener('click', () => {
       try {
         if (privacyEnabled()) throw new Error('Custom theme editing is hidden in privacy mode');
-        this.scope();
+        this.runtime.assertScope();
         action();
       } catch (e) {
         this.status.textContent = e instanceof Error ? e.message : 'Theme unavailable';
@@ -129,16 +106,13 @@ export class CustomThemePanel {
     });
     return button;
   }
-  private scope(): void {
-    if (getProfileScope() !== this.account) throw new Error('Account changed; reload before editing this theme');
-  }
   private requireCandidate(): void {
     if (!this.candidate) throw new Error('Review the current theme data first');
   }
   private review(): void {
     this.candidate = undefined;
     this.report.textContent = '';
-    this.paint(this.saved);
+    this.runtime.paint(this.runtime.saved);
     const format: ThemeFormat = this.format.value === 'chatterino' ? 'chatterino' : 'native';
     const result = importTheme(this.source.value, format);
     this.candidate = result.theme;
@@ -160,29 +134,9 @@ export class CustomThemePanel {
     this.status.textContent =
       'Reviewed color-only data. Contrast checks cover theme text colors, not user names, emotes or every message highlight.';
   }
-  private paint(theme: CustomTheme | null, announce = true): void {
-    if (announce) document.dispatchEvent(new Event('presentation-before-change'));
-    const root = document.documentElement;
-    for (const [field, variable] of Object.entries(themeVariables)) {
-      const value = theme ? theme.colors[field as keyof CustomTheme['colors']] : this.baseline.get(variable);
-      if (value) root.style.setProperty(variable, value);
-      else root.style.removeProperty(variable);
-    }
-    root.toggleAttribute('data-custom-theme', theme !== null);
-    if (announce) document.dispatchEvent(new Event('customthemechange'));
-  }
   private persist(theme: CustomTheme | null): void {
-    this.scope();
-    if (this.saveBlocked) throw new Error('Saved theme could not be read; existing data retained');
-    if (localStorage.getItem(this.key) !== this.raw)
-      throw new Error('Theme changed in another tab; reopen Custom themes before saving');
-    const safe = theme ? parseTheme(theme) : null,
-      raw = JSON.stringify(safe);
-    localStorage.setItem(this.key, raw);
-    this.raw = raw;
-    this.saved = safe;
-    this.paint(safe);
-    this.status.textContent = safe
+    this.runtime.persist(theme);
+    this.status.textContent = theme
       ? 'Custom theme saved for this account'
       : 'Built-in palette restored; saved workspaces and drafts retained';
   }
@@ -199,7 +153,7 @@ export class CustomThemePanel {
     this.status.textContent = 'Exported validated Chatty Cat version 1 colors only';
   }
   private revert(): void {
-    this.paint(this.saved);
+    this.runtime.paint(this.runtime.saved);
     this.motion.checked = false;
     document.documentElement.removeAttribute('data-theme-reduced-motion');
     this.status.textContent = 'Saved colors restored; workspace and drafts retained';
@@ -209,20 +163,14 @@ export class CustomThemePanel {
     this.report.textContent = '';
     this.revert();
   };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     try {
-      this.scope();
-      const raw = localStorage.getItem(this.key);
-      const saved = raw && raw !== 'null' ? importTheme(raw, 'native').theme : null;
-      this.raw = raw;
-      this.saved = saved;
-      this.saveBlocked = false;
-      this.source.value = this.saved ? JSON.stringify(this.saved, null, 2) : '';
+      this.runtime.reload();
+      this.source.value = this.runtime.saved ? JSON.stringify(this.runtime.saved, null, 2) : '';
       this.format.value = 'native';
       this.invalidate();
     } catch (e) {
-      this.saveBlocked = true;
       this.status.textContent = e instanceof Error ? e.message : 'Theme unavailable';
     }
     if (!this.root.open) this.root.showModal();
@@ -232,7 +180,7 @@ export class CustomThemePanel {
     this.candidate = undefined;
     this.source.value = '';
     this.report.textContent = '';
-    this.trigger.focus();
+    document.getElementById('topbar')?.querySelector<HTMLButtonElement>('button')?.focus();
   };
   private privacy = (): void => {
     if (privacyEnabled()) {
@@ -240,30 +188,30 @@ export class CustomThemePanel {
       if (this.root.open) this.root.close();
     }
   };
-  private storage = (e: StorageEvent): void => {
+  private storage = (): void => {
     this.privacy();
-    if (e.key !== this.key && e.key !== null) return;
-    try {
-      this.scope();
-      const raw = e.key === null ? localStorage.getItem(this.key) : e.newValue;
-      const saved = raw && raw !== 'null' ? importTheme(raw, 'native').theme : null;
-      this.raw = raw;
-      this.saved = saved;
-      this.saveBlocked = false;
+    if (this.runtime.error) {
+      this.candidate = undefined;
+      this.report.textContent = '';
+      this.status.textContent = this.runtime.error;
+    } else {
       this.invalidate();
       this.status.textContent = 'Theme updated from another tab; review again before applying';
-    } catch {
-      this.saveBlocked = true;
-      this.status.textContent = 'Remote theme invalid; existing colors and saved data retained';
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
-    this.paint(null, false);
+    this.runtime.paint(this.runtime.saved, false);
     document.documentElement.removeAttribute('data-theme-reduced-motion');
+    this.candidate = undefined;
+    this.source.value = '';
+    this.source.removeEventListener('input', this.invalidate);
+    this.format.removeEventListener('change', this.invalidate);
     this.root.removeEventListener('close', this.closed);
     document.removeEventListener('privacychange', this.privacy);
-    window.removeEventListener('storage', this.storage);
-    this.trigger.remove();
+    this.runtime.removeEventListener('change', this.storage);
     this.root.remove();
   }
 }

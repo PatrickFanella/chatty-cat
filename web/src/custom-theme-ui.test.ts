@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import { CustomThemePanel } from './custom-theme-ui';
+import { CustomThemeRuntime } from './custom-theme-runtime';
 import { setProfileScope } from './account-profiles';
 const theme = {
   version: 1,
@@ -15,9 +16,17 @@ const theme = {
   },
 };
 let panel: CustomThemePanel | undefined;
+let runtime: CustomThemeRuntime | undefined;
+function createPanel() {
+  runtime?.stop();
+  runtime = new CustomThemeRuntime();
+  return new CustomThemePanel(runtime);
+}
 afterEach(() => {
   panel?.stop();
   panel = undefined;
+  runtime?.stop();
+  runtime = undefined;
   vi.unstubAllGlobals();
   localStorage.clear();
   setProfileScope('anonymous');
@@ -26,8 +35,8 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 function setup() {
-  document.body.innerHTML = '<button id="display-open"></button><input id="message" value="unsent draft">';
-  panel = new CustomThemePanel();
+  document.body.innerHTML = '<input id="message" value="unsent draft">';
+  panel = createPanel();
   const input = panel.root.querySelector('textarea')!;
   input.value = JSON.stringify(theme);
   return {
@@ -91,15 +100,15 @@ it('restores only the current account theme and blocks malformed saved data from
   click('Apply and save theme');
   panel!.stop();
   setProfileScope('456');
-  panel = new CustomThemePanel();
+  panel = createPanel();
   expect(document.documentElement.style.getPropertyValue('--bg')).toBe('');
   panel.stop();
   setProfileScope('123');
-  panel = new CustomThemePanel();
+  panel = createPanel();
   expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#101010');
   panel.stop();
   localStorage.setItem('chatthing:v1:profile:123:custom-theme', '{"version":99}');
-  panel = new CustomThemePanel();
+  panel = createPanel();
   const input = panel.root.querySelector('textarea')!;
   input.value = JSON.stringify(theme);
   click('Review theme');
@@ -126,4 +135,33 @@ it('does not schedule a reader repaint after the theme panel stops', () => {
   panel!.stop();
   expect(changed).not.toHaveBeenCalled();
   document.removeEventListener('customthemechange', changed);
+});
+
+it('closing and disposing the editor restores saved colors while runtime storage updates remain active', () => {
+  localStorage.setItem('chatthing:v1:custom-theme', JSON.stringify(theme));
+  const { input, click } = setup();
+  panel!.open();
+  input.value = JSON.stringify({ ...theme, colors: { ...theme.colors, background: '#303030' } });
+  click('Review theme');
+  click('Preview across workspace');
+  expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#303030');
+  panel!.close();
+  expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#101010');
+  panel!.stop();
+  panel = undefined;
+  const updated = JSON.stringify({ ...theme, colors: { ...theme.colors, background: '#404040' } });
+  localStorage.setItem('chatthing:v1:custom-theme', updated);
+  window.dispatchEvent(new StorageEvent('storage', { key: 'chatthing:v1:custom-theme', newValue: updated }));
+  expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#404040');
+  expect(document.querySelector('#custom-theme-panel')).toBeNull();
+});
+it('invalidates an editor review when another tab changes the saved theme', () => {
+  const { click } = setup();
+  click('Review theme');
+  localStorage.setItem('chatthing:v1:custom-theme', JSON.stringify(theme));
+  window.dispatchEvent(
+    new StorageEvent('storage', { key: 'chatthing:v1:custom-theme', newValue: JSON.stringify(theme) }),
+  );
+  click('Apply and save theme');
+  expect(panel!.root.textContent).toContain('Review the current theme data first');
 });
