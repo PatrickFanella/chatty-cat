@@ -139,3 +139,14 @@ export class CompletionPreferenceStore {
     this.raw = raw;
   }
 }
+
+// Startup policy belongs to the application, not to the optional editor DOM.
+export function restoreCompletionPreferences(): void {
+  setCompletionPreferences(completionDefaults);
+  try {
+    setCompletionPreferences(new CompletionPreferenceStore().read());
+  } finally {
+    document.dispatchEvent(new Event('presentation-before-change'));
+    document.dispatchEvent(new Event('completionpreferenceschange'));
+  }
+}

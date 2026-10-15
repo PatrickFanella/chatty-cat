@@ -49,7 +49,7 @@ import { CommandPanel } from './commands-ui';
 import { PrivacyControls } from './privacy-ui';
 import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
 import { WorkspacePanel } from './workspaces-ui';
-import { CompletionPreferencesPanel } from './completion-preferences-ui';
+import { restoreCompletionPreferences, setCompletionPreferences, completionDefaults } from './completion-preferences';
 import { CompletionChatters } from './completion-chatters';
 import { ImageUploads } from './image-uploads';
 import { captureBundle, restoreBundle } from './settings-bundle';
@@ -79,7 +79,7 @@ import { Attention } from './attention';
 import { AccountEmotes } from './account-emotes';
 import type { AuthStatus } from './auth';
 import { LinkPreview } from './preview';
-import { LinkTools } from './link-preferences';
+import { LinkTools } from './link-tools';
 import { mountLifecycle } from './lifecycle';
 import { VideoPanel } from './video';
 import { TabSync } from './tab-sync';
@@ -1352,15 +1352,18 @@ export async function startMain(): Promise<void> {
     },
     !!panePopout || ephemeralPopout || overlay,
   );
-  const completionPreferences = new CompletionPreferencesPanel(
-    () => {
-      visualRevision++;
-      refreshCandidates();
-      scheduleRender();
-    },
-    !!panePopout || ephemeralPopout || overlay,
-    () => completionChatters!.read(),
-  );
+  const completionPreferencesChanged = (): void => {
+    visualRevision++;
+    refreshCandidates();
+    scheduleRender();
+  };
+  document.addEventListener('completionpreferenceschange', completionPreferencesChanged);
+  document.addEventListener('privacychange', completionPreferencesChanged);
+  try {
+    restoreCompletionPreferences();
+  } catch {
+    announcer.textContent = 'Saved completion preferences could not be loaded; defaults are active.';
+  }
   imageUploads = new ImageUploads(
     () => ({ auth: accountAuth, channel: composer.target, canInsert: composer.canInsert }),
     (url) => composer.insert(url),
@@ -1384,7 +1387,9 @@ export async function startMain(): Promise<void> {
     }
     hotkeys.stop();
     workspacePanel.stop();
-    completionPreferences.stop();
+    document.removeEventListener('completionpreferenceschange', completionPreferencesChanged);
+    document.removeEventListener('privacychange', completionPreferencesChanged);
+    setCompletionPreferences(completionDefaults);
     completionChatters?.stop();
     imageUploads?.stop();
     linkTools.stop();
@@ -1986,6 +1991,30 @@ export async function startMain(): Promise<void> {
           ({ ChatterinoImportPanel }) =>
             () =>
               new ChatterinoImportPanel(workspaceStore, captureWorkspace),
+        ),
+    });
+    lazyPanels.register({
+      id: 'completion-preferences-panel',
+      title: 'Completion',
+      group: 'moderation',
+      keywords: 'nicknames spellcheck suggestions',
+      load: () =>
+        import('./completion-preferences-ui').then(
+          ({ CompletionPreferencesPanel }) =>
+            () =>
+              new CompletionPreferencesPanel(undefined, false, () => completionChatters!.read()),
+        ),
+    });
+    lazyPanels.register({
+      id: 'link-preferences-panel',
+      title: 'Link preferences',
+      group: 'moderation',
+      keywords: 'preview thumbnails search double click',
+      load: () =>
+        import('./link-preferences-ui').then(
+          ({ LinkPreferencesPanel }) =>
+            () =>
+              new LinkPreferencesPanel(),
         ),
     });
     shell.registry.register({

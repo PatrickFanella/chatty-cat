@@ -1,3 +1,4 @@
+import type { Panel } from './shell/panels';
 import {
   CompletionPreferenceStore,
   completionDefaults,
@@ -6,9 +7,11 @@ import {
   type CompletionPreferences,
 } from './completion-preferences';
 import { privacyEnabled } from './privacy';
-export class CompletionPreferencesPanel {
+export class CompletionPreferencesPanel implements Panel {
+  readonly id = 'completion-preferences-panel';
+  readonly title = 'Completion';
+  readonly group = 'moderation';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private store: CompletionPreferenceStore | undefined;
   private saved: CompletionPreferences = completionDefaults;
   private pending: CompletionPreferences | undefined;
@@ -21,10 +24,7 @@ export class CompletionPreferencesPanel {
     private readonlyView = false,
     private readChatters?: () => Promise<string>,
   ) {
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Completion';
-    this.trigger.hidden = readonlyView;
-    document.getElementById('commands-open')?.after(this.trigger);
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Completion preferences');
     this.root.innerHTML =
       '<h2>Completion and local nicknames</h2><p>Nicknames are local annotations. Suggestions show the real Twitch login and insert it; sending, moderation, search and account identity continue to use provider identities. These preferences stay with this account on this browser.</p><label>Completion matching<select name="mode"><option value="prefix">Prefix</option><option value="fuzzy">Fuzzy subsequence</option></select></label><label><input type="checkbox" name="bareNames">Include known users in bare Tab completion</label><label><input type="checkbox" name="appendSpace">Append a space when completing</label><label><input type="checkbox" name="mentionAt">Include @ before completed users</label><label><input type="checkbox" name="mentionComma">Append a comma after completed users</label><label><input type="checkbox" name="spellcheck">Use browser spellcheck</label><p>Spellcheck follows your browser dictionaries and configured services. IME composition suppresses completion and sending until composition finishes.</p><label>Local nickname mappings JSON<textarea aria-label="Local nickname mappings JSON" name="aliases" rows="5" maxlength="16384" placeholder="[{&quot;login&quot;:&quot;alice&quot;,&quot;alias&quot;:&quot;Friend&quot;}]"></textarea></label><label>Preferred emote codes JSON<textarea aria-label="Preferred emote codes JSON" name="emotePriority" rows="3" maxlength="8192" placeholder="[&quot;Kappa&quot;]"></textarea></label>';
@@ -88,7 +88,6 @@ export class CompletionPreferencesPanel {
     this.root.addEventListener('input', this.invalidate);
     this.root.addEventListener('change', this.invalidate);
     this.root.addEventListener('close', this.closed);
-    this.trigger.addEventListener('click', this.open);
     document.addEventListener('privacychange', this.privacy);
     this.load();
     this.announce();
@@ -210,8 +209,8 @@ export class CompletionPreferencesPanel {
     this.announce();
     this.status.textContent = 'Completion preferences saved for this account; current draft retained';
   }
-  private open = (): void => {
-    if (privacyEnabled()) return;
+  open = (): void => {
+    if (this.readonlyView || privacyEnabled()) return;
     this.invalidate();
     this.load();
     this.announce();
@@ -221,7 +220,7 @@ export class CompletionPreferencesPanel {
     this.readGeneration++;
     this.invalidate();
     for (const input of this.root.querySelectorAll<HTMLTextAreaElement>('textarea')) input.value = '';
-    this.trigger.focus();
+    document.getElementById('topbar')?.querySelector<HTMLButtonElement>('button')?.focus();
   };
   private privacy = (): void => {
     if (privacyEnabled()) {
@@ -230,15 +229,15 @@ export class CompletionPreferencesPanel {
     }
     this.changed();
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.closed();
     this.root.removeEventListener('input', this.invalidate);
     this.root.removeEventListener('change', this.invalidate);
     this.root.removeEventListener('close', this.closed);
-    this.trigger.removeEventListener('click', this.open);
     document.removeEventListener('privacychange', this.privacy);
     this.root.remove();
-    this.trigger.remove();
-    setCompletionPreferences(completionDefaults);
   }
 }
