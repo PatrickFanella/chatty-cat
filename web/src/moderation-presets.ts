@@ -1,21 +1,138 @@
-import {validAccount} from './account-profiles';
-import {MOD_ACTIONS,validModerationCommand,type ModerationAction} from './moderation';
-export interface ModerationPreset {name:string;template:string}
-export interface PresetScope {account:string;workspace:string;channel:string}
-const MAX_BYTES=32768;
-export const DEFAULT_MODERATION_PRESETS:readonly ModerationPreset[]=[{name:'Timeout 1 minute',template:'/timeout {user} 60'},{name:'Timeout 10 minutes',template:'/timeout {user} 600'},{name:'Ban user',template:'/ban {user}'},{name:'Delete message',template:'/delete {messageID}'}];
-function scopeKey(scope:PresetScope):string{if(!validAccount(scope.account)||!scope.workspace||scope.workspace.length>128||/[\x00-\x1f\x7f-\x9f]/.test(scope.workspace)||!/^[a-z0-9_]{1,25}$/.test(scope.channel))throw new Error('Choose an authenticated workspace and channel');return 'chatthing:v1:moderation-presets:'+JSON.stringify([scope.account,scope.workspace,scope.channel]);}
-export function expandModerationPreset(preset:ModerationPreset,user:string,messageID:string,userID=''):{action:ModerationAction;command:string}{
- const command=preset.template.replace(/\{([^{}]+)\}/g,(_match,key:string)=>{if(key==='user'){if(!/^[a-z0-9_]{1,25}$/.test(user))throw new Error('Refresh a user context before staging');return user;}if(key==='userID'){if(!/^[1-9][0-9]{0,29}$/.test(userID))throw new Error('Refresh a numeric user identity before staging');return userID;}if(key==='messageID'){if(!/^[A-Za-z0-9_-]{1,128}$/.test(messageID))throw new Error('Select a retained, undeleted message before staging');return messageID;}throw new Error('Use only {user}, {userID} and {messageID} placeholders');});
- if(/[{}]/.test(command)||!validModerationCommand(command))throw new Error('Use a validated timeout, ban, delete or room-mode command template');const action=command.split(' ')[0]!.slice(1);if(!Object.hasOwn(MOD_ACTIONS,action))throw new Error('Unsupported moderation action');return {action:action as ModerationAction,command};
+import { validAccount } from './account-profiles';
+import { MOD_ACTIONS, validModerationCommand, type ModerationAction } from './moderation';
+export interface ModerationPreset {
+  name: string;
+  template: string;
 }
-export function parseModerationPresets(raw:unknown):ModerationPreset[]{if(!Array.isArray(raw)||raw.length>12)throw new Error('Save at most 12 ordered moderation presets');const result=raw.map(item=>{if(!item||typeof item!=='object')throw new Error('Invalid preset');const v=item as Record<string,unknown>;if(typeof v.name!=='string'||!v.name.trim()||v.name.length>60||/[\x00-\x1f\x7f-\x9f]/.test(v.name)||typeof v.template!=='string'||v.template.length>500)throw new Error('Use a plain preset name of 1–60 characters and a bounded template');const preset={name:v.name.trim(),template:v.template};const [verb,target]=preset.template.split(' ');if(['/warn','/untimeout','/ban','/timeout','/unban'].includes(verb??'')&&target!=='{user}'||verb==='/delete'&&target!=='{messageID}'||verb==='/banid'&&target!=='{userID}')throw new Error('User/message actions must use the selected {user} or {messageID}');expandModerationPreset(preset,'fixture','fixture-message','456');return preset;});if(new Set(result.map(x=>x.name.toLowerCase())).size!==result.length)throw new Error('Preset names must be unique');if(new Blob([JSON.stringify(result)]).size>MAX_BYTES)throw new Error('Preset definitions exceed 32 KB');return result;}
+export interface PresetScope {
+  account: string;
+  workspace: string;
+  channel: string;
+}
+const MAX_BYTES = 32768;
+export const DEFAULT_MODERATION_PRESETS: readonly ModerationPreset[] = [
+  { name: 'Timeout 1 minute', template: '/timeout {user} 60' },
+  { name: 'Timeout 10 minutes', template: '/timeout {user} 600' },
+  { name: 'Ban user', template: '/ban {user}' },
+  { name: 'Delete message', template: '/delete {messageID}' },
+];
+function scopeKey(scope: PresetScope): string {
+  if (
+    !validAccount(scope.account) ||
+    !scope.workspace ||
+    scope.workspace.length > 128 ||
+    /[\x00-\x1f\x7f-\x9f]/.test(scope.workspace) ||
+    !/^[a-z0-9_]{1,25}$/.test(scope.channel)
+  )
+    throw new Error('Choose an authenticated workspace and channel');
+  return 'chatthing:v1:moderation-presets:' + JSON.stringify([scope.account, scope.workspace, scope.channel]);
+}
+export function expandModerationPreset(
+  preset: ModerationPreset,
+  user: string,
+  messageID: string,
+  userID = '',
+): { action: ModerationAction; command: string } {
+  const command = preset.template.replace(/\{([^{}]+)\}/g, (_match, key: string) => {
+    if (key === 'user') {
+      if (!/^[a-z0-9_]{1,25}$/.test(user)) throw new Error('Refresh a user context before staging');
+      return user;
+    }
+    if (key === 'userID') {
+      if (!/^[1-9][0-9]{0,29}$/.test(userID)) throw new Error('Refresh a numeric user identity before staging');
+      return userID;
+    }
+    if (key === 'messageID') {
+      if (!/^[A-Za-z0-9_-]{1,128}$/.test(messageID))
+        throw new Error('Select a retained, undeleted message before staging');
+      return messageID;
+    }
+    throw new Error('Use only {user}, {userID} and {messageID} placeholders');
+  });
+  if (/[{}]/.test(command) || !validModerationCommand(command))
+    throw new Error('Use a validated timeout, ban, delete or room-mode command template');
+  const action = command.split(' ')[0]!.slice(1);
+  if (!Object.hasOwn(MOD_ACTIONS, action)) throw new Error('Unsupported moderation action');
+  return { action: action as ModerationAction, command };
+}
+export function parseModerationPresets(raw: unknown): ModerationPreset[] {
+  if (!Array.isArray(raw) || raw.length > 12) throw new Error('Save at most 12 ordered moderation presets');
+  const result = raw.map((item) => {
+    if (!item || typeof item !== 'object') throw new Error('Invalid preset');
+    const v = item as Record<string, unknown>;
+    if (
+      typeof v.name !== 'string' ||
+      !v.name.trim() ||
+      v.name.length > 60 ||
+      /[\x00-\x1f\x7f-\x9f]/.test(v.name) ||
+      typeof v.template !== 'string' ||
+      v.template.length > 500
+    )
+      throw new Error('Use a plain preset name of 1–60 characters and a bounded template');
+    const preset = { name: v.name.trim(), template: v.template };
+    const [verb, target] = preset.template.split(' ');
+    if (
+      (['/warn', '/untimeout', '/ban', '/timeout', '/unban'].includes(verb ?? '') && target !== '{user}') ||
+      (verb === '/delete' && target !== '{messageID}') ||
+      (verb === '/banid' && target !== '{userID}')
+    )
+      throw new Error('User/message actions must use the selected {user} or {messageID}');
+    expandModerationPreset(preset, 'fixture', 'fixture-message', '456');
+    return preset;
+  });
+  if (new Set(result.map((x) => x.name.toLowerCase())).size !== result.length)
+    throw new Error('Preset names must be unique');
+  if (new Blob([JSON.stringify(result)]).size > MAX_BYTES) throw new Error('Preset definitions exceed 32 KB');
+  return result;
+}
 export class ModerationPresetStore {
- private key:string;private raw:string|null;
- readonly scope:PresetScope;
- constructor(scope:PresetScope){this.scope={...scope};this.key=scopeKey(scope);this.raw=localStorage.getItem(this.key);if(this.raw!==null)this.all();}
- all():ModerationPreset[]{if(this.raw===null)return DEFAULT_MODERATION_PRESETS.map(x=>({...x}));if(new Blob([this.raw]).size>MAX_BYTES)throw new Error('Saved presets exceed 32 KB; existing data was retained');return parseModerationPresets(JSON.parse(this.raw));}
- save(raw:unknown):void{const items=parseModerationPresets(raw);if(localStorage.getItem(this.key)!==this.raw)throw new Error('Presets changed in another tab; reopen before saving');const next=JSON.stringify(items);try{localStorage.setItem(this.key,next);}catch{throw new Error('Presets could not be saved; existing definitions were retained');}this.raw=next;}
- export():string{return JSON.stringify({format:'chatty-cat-moderation-presets',version:1,...this.scope,presets:this.all()},null,2);}
- import(text:string):ModerationPreset[]{if(new Blob([text]).size>MAX_BYTES)throw new Error('Preset import exceeds 32 KB');const v:unknown=JSON.parse(text);if(!v||typeof v!=='object')throw new Error('Invalid preset backup');const data=v as Record<string,unknown>;if(data.format!=='chatty-cat-moderation-presets'||data.version!==1||data.account!==this.scope.account||data.workspace!==this.scope.workspace||data.channel!==this.scope.channel)throw new Error('Import requires the same account, workspace and channel');return parseModerationPresets(data.presets);}
+  private key: string;
+  private raw: string | null;
+  readonly scope: PresetScope;
+  constructor(scope: PresetScope) {
+    this.scope = { ...scope };
+    this.key = scopeKey(scope);
+    this.raw = localStorage.getItem(this.key);
+    if (this.raw !== null) this.all();
+  }
+  all(): ModerationPreset[] {
+    if (this.raw === null) return DEFAULT_MODERATION_PRESETS.map((x) => ({ ...x }));
+    if (new Blob([this.raw]).size > MAX_BYTES)
+      throw new Error('Saved presets exceed 32 KB; existing data was retained');
+    return parseModerationPresets(JSON.parse(this.raw));
+  }
+  save(raw: unknown): void {
+    const items = parseModerationPresets(raw);
+    if (localStorage.getItem(this.key) !== this.raw)
+      throw new Error('Presets changed in another tab; reopen before saving');
+    const next = JSON.stringify(items);
+    try {
+      localStorage.setItem(this.key, next);
+    } catch {
+      throw new Error('Presets could not be saved; existing definitions were retained');
+    }
+    this.raw = next;
+  }
+  export(): string {
+    return JSON.stringify(
+      { format: 'chatty-cat-moderation-presets', version: 1, ...this.scope, presets: this.all() },
+      null,
+      2,
+    );
+  }
+  import(text: string): ModerationPreset[] {
+    if (new Blob([text]).size > MAX_BYTES) throw new Error('Preset import exceeds 32 KB');
+    const v: unknown = JSON.parse(text);
+    if (!v || typeof v !== 'object') throw new Error('Invalid preset backup');
+    const data = v as Record<string, unknown>;
+    if (
+      data.format !== 'chatty-cat-moderation-presets' ||
+      data.version !== 1 ||
+      data.account !== this.scope.account ||
+      data.workspace !== this.scope.workspace ||
+      data.channel !== this.scope.channel
+    )
+      throw new Error('Import requires the same account, workspace and channel');
+    return parseModerationPresets(data.presets);
+  }
 }

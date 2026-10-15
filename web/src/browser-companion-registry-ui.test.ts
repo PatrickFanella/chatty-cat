@@ -1,18 +1,111 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';
-import {BrowserCompanionPanel} from './browser-companion-ui';
-import {BrowserCompanionRegistry} from './browser-companion-registry';
-import {setProfileScope,profileKey} from './account-profiles';
-const auth={enabled:true,authenticated:true,userID:'42',csrf:'private-csrf-canary',loginURL:'/login'};
-let panel:BrowserCompanionPanel|undefined;
-afterEach(()=>{panel?.stop();panel=undefined;document.body.replaceChildren();localStorage.clear();setProfileScope('anonymous');vi.unstubAllGlobals();});
-function button(name:string):HTMLButtonElement{return Array.from(panel!.root.querySelectorAll('button')).find(b=>b.textContent===name)!;}
-function input(name:string):HTMLInputElement{return panel!.root.querySelector('[aria-label="'+name+'"]')!;}
-function setup(current=()=>auth){setProfileScope('42');const registry=new BrowserCompanionRegistry('42');registry.remember('a'.repeat(32),'First');registry.remember('b'.repeat(32),'Second');const sendMessage=vi.fn((_id:string,m:unknown,cb:(v:unknown)=>void)=>queueMicrotask(()=>cb({ok:true,version:1,account:'42',...((m as {kind:string}).kind==='pair'?{token:'c'.repeat(64)}:{watched:null})})));vi.stubGlobal('chrome',{runtime:{sendMessage}});document.body.innerHTML='<button id="commands-open">Commands</button>';panel=new BrowserCompanionPanel(current,()=>[],()=>'',vi.fn());Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Browser companion')!.click();return sendMessage;}
-it('selects/remembers/forgets public IDs without extension requests or saved pairing data',async()=>{
- const requests=setup();const select=panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;select.value='b'.repeat(32);select.dispatchEvent(new Event('change',{bubbles:true}));expect(input('Installed Chromium extension ID').value).toBe('b'.repeat(32));expect(input('Browser companion local name').value).toBe('Second');expect(requests).not.toHaveBeenCalled();input('Browser companion pairing code').value='d'.repeat(64);input('Browser companion local name').value='Renamed';button('Remember browser companion ID').click();await vi.waitFor(()=>expect(panel!.root.textContent).toContain('remembered locally'));const raw=localStorage.getItem(profileKey('chatthing:v1:browser-companions'))!;expect(raw).not.toContain('d'.repeat(64));expect(raw).not.toContain('private-csrf');expect(requests).not.toHaveBeenCalled();button('Forget selected companion ID').click();await vi.waitFor(()=>expect(panel!.root.textContent).toContain('forgotten locally'));expect(new BrowserCompanionRegistry('42').all()).toHaveLength(1);expect(input('Browser companion pairing code').value).toBe('');expect(requests).not.toHaveBeenCalled();
+import { afterEach, expect, it, vi } from 'vitest';
+import { BrowserCompanionPanel } from './browser-companion-ui';
+import { BrowserCompanionRegistry } from './browser-companion-registry';
+import { setProfileScope, profileKey } from './account-profiles';
+const auth = { enabled: true, authenticated: true, userID: '42', csrf: 'private-csrf-canary', loginURL: '/login' };
+let panel: BrowserCompanionPanel | undefined;
+afterEach(() => {
+  panel?.stop();
+  panel = undefined;
+  document.body.replaceChildren();
+  localStorage.clear();
+  setProfileScope('anonymous');
+  vi.unstubAllGlobals();
 });
-it('keeps one active companion, locks switching while paired and clears registry UI on account change',async()=>{
- let current=auth;const requests=setup(()=>current);const select=panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;select.value='a'.repeat(32);select.dispatchEvent(new Event('change'));input('Browser companion pairing code').value='d'.repeat(64);button('Pair browser companion').click();await vi.waitFor(()=>expect(select.disabled).toBe(true));await vi.waitFor(()=>expect(requests.mock.calls.some(c=>(c[1] as {kind:string}).kind==='poll')).toBe(true));select.value='b'.repeat(32);select.dispatchEvent(new Event('change'));expect(input('Installed Chromium extension ID').value).toBe('a'.repeat(32));expect(requests.mock.calls.every(c=>c[0]==='a'.repeat(32))).toBe(true);button('Return to chat; keep browser bridge connected').click();await vi.waitFor(()=>expect(panel!.root.open).toBe(false));Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='Browser bridge active')!.click();expect(select.value).toBe('a'.repeat(32));expect(select.disabled).toBe(true);current={...auth,userID:'43'};setProfileScope('43');panel!.authChanged();expect(select.options).toHaveLength(0);expect(input('Installed Chromium extension ID').value).toBe('');expect(input('Browser companion local name').value).toBe('');expect(new BrowserCompanionRegistry('43').all()).toEqual([]);
+function button(name: string): HTMLButtonElement {
+  return Array.from(panel!.root.querySelectorAll('button')).find((b) => b.textContent === name)!;
+}
+function input(name: string): HTMLInputElement {
+  return panel!.root.querySelector('[aria-label="' + name + '"]')!;
+}
+function setup(current = () => auth) {
+  setProfileScope('42');
+  const registry = new BrowserCompanionRegistry('42');
+  registry.remember('a'.repeat(32), 'First');
+  registry.remember('b'.repeat(32), 'Second');
+  const sendMessage = vi.fn((_id: string, m: unknown, cb: (v: unknown) => void) =>
+    queueMicrotask(() =>
+      cb({
+        ok: true,
+        version: 1,
+        account: '42',
+        ...((m as { kind: string }).kind === 'pair' ? { token: 'c'.repeat(64) } : { watched: null }),
+      }),
+    ),
+  );
+  vi.stubGlobal('chrome', { runtime: { sendMessage } });
+  document.body.innerHTML = '<button id="commands-open">Commands</button>';
+  panel = new BrowserCompanionPanel(
+    current,
+    () => [],
+    () => '',
+    vi.fn(),
+  );
+  Array.from(document.querySelectorAll('button'))
+    .find((b) => b.textContent === 'Browser companion')!
+    .click();
+  return sendMessage;
+}
+it('selects/remembers/forgets public IDs without extension requests or saved pairing data', async () => {
+  const requests = setup();
+  const select = panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;
+  select.value = 'b'.repeat(32);
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  expect(input('Installed Chromium extension ID').value).toBe('b'.repeat(32));
+  expect(input('Browser companion local name').value).toBe('Second');
+  expect(requests).not.toHaveBeenCalled();
+  input('Browser companion pairing code').value = 'd'.repeat(64);
+  input('Browser companion local name').value = 'Renamed';
+  button('Remember browser companion ID').click();
+  await vi.waitFor(() => expect(panel!.root.textContent).toContain('remembered locally'));
+  const raw = localStorage.getItem(profileKey('chatthing:v1:browser-companions'))!;
+  expect(raw).not.toContain('d'.repeat(64));
+  expect(raw).not.toContain('private-csrf');
+  expect(requests).not.toHaveBeenCalled();
+  button('Forget selected companion ID').click();
+  await vi.waitFor(() => expect(panel!.root.textContent).toContain('forgotten locally'));
+  expect(new BrowserCompanionRegistry('42').all()).toHaveLength(1);
+  expect(input('Browser companion pairing code').value).toBe('');
+  expect(requests).not.toHaveBeenCalled();
 });
-it('reports stale selection without replacing another tab’s registry',()=>{setup();const select=panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;new BrowserCompanionRegistry('42').remember('c'.repeat(32),'Third');select.value='a'.repeat(32);expect(()=>select.dispatchEvent(new Event('change'))).not.toThrow();expect(panel!.root.textContent).toContain('another tab');expect(new BrowserCompanionRegistry('42').all()).toHaveLength(3);});
+it('keeps one active companion, locks switching while paired and clears registry UI on account change', async () => {
+  let current = auth;
+  const requests = setup(() => current);
+  const select = panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;
+  select.value = 'a'.repeat(32);
+  select.dispatchEvent(new Event('change'));
+  input('Browser companion pairing code').value = 'd'.repeat(64);
+  button('Pair browser companion').click();
+  await vi.waitFor(() => expect(select.disabled).toBe(true));
+  await vi.waitFor(() =>
+    expect(requests.mock.calls.some((c) => (c[1] as { kind: string }).kind === 'poll')).toBe(true),
+  );
+  select.value = 'b'.repeat(32);
+  select.dispatchEvent(new Event('change'));
+  expect(input('Installed Chromium extension ID').value).toBe('a'.repeat(32));
+  expect(requests.mock.calls.every((c) => c[0] === 'a'.repeat(32))).toBe(true);
+  button('Return to chat; keep browser bridge connected').click();
+  await vi.waitFor(() => expect(panel!.root.open).toBe(false));
+  Array.from(document.querySelectorAll('button'))
+    .find((b) => b.textContent === 'Browser bridge active')!
+    .click();
+  expect(select.value).toBe('a'.repeat(32));
+  expect(select.disabled).toBe(true);
+  current = { ...auth, userID: '43' };
+  setProfileScope('43');
+  panel!.authChanged();
+  expect(select.options).toHaveLength(0);
+  expect(input('Installed Chromium extension ID').value).toBe('');
+  expect(input('Browser companion local name').value).toBe('');
+  expect(new BrowserCompanionRegistry('43').all()).toEqual([]);
+});
+it('reports stale selection without replacing another tab’s registry', () => {
+  setup();
+  const select = panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;
+  new BrowserCompanionRegistry('42').remember('c'.repeat(32), 'Third');
+  select.value = 'a'.repeat(32);
+  expect(() => select.dispatchEvent(new Event('change'))).not.toThrow();
+  expect(panel!.root.textContent).toContain('another tab');
+  expect(new BrowserCompanionRegistry('42').all()).toHaveLength(3);
+});

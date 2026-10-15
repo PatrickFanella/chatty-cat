@@ -1,37 +1,355 @@
-import {BrowserCompanionRegistry} from './browser-companion-registry';
-import {getProfileScope} from './account-profiles';
-import type {AuthStatus} from './auth';
-import {BrowserCompanion,type WatchedChannel} from './browser-companion';
-import {privacyEnabled} from './privacy';
-export class BrowserCompanionPanel{
- readonly root=document.createElement('dialog');private trigger=document.createElement('button');private extension=document.createElement('input');private code=document.createElement('input');private workspace=document.createElement('select');private switchWorkspace=document.createElement('input');private status=document.createElement('p');private preview=document.createElement('p');private confirm=document.createElement('button');private client:BrowserCompanion;private pending:WatchedChannel|undefined;private reviewed:{row:WatchedChannel;workspace:string;revision:string;account:string;switching:boolean;expires:number}|undefined;private timer:ReturnType<typeof setTimeout>|undefined;private generation=0;private seq=0;private received=0;private busy=false;private keep=false;private connected=false;private registry:BrowserCompanionRegistry|undefined;private registered=document.createElement('select');private companionName=document.createElement('input');
- constructor(private auth:()=>AuthStatus|undefined,private workspaces:()=>{id:string;name:string;channels:string[];revision:string}[],private current:()=>string,private apply:(workspace:string,channel:string,revision:string,switching:boolean)=>void,hidden=false){
-  this.client=new BrowserCompanion(auth);this.root.setAttribute('aria-label','Browser companion');const h=document.createElement('h2');h.textContent='Watched-channel browser companion';const help=document.createElement('p');help.textContent='Install the opt-in Chromium extension, generate a one-use code in its popup, and enter its extension ID/code here. The popup reads the active Twitch channel only when you click Send watched channel. Pairing does not change your workspace. Received channels need a separate review and confirmation here. No Twitch cookies/tokens, private messages, or player identity are shared. Reload, account/session change, privacy, unpair or extension removal ends this bridge.';
-  this.extension.setAttribute('aria-label','Installed Chromium extension ID');this.extension.maxLength=32;this.code.type='password';this.code.maxLength=64;this.code.autocomplete='off';this.code.setAttribute('aria-label','Browser companion pairing code');this.workspace.setAttribute('aria-label','Watched-channel destination workspace');this.switchWorkspace.type='checkbox';const label=document.createElement('label');label.append(this.switchWorkspace,' Allow switching to the selected workspace when opening a reviewed channel');this.status.setAttribute('role','status');this.confirm.type='button';this.confirm.textContent='Open reviewed channel';this.confirm.disabled=true;this.confirm.addEventListener('click',()=>{void this.act(()=>this.commit());});
-  this.registered.setAttribute('aria-label','Registered browser companion');this.companionName.setAttribute('aria-label','Browser companion local name');this.companionName.maxLength=64;
-  const registryHelp=document.createElement('p');registryHelp.textContent='Optionally remember up to eight compatible extension IDs by name for this account on this browser. Only IDs/names are saved; codes and pairing capability stay temporary. Selecting, saving or forgetting an ID makes no extension request. One bridge is active at a time; unpair before choosing/editing another companion. Saved entries do not install or verify extensions and are not exported or synced.';
-  const field=(name:string,control:HTMLElement):HTMLLabelElement=>{const label=document.createElement('label');label.append(name,control);return label;};
-  this.registered.addEventListener('change',this.selectRegistered);
-  this.root.append(h,help,registryHelp,field('Registered browser companion',this.registered),field('Local name (optional)',this.companionName),this.button('Remember browser companion ID',()=>{this.editRegistry();this.registry!.remember(this.extension.value.trim(),this.companionName.value);this.refreshRegistry(this.extension.value.trim());this.status.textContent='Companion ID remembered locally; pair separately with a fresh code';}),this.button('Forget selected companion ID',()=>{this.editRegistry();this.registry!.forget(this.registered.value);this.refreshRegistry();this.extension.value='';this.companionName.value='';this.code.value='';this.clearReview();this.status.textContent='Companion ID forgotten locally; no extension was uninstalled';}),field('Installed Chromium extension ID',this.extension),field('One-use pairing code',this.code),this.button('Pair browser companion',async()=>{await this.client.pair(this.extension.value.trim(),this.code.value.trim());this.code.value='';this.connected=true;this.trigger.textContent='Browser bridge active';this.status.textContent='Paired. Use Send watched channel in the extension; received channels wait for review.';this.poll();}),field('Destination workspace',this.workspace),label,this.button('Review received watched channel',()=>this.review()),this.preview,this.confirm,this.button('Return to chat; keep browser bridge connected',()=>{if(!this.connected)throw new Error('Pair first');this.keep=true;this.root.close();}),this.button('Unpair browser companion',()=>this.disconnect('Browser companion unpaired')),this.button('Close and disconnect browser bridge',()=>this.root.close()),this.status);
-  this.trigger.type='button';this.trigger.textContent='Browser companion';this.trigger.hidden=hidden;document.getElementById('commands-open')?.after(this.trigger);document.body.append(this.root);this.trigger.addEventListener('click',this.open);this.root.addEventListener('close',this.closed);this.root.addEventListener('change',this.edited);document.addEventListener('privacychange',this.privacy);
- }
- private button(text:string,action:()=>void|Promise<void>):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.addEventListener('click',()=>{void this.act(action);});return b;}
- private async act(action:()=>void|Promise<void>):Promise<void>{if(this.busy)return;this.busy=true;this.lockRegistry();const generation=this.generation;try{if(privacyEnabled())throw new Error('Exit privacy mode first');await action();}catch(error){if(generation===this.generation)this.status.textContent=error instanceof Error?error.message:'Browser companion unavailable';}finally{if(generation===this.generation){this.busy=false;this.lockRegistry();}}}
- private poll():void{const generation=this.generation;void this.client.poll().then(row=>{if(generation!==this.generation)return;if(row&&row.seq>this.seq){this.seq=row.seq;this.pending=row;this.received=Date.now();this.clearReview();this.status.textContent='Received #'+row.channel+'. Select a destination workspace, review, then confirm opening.';}if(this.pending&&Date.now()-this.received>120000){this.pending=undefined;this.clearReview();this.status.textContent='Received channel expired; use Send watched channel again';}this.timer=setTimeout(()=>this.poll(),5000);}).catch(error=>{if(generation===this.generation)this.disconnect(error instanceof Error?error.message:'Browser companion disconnected');});}
- private review():void{const row=this.pending,w=this.workspaces().find(w=>w.id===this.workspace.value),account=this.auth()?.userID;if(!this.connected||!row||Date.now()-this.received>120000||!w||!account)throw new Error('Pair, send a watched channel and choose a saved workspace');if(w.id!==this.current()&&!this.switchWorkspace.checked)throw new Error('Choose the active workspace or explicitly allow switching');this.reviewed={row,workspace:w.id,revision:w.revision,account,switching:this.switchWorkspace.checked,expires:Date.now()+60000};this.preview.textContent='Open #'+row.channel+' in '+w.name+'; current channels: '+w.channels.join(', ')+'. '+(w.id===this.current()?'Keep the active workspace.':'Switch to this saved workspace.')+' This may reload the chat view; no chat message is sent. Review expires in 60 seconds.';this.confirm.disabled=false;}
- private commit():void{const p=this.reviewed;if(!p||!this.connected||Date.now()>p.expires||Date.now()-this.received>120000||p.account!==this.auth()?.userID||p.workspace!==this.workspace.value||p.switching!==this.switchWorkspace.checked||p.row.seq!==this.pending?.seq||this.workspaces().find(w=>w.id===p.workspace)?.revision!==p.revision)throw new Error('Watched-channel review changed or expired');this.clearReview();this.apply(p.workspace,p.row.channel,p.revision,p.switching);this.pending=undefined;this.status.textContent='Reviewed channel opened';}
- private clearReview():void{this.reviewed=undefined;this.preview.textContent='';this.confirm.disabled=true;}
- private disconnect(detail:string):void{this.generation++;this.connected=false;this.busy=false;clearTimeout(this.timer);this.client.disconnect();this.pending=undefined;this.seq=0;this.code.value='';this.clearReview();this.trigger.textContent='Browser companion';this.status.textContent=detail;this.lockRegistry();}
- private open=():void=>{if(privacyEnabled())return;this.refreshRegistry();const selected=this.workspace.value||this.current();this.workspace.replaceChildren();for(const w of this.workspaces()){const o=document.createElement('option');o.value=w.id;o.textContent=w.name;this.workspace.append(o);}this.workspace.value=selected;this.clearReview();this.root.showModal();};
- private refreshRegistry(selected=this.extension.value):void{this.registered.replaceChildren();const manual=document.createElement('option');manual.value='';manual.textContent='Manual extension ID';this.registered.append(manual);this.registry=undefined;const a=this.auth();if(!a?.authenticated||!a.userID||getProfileScope()!==a.userID)return;try{this.registry=new BrowserCompanionRegistry(a.userID);for(const row of this.registry.all()){const o=document.createElement('option');o.value=row.id;o.textContent=row.name;this.registered.append(o);}this.registered.value=Array.from(this.registered.options).some(o=>o.value===selected)?selected:'';}catch(e){this.status.textContent=e instanceof Error?e.message:'Saved registry unavailable; existing data retained';}}
- private editRegistry():void{if(this.connected)throw new Error('Unpair before editing registered companions');const a=this.auth();if(!a?.authenticated||!a.userID||getProfileScope()!==a.userID)throw new Error('Use the current signed-in account');this.registry??=new BrowserCompanionRegistry(a.userID);}
- private lockRegistry():void{const locked=this.busy||this.connected;this.registered.disabled=locked;this.extension.readOnly=locked;this.code.readOnly=locked;this.companionName.readOnly=locked;}
- private selectRegistered=():void=>{const previous=this.extension.value;try{if(this.connected||this.busy)throw new Error('Unpair and finish the current request before choosing another companion');const row=this.registry?.all().find(r=>r.id===this.registered.value);this.extension.value=row?.id??'';this.companionName.value=row?.name??'';this.code.value='';this.clearReview();}catch(e){this.registered.value=previous;this.status.textContent=e instanceof Error?e.message:'Saved companions changed; reopen before choosing';}};
+import { BrowserCompanionRegistry } from './browser-companion-registry';
+import { getProfileScope } from './account-profiles';
+import type { AuthStatus } from './auth';
+import { BrowserCompanion, type WatchedChannel } from './browser-companion';
+import { privacyEnabled } from './privacy';
+export class BrowserCompanionPanel {
+  readonly root = document.createElement('dialog');
+  private trigger = document.createElement('button');
+  private extension = document.createElement('input');
+  private code = document.createElement('input');
+  private workspace = document.createElement('select');
+  private switchWorkspace = document.createElement('input');
+  private status = document.createElement('p');
+  private preview = document.createElement('p');
+  private confirm = document.createElement('button');
+  private client: BrowserCompanion;
+  private pending: WatchedChannel | undefined;
+  private reviewed:
+    | { row: WatchedChannel; workspace: string; revision: string; account: string; switching: boolean; expires: number }
+    | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private generation = 0;
+  private seq = 0;
+  private received = 0;
+  private busy = false;
+  private keep = false;
+  private connected = false;
+  private registry: BrowserCompanionRegistry | undefined;
+  private registered = document.createElement('select');
+  private companionName = document.createElement('input');
+  constructor(
+    private auth: () => AuthStatus | undefined,
+    private workspaces: () => { id: string; name: string; channels: string[]; revision: string }[],
+    private current: () => string,
+    private apply: (workspace: string, channel: string, revision: string, switching: boolean) => void,
+    hidden = false,
+  ) {
+    this.client = new BrowserCompanion(auth);
+    this.root.setAttribute('aria-label', 'Browser companion');
+    const h = document.createElement('h2');
+    h.textContent = 'Watched-channel browser companion';
+    const help = document.createElement('p');
+    help.textContent =
+      'Install the opt-in Chromium extension, generate a one-use code in its popup, and enter its extension ID/code here. The popup reads the active Twitch channel only when you click Send watched channel. Pairing does not change your workspace. Received channels need a separate review and confirmation here. No Twitch cookies/tokens, private messages, or player identity are shared. Reload, account/session change, privacy, unpair or extension removal ends this bridge.';
+    this.extension.setAttribute('aria-label', 'Installed Chromium extension ID');
+    this.extension.maxLength = 32;
+    this.code.type = 'password';
+    this.code.maxLength = 64;
+    this.code.autocomplete = 'off';
+    this.code.setAttribute('aria-label', 'Browser companion pairing code');
+    this.workspace.setAttribute('aria-label', 'Watched-channel destination workspace');
+    this.switchWorkspace.type = 'checkbox';
+    const label = document.createElement('label');
+    label.append(this.switchWorkspace, ' Allow switching to the selected workspace when opening a reviewed channel');
+    this.status.setAttribute('role', 'status');
+    this.confirm.type = 'button';
+    this.confirm.textContent = 'Open reviewed channel';
+    this.confirm.disabled = true;
+    this.confirm.addEventListener('click', () => {
+      void this.act(() => this.commit());
+    });
+    this.registered.setAttribute('aria-label', 'Registered browser companion');
+    this.companionName.setAttribute('aria-label', 'Browser companion local name');
+    this.companionName.maxLength = 64;
+    const registryHelp = document.createElement('p');
+    registryHelp.textContent =
+      'Optionally remember up to eight compatible extension IDs by name for this account on this browser. Only IDs/names are saved; codes and pairing capability stay temporary. Selecting, saving or forgetting an ID makes no extension request. One bridge is active at a time; unpair before choosing/editing another companion. Saved entries do not install or verify extensions and are not exported or synced.';
+    const field = (name: string, control: HTMLElement): HTMLLabelElement => {
+      const label = document.createElement('label');
+      label.append(name, control);
+      return label;
+    };
+    this.registered.addEventListener('change', this.selectRegistered);
+    this.root.append(
+      h,
+      help,
+      registryHelp,
+      field('Registered browser companion', this.registered),
+      field('Local name (optional)', this.companionName),
+      this.button('Remember browser companion ID', () => {
+        this.editRegistry();
+        this.registry!.remember(this.extension.value.trim(), this.companionName.value);
+        this.refreshRegistry(this.extension.value.trim());
+        this.status.textContent = 'Companion ID remembered locally; pair separately with a fresh code';
+      }),
+      this.button('Forget selected companion ID', () => {
+        this.editRegistry();
+        this.registry!.forget(this.registered.value);
+        this.refreshRegistry();
+        this.extension.value = '';
+        this.companionName.value = '';
+        this.code.value = '';
+        this.clearReview();
+        this.status.textContent = 'Companion ID forgotten locally; no extension was uninstalled';
+      }),
+      field('Installed Chromium extension ID', this.extension),
+      field('One-use pairing code', this.code),
+      this.button('Pair browser companion', async () => {
+        await this.client.pair(this.extension.value.trim(), this.code.value.trim());
+        this.code.value = '';
+        this.connected = true;
+        this.trigger.textContent = 'Browser bridge active';
+        this.status.textContent =
+          'Paired. Use Send watched channel in the extension; received channels wait for review.';
+        this.poll();
+      }),
+      field('Destination workspace', this.workspace),
+      label,
+      this.button('Review received watched channel', () => this.review()),
+      this.preview,
+      this.confirm,
+      this.button('Return to chat; keep browser bridge connected', () => {
+        if (!this.connected) throw new Error('Pair first');
+        this.keep = true;
+        this.root.close();
+      }),
+      this.button('Unpair browser companion', () => this.disconnect('Browser companion unpaired')),
+      this.button('Close and disconnect browser bridge', () => this.root.close()),
+      this.status,
+    );
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Browser companion';
+    this.trigger.hidden = hidden;
+    document.getElementById('commands-open')?.after(this.trigger);
+    document.body.append(this.root);
+    this.trigger.addEventListener('click', this.open);
+    this.root.addEventListener('close', this.closed);
+    this.root.addEventListener('change', this.edited);
+    document.addEventListener('privacychange', this.privacy);
+  }
+  private button(text: string, action: () => void | Promise<void>): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.addEventListener('click', () => {
+      void this.act(action);
+    });
+    return b;
+  }
+  private async act(action: () => void | Promise<void>): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    this.lockRegistry();
+    const generation = this.generation;
+    try {
+      if (privacyEnabled()) throw new Error('Exit privacy mode first');
+      await action();
+    } catch (error) {
+      if (generation === this.generation)
+        this.status.textContent = error instanceof Error ? error.message : 'Browser companion unavailable';
+    } finally {
+      if (generation === this.generation) {
+        this.busy = false;
+        this.lockRegistry();
+      }
+    }
+  }
+  private poll(): void {
+    const generation = this.generation;
+    void this.client
+      .poll()
+      .then((row) => {
+        if (generation !== this.generation) return;
+        if (row && row.seq > this.seq) {
+          this.seq = row.seq;
+          this.pending = row;
+          this.received = Date.now();
+          this.clearReview();
+          this.status.textContent =
+            'Received #' + row.channel + '. Select a destination workspace, review, then confirm opening.';
+        }
+        if (this.pending && Date.now() - this.received > 120000) {
+          this.pending = undefined;
+          this.clearReview();
+          this.status.textContent = 'Received channel expired; use Send watched channel again';
+        }
+        this.timer = setTimeout(() => this.poll(), 5000);
+      })
+      .catch((error) => {
+        if (generation === this.generation)
+          this.disconnect(error instanceof Error ? error.message : 'Browser companion disconnected');
+      });
+  }
+  private review(): void {
+    const row = this.pending,
+      w = this.workspaces().find((w) => w.id === this.workspace.value),
+      account = this.auth()?.userID;
+    if (!this.connected || !row || Date.now() - this.received > 120000 || !w || !account)
+      throw new Error('Pair, send a watched channel and choose a saved workspace');
+    if (w.id !== this.current() && !this.switchWorkspace.checked)
+      throw new Error('Choose the active workspace or explicitly allow switching');
+    this.reviewed = {
+      row,
+      workspace: w.id,
+      revision: w.revision,
+      account,
+      switching: this.switchWorkspace.checked,
+      expires: Date.now() + 60000,
+    };
+    this.preview.textContent =
+      'Open #' +
+      row.channel +
+      ' in ' +
+      w.name +
+      '; current channels: ' +
+      w.channels.join(', ') +
+      '. ' +
+      (w.id === this.current() ? 'Keep the active workspace.' : 'Switch to this saved workspace.') +
+      ' This may reload the chat view; no chat message is sent. Review expires in 60 seconds.';
+    this.confirm.disabled = false;
+  }
+  private commit(): void {
+    const p = this.reviewed;
+    if (
+      !p ||
+      !this.connected ||
+      Date.now() > p.expires ||
+      Date.now() - this.received > 120000 ||
+      p.account !== this.auth()?.userID ||
+      p.workspace !== this.workspace.value ||
+      p.switching !== this.switchWorkspace.checked ||
+      p.row.seq !== this.pending?.seq ||
+      this.workspaces().find((w) => w.id === p.workspace)?.revision !== p.revision
+    )
+      throw new Error('Watched-channel review changed or expired');
+    this.clearReview();
+    this.apply(p.workspace, p.row.channel, p.revision, p.switching);
+    this.pending = undefined;
+    this.status.textContent = 'Reviewed channel opened';
+  }
+  private clearReview(): void {
+    this.reviewed = undefined;
+    this.preview.textContent = '';
+    this.confirm.disabled = true;
+  }
+  private disconnect(detail: string): void {
+    this.generation++;
+    this.connected = false;
+    this.busy = false;
+    clearTimeout(this.timer);
+    this.client.disconnect();
+    this.pending = undefined;
+    this.seq = 0;
+    this.code.value = '';
+    this.clearReview();
+    this.trigger.textContent = 'Browser companion';
+    this.status.textContent = detail;
+    this.lockRegistry();
+  }
+  private open = (): void => {
+    if (privacyEnabled()) return;
+    this.refreshRegistry();
+    const selected = this.workspace.value || this.current();
+    this.workspace.replaceChildren();
+    for (const w of this.workspaces()) {
+      const o = document.createElement('option');
+      o.value = w.id;
+      o.textContent = w.name;
+      this.workspace.append(o);
+    }
+    this.workspace.value = selected;
+    this.clearReview();
+    this.root.showModal();
+  };
+  private refreshRegistry(selected = this.extension.value): void {
+    this.registered.replaceChildren();
+    const manual = document.createElement('option');
+    manual.value = '';
+    manual.textContent = 'Manual extension ID';
+    this.registered.append(manual);
+    this.registry = undefined;
+    const a = this.auth();
+    if (!a?.authenticated || !a.userID || getProfileScope() !== a.userID) return;
+    try {
+      this.registry = new BrowserCompanionRegistry(a.userID);
+      for (const row of this.registry.all()) {
+        const o = document.createElement('option');
+        o.value = row.id;
+        o.textContent = row.name;
+        this.registered.append(o);
+      }
+      this.registered.value = Array.from(this.registered.options).some((o) => o.value === selected) ? selected : '';
+    } catch (e) {
+      this.status.textContent = e instanceof Error ? e.message : 'Saved registry unavailable; existing data retained';
+    }
+  }
+  private editRegistry(): void {
+    if (this.connected) throw new Error('Unpair before editing registered companions');
+    const a = this.auth();
+    if (!a?.authenticated || !a.userID || getProfileScope() !== a.userID)
+      throw new Error('Use the current signed-in account');
+    this.registry ??= new BrowserCompanionRegistry(a.userID);
+  }
+  private lockRegistry(): void {
+    const locked = this.busy || this.connected;
+    this.registered.disabled = locked;
+    this.extension.readOnly = locked;
+    this.code.readOnly = locked;
+    this.companionName.readOnly = locked;
+  }
+  private selectRegistered = (): void => {
+    const previous = this.extension.value;
+    try {
+      if (this.connected || this.busy)
+        throw new Error('Unpair and finish the current request before choosing another companion');
+      const row = this.registry?.all().find((r) => r.id === this.registered.value);
+      this.extension.value = row?.id ?? '';
+      this.companionName.value = row?.name ?? '';
+      this.code.value = '';
+      this.clearReview();
+    } catch (e) {
+      this.registered.value = previous;
+      this.status.textContent = e instanceof Error ? e.message : 'Saved companions changed; reopen before choosing';
+    }
+  };
 
- private clearRegistry():void{this.registry=undefined;this.registered.replaceChildren();this.extension.value='';this.companionName.value='';}
- private closed=():void=>{if(this.keep){this.keep=false;return;}this.disconnect('Disconnected. Pair again to receive watched channels.');};
- private edited=():void=>this.clearReview();
- private privacy=():void=>{if(privacyEnabled()){this.keep=false;this.disconnect('Privacy cleared browser pairing');this.clearRegistry();this.root.close();}};
- authChanged():void{if(this.client.authChanged()){this.disconnect('Account/session changed; pair again');this.clearRegistry();}}
- stop():void{this.disconnect('Closed');this.trigger.removeEventListener('click',this.open);this.root.removeEventListener('close',this.closed);this.root.removeEventListener('change',this.edited);this.registered.removeEventListener('change',this.selectRegistered);document.removeEventListener('privacychange',this.privacy);this.trigger.remove();this.root.remove();}
+  private clearRegistry(): void {
+    this.registry = undefined;
+    this.registered.replaceChildren();
+    this.extension.value = '';
+    this.companionName.value = '';
+  }
+  private closed = (): void => {
+    if (this.keep) {
+      this.keep = false;
+      return;
+    }
+    this.disconnect('Disconnected. Pair again to receive watched channels.');
+  };
+  private edited = (): void => this.clearReview();
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.keep = false;
+      this.disconnect('Privacy cleared browser pairing');
+      this.clearRegistry();
+      this.root.close();
+    }
+  };
+  authChanged(): void {
+    if (this.client.authChanged()) {
+      this.disconnect('Account/session changed; pair again');
+      this.clearRegistry();
+    }
+  }
+  stop(): void {
+    this.disconnect('Closed');
+    this.trigger.removeEventListener('click', this.open);
+    this.root.removeEventListener('close', this.closed);
+    this.root.removeEventListener('change', this.edited);
+    this.registered.removeEventListener('change', this.selectRegistered);
+    document.removeEventListener('privacychange', this.privacy);
+    this.trigger.remove();
+    this.root.remove();
+  }
 }

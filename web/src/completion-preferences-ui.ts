@@ -1,27 +1,244 @@
-import {CompletionPreferenceStore,completionDefaults,parseCompletionPreferences,setCompletionPreferences,type CompletionPreferences} from './completion-preferences';
-import {privacyEnabled} from './privacy';
+import {
+  CompletionPreferenceStore,
+  completionDefaults,
+  parseCompletionPreferences,
+  setCompletionPreferences,
+  type CompletionPreferences,
+} from './completion-preferences';
+import { privacyEnabled } from './privacy';
 export class CompletionPreferencesPanel {
- readonly root=document.createElement('dialog');private trigger=document.createElement('button');private store:CompletionPreferenceStore|undefined;private saved:CompletionPreferences=completionDefaults;private pending:CompletionPreferences|undefined;private apply:HTMLButtonElement;private report=document.createElement('pre');private status=document.createElement('p');
- private readGeneration=0;
- constructor(private changed:()=>void=()=>{},private readonlyView=false,private readChatters?:(()=>Promise<string>)){
-  this.trigger.type='button';this.trigger.textContent='Completion';this.trigger.hidden=readonlyView;document.getElementById('commands-open')?.after(this.trigger);
-  this.root.setAttribute('aria-label','Completion preferences');this.root.innerHTML='<h2>Completion and local nicknames</h2><p>Nicknames are local annotations. Suggestions show the real Twitch login and insert it; sending, moderation, search and account identity continue to use provider identities. These preferences stay with this account on this browser.</p><label>Completion matching<select name="mode"><option value="prefix">Prefix</option><option value="fuzzy">Fuzzy subsequence</option></select></label><label><input type="checkbox" name="bareNames">Include known users in bare Tab completion</label><label><input type="checkbox" name="appendSpace">Append a space when completing</label><label><input type="checkbox" name="mentionAt">Include @ before completed users</label><label><input type="checkbox" name="mentionComma">Append a comma after completed users</label><label><input type="checkbox" name="spellcheck">Use browser spellcheck</label><p>Spellcheck follows your browser dictionaries and configured services. IME composition suppresses completion and sending until composition finishes.</p><label>Local nickname mappings JSON<textarea aria-label="Local nickname mappings JSON" name="aliases" rows="5" maxlength="16384" placeholder="[{&quot;login&quot;:&quot;alice&quot;,&quot;alias&quot;:&quot;Friend&quot;}]"></textarea></label><label>Preferred emote codes JSON<textarea aria-label="Preferred emote codes JSON" name="emotePriority" rows="3" maxlength="8192" placeholder="[&quot;Kappa&quot;]"></textarea></label>';
-  for(const [key,label] of [['smartEmotes','Prioritize configured emote codes'],['emoteWithColon','Enable colon emote completion'],['usernameMenu','Show username completion menu while typing'],['includeBroadcaster','Always include the current broadcaster login'],['fetchChatters','Enable permission-checked chatter reads for completion'],['onlySmall','Read chatters only below the viewer threshold']] as const){const field=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.name=key;field.append(input,document.createTextNode(label));this.root.append(field);}
-  const threshold=document.createElement('label'),limit=document.createElement('input');threshold.textContent='Chatter read viewer threshold';limit.type='number';limit.name='viewerLimit';limit.min='1';limit.max='100000';threshold.append(limit);this.root.append(threshold);
-  const readNote=document.createElement('p');readNote.textContent='Chatter reads require saved opt-in, existing read consent and broadcaster/moderator access. Each explicit load reads at most 100 names, without pagination or background polling. Unknown viewer count blocks the small-streamer policy. Cached names stay in memory for five minutes and are never exported with chat.';this.root.append(readNote);
-  this.report.setAttribute('aria-label','Completion preference review');this.status.setAttribute('role','status');this.root.append(this.button('Review completion preferences',()=>this.review()),this.report);this.apply=this.button('Apply completion preferences',()=>this.commit());this.apply.disabled=true;this.root.append(this.apply);if(readChatters)this.root.append(this.button('Read one completion chatter page',()=>{const generation=++this.readGeneration;this.status.textContent='Reading one completion chatter page…';void this.readChatters!().then(text=>{if(generation===this.readGeneration&&!privacyEnabled())this.status.textContent=text;}).catch(e=>{if(generation===this.readGeneration&&!privacyEnabled())this.status.textContent=e instanceof Error?e.message:'Chatter read unavailable';});}));this.root.append(this.button('Close completion preferences',()=>this.root.close()),this.status);document.body.append(this.root);
-  this.root.addEventListener('input',this.invalidate);this.root.addEventListener('change',this.invalidate);this.root.addEventListener('close',this.closed);this.trigger.addEventListener('click',this.open);document.addEventListener('privacychange',this.privacy);
-  this.load();this.announce();
- }
- private button(label:string,action:()=>void):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',()=>{try{if(this.readonlyView||privacyEnabled())throw new Error('Completion preferences unavailable in this view');action();}catch(e){this.status.textContent=e instanceof Error?e.message:'Completion preferences unavailable';}});return b;}
- private announce():void{document.dispatchEvent(new Event('presentation-before-change'));document.dispatchEvent(new Event('completionpreferenceschange'));this.changed();}
- private load():void{try{this.store=new CompletionPreferenceStore();this.saved=this.store.read();setCompletionPreferences(this.saved);this.sync(this.saved);}catch(e){this.store=undefined;this.status.textContent=e instanceof Error?e.message:'Saved completion preferences unavailable';}}
- private sync(value:CompletionPreferences):void{this.root.querySelector<HTMLSelectElement>('[name=mode]')!.value=value.mode;for(const key of ['bareNames','appendSpace','mentionAt','mentionComma','spellcheck','smartEmotes','emoteWithColon','usernameMenu','includeBroadcaster','fetchChatters','onlySmall'] as const)this.root.querySelector<HTMLInputElement>('[name='+key+']')!.checked=value[key];this.root.querySelector<HTMLInputElement>('[name=viewerLimit]')!.value=String(value.viewerLimit);this.root.querySelector<HTMLTextAreaElement>('[name=aliases]')!.value=JSON.stringify(value.aliases,null,2);this.root.querySelector<HTMLTextAreaElement>('[name=emotePriority]')!.value=JSON.stringify(value.emotePriority,null,2);}
- private invalidate=():void=>{this.pending=undefined;this.report.textContent='';this.apply.disabled=true;};
- private review():void{this.invalidate();if(!this.store)throw new Error('Saved preferences unavailable; existing data retained');this.store.read();const mode=this.root.querySelector<HTMLSelectElement>('[name=mode]')!.value,options:Record<string,unknown>={version:1,mode,viewerLimit:Number(this.root.querySelector<HTMLInputElement>('[name=viewerLimit]')!.value),aliases:JSON.parse(this.root.querySelector<HTMLTextAreaElement>('[name=aliases]')!.value),emotePriority:JSON.parse(this.root.querySelector<HTMLTextAreaElement>('[name=emotePriority]')!.value)};for(const key of ['bareNames','appendSpace','mentionAt','mentionComma','spellcheck','smartEmotes','emoteWithColon','usernameMenu','includeBroadcaster','fetchChatters','onlySmall'])options[key]=this.root.querySelector<HTMLInputElement>('[name='+key+']')!.checked;const candidate=parseCompletionPreferences(options);this.pending=candidate;this.apply.disabled=false;this.report.textContent='Matching: '+this.saved.mode+' → '+candidate.mode+'\nLocal annotations: '+this.saved.aliases.length+' → '+candidate.aliases.length+'\n'+candidate.aliases.map(x=>x.alias+' · Twitch login '+x.login).join('\n')+'\nEmote priority: '+candidate.emotePriority.join(', ')+'\nChatter reads: '+(candidate.fetchChatters?'enabled, explicit one-page load':'disabled')+'; viewer policy: '+(candidate.onlySmall?'known count ≤ '+candidate.viewerLimit:'no viewer threshold')+'\nChanges affect display and insertion only; no message is sent.';}
- private commit():void{if(!this.pending)return;if(!this.store)throw new Error('Saved preferences unavailable; existing data retained');this.store.save(this.pending);this.saved=this.pending;setCompletionPreferences(this.saved);this.invalidate();this.announce();this.status.textContent='Completion preferences saved for this account; current draft retained';}
- private open=():void=>{if(privacyEnabled())return;this.invalidate();this.load();this.announce();this.root.showModal();};
- private closed=():void=>{this.readGeneration++;this.invalidate();for(const input of this.root.querySelectorAll<HTMLTextAreaElement>('textarea'))input.value='';this.trigger.focus();};
- private privacy=():void=>{if(privacyEnabled()){this.closed();if(this.root.open)this.root.close();}this.changed();};
- stop():void{this.closed();this.root.removeEventListener('input',this.invalidate);this.root.removeEventListener('change',this.invalidate);this.root.removeEventListener('close',this.closed);this.trigger.removeEventListener('click',this.open);document.removeEventListener('privacychange',this.privacy);this.root.remove();this.trigger.remove();setCompletionPreferences(completionDefaults);}
+  readonly root = document.createElement('dialog');
+  private trigger = document.createElement('button');
+  private store: CompletionPreferenceStore | undefined;
+  private saved: CompletionPreferences = completionDefaults;
+  private pending: CompletionPreferences | undefined;
+  private apply: HTMLButtonElement;
+  private report = document.createElement('pre');
+  private status = document.createElement('p');
+  private readGeneration = 0;
+  constructor(
+    private changed: () => void = () => {},
+    private readonlyView = false,
+    private readChatters?: () => Promise<string>,
+  ) {
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Completion';
+    this.trigger.hidden = readonlyView;
+    document.getElementById('commands-open')?.after(this.trigger);
+    this.root.setAttribute('aria-label', 'Completion preferences');
+    this.root.innerHTML =
+      '<h2>Completion and local nicknames</h2><p>Nicknames are local annotations. Suggestions show the real Twitch login and insert it; sending, moderation, search and account identity continue to use provider identities. These preferences stay with this account on this browser.</p><label>Completion matching<select name="mode"><option value="prefix">Prefix</option><option value="fuzzy">Fuzzy subsequence</option></select></label><label><input type="checkbox" name="bareNames">Include known users in bare Tab completion</label><label><input type="checkbox" name="appendSpace">Append a space when completing</label><label><input type="checkbox" name="mentionAt">Include @ before completed users</label><label><input type="checkbox" name="mentionComma">Append a comma after completed users</label><label><input type="checkbox" name="spellcheck">Use browser spellcheck</label><p>Spellcheck follows your browser dictionaries and configured services. IME composition suppresses completion and sending until composition finishes.</p><label>Local nickname mappings JSON<textarea aria-label="Local nickname mappings JSON" name="aliases" rows="5" maxlength="16384" placeholder="[{&quot;login&quot;:&quot;alice&quot;,&quot;alias&quot;:&quot;Friend&quot;}]"></textarea></label><label>Preferred emote codes JSON<textarea aria-label="Preferred emote codes JSON" name="emotePriority" rows="3" maxlength="8192" placeholder="[&quot;Kappa&quot;]"></textarea></label>';
+    for (const [key, label] of [
+      ['smartEmotes', 'Prioritize configured emote codes'],
+      ['emoteWithColon', 'Enable colon emote completion'],
+      ['usernameMenu', 'Show username completion menu while typing'],
+      ['includeBroadcaster', 'Always include the current broadcaster login'],
+      ['fetchChatters', 'Enable permission-checked chatter reads for completion'],
+      ['onlySmall', 'Read chatters only below the viewer threshold'],
+    ] as const) {
+      const field = document.createElement('label'),
+        input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = key;
+      field.append(input, document.createTextNode(label));
+      this.root.append(field);
+    }
+    const threshold = document.createElement('label'),
+      limit = document.createElement('input');
+    threshold.textContent = 'Chatter read viewer threshold';
+    limit.type = 'number';
+    limit.name = 'viewerLimit';
+    limit.min = '1';
+    limit.max = '100000';
+    threshold.append(limit);
+    this.root.append(threshold);
+    const readNote = document.createElement('p');
+    readNote.textContent =
+      'Chatter reads require saved opt-in, existing read consent and broadcaster/moderator access. Each explicit load reads at most 100 names, without pagination or background polling. Unknown viewer count blocks the small-streamer policy. Cached names stay in memory for five minutes and are never exported with chat.';
+    this.root.append(readNote);
+    this.report.setAttribute('aria-label', 'Completion preference review');
+    this.status.setAttribute('role', 'status');
+    this.root.append(
+      this.button('Review completion preferences', () => this.review()),
+      this.report,
+    );
+    this.apply = this.button('Apply completion preferences', () => this.commit());
+    this.apply.disabled = true;
+    this.root.append(this.apply);
+    if (readChatters)
+      this.root.append(
+        this.button('Read one completion chatter page', () => {
+          const generation = ++this.readGeneration;
+          this.status.textContent = 'Reading one completion chatter page…';
+          void this.readChatters!()
+            .then((text) => {
+              if (generation === this.readGeneration && !privacyEnabled()) this.status.textContent = text;
+            })
+            .catch((e) => {
+              if (generation === this.readGeneration && !privacyEnabled())
+                this.status.textContent = e instanceof Error ? e.message : 'Chatter read unavailable';
+            });
+        }),
+      );
+    this.root.append(
+      this.button('Close completion preferences', () => this.root.close()),
+      this.status,
+    );
+    document.body.append(this.root);
+    this.root.addEventListener('input', this.invalidate);
+    this.root.addEventListener('change', this.invalidate);
+    this.root.addEventListener('close', this.closed);
+    this.trigger.addEventListener('click', this.open);
+    document.addEventListener('privacychange', this.privacy);
+    this.load();
+    this.announce();
+  }
+  private button(label: string, action: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.addEventListener('click', () => {
+      try {
+        if (this.readonlyView || privacyEnabled()) throw new Error('Completion preferences unavailable in this view');
+        action();
+      } catch (e) {
+        this.status.textContent = e instanceof Error ? e.message : 'Completion preferences unavailable';
+      }
+    });
+    return b;
+  }
+  private announce(): void {
+    document.dispatchEvent(new Event('presentation-before-change'));
+    document.dispatchEvent(new Event('completionpreferenceschange'));
+    this.changed();
+  }
+  private load(): void {
+    try {
+      this.store = new CompletionPreferenceStore();
+      this.saved = this.store.read();
+      setCompletionPreferences(this.saved);
+      this.sync(this.saved);
+    } catch (e) {
+      this.store = undefined;
+      this.status.textContent = e instanceof Error ? e.message : 'Saved completion preferences unavailable';
+    }
+  }
+  private sync(value: CompletionPreferences): void {
+    this.root.querySelector<HTMLSelectElement>('[name=mode]')!.value = value.mode;
+    for (const key of [
+      'bareNames',
+      'appendSpace',
+      'mentionAt',
+      'mentionComma',
+      'spellcheck',
+      'smartEmotes',
+      'emoteWithColon',
+      'usernameMenu',
+      'includeBroadcaster',
+      'fetchChatters',
+      'onlySmall',
+    ] as const)
+      this.root.querySelector<HTMLInputElement>('[name=' + key + ']')!.checked = value[key];
+    this.root.querySelector<HTMLInputElement>('[name=viewerLimit]')!.value = String(value.viewerLimit);
+    this.root.querySelector<HTMLTextAreaElement>('[name=aliases]')!.value = JSON.stringify(value.aliases, null, 2);
+    this.root.querySelector<HTMLTextAreaElement>('[name=emotePriority]')!.value = JSON.stringify(
+      value.emotePriority,
+      null,
+      2,
+    );
+  }
+  private invalidate = (): void => {
+    this.pending = undefined;
+    this.report.textContent = '';
+    this.apply.disabled = true;
+  };
+  private review(): void {
+    this.invalidate();
+    if (!this.store) throw new Error('Saved preferences unavailable; existing data retained');
+    this.store.read();
+    const mode = this.root.querySelector<HTMLSelectElement>('[name=mode]')!.value,
+      options: Record<string, unknown> = {
+        version: 1,
+        mode,
+        viewerLimit: Number(this.root.querySelector<HTMLInputElement>('[name=viewerLimit]')!.value),
+        aliases: JSON.parse(this.root.querySelector<HTMLTextAreaElement>('[name=aliases]')!.value),
+        emotePriority: JSON.parse(this.root.querySelector<HTMLTextAreaElement>('[name=emotePriority]')!.value),
+      };
+    for (const key of [
+      'bareNames',
+      'appendSpace',
+      'mentionAt',
+      'mentionComma',
+      'spellcheck',
+      'smartEmotes',
+      'emoteWithColon',
+      'usernameMenu',
+      'includeBroadcaster',
+      'fetchChatters',
+      'onlySmall',
+    ])
+      options[key] = this.root.querySelector<HTMLInputElement>('[name=' + key + ']')!.checked;
+    const candidate = parseCompletionPreferences(options);
+    this.pending = candidate;
+    this.apply.disabled = false;
+    this.report.textContent =
+      'Matching: ' +
+      this.saved.mode +
+      ' → ' +
+      candidate.mode +
+      '\nLocal annotations: ' +
+      this.saved.aliases.length +
+      ' → ' +
+      candidate.aliases.length +
+      '\n' +
+      candidate.aliases.map((x) => x.alias + ' · Twitch login ' + x.login).join('\n') +
+      '\nEmote priority: ' +
+      candidate.emotePriority.join(', ') +
+      '\nChatter reads: ' +
+      (candidate.fetchChatters ? 'enabled, explicit one-page load' : 'disabled') +
+      '; viewer policy: ' +
+      (candidate.onlySmall ? 'known count ≤ ' + candidate.viewerLimit : 'no viewer threshold') +
+      '\nChanges affect display and insertion only; no message is sent.';
+  }
+  private commit(): void {
+    if (!this.pending) return;
+    if (!this.store) throw new Error('Saved preferences unavailable; existing data retained');
+    this.store.save(this.pending);
+    this.saved = this.pending;
+    setCompletionPreferences(this.saved);
+    this.invalidate();
+    this.announce();
+    this.status.textContent = 'Completion preferences saved for this account; current draft retained';
+  }
+  private open = (): void => {
+    if (privacyEnabled()) return;
+    this.invalidate();
+    this.load();
+    this.announce();
+    this.root.showModal();
+  };
+  private closed = (): void => {
+    this.readGeneration++;
+    this.invalidate();
+    for (const input of this.root.querySelectorAll<HTMLTextAreaElement>('textarea')) input.value = '';
+    this.trigger.focus();
+  };
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.closed();
+      if (this.root.open) this.root.close();
+    }
+    this.changed();
+  };
+  stop(): void {
+    this.closed();
+    this.root.removeEventListener('input', this.invalidate);
+    this.root.removeEventListener('change', this.invalidate);
+    this.root.removeEventListener('close', this.closed);
+    this.trigger.removeEventListener('click', this.open);
+    document.removeEventListener('privacychange', this.privacy);
+    this.root.remove();
+    this.trigger.remove();
+    setCompletionPreferences(completionDefaults);
+  }
 }

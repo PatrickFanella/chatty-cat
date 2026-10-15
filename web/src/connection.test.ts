@@ -1,30 +1,174 @@
 // @vitest-environment happy-dom
-import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {ChatConnection} from './connection';
-class Socket {static all:Socket[]=[];onopen:(()=>void)|undefined;onclose:(()=>void)|undefined;onmessage:((event:MessageEvent)=>void)|undefined;constructor(public url:string){Socket.all.push(this);}close(){this.onclose?.();}}
-let connection:ChatConnection|undefined;
-beforeEach(()=>vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('Offline fixture'))));
-afterEach(()=>{connection?.stop();Socket.all=[];vi.useRealTimers();vi.unstubAllGlobals();});
-it('backs off until actual upstream connection and retries immediately on network restoration',()=>{
- vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);const receive=vi.fn();connection=new ChatConnection(['one'],receive);connection.start();let socket=Socket.all[0]!;socket.onopen?.();socket.close();vi.advanceTimersByTime(1000);expect(Socket.all).toHaveLength(2);
- Socket.all[1]!.close();vi.advanceTimersByTime(1000);expect(Socket.all).toHaveLength(2);window.dispatchEvent(new Event('online'));expect(Socket.all).toHaveLength(3);
- socket=Socket.all[2]!;socket.onmessage?.(new MessageEvent('message',{data:JSON.stringify({type:'status',state:'connected'})}));socket.close();vi.advanceTimersByTime(1000);expect(Socket.all).toHaveLength(4);
- connection.stop();vi.advanceTimersByTime(60000);window.dispatchEvent(new Event('online'));expect(Socket.all).toHaveLength(4);
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { ChatConnection } from './connection';
+class Socket {
+  static all: Socket[] = [];
+  onopen: (() => void) | undefined;
+  onclose: (() => void) | undefined;
+  onmessage: ((event: MessageEvent) => void) | undefined;
+  constructor(public url: string) {
+    Socket.all.push(this);
+  }
+  close() {
+    this.onclose?.();
+  }
+}
+let connection: ChatConnection | undefined;
+beforeEach(() => vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Offline fixture'))));
+afterEach(() => {
+  connection?.stop();
+  Socket.all = [];
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
-it('ignores queued data from a stopped connection',()=>{
- vi.stubGlobal('WebSocket',Socket);const receive=vi.fn();connection=new ChatConnection([],receive,'/api/auth/whispers');connection.start();const old=Socket.all[0]!;connection.stop();old.onmessage?.(new MessageEvent('message',{data:JSON.stringify({type:'status',state:'connected'})}));expect(receive).not.toHaveBeenCalled();
+it('backs off until actual upstream connection and retries immediately on network restoration', () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('WebSocket', Socket);
+  const receive = vi.fn();
+  connection = new ChatConnection(['one'], receive);
+  connection.start();
+  let socket = Socket.all[0]!;
+  socket.onopen?.();
+  socket.close();
+  vi.advanceTimersByTime(1000);
+  expect(Socket.all).toHaveLength(2);
+  Socket.all[1]!.close();
+  vi.advanceTimersByTime(1000);
+  expect(Socket.all).toHaveLength(2);
+  window.dispatchEvent(new Event('online'));
+  expect(Socket.all).toHaveLength(3);
+  socket = Socket.all[2]!;
+  socket.onmessage?.(new MessageEvent('message', { data: JSON.stringify({ type: 'status', state: 'connected' }) }));
+  socket.close();
+  vi.advanceTimersByTime(1000);
+  expect(Socket.all).toHaveLength(4);
+  connection.stop();
+  vi.advanceTimersByTime(60000);
+  window.dispatchEvent(new Event('online'));
+  expect(Socket.all).toHaveLength(4);
 });
-it('manual reconnect replaces the socket once and invalidates old callbacks and pending retries',()=>{
- vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);const receive=vi.fn();connection=new ChatConnection(['one'],receive);connection.start();const old=Socket.all[0]!;old.close();connection.reconnect();expect(Socket.all).toHaveLength(2);old.onmessage?.(new MessageEvent('message',{data:JSON.stringify({type:'status',state:'connected'})}));expect(receive).not.toHaveBeenCalledWith({type:'status',state:'connected'});vi.advanceTimersByTime(60000);expect(Socket.all).toHaveLength(2);connection.stop();connection.reconnect();expect(Socket.all).toHaveLength(2);
+it('ignores queued data from a stopped connection', () => {
+  vi.stubGlobal('WebSocket', Socket);
+  const receive = vi.fn();
+  connection = new ChatConnection([], receive, '/api/auth/whispers');
+  connection.start();
+  const old = Socket.all[0]!;
+  connection.stop();
+  old.onmessage?.(new MessageEvent('message', { data: JSON.stringify({ type: 'status', state: 'connected' }) }));
+  expect(receive).not.toHaveBeenCalled();
 });
-it('deduplicates source sets, replaces one socket on source change and ignores its queued frames',()=>{
- vi.stubGlobal('WebSocket',Socket);const receive=vi.fn();connection=new ChatConnection(['one','two'],receive);connection.start();const old=Socket.all[0]!;connection.setChannels(['two','two','one']);expect(Socket.all).toHaveLength(1);connection.setChannels(['two']);expect(Socket.all).toHaveLength(2);expect(String(Socket.all[1]?.url)).toContain('channels=two');old.onmessage?.(new MessageEvent('message',{data:JSON.stringify({type:'status',state:'connected'})}));expect(receive).not.toHaveBeenCalledWith({type:'status',state:'connected'});connection.setChannels([]);expect(Socket.all).toHaveLength(2);
+it('manual reconnect replaces the socket once and invalidates old callbacks and pending retries', () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('WebSocket', Socket);
+  const receive = vi.fn();
+  connection = new ChatConnection(['one'], receive);
+  connection.start();
+  const old = Socket.all[0]!;
+  old.close();
+  connection.reconnect();
+  expect(Socket.all).toHaveLength(2);
+  old.onmessage?.(new MessageEvent('message', { data: JSON.stringify({ type: 'status', state: 'connected' }) }));
+  expect(receive).not.toHaveBeenCalledWith({ type: 'status', state: 'connected' });
+  vi.advanceTimersByTime(60000);
+  expect(Socket.all).toHaveLength(2);
+  connection.stop();
+  connection.reconnect();
+  expect(Socket.all).toHaveLength(2);
 });
-it('shows temporary admission refusal and follows its retry delay without rapid reconnects',async()=>{
- vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status:429,json:async()=>({allowed:false,detail:'Chat capacity reached',retryAfter:5})}));const receive=vi.fn();connection=new ChatConnection(['one'],receive);connection.start();Socket.all[0]!.close();await vi.advanceTimersByTimeAsync(0);expect(receive).toHaveBeenCalledWith({type:'status',state:'reconnecting',detail:'Chat capacity reached; retrying in 5 seconds'});await vi.advanceTimersByTimeAsync(4999);expect(Socket.all).toHaveLength(1);await vi.advanceTimersByTimeAsync(1);expect(Socket.all).toHaveLength(2);
+it('deduplicates source sets, replaces one socket on source change and ignores its queued frames', () => {
+  vi.stubGlobal('WebSocket', Socket);
+  const receive = vi.fn();
+  connection = new ChatConnection(['one', 'two'], receive);
+  connection.start();
+  const old = Socket.all[0]!;
+  connection.setChannels(['two', 'two', 'one']);
+  expect(Socket.all).toHaveLength(1);
+  connection.setChannels(['two']);
+  expect(Socket.all).toHaveLength(2);
+  expect(String(Socket.all[1]?.url)).toContain('channels=two');
+  old.onmessage?.(new MessageEvent('message', { data: JSON.stringify({ type: 'status', state: 'connected' }) }));
+  expect(receive).not.toHaveBeenCalledWith({ type: 'status', state: 'connected' });
+  connection.setChannels([]);
+  expect(Socket.all).toHaveLength(2);
 });
-it('stops automatic retries on a permanent workspace refusal and cancels stale admission lookups',async()=>{
- vi.useFakeTimers();vi.stubGlobal('WebSocket',Socket);vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status:400,json:async()=>({allowed:false,detail:'Choose at most six channels',retryAfter:0})}));const receive=vi.fn();connection=new ChatConnection(['one'],receive);connection.start();Socket.all[0]!.close();await vi.advanceTimersByTimeAsync(60000);expect(Socket.all).toHaveLength(1);connection.setChannels(['two']);expect(Socket.all).toHaveLength(2);
+it('shows temporary admission refusal and follows its retry delay without rapid reconnects', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('WebSocket', Socket);
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({ allowed: false, detail: 'Chat capacity reached', retryAfter: 5 }),
+    }),
+  );
+  const receive = vi.fn();
+  connection = new ChatConnection(['one'], receive);
+  connection.start();
+  Socket.all[0]!.close();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(receive).toHaveBeenCalledWith({
+    type: 'status',
+    state: 'reconnecting',
+    detail: 'Chat capacity reached; retrying in 5 seconds',
+  });
+  await vi.advanceTimersByTimeAsync(4999);
+  expect(Socket.all).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(Socket.all).toHaveLength(2);
 });
-it('keeps manual disconnection paused across online events and source changes until an explicit reconnect',()=>{const receive=vi.fn();vi.stubGlobal('WebSocket',Socket);connection=new ChatConnection(['one'],receive);connection.start();const old=Socket.all.at(-1)!;const close=vi.spyOn(old,'close');connection.disconnect();const count=Socket.all.length;window.dispatchEvent(new Event('online'));connection.setChannels(['two']);expect(Socket.all).toHaveLength(count);expect(close).toHaveBeenCalledOnce();connection.reconnect();expect(Socket.all).toHaveLength(count+1);expect(String(Socket.all.at(-1)?.url)).toContain('channels=two');});
-it('updates bounded read preferences without resuming a manually paused connection',()=>{vi.stubGlobal('WebSocket',Socket);connection=new ChatConnection(['one'],vi.fn());connection.setReadOptions({membership:true,history:false,historyLimit:300});connection.start();let url=new URL(String(Socket.all.at(-1)?.url));expect(url.searchParams.get('membership')).toBe('1');expect(url.searchParams.get('history')).toBe('0');expect(url.searchParams.get('historyLimit')).toBe('300');connection.disconnect();const count=Socket.all.length;connection.setReadOptions({membership:false,history:true,historyLimit:800});expect(Socket.all).toHaveLength(count);connection.reconnect();url=new URL(String(Socket.all.at(-1)?.url));expect(url.searchParams.get('historyLimit')).toBe('800');expect(()=>connection!.setReadOptions({membership:false,history:true,historyLimit:801})).toThrow();});
+it('stops automatic retries on a permanent workspace refusal and cancels stale admission lookups', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('WebSocket', Socket);
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ allowed: false, detail: 'Choose at most six channels', retryAfter: 0 }),
+    }),
+  );
+  const receive = vi.fn();
+  connection = new ChatConnection(['one'], receive);
+  connection.start();
+  Socket.all[0]!.close();
+  await vi.advanceTimersByTimeAsync(60000);
+  expect(Socket.all).toHaveLength(1);
+  connection.setChannels(['two']);
+  expect(Socket.all).toHaveLength(2);
+});
+it('keeps manual disconnection paused across online events and source changes until an explicit reconnect', () => {
+  const receive = vi.fn();
+  vi.stubGlobal('WebSocket', Socket);
+  connection = new ChatConnection(['one'], receive);
+  connection.start();
+  const old = Socket.all.at(-1)!;
+  const close = vi.spyOn(old, 'close');
+  connection.disconnect();
+  const count = Socket.all.length;
+  window.dispatchEvent(new Event('online'));
+  connection.setChannels(['two']);
+  expect(Socket.all).toHaveLength(count);
+  expect(close).toHaveBeenCalledOnce();
+  connection.reconnect();
+  expect(Socket.all).toHaveLength(count + 1);
+  expect(String(Socket.all.at(-1)?.url)).toContain('channels=two');
+});
+it('updates bounded read preferences without resuming a manually paused connection', () => {
+  vi.stubGlobal('WebSocket', Socket);
+  connection = new ChatConnection(['one'], vi.fn());
+  connection.setReadOptions({ membership: true, history: false, historyLimit: 300 });
+  connection.start();
+  let url = new URL(String(Socket.all.at(-1)?.url));
+  expect(url.searchParams.get('membership')).toBe('1');
+  expect(url.searchParams.get('history')).toBe('0');
+  expect(url.searchParams.get('historyLimit')).toBe('300');
+  connection.disconnect();
+  const count = Socket.all.length;
+  connection.setReadOptions({ membership: false, history: true, historyLimit: 800 });
+  expect(Socket.all).toHaveLength(count);
+  connection.reconnect();
+  url = new URL(String(Socket.all.at(-1)?.url));
+  expect(url.searchParams.get('historyLimit')).toBe('800');
+  expect(() => connection!.setReadOptions({ membership: false, history: true, historyLimit: 801 })).toThrow();
+});

@@ -1,30 +1,239 @@
-import type {AuthStatus} from './auth';
-import type {ChatMessage} from './protocol';
-import {privacyEnabled} from './privacy';
-import {parseChatContext,applyChatContext,type ChatContextRow} from './chat-context';
-export class ChatContextPanel{
- readonly root=document.createElement('dialog');
- private trigger=document.createElement('button');private channel=document.createElement('select');private status=document.createElement('p');private report=document.createElement('p');private consent=document.createElement('a');
- private source:EventSource|undefined;private generation=0;private keepOnClose=false;private connected:{account:string;csrf:string;channel:string}|undefined;private broadcaster='';private epoch='';private signature='';private rows=new Map<string,ChatContextRow>();
- constructor(private auth:()=>AuthStatus|undefined,private channels:()=>readonly string[],private current:()=>string,private changed:()=>number,readonlyView=false){
-  this.root.setAttribute('aria-label','Public message context');const heading=document.createElement('h2');heading.textContent='Optional public EventSub context';const help=document.createElement('p');help.textContent='Connect explicitly for one joined channel with user:read:chat consent. This sends two read-subscription requests, never chat messages or moderation decisions. It can add supplied source-channel, reward, effect and watch-streak tags only to a matching public message already received by chat or public history. Message bodies, reply bodies and private held-message events are excluded. Enriched public tags may be saved with that existing public message. Supplemental metadata stays in memory: latest 100 relevant messages / 15 minutes, snapshots every two seconds. Earlier events and unmatched metadata cannot create public messages. Late enrichment does not replay alerts or counters.';
-  const label=document.createElement('label');label.textContent='Context channel';this.channel.setAttribute('aria-label','Context channel');label.append(this.channel);this.consent.textContent='Grant public context read permission';this.status.setAttribute('role','status');this.root.append(heading,help,label,this.consent,this.button('Connect public context',()=>this.connect()),this.button('Disconnect and clear supplemental context',()=>this.disconnect('Disconnected; supplemental context cleared')),this.report,this.status,this.button('Return to chat; keep context connected',()=>{if(!this.connected)throw new Error('Connect first, or close and disconnect');this.keepOnClose=true;this.root.close();}),this.button('Close and disconnect public context',()=>this.root.close()));
-  this.trigger.type='button';this.trigger.textContent='Public message context';this.trigger.hidden=readonlyView;document.getElementById('commands-open')?.after(this.trigger);document.body.append(this.root);this.trigger.addEventListener('click',this.open);this.root.addEventListener('close',this.closed);this.channel.addEventListener('change',this.channelChanged);document.addEventListener('privacychange',this.privacy);
- }
- private button(text:string,action:()=>void):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.addEventListener('click',()=>{try{if(privacyEnabled())throw new Error('Exit privacy mode first');action();}catch(error){this.status.textContent=error instanceof Error?error.message:'Public context unavailable';}});return b;}
- private permission():void{const auth=this.auth();this.consent.hidden=!auth?.enabled||!!auth.chatContextEnabled;this.consent.removeAttribute('href');if(auth?.loginURL){const url=new URL(auth.loginURL);url.searchParams.set('context','read');url.searchParams.set('channel',this.channel.value);this.consent.href=url.href;}if(!this.connected)this.status.textContent=auth?.authenticated?'Account '+auth.login+' · #'+this.channel.value+' · '+(auth.chatContextEnabled?'Ready to connect explicitly':'Grant user:read:chat first'):'Log in to read supplemental public context';}
- private open=():void=>{if(privacyEnabled())return;this.channel.replaceChildren();for(const name of this.channels()){if(!/^[a-z0-9_]{1,25}$/.test(name))continue;const option=document.createElement('option');option.value=name;option.textContent='#'+name;this.channel.append(option);}this.channel.value=this.connected?.channel??this.current();if(this.connected&&!this.channels().includes(this.connected.channel))this.disconnect('Joined channels changed; reconnect explicitly');this.permission();this.root.showModal();};
- private valid():boolean{const auth=this.auth(),scope=this.connected;return !!scope&&!privacyEnabled()&&!!auth?.authenticated&&!!auth.chatContextEnabled&&auth.userID===scope.account&&auth.csrf===scope.csrf&&this.channels().includes(scope.channel);}
- private connect():void{
-  const auth=this.auth(),channel=this.channel.value;if(!this.root.open||!auth?.authenticated||!auth.chatContextEnabled||!auth.userID||!auth.csrf||!this.channels().includes(channel))throw new Error('Choose a joined channel and grant user:read:chat first');this.disconnect();this.connected={account:auth.userID,csrf:auth.csrf,channel};const generation=this.generation,source=this.source=new EventSource('/api/auth/chat-context/events?'+new URLSearchParams({channel}));this.status.textContent='Connecting supplemental public context…';this.trigger.textContent='Public context: #'+channel;
-  source.addEventListener('snapshot',event=>{if(generation!==this.generation||source!==this.source)return;if(!this.valid()){this.disconnect('Account or channel changed; supplemental context cleared');return;}try{if(!(event instanceof MessageEvent)||typeof event.data!=='string'||new TextEncoder().encode(event.data).length>256*1024)throw new Error('Context exceeds limit');const snapshot=parseChatContext(JSON.parse(event.data),auth.userID!,channel);if(this.epoch&&this.epoch!==snapshot.epoch)throw new Error('Context epoch changed');this.epoch=snapshot.epoch;this.status.textContent=snapshot.detail;if(snapshot.state==='unavailable'){this.disconnect(snapshot.detail);return;}this.broadcaster=snapshot.broadcasterID;this.rows=new Map(snapshot.rows.map(row=>[row.id,row]));const signature=snapshot.rows.map(row=>row.eventID).join(',');if(signature!==this.signature){this.signature=signature;const applied=this.changed();this.report.textContent=snapshot.rows.length+' supplemental records in memory; '+applied+' retained public rows enriched in this update. No event body was imported.';}}catch{this.disconnect('Supplemental context invalid or changed; reconnect explicitly');}});
-  source.onerror=()=>{if(generation===this.generation&&source===this.source)this.disconnect('Context connection ended; reconnect explicitly. No automatic retry.');};
- }
- enrich(message:ChatMessage):ChatMessage{if(!this.valid()||message.channel!==this.connected?.channel)return message;const row=this.rows.get(message.id);return row?applyChatContext(message,row,this.broadcaster,this.connected.channel):message;}
- private disconnect(detail=''):void{this.generation++;this.source?.close();this.source=undefined;this.connected=undefined;this.rows.clear();this.broadcaster='';this.epoch='';this.signature='';this.report.textContent='';this.status.textContent=detail;this.trigger.textContent='Public message context';}
- authChanged():void{if(this.connected&&!this.valid())this.disconnect('Account, consent or channel changed; supplemental context cleared');}
- private channelChanged=():void=>{this.disconnect();this.permission();};
- private closed=():void=>{if(this.keepOnClose){this.keepOnClose=false;return;}this.disconnect();};
- private privacy=():void=>{if(privacyEnabled()){this.keepOnClose=false;this.disconnect();this.root.close();}};
- stop():void{this.disconnect();this.trigger.removeEventListener('click',this.open);this.root.removeEventListener('close',this.closed);this.channel.removeEventListener('change',this.channelChanged);document.removeEventListener('privacychange',this.privacy);this.root.remove();this.trigger.remove();}
+import type { AuthStatus } from './auth';
+import type { ChatMessage } from './protocol';
+import { privacyEnabled } from './privacy';
+import { parseChatContext, applyChatContext, type ChatContextRow } from './chat-context';
+export class ChatContextPanel {
+  readonly root = document.createElement('dialog');
+  private trigger = document.createElement('button');
+  private channel = document.createElement('select');
+  private status = document.createElement('p');
+  private report = document.createElement('p');
+  private consent = document.createElement('a');
+  private source: EventSource | undefined;
+  private generation = 0;
+  private keepOnClose = false;
+  private connected: { account: string; csrf: string; channel: string } | undefined;
+  private broadcaster = '';
+  private epoch = '';
+  private signature = '';
+  private rows = new Map<string, ChatContextRow>();
+  constructor(
+    private auth: () => AuthStatus | undefined,
+    private channels: () => readonly string[],
+    private current: () => string,
+    private changed: () => number,
+    readonlyView = false,
+  ) {
+    this.root.setAttribute('aria-label', 'Public message context');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Optional public EventSub context';
+    const help = document.createElement('p');
+    help.textContent =
+      'Connect explicitly for one joined channel with user:read:chat consent. This sends two read-subscription requests, never chat messages or moderation decisions. It can add supplied source-channel, reward, effect and watch-streak tags only to a matching public message already received by chat or public history. Message bodies, reply bodies and private held-message events are excluded. Enriched public tags may be saved with that existing public message. Supplemental metadata stays in memory: latest 100 relevant messages / 15 minutes, snapshots every two seconds. Earlier events and unmatched metadata cannot create public messages. Late enrichment does not replay alerts or counters.';
+    const label = document.createElement('label');
+    label.textContent = 'Context channel';
+    this.channel.setAttribute('aria-label', 'Context channel');
+    label.append(this.channel);
+    this.consent.textContent = 'Grant public context read permission';
+    this.status.setAttribute('role', 'status');
+    this.root.append(
+      heading,
+      help,
+      label,
+      this.consent,
+      this.button('Connect public context', () => this.connect()),
+      this.button('Disconnect and clear supplemental context', () =>
+        this.disconnect('Disconnected; supplemental context cleared'),
+      ),
+      this.report,
+      this.status,
+      this.button('Return to chat; keep context connected', () => {
+        if (!this.connected) throw new Error('Connect first, or close and disconnect');
+        this.keepOnClose = true;
+        this.root.close();
+      }),
+      this.button('Close and disconnect public context', () => this.root.close()),
+    );
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Public message context';
+    this.trigger.hidden = readonlyView;
+    document.getElementById('commands-open')?.after(this.trigger);
+    document.body.append(this.root);
+    this.trigger.addEventListener('click', this.open);
+    this.root.addEventListener('close', this.closed);
+    this.channel.addEventListener('change', this.channelChanged);
+    document.addEventListener('privacychange', this.privacy);
+  }
+  private button(text: string, action: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.addEventListener('click', () => {
+      try {
+        if (privacyEnabled()) throw new Error('Exit privacy mode first');
+        action();
+      } catch (error) {
+        this.status.textContent = error instanceof Error ? error.message : 'Public context unavailable';
+      }
+    });
+    return b;
+  }
+  private permission(): void {
+    const auth = this.auth();
+    this.consent.hidden = !auth?.enabled || !!auth.chatContextEnabled;
+    this.consent.removeAttribute('href');
+    if (auth?.loginURL) {
+      const url = new URL(auth.loginURL);
+      url.searchParams.set('context', 'read');
+      url.searchParams.set('channel', this.channel.value);
+      this.consent.href = url.href;
+    }
+    if (!this.connected)
+      this.status.textContent = auth?.authenticated
+        ? 'Account ' +
+          auth.login +
+          ' · #' +
+          this.channel.value +
+          ' · ' +
+          (auth.chatContextEnabled ? 'Ready to connect explicitly' : 'Grant user:read:chat first')
+        : 'Log in to read supplemental public context';
+  }
+  private open = (): void => {
+    if (privacyEnabled()) return;
+    this.channel.replaceChildren();
+    for (const name of this.channels()) {
+      if (!/^[a-z0-9_]{1,25}$/.test(name)) continue;
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = '#' + name;
+      this.channel.append(option);
+    }
+    this.channel.value = this.connected?.channel ?? this.current();
+    if (this.connected && !this.channels().includes(this.connected.channel))
+      this.disconnect('Joined channels changed; reconnect explicitly');
+    this.permission();
+    this.root.showModal();
+  };
+  private valid(): boolean {
+    const auth = this.auth(),
+      scope = this.connected;
+    return (
+      !!scope &&
+      !privacyEnabled() &&
+      !!auth?.authenticated &&
+      !!auth.chatContextEnabled &&
+      auth.userID === scope.account &&
+      auth.csrf === scope.csrf &&
+      this.channels().includes(scope.channel)
+    );
+  }
+  private connect(): void {
+    const auth = this.auth(),
+      channel = this.channel.value;
+    if (
+      !this.root.open ||
+      !auth?.authenticated ||
+      !auth.chatContextEnabled ||
+      !auth.userID ||
+      !auth.csrf ||
+      !this.channels().includes(channel)
+    )
+      throw new Error('Choose a joined channel and grant user:read:chat first');
+    this.disconnect();
+    this.connected = { account: auth.userID, csrf: auth.csrf, channel };
+    const generation = this.generation,
+      source = (this.source = new EventSource('/api/auth/chat-context/events?' + new URLSearchParams({ channel })));
+    this.status.textContent = 'Connecting supplemental public context…';
+    this.trigger.textContent = 'Public context: #' + channel;
+    source.addEventListener('snapshot', (event) => {
+      if (generation !== this.generation || source !== this.source) return;
+      if (!this.valid()) {
+        this.disconnect('Account or channel changed; supplemental context cleared');
+        return;
+      }
+      try {
+        if (
+          !(event instanceof MessageEvent) ||
+          typeof event.data !== 'string' ||
+          new TextEncoder().encode(event.data).length > 256 * 1024
+        )
+          throw new Error('Context exceeds limit');
+        const snapshot = parseChatContext(JSON.parse(event.data), auth.userID!, channel);
+        if (this.epoch && this.epoch !== snapshot.epoch) throw new Error('Context epoch changed');
+        this.epoch = snapshot.epoch;
+        this.status.textContent = snapshot.detail;
+        if (snapshot.state === 'unavailable') {
+          this.disconnect(snapshot.detail);
+          return;
+        }
+        this.broadcaster = snapshot.broadcasterID;
+        this.rows = new Map(snapshot.rows.map((row) => [row.id, row]));
+        const signature = snapshot.rows.map((row) => row.eventID).join(',');
+        if (signature !== this.signature) {
+          this.signature = signature;
+          const applied = this.changed();
+          this.report.textContent =
+            snapshot.rows.length +
+            ' supplemental records in memory; ' +
+            applied +
+            ' retained public rows enriched in this update. No event body was imported.';
+        }
+      } catch {
+        this.disconnect('Supplemental context invalid or changed; reconnect explicitly');
+      }
+    });
+    source.onerror = () => {
+      if (generation === this.generation && source === this.source)
+        this.disconnect('Context connection ended; reconnect explicitly. No automatic retry.');
+    };
+  }
+  enrich(message: ChatMessage): ChatMessage {
+    if (!this.valid() || message.channel !== this.connected?.channel) return message;
+    const row = this.rows.get(message.id);
+    return row ? applyChatContext(message, row, this.broadcaster, this.connected.channel) : message;
+  }
+  private disconnect(detail = ''): void {
+    this.generation++;
+    this.source?.close();
+    this.source = undefined;
+    this.connected = undefined;
+    this.rows.clear();
+    this.broadcaster = '';
+    this.epoch = '';
+    this.signature = '';
+    this.report.textContent = '';
+    this.status.textContent = detail;
+    this.trigger.textContent = 'Public message context';
+  }
+  authChanged(): void {
+    if (this.connected && !this.valid())
+      this.disconnect('Account, consent or channel changed; supplemental context cleared');
+  }
+  private channelChanged = (): void => {
+    this.disconnect();
+    this.permission();
+  };
+  private closed = (): void => {
+    if (this.keepOnClose) {
+      this.keepOnClose = false;
+      return;
+    }
+    this.disconnect();
+  };
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.keepOnClose = false;
+      this.disconnect();
+      this.root.close();
+    }
+  };
+  stop(): void {
+    this.disconnect();
+    this.trigger.removeEventListener('click', this.open);
+    this.root.removeEventListener('close', this.closed);
+    this.channel.removeEventListener('change', this.channelChanged);
+    document.removeEventListener('privacychange', this.privacy);
+    this.root.remove();
+    this.trigger.remove();
+  }
 }

@@ -1,13 +1,69 @@
 // @vitest-environment happy-dom
-import {afterEach,beforeEach,expect,it,vi} from 'vitest';
-import {CompletionPreferencesPanel} from './completion-preferences-ui';
-import {getCompletionPreferences,completionDefaults,setCompletionPreferences} from './completion-preferences';
-import {setProfileScope} from './account-profiles';
-let panel:CompletionPreferencesPanel|undefined;
-beforeEach(()=>{localStorage.clear();setProfileScope('42');setCompletionPreferences(completionDefaults);});
-afterEach(()=>{panel?.stop();vi.unstubAllGlobals();localStorage.clear();document.body.replaceChildren();setProfileScope('anonymous');setCompletionPreferences(completionDefaults);});
-function setup(){panel=new CompletionPreferencesPanel();const aliases=panel.root.querySelector<HTMLTextAreaElement>('[aria-label="Local nickname mappings JSON"]')!;aliases.value='[{"login":"alice","alias":"Friend"}]';const click=(text:string)=>[...panel!.root.querySelectorAll('button')].find(b=>b.textContent===text)!.click();return {aliases,click};}
-it('reviews locally before saving validated account preferences and preserves edits on quota failure',()=>{const {click}=setup();click('Review completion preferences');expect(getCompletionPreferences().aliases).toEqual([]);click('Apply completion preferences');expect(getCompletionPreferences().aliases).toEqual([{login:'alice',alias:'Friend'}]);expect(localStorage.getItem('chatthing:v1:profile:42:completion-preferences')).toContain('alice');});
-it('invalidates edited reviews and rejects a changed account without modifying another account',()=>{const {aliases,click}=setup();click('Review completion preferences');aliases.dispatchEvent(new Event('input',{bubbles:true}));click('Apply completion preferences');expect(getCompletionPreferences().aliases).toEqual([]);click('Review completion preferences');setProfileScope('43');click('Apply completion preferences');expect(localStorage.getItem('chatthing:v1:profile:43:completion-preferences')).toBeNull();expect(panel!.root.textContent).toContain('Account changed');});
-it('keeps the active annotation and stored bytes on failed persistence',()=>{const {click}=setup();click('Review completion preferences');vi.stubGlobal('localStorage',{getItem:()=>null,setItem:()=>{throw new Error('quota');}});click('Apply completion preferences');expect(getCompletionPreferences().aliases).toEqual([]);expect(panel!.root.textContent).toContain('quota');});
-it('clears local annotation input on privacy without changing saved definitions',()=>{const {aliases,click}=setup();click('Review completion preferences');click('Apply completion preferences');localStorage.setItem('chatthing:v1:privacy',JSON.stringify({version:1,enabled:true,allowed:[],panic:true}));document.dispatchEvent(new Event('privacychange'));expect(aliases.value).toBe('');expect(getCompletionPreferences().aliases).toHaveLength(1);});
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { CompletionPreferencesPanel } from './completion-preferences-ui';
+import { getCompletionPreferences, completionDefaults, setCompletionPreferences } from './completion-preferences';
+import { setProfileScope } from './account-profiles';
+let panel: CompletionPreferencesPanel | undefined;
+beforeEach(() => {
+  localStorage.clear();
+  setProfileScope('42');
+  setCompletionPreferences(completionDefaults);
+});
+afterEach(() => {
+  panel?.stop();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+  document.body.replaceChildren();
+  setProfileScope('anonymous');
+  setCompletionPreferences(completionDefaults);
+});
+function setup() {
+  panel = new CompletionPreferencesPanel();
+  const aliases = panel.root.querySelector<HTMLTextAreaElement>('[aria-label="Local nickname mappings JSON"]')!;
+  aliases.value = '[{"login":"alice","alias":"Friend"}]';
+  const click = (text: string) =>
+    [...panel!.root.querySelectorAll('button')].find((b) => b.textContent === text)!.click();
+  return { aliases, click };
+}
+it('reviews locally before saving validated account preferences and preserves edits on quota failure', () => {
+  const { click } = setup();
+  click('Review completion preferences');
+  expect(getCompletionPreferences().aliases).toEqual([]);
+  click('Apply completion preferences');
+  expect(getCompletionPreferences().aliases).toEqual([{ login: 'alice', alias: 'Friend' }]);
+  expect(localStorage.getItem('chatthing:v1:profile:42:completion-preferences')).toContain('alice');
+});
+it('invalidates edited reviews and rejects a changed account without modifying another account', () => {
+  const { aliases, click } = setup();
+  click('Review completion preferences');
+  aliases.dispatchEvent(new Event('input', { bubbles: true }));
+  click('Apply completion preferences');
+  expect(getCompletionPreferences().aliases).toEqual([]);
+  click('Review completion preferences');
+  setProfileScope('43');
+  click('Apply completion preferences');
+  expect(localStorage.getItem('chatthing:v1:profile:43:completion-preferences')).toBeNull();
+  expect(panel!.root.textContent).toContain('Account changed');
+});
+it('keeps the active annotation and stored bytes on failed persistence', () => {
+  const { click } = setup();
+  click('Review completion preferences');
+  vi.stubGlobal('localStorage', {
+    getItem: () => null,
+    setItem: () => {
+      throw new Error('quota');
+    },
+  });
+  click('Apply completion preferences');
+  expect(getCompletionPreferences().aliases).toEqual([]);
+  expect(panel!.root.textContent).toContain('quota');
+});
+it('clears local annotation input on privacy without changing saved definitions', () => {
+  const { aliases, click } = setup();
+  click('Review completion preferences');
+  click('Apply completion preferences');
+  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  document.dispatchEvent(new Event('privacychange'));
+  expect(aliases.value).toBe('');
+  expect(getCompletionPreferences().aliases).toHaveLength(1);
+});

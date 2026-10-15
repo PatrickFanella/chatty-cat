@@ -1,18 +1,463 @@
-import type {AuthStatus} from './auth';
-import {ModerationJournal} from './moderation-journal';
-import {privacyEnabled} from './privacy';
-import {parsePrediction,parsePredictionSnapshot,predictionDefinition,type Prediction,type PredictionDefinition,type PredictionSnapshot} from './predictions';
+import type { AuthStatus } from './auth';
+import { ModerationJournal } from './moderation-journal';
+import { privacyEnabled } from './privacy';
+import {
+  parsePrediction,
+  parsePredictionSnapshot,
+  predictionDefinition,
+  type Prediction,
+  type PredictionDefinition,
+  type PredictionSnapshot,
+} from './predictions';
 export class PredictionPanel {
- readonly root=document.createElement('fieldset');private title=document.createElement('input');private choices=document.createElement('textarea');private duration=document.createElement('input');private list=document.createElement('div');private preview=document.createElement('pre');private status=document.createElement('p');private confirm:HTMLButtonElement;private auth:AuthStatus|undefined;private channel='';private snapshot:PredictionSnapshot|undefined;private review:{action:'CREATE'|'LOCKED'|'CANCELED'|'RESOLVED';id:string;winnerID?:string;winnerTitle?:string;definition?:PredictionDefinition}|undefined;private rendered='';private generation=0;private controller:AbortController|undefined;private writeAbort:AbortController|undefined;private timer:ReturnType<typeof setTimeout>|undefined;private outcomeUncertain=false;busy=false;
- constructor(private journal:ModerationJournal,private guarded:()=>boolean,private changed:()=>Promise<void>){this.root.dataset.privatePredictions='true';const legend=document.createElement('legend');legend.textContent='Broadcaster predictions';const help=document.createElement('p');help.textContent='Use your own broadcaster channel and explicit prediction consent. Read latest 20 predictions; reconnect restores provider state. Reads refresh every 15 seconds while open. Separate confirmation starts a prediction immediately, locks participation, cancels with provider refunds, or resolves the selected winning outcome with provider points distribution. Twitch decides eligibility and settlement. Uncertain writes require explicit refresh and never retry automatically.';this.title.setAttribute('aria-label','Prediction title');this.title.maxLength=90;this.choices.setAttribute('aria-label','Prediction outcomes, one per line');this.duration.setAttribute('aria-label','Prediction window seconds');this.duration.type='number';this.duration.min='30';this.duration.max='1800';this.duration.value='30';this.confirm=this.button('Confirm reviewed prediction action',()=>void this.send());this.confirm.disabled=true;this.status.setAttribute('role','status');this.list.className='automod-list';this.root.append(legend,help,this.button('Grant broadcaster prediction consent',()=>{if(!this.auth?.authenticated)throw new Error('Log in as broadcaster');const u=new URL(this.auth.loginURL);u.searchParams.set('predictions','manage');u.searchParams.set('account',this.auth.userID??'');u.searchParams.set('channel',this.channel);location.assign(u.href);}),this.button('Refresh/reconnect broadcaster predictions',()=>void this.refresh()),this.list,this.title,this.choices,this.duration,this.button('Preview new prediction',()=>this.stageCreate()),this.preview,this.confirm,this.status);for(const input of [this.title,this.choices,this.duration])input.addEventListener('input',()=>this.clearReview());}
- private button(text:string,action:()=>void):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=()=>{try{if(!this.guarded()||this.busy||privacyEnabled())throw new Error('Wait for the current action or exit privacy mode');action();}catch(e){this.status.textContent=e instanceof Error?e.message:'Predictions unavailable';}};return b;}
- setScope(auth:AuthStatus|undefined,channel:string):void{if(this.auth?.userID!==auth?.userID||this.auth?.csrf!==auth?.csrf||channel!==this.channel||!auth?.authenticated||!auth.predictionsEnabled){this.stop();this.title.value='';this.choices.value='';}this.auth=auth;this.channel=channel;if(!auth?.predictionsManageEnabled){this.clearReview();if(this.snapshot)this.paint();this.status.textContent='Read-only prediction view; manage-prediction consent required for writes';}}
- private clearReview():void{this.review=undefined;this.preview.textContent='';this.confirm.disabled=true;}
- private async refresh():Promise<void>{const auth=this.auth;if(!auth?.authenticated||!auth.userID||!auth.predictionsEnabled){this.status.textContent='Grant broadcaster prediction consent first';return;}clearTimeout(this.timer);this.controller?.abort();const generation=this.generation,controller=this.controller=new AbortController();try{const res=await fetch('/api/auth/predictions?'+new URLSearchParams({channel:this.channel}),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(25000)])});if(!res.ok)throw new Error('Prediction read unavailable (HTTP '+res.status+'); select your broadcaster channel and check consent/eligibility');const value=parsePredictionSnapshot(await res.json(),auth.userID,this.channel);if(generation!==this.generation||privacyEnabled())return;this.outcomeUncertain=false;this.snapshot=value;this.paint();this.status.textContent='Read broadcaster '+value.account+' / #'+value.channel+' at '+new Date(value.at).toISOString()+'. Latest '+value.predictions.length+' predictions; older predictions unavailable.';this.timer=setTimeout(()=>{if(!this.busy)void this.refresh();},15000);}catch(e){if(generation!==this.generation||controller.signal.aborted)return;this.snapshot=undefined;this.rendered='';this.list.replaceChildren();this.clearReview();this.status.textContent=e instanceof Error?e.message:'Prediction state unavailable; reconnect explicitly';}}
- private paint():void{const rendered=JSON.stringify([this.snapshot?.predictions,this.auth?.predictionsManageEnabled]);if(rendered===this.rendered)return;this.rendered=rendered;this.list.replaceChildren();for(const prediction of this.snapshot?.predictions??[]){const row=document.createElement('p');row.append(document.createTextNode(prediction.title+' · '+prediction.id+' · '+prediction.status+(prediction.winning_outcome_id?' · Winner: '+prediction.outcomes.find(o=>o.id===prediction.winning_outcome_id)?.title+' / ID '+prediction.winning_outcome_id:'')+' · '+prediction.outcomes.map(c=>c.title+': '+c.users+' participants / '+c.channel_points+' points').join(' / ')));if(prediction.status==='ACTIVE'||prediction.status==='LOCKED'){for(const action of (prediction.status==='ACTIVE'?['LOCKED','CANCELED']:['CANCELED']) as ('LOCKED'|'CANCELED')[]){const b=this.button('Preview '+action+' prediction '+prediction.id,()=>this.stageEnd(prediction,action));b.disabled=!this.auth?.predictionsManageEnabled;row.append(b);}for(const outcome of prediction.outcomes){const b=this.button('Preview resolve '+prediction.id+' with '+outcome.title,()=>this.stageEnd(prediction,'RESOLVED',outcome.id));b.disabled=!this.auth?.predictionsManageEnabled;row.append(b);}}this.list.append(row);}if(this.review&&this.review.action!=='CREATE'&&!this.snapshot?.predictions.some(p=>p.id===this.review?.id&&(p.status==='ACTIVE'||p.status==='LOCKED')&&(this.review.action!=='LOCKED'||p.status==='ACTIVE')&&(this.review.action!=='RESOLVED'||p.outcomes.some(o=>o.id===this.review?.winnerID&&o.title===this.review.winnerTitle))))this.clearReview();if(this.review?.action==='CREATE'&&this.snapshot?.predictions.some(p=>(p.status==='ACTIVE'||p.status==='LOCKED')))this.clearReview();}
- private permitted():void{if(this.outcomeUncertain)throw new Error('Refresh provider state before another action; the last outcome is uncertain');if(!this.auth?.authenticated||!this.auth.userID||!this.auth.predictionsManageEnabled||this.snapshot?.account!==this.auth.userID||this.snapshot.channel!==this.channel)throw new Error('Refresh your own broadcaster channel with manage-prediction consent');}
- private stageCreate():void{this.permitted();if(this.snapshot?.predictions.some(p=>(p.status==='ACTIVE'||p.status==='LOCKED')))throw new Error('End the current active prediction first');const definition=predictionDefinition({title:this.title.value.trim(),outcomes:this.choices.value.split('\n').map(x=>x.trim()).filter(Boolean),window:Number(this.duration.value)});this.review={action:'CREATE',id:'',definition};this.preview.textContent='Review CREATE for #'+this.channel+' / broadcaster '+this.auth!.userID+'\n'+JSON.stringify(definition,null,2)+'\nConfirmation starts the prediction immediately. Scope channel:manage:predictions. No automatic retry.';this.confirm.disabled=false;}
- private stageEnd(prediction:Prediction,action:'LOCKED'|'CANCELED'|'RESOLVED',winnerID=''):void{this.permitted();const current=this.snapshot?.predictions.find(p=>p.id===prediction.id);if(!current||!['ACTIVE','LOCKED'].includes(current.status)||action==='LOCKED'&&current.status!=='ACTIVE')throw new Error('Prediction state changed');const outcome=current.outcomes.find(o=>o.id===winnerID);if(action==='RESOLVED'&&!outcome)throw new Error('Choose an observed winning outcome');this.review={action,id:prediction.id,...(outcome?{winnerID:outcome.id,winnerTitle:outcome.title}:{})};this.preview.textContent='Review '+action+' for #'+this.channel+' / broadcaster '+this.auth!.userID+'\nPrediction '+prediction.id+': '+prediction.title+'\n'+(action==='RESOLVED'?'WINNING OUTCOME: '+outcome!.title+' / ID '+outcome!.id+'; Twitch distributes points.':action==='CANCELED'?'Cancels prediction; Twitch refunds participants.':'Locks prediction; viewers can no longer participate.')+'\nScope channel:manage:predictions. Confirmation sends once; no automatic retry.';this.confirm.disabled=false;}
- private async send():Promise<void>{const review=this.review,auth=this.auth;if(!review||!auth?.userID||!auth.csrf)return;const generation=this.generation,account=auth.userID,channel=this.channel,id=crypto.randomUUID(),abort=this.writeAbort=new AbortController();this.busy=true;this.controller?.abort();clearTimeout(this.timer);this.confirm.disabled=true;let saved=false,started=false;try{this.permitted();await this.journal.begin(account,{id,at:Date.now(),channel,target:review.id||'new-prediction',broadcasterID:account,command:review.action==='CREATE'?'/predictioncreate':'/prediction'+(review.action==='LOCKED'?'lock':review.action==='CANCELED'?'cancel':'resolve')+' '+review.id+(review.winnerID?' '+review.winnerID:''),outcome:'pending',detail:''});saved=true;if(generation!==this.generation||privacyEnabled())throw new Error('Account or private view changed');started=true;const res=await fetch('/api/auth/predictions',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':auth.csrf},body:JSON.stringify({account,channel,broadcasterID:account,requestID:id,action:review.action,id:review.id,title:review.definition?.title??'',outcomes:review.definition?.outcomes??[],window:review.definition?.window??0,winnerID:review.winnerID??''}),signal:AbortSignal.any([abort.signal,AbortSignal.timeout(30000)])});const raw:unknown=await res.json();if(!raw||typeof raw!=='object')throw new Error('Prediction result unavailable');const v=raw as Record<string,unknown>;if(typeof v.sent!=='boolean'||v.uncertain!==undefined&&typeof v.uncertain!=='boolean'||v.error!==undefined&&(typeof v.error!=='string'||v.error.length>300))throw new Error('Prediction result unavailable');const prediction=v.sent&&res.ok?parsePrediction(v.prediction,account):undefined;const confirmed=!!prediction&&(review.action==='CREATE'?prediction.status==='ACTIVE'&&prediction.title===review.definition?.title:prediction.id===review.id&&prediction.status===review.action&&(review.action!=='RESOLVED'||prediction.winning_outcome_id===review.winnerID));const outcome=confirmed?'confirmed':v.sent||v.uncertain?'uncertain':'rejected';await this.journal.finish(account,id,outcome,confirmed?'Provider confirmed prediction '+prediction!.id:typeof v.error==='string'?v.error:'Prediction outcome unavailable; check Twitch');if(generation===this.generation&&!privacyEnabled()){this.outcomeUncertain=outcome==='uncertain';this.clearReview();this.status.textContent=outcome==='confirmed'?'Provider confirmed prediction '+prediction!.id:outcome==='uncertain'?'Prediction outcome uncertain; check Twitch and refresh before another action. No automatic retry':typeof v.error==='string'?v.error:'Prediction action rejected';if(confirmed){this.snapshot={account,channel,broadcasterID:account,at:Date.now(),predictions:[prediction!,...(this.snapshot?.predictions??[]).filter(p=>p.id!==prediction!.id)].slice(0,20)};this.paint();}await this.changed();}}catch(e){if(saved)try{await this.journal.finish(account,id,started?'uncertain':'rejected',started?'Prediction request outcome unavailable; check Twitch':'No prediction request was sent');}catch{/* Saved pending receipt remains unconfirmed. */}if(generation===this.generation&&!privacyEnabled()){this.outcomeUncertain=started;this.clearReview();this.status.textContent=(started?'Prediction outcome uncertain; check Twitch. No automatic retry. ':'No prediction request was sent. ')+(e instanceof Error?e.message:'Prediction unavailable');}}finally{if(generation===this.generation){this.busy=false;if(this.snapshot&&!this.outcomeUncertain)this.timer=setTimeout(()=>void this.refresh(),15000);}}}
- stop():void{this.title.value='';this.choices.value='';this.generation++;clearTimeout(this.timer);this.controller?.abort();this.writeAbort?.abort();this.busy=false;this.outcomeUncertain=false;this.snapshot=undefined;this.rendered='';this.list.replaceChildren();this.clearReview();this.status.textContent='';}
+  readonly root = document.createElement('fieldset');
+  private title = document.createElement('input');
+  private choices = document.createElement('textarea');
+  private duration = document.createElement('input');
+  private list = document.createElement('div');
+  private preview = document.createElement('pre');
+  private status = document.createElement('p');
+  private confirm: HTMLButtonElement;
+  private auth: AuthStatus | undefined;
+  private channel = '';
+  private snapshot: PredictionSnapshot | undefined;
+  private review:
+    | {
+        action: 'CREATE' | 'LOCKED' | 'CANCELED' | 'RESOLVED';
+        id: string;
+        winnerID?: string;
+        winnerTitle?: string;
+        definition?: PredictionDefinition;
+      }
+    | undefined;
+  private rendered = '';
+  private generation = 0;
+  private controller: AbortController | undefined;
+  private writeAbort: AbortController | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private outcomeUncertain = false;
+  busy = false;
+  constructor(
+    private journal: ModerationJournal,
+    private guarded: () => boolean,
+    private changed: () => Promise<void>,
+  ) {
+    this.root.dataset.privatePredictions = 'true';
+    const legend = document.createElement('legend');
+    legend.textContent = 'Broadcaster predictions';
+    const help = document.createElement('p');
+    help.textContent =
+      'Use your own broadcaster channel and explicit prediction consent. Read latest 20 predictions; reconnect restores provider state. Reads refresh every 15 seconds while open. Separate confirmation starts a prediction immediately, locks participation, cancels with provider refunds, or resolves the selected winning outcome with provider points distribution. Twitch decides eligibility and settlement. Uncertain writes require explicit refresh and never retry automatically.';
+    this.title.setAttribute('aria-label', 'Prediction title');
+    this.title.maxLength = 90;
+    this.choices.setAttribute('aria-label', 'Prediction outcomes, one per line');
+    this.duration.setAttribute('aria-label', 'Prediction window seconds');
+    this.duration.type = 'number';
+    this.duration.min = '30';
+    this.duration.max = '1800';
+    this.duration.value = '30';
+    this.confirm = this.button('Confirm reviewed prediction action', () => void this.send());
+    this.confirm.disabled = true;
+    this.status.setAttribute('role', 'status');
+    this.list.className = 'automod-list';
+    this.root.append(
+      legend,
+      help,
+      this.button('Grant broadcaster prediction consent', () => {
+        if (!this.auth?.authenticated) throw new Error('Log in as broadcaster');
+        const u = new URL(this.auth.loginURL);
+        u.searchParams.set('predictions', 'manage');
+        u.searchParams.set('account', this.auth.userID ?? '');
+        u.searchParams.set('channel', this.channel);
+        location.assign(u.href);
+      }),
+      this.button('Refresh/reconnect broadcaster predictions', () => void this.refresh()),
+      this.list,
+      this.title,
+      this.choices,
+      this.duration,
+      this.button('Preview new prediction', () => this.stageCreate()),
+      this.preview,
+      this.confirm,
+      this.status,
+    );
+    for (const input of [this.title, this.choices, this.duration])
+      input.addEventListener('input', () => this.clearReview());
+  }
+  private button(text: string, action: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.onclick = () => {
+      try {
+        if (!this.guarded() || this.busy || privacyEnabled())
+          throw new Error('Wait for the current action or exit privacy mode');
+        action();
+      } catch (e) {
+        this.status.textContent = e instanceof Error ? e.message : 'Predictions unavailable';
+      }
+    };
+    return b;
+  }
+  setScope(auth: AuthStatus | undefined, channel: string): void {
+    if (
+      this.auth?.userID !== auth?.userID ||
+      this.auth?.csrf !== auth?.csrf ||
+      channel !== this.channel ||
+      !auth?.authenticated ||
+      !auth.predictionsEnabled
+    ) {
+      this.stop();
+      this.title.value = '';
+      this.choices.value = '';
+    }
+    this.auth = auth;
+    this.channel = channel;
+    if (!auth?.predictionsManageEnabled) {
+      this.clearReview();
+      if (this.snapshot) this.paint();
+      this.status.textContent = 'Read-only prediction view; manage-prediction consent required for writes';
+    }
+  }
+  private clearReview(): void {
+    this.review = undefined;
+    this.preview.textContent = '';
+    this.confirm.disabled = true;
+  }
+  private async refresh(): Promise<void> {
+    const auth = this.auth;
+    if (!auth?.authenticated || !auth.userID || !auth.predictionsEnabled) {
+      this.status.textContent = 'Grant broadcaster prediction consent first';
+      return;
+    }
+    clearTimeout(this.timer);
+    this.controller?.abort();
+    const generation = this.generation,
+      controller = (this.controller = new AbortController());
+    try {
+      const res = await fetch('/api/auth/predictions?' + new URLSearchParams({ channel: this.channel }), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(25000)]),
+      });
+      if (!res.ok)
+        throw new Error(
+          'Prediction read unavailable (HTTP ' +
+            res.status +
+            '); select your broadcaster channel and check consent/eligibility',
+        );
+      const value = parsePredictionSnapshot(await res.json(), auth.userID, this.channel);
+      if (generation !== this.generation || privacyEnabled()) return;
+      this.outcomeUncertain = false;
+      this.snapshot = value;
+      this.paint();
+      this.status.textContent =
+        'Read broadcaster ' +
+        value.account +
+        ' / #' +
+        value.channel +
+        ' at ' +
+        new Date(value.at).toISOString() +
+        '. Latest ' +
+        value.predictions.length +
+        ' predictions; older predictions unavailable.';
+      this.timer = setTimeout(() => {
+        if (!this.busy) void this.refresh();
+      }, 15000);
+    } catch (e) {
+      if (generation !== this.generation || controller.signal.aborted) return;
+      this.snapshot = undefined;
+      this.rendered = '';
+      this.list.replaceChildren();
+      this.clearReview();
+      this.status.textContent = e instanceof Error ? e.message : 'Prediction state unavailable; reconnect explicitly';
+    }
+  }
+  private paint(): void {
+    const rendered = JSON.stringify([this.snapshot?.predictions, this.auth?.predictionsManageEnabled]);
+    if (rendered === this.rendered) return;
+    this.rendered = rendered;
+    this.list.replaceChildren();
+    for (const prediction of this.snapshot?.predictions ?? []) {
+      const row = document.createElement('p');
+      row.append(
+        document.createTextNode(
+          prediction.title +
+            ' · ' +
+            prediction.id +
+            ' · ' +
+            prediction.status +
+            (prediction.winning_outcome_id
+              ? ' · Winner: ' +
+                prediction.outcomes.find((o) => o.id === prediction.winning_outcome_id)?.title +
+                ' / ID ' +
+                prediction.winning_outcome_id
+              : '') +
+            ' · ' +
+            prediction.outcomes
+              .map((c) => c.title + ': ' + c.users + ' participants / ' + c.channel_points + ' points')
+              .join(' / '),
+        ),
+      );
+      if (prediction.status === 'ACTIVE' || prediction.status === 'LOCKED') {
+        for (const action of (prediction.status === 'ACTIVE' ? ['LOCKED', 'CANCELED'] : ['CANCELED']) as (
+          'LOCKED' | 'CANCELED'
+        )[]) {
+          const b = this.button('Preview ' + action + ' prediction ' + prediction.id, () =>
+            this.stageEnd(prediction, action),
+          );
+          b.disabled = !this.auth?.predictionsManageEnabled;
+          row.append(b);
+        }
+        for (const outcome of prediction.outcomes) {
+          const b = this.button('Preview resolve ' + prediction.id + ' with ' + outcome.title, () =>
+            this.stageEnd(prediction, 'RESOLVED', outcome.id),
+          );
+          b.disabled = !this.auth?.predictionsManageEnabled;
+          row.append(b);
+        }
+      }
+      this.list.append(row);
+    }
+    if (
+      this.review &&
+      this.review.action !== 'CREATE' &&
+      !this.snapshot?.predictions.some(
+        (p) =>
+          p.id === this.review?.id &&
+          (p.status === 'ACTIVE' || p.status === 'LOCKED') &&
+          (this.review.action !== 'LOCKED' || p.status === 'ACTIVE') &&
+          (this.review.action !== 'RESOLVED' ||
+            p.outcomes.some((o) => o.id === this.review?.winnerID && o.title === this.review.winnerTitle)),
+      )
+    )
+      this.clearReview();
+    if (
+      this.review?.action === 'CREATE' &&
+      this.snapshot?.predictions.some((p) => p.status === 'ACTIVE' || p.status === 'LOCKED')
+    )
+      this.clearReview();
+  }
+  private permitted(): void {
+    if (this.outcomeUncertain)
+      throw new Error('Refresh provider state before another action; the last outcome is uncertain');
+    if (
+      !this.auth?.authenticated ||
+      !this.auth.userID ||
+      !this.auth.predictionsManageEnabled ||
+      this.snapshot?.account !== this.auth.userID ||
+      this.snapshot.channel !== this.channel
+    )
+      throw new Error('Refresh your own broadcaster channel with manage-prediction consent');
+  }
+  private stageCreate(): void {
+    this.permitted();
+    if (this.snapshot?.predictions.some((p) => p.status === 'ACTIVE' || p.status === 'LOCKED'))
+      throw new Error('End the current active prediction first');
+    const definition = predictionDefinition({
+      title: this.title.value.trim(),
+      outcomes: this.choices.value
+        .split('\n')
+        .map((x) => x.trim())
+        .filter(Boolean),
+      window: Number(this.duration.value),
+    });
+    this.review = { action: 'CREATE', id: '', definition };
+    this.preview.textContent =
+      'Review CREATE for #' +
+      this.channel +
+      ' / broadcaster ' +
+      this.auth!.userID +
+      '\n' +
+      JSON.stringify(definition, null, 2) +
+      '\nConfirmation starts the prediction immediately. Scope channel:manage:predictions. No automatic retry.';
+    this.confirm.disabled = false;
+  }
+  private stageEnd(prediction: Prediction, action: 'LOCKED' | 'CANCELED' | 'RESOLVED', winnerID = ''): void {
+    this.permitted();
+    const current = this.snapshot?.predictions.find((p) => p.id === prediction.id);
+    if (
+      !current ||
+      !['ACTIVE', 'LOCKED'].includes(current.status) ||
+      (action === 'LOCKED' && current.status !== 'ACTIVE')
+    )
+      throw new Error('Prediction state changed');
+    const outcome = current.outcomes.find((o) => o.id === winnerID);
+    if (action === 'RESOLVED' && !outcome) throw new Error('Choose an observed winning outcome');
+    this.review = {
+      action,
+      id: prediction.id,
+      ...(outcome ? { winnerID: outcome.id, winnerTitle: outcome.title } : {}),
+    };
+    this.preview.textContent =
+      'Review ' +
+      action +
+      ' for #' +
+      this.channel +
+      ' / broadcaster ' +
+      this.auth!.userID +
+      '\nPrediction ' +
+      prediction.id +
+      ': ' +
+      prediction.title +
+      '\n' +
+      (action === 'RESOLVED'
+        ? 'WINNING OUTCOME: ' + outcome!.title + ' / ID ' + outcome!.id + '; Twitch distributes points.'
+        : action === 'CANCELED'
+          ? 'Cancels prediction; Twitch refunds participants.'
+          : 'Locks prediction; viewers can no longer participate.') +
+      '\nScope channel:manage:predictions. Confirmation sends once; no automatic retry.';
+    this.confirm.disabled = false;
+  }
+  private async send(): Promise<void> {
+    const review = this.review,
+      auth = this.auth;
+    if (!review || !auth?.userID || !auth.csrf) return;
+    const generation = this.generation,
+      account = auth.userID,
+      channel = this.channel,
+      id = crypto.randomUUID(),
+      abort = (this.writeAbort = new AbortController());
+    this.busy = true;
+    this.controller?.abort();
+    clearTimeout(this.timer);
+    this.confirm.disabled = true;
+    let saved = false,
+      started = false;
+    try {
+      this.permitted();
+      await this.journal.begin(account, {
+        id,
+        at: Date.now(),
+        channel,
+        target: review.id || 'new-prediction',
+        broadcasterID: account,
+        command:
+          review.action === 'CREATE'
+            ? '/predictioncreate'
+            : '/prediction' +
+              (review.action === 'LOCKED' ? 'lock' : review.action === 'CANCELED' ? 'cancel' : 'resolve') +
+              ' ' +
+              review.id +
+              (review.winnerID ? ' ' + review.winnerID : ''),
+        outcome: 'pending',
+        detail: '',
+      });
+      saved = true;
+      if (generation !== this.generation || privacyEnabled()) throw new Error('Account or private view changed');
+      started = true;
+      const res = await fetch('/api/auth/predictions', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': auth.csrf },
+        body: JSON.stringify({
+          account,
+          channel,
+          broadcasterID: account,
+          requestID: id,
+          action: review.action,
+          id: review.id,
+          title: review.definition?.title ?? '',
+          outcomes: review.definition?.outcomes ?? [],
+          window: review.definition?.window ?? 0,
+          winnerID: review.winnerID ?? '',
+        }),
+        signal: AbortSignal.any([abort.signal, AbortSignal.timeout(30000)]),
+      });
+      const raw: unknown = await res.json();
+      if (!raw || typeof raw !== 'object') throw new Error('Prediction result unavailable');
+      const v = raw as Record<string, unknown>;
+      if (
+        typeof v.sent !== 'boolean' ||
+        (v.uncertain !== undefined && typeof v.uncertain !== 'boolean') ||
+        (v.error !== undefined && (typeof v.error !== 'string' || v.error.length > 300))
+      )
+        throw new Error('Prediction result unavailable');
+      const prediction = v.sent && res.ok ? parsePrediction(v.prediction, account) : undefined;
+      const confirmed =
+        !!prediction &&
+        (review.action === 'CREATE'
+          ? prediction.status === 'ACTIVE' && prediction.title === review.definition?.title
+          : prediction.id === review.id &&
+            prediction.status === review.action &&
+            (review.action !== 'RESOLVED' || prediction.winning_outcome_id === review.winnerID));
+      const outcome = confirmed ? 'confirmed' : v.sent || v.uncertain ? 'uncertain' : 'rejected';
+      await this.journal.finish(
+        account,
+        id,
+        outcome,
+        confirmed
+          ? 'Provider confirmed prediction ' + prediction!.id
+          : typeof v.error === 'string'
+            ? v.error
+            : 'Prediction outcome unavailable; check Twitch',
+      );
+      if (generation === this.generation && !privacyEnabled()) {
+        this.outcomeUncertain = outcome === 'uncertain';
+        this.clearReview();
+        this.status.textContent =
+          outcome === 'confirmed'
+            ? 'Provider confirmed prediction ' + prediction!.id
+            : outcome === 'uncertain'
+              ? 'Prediction outcome uncertain; check Twitch and refresh before another action. No automatic retry'
+              : typeof v.error === 'string'
+                ? v.error
+                : 'Prediction action rejected';
+        if (confirmed) {
+          this.snapshot = {
+            account,
+            channel,
+            broadcasterID: account,
+            at: Date.now(),
+            predictions: [
+              prediction!,
+              ...(this.snapshot?.predictions ?? []).filter((p) => p.id !== prediction!.id),
+            ].slice(0, 20),
+          };
+          this.paint();
+        }
+        await this.changed();
+      }
+    } catch (e) {
+      if (saved)
+        try {
+          await this.journal.finish(
+            account,
+            id,
+            started ? 'uncertain' : 'rejected',
+            started ? 'Prediction request outcome unavailable; check Twitch' : 'No prediction request was sent',
+          );
+        } catch {
+          /* Saved pending receipt remains unconfirmed. */
+        }
+      if (generation === this.generation && !privacyEnabled()) {
+        this.outcomeUncertain = started;
+        this.clearReview();
+        this.status.textContent =
+          (started
+            ? 'Prediction outcome uncertain; check Twitch. No automatic retry. '
+            : 'No prediction request was sent. ') + (e instanceof Error ? e.message : 'Prediction unavailable');
+      }
+    } finally {
+      if (generation === this.generation) {
+        this.busy = false;
+        if (this.snapshot && !this.outcomeUncertain) this.timer = setTimeout(() => void this.refresh(), 15000);
+      }
+    }
+  }
+  stop(): void {
+    this.title.value = '';
+    this.choices.value = '';
+    this.generation++;
+    clearTimeout(this.timer);
+    this.controller?.abort();
+    this.writeAbort?.abort();
+    this.busy = false;
+    this.outcomeUncertain = false;
+    this.snapshot = undefined;
+    this.rendered = '';
+    this.list.replaceChildren();
+    this.clearReview();
+    this.status.textContent = '';
+  }
 }

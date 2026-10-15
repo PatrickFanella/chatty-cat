@@ -2,181 +2,619 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Composer, parseSendResult, validateMessage } from './composer';
 import type { ChatMessage } from './protocol';
-import {completionDefaults,setCompletionPreferences} from './completion-preferences';
+import { completionDefaults, setCompletionPreferences } from './completion-preferences';
 
-const signedIn = { enabled: true, authenticated: true, loginURL: 'https://chat.subcult.tv/api/auth/login', login: 'viewer', userID: '42', csrf: 'csrf' };
-const reply: ChatMessage = { id: 'parent-id', channel: 'other', command: 'PRIVMSG', login: 'someone', text: '<b>hi</b>', timestamp: 1000, tags: {} };
+const signedIn = {
+  enabled: true,
+  authenticated: true,
+  loginURL: 'https://chat.subcult.tv/api/auth/login',
+  login: 'viewer',
+  userID: '42',
+  csrf: 'csrf',
+};
+const reply: ChatMessage = {
+  id: 'parent-id',
+  channel: 'other',
+  command: 'PRIVMSG',
+  login: 'someone',
+  text: '<b>hi</b>',
+  timestamp: 1000,
+  tags: {},
+};
 let stops: Composer[] = [];
-beforeEach(() => { vi.useFakeTimers(); localStorage.clear(); sessionStorage.clear(); });
-afterEach(() => { for (const composer of stops) composer.stop(); stops = []; vi.unstubAllGlobals(); vi.useRealTimers();setCompletionPreferences(completionDefaults); });
+beforeEach(() => {
+  vi.useFakeTimers();
+  localStorage.clear();
+  sessionStorage.clear();
+});
+afterEach(() => {
+  for (const composer of stops) composer.stop();
+  stops = [];
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+  setCompletionPreferences(completionDefaults);
+});
 function setup() {
   const form = document.createElement('form');
-  form.innerHTML = '<select id="send-channel"></select><textarea id="message"></textarea><div id="completions" hidden></div><button id="send"></button><span id="message-length"></span><span id="send-status"></span><div id="reply-target"><span id="reply-label"></span><button type="button" id="cancel-reply"></button></div>';
-  const composer = new Composer(form, ['hasanabi', 'other']); stops.push(composer);
+  form.innerHTML =
+    '<select id="send-channel"></select><textarea id="message"></textarea><div id="completions" hidden></div><button id="send"></button><span id="message-length"></span><span id="send-status"></span><div id="reply-target"><span id="reply-label"></span><button type="button" id="cancel-reply"></button></div>';
+  const composer = new Composer(form, ['hasanabi', 'other']);
+  stops.push(composer);
   const input = form.querySelector<HTMLTextAreaElement>('#message')!;
   const channel = form.querySelector<HTMLSelectElement>('#send-channel')!;
   const button = form.querySelector<HTMLButtonElement>('#send')!;
   const status = form.querySelector('#send-status')!;
-  const edit = (text: string) => { input.value = text; input.dispatchEvent(new Event('input')); };
+  const edit = (text: string) => {
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+  };
   const submit = () => form.dispatchEvent(new SubmitEvent('submit', { cancelable: true }));
   return { composer, form, input, channel, button, status, edit, submit };
 }
-it('keeps IME text intact and suppresses the completion menu and acceptance during composition',()=>{
- const {composer,input,form,edit}=setup();composer.setAuth(signedIn);composer.setCandidates(['patrick__eff'],[]);edit('@pa');input.setSelectionRange(3,3);edit('@pa');expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(false);
- input.dispatchEvent(new Event('compositionstart'));expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(true);input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',cancelable:true}));expect(input.value).toBe('@pa');input.dispatchEvent(new Event('compositionend'));expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(false);
+it('keeps IME text intact and suppresses the completion menu and acceptance during composition', () => {
+  const { composer, input, form, edit } = setup();
+  composer.setAuth(signedIn);
+  composer.setCandidates(['patrick__eff'], []);
+  edit('@pa');
+  input.setSelectionRange(3, 3);
+  edit('@pa');
+  expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(false);
+  input.dispatchEvent(new Event('compositionstart'));
+  expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(true);
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+  expect(input.value).toBe('@pa');
+  input.dispatchEvent(new Event('compositionend'));
+  expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(false);
 });
-it('updates browser spellcheck without changing the draft and accepts an alias using the real login',()=>{
- const {composer,input,edit,form}=setup();composer.setAuth(signedIn);composer.setCandidates(['alice'],[]);setCompletionPreferences({...completionDefaults,spellcheck:true,aliases:[{login:'alice',alias:'Friend'}]});document.dispatchEvent(new Event('completionpreferenceschange'));edit('@fri');input.setSelectionRange(4,4);edit('@fri');expect(input.spellcheck).toBe(true);expect(form.querySelector('#completions')?.textContent).toBe('Friend · alice');input.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',cancelable:true}));expect(input.value).toBe('@alice ');
+it('updates browser spellcheck without changing the draft and accepts an alias using the real login', () => {
+  const { composer, input, edit, form } = setup();
+  composer.setAuth(signedIn);
+  composer.setCandidates(['alice'], []);
+  setCompletionPreferences({ ...completionDefaults, spellcheck: true, aliases: [{ login: 'alice', alias: 'Friend' }] });
+  document.dispatchEvent(new Event('completionpreferenceschange'));
+  edit('@fri');
+  input.setSelectionRange(4, 4);
+  edit('@fri');
+  expect(input.spellcheck).toBe(true);
+  expect(form.querySelector('#completions')?.textContent).toBe('Friend · alice');
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+  expect(input.value).toBe('@alice ');
 });
-it('can include the broadcaster without observed messages and reads scoped extra names at completion time',()=>{const {composer,input,form,edit}=setup();composer.setAuth(signedIn);setCompletionPreferences({...completionDefaults,includeBroadcaster:true});edit('@hasa');input.setSelectionRange(5,5);edit('@hasa');expect(form.querySelector('#completions')?.textContent).toBe('@hasanabi');let names=['bob'];composer.configureExtraNames(()=>names);edit('@bo');input.setSelectionRange(3,3);edit('@bo');expect(form.querySelector('#completions')?.textContent).toBe('@bob');names=[];edit('@bo');expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(true);});
+it('can include the broadcaster without observed messages and reads scoped extra names at completion time', () => {
+  const { composer, input, form, edit } = setup();
+  composer.setAuth(signedIn);
+  setCompletionPreferences({ ...completionDefaults, includeBroadcaster: true });
+  edit('@hasa');
+  input.setSelectionRange(5, 5);
+  edit('@hasa');
+  expect(form.querySelector('#completions')?.textContent).toBe('@hasanabi');
+  let names = ['bob'];
+  composer.configureExtraNames(() => names);
+  edit('@bo');
+  input.setSelectionRange(3, 3);
+  edit('@bo');
+  expect(form.querySelector('#completions')?.textContent).toBe('@bob');
+  names = [];
+  edit('@bo');
+  expect(form.querySelector<HTMLElement>('#completions')!.hidden).toBe(true);
+});
 describe('message validation', () => {
-  it('counts Unicode codepoints', () => { expect(validateMessage('😀'.repeat(500))).toBeUndefined(); expect(validateMessage('😀'.repeat(501))).toBeDefined(); });
-  it.each(['', ' ', 'hi\nthere', '\x01ACTION hi\x01', ' /unsupported user'])('rejects unsafe or unsupported input %j', (text) => expect(validateMessage(text)).toBeDefined());
+  it('counts Unicode codepoints', () => {
+    expect(validateMessage('😀'.repeat(500))).toBeUndefined();
+    expect(validateMessage('😀'.repeat(501))).toBeDefined();
+  });
+  it.each(['', ' ', 'hi\nthere', '\x01ACTION hi\x01', ' /unsupported user'])(
+    'rejects unsafe or unsupported input %j',
+    (text) => expect(validateMessage(text)).toBeDefined(),
+  );
   it('validates send acknowledgements', () => {
-    expect(parseSendResult({ sent: true, messageID: 'id', access_token: 'ignored' })).toEqual({ sent: true, messageID: 'id' });
-    expect(parseSendResult({ sent: false, error: 'dropped', uncertain: true })).toEqual({ sent: false, error: 'dropped', uncertain: true });
-    for (const value of [null, {}, { sent: true }, { sent: false }, { sent: 'yes' }, { sent: false, error: 'x', uncertain: 'yes' }]) expect(() => parseSendResult(value)).toThrow();
+    expect(parseSendResult({ sent: true, messageID: 'id', access_token: 'ignored' })).toEqual({
+      sent: true,
+      messageID: 'id',
+    });
+    expect(parseSendResult({ sent: false, error: 'dropped', uncertain: true })).toEqual({
+      sent: false,
+      error: 'dropped',
+      uncertain: true,
+    });
+    for (const value of [
+      null,
+      {},
+      { sent: true },
+      { sent: false },
+      { sent: 'yes' },
+      { sent: false, error: 'x', uncertain: 'yes' },
+    ])
+      expect(() => parseSendResult(value)).toThrow();
   });
 });
-it('keeps drafts and sent history separate for each account without claiming legacy drafts',()=>{
- const x=setup();sessionStorage.setItem('chatthing:v1:draft:hasanabi','unowned legacy draft');x.composer.setAuth(signedIn);x.edit('alice draft');localStorage.setItem('chatthing:v1:sent:42:hasanabi',JSON.stringify(['alice history']));x.composer.setAuth({...signedIn,userID:'43',login:'bob'});expect(x.input.value).toBe('');x.input.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',cancelable:true}));expect(x.input.value).toBe('');x.edit('bob draft');x.composer.setAuth(signedIn);expect(x.input.value).toBe('alice draft');x.input.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowUp',cancelable:true}));expect(x.input.value).toBe('alice history');expect(sessionStorage.getItem('chatthing:v1:draft:hasanabi')).toBe('unowned legacy draft');
+it('keeps drafts and sent history separate for each account without claiming legacy drafts', () => {
+  const x = setup();
+  sessionStorage.setItem('chatthing:v1:draft:hasanabi', 'unowned legacy draft');
+  x.composer.setAuth(signedIn);
+  x.edit('alice draft');
+  localStorage.setItem('chatthing:v1:sent:42:hasanabi', JSON.stringify(['alice history']));
+  x.composer.setAuth({ ...signedIn, userID: '43', login: 'bob' });
+  expect(x.input.value).toBe('');
+  x.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true }));
+  expect(x.input.value).toBe('');
+  x.edit('bob draft');
+  x.composer.setAuth(signedIn);
+  expect(x.input.value).toBe('alice draft');
+  x.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true }));
+  expect(x.input.value).toBe('alice history');
+  expect(sessionStorage.getItem('chatthing:v1:draft:hasanabi')).toBe('unowned legacy draft');
 });
-it('aborts the previous account send and ignores its response while the new account is sending',async()=>{
- const results:((value:Response)=>void)[]=[],signals:AbortSignal[]=[];vi.stubGlobal('fetch',vi.fn((_url:string,options:RequestInit)=>{signals.push(options.signal as AbortSignal);return new Promise<Response>(r=>results.push(r));}));const x=setup();x.composer.setAuth(signedIn);x.edit('old message');x.submit();x.composer.setAuth({...signedIn,userID:'43',login:'bob'});expect(signals[0]?.aborted).toBe(true);expect(x.input.value).toBe('');x.edit('new message');x.submit();results[0]?.(new Response(JSON.stringify({sent:true,messageID:'old'})));await vi.advanceTimersByTimeAsync(0);expect(x.composer.sending).toBe(true);expect(x.status.textContent).toBe('Sending…');results[1]?.(new Response(JSON.stringify({sent:true,messageID:'new'})));await vi.advanceTimersByTimeAsync(0);expect(x.composer.sending).toBe(false);expect(localStorage.getItem('chatthing:v1:sent:43:hasanabi')).toContain('new message');expect(localStorage.getItem('chatthing:v1:sent:42:hasanabi')).toBeNull();
+it('aborts the previous account send and ignores its response while the new account is sending', async () => {
+  const results: ((value: Response) => void)[] = [],
+    signals: AbortSignal[] = [];
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((_url: string, options: RequestInit) => {
+      signals.push(options.signal as AbortSignal);
+      return new Promise<Response>((r) => results.push(r));
+    }),
+  );
+  const x = setup();
+  x.composer.setAuth(signedIn);
+  x.edit('old message');
+  x.submit();
+  x.composer.setAuth({ ...signedIn, userID: '43', login: 'bob' });
+  expect(signals[0]?.aborted).toBe(true);
+  expect(x.input.value).toBe('');
+  x.edit('new message');
+  x.submit();
+  results[0]?.(new Response(JSON.stringify({ sent: true, messageID: 'old' })));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(x.composer.sending).toBe(true);
+  expect(x.status.textContent).toBe('Sending…');
+  results[1]?.(new Response(JSON.stringify({ sent: true, messageID: 'new' })));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(x.composer.sending).toBe(false);
+  expect(localStorage.getItem('chatthing:v1:sent:43:hasanabi')).toContain('new message');
+  expect(localStorage.getItem('chatthing:v1:sent:42:hasanabi')).toBeNull();
 });
 it('keeps sending disabled until authenticated', () => {
   const { composer, input, button, edit } = setup();
   expect(input.disabled).toBe(true);
-  composer.setAuth(signedIn); expect(input.disabled).toBe(false); expect(button.disabled).toBe(true);
-  edit('hi'); expect(button.disabled).toBe(false);
-  composer.setAuth(undefined); expect(button.disabled).toBe(true);
+  composer.setAuth(signedIn);
+  expect(input.disabled).toBe(false);
+  expect(button.disabled).toBe(true);
+  edit('hi');
+  expect(button.disabled).toBe(false);
+  composer.setAuth(undefined);
+  expect(button.disabled).toBe(true);
 });
-it('keeps an armed reply and its draft when refocusing the same pane channel',()=>{
- const {composer,form,input,edit}=setup();composer.setAuth(signedIn);composer.selectReply(reply);edit('Reply draft');composer.setTarget('other');expect(input.value).toBe('Reply draft');expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
+it('keeps an armed reply and its draft when refocusing the same pane channel', () => {
+  const { composer, form, input, edit } = setup();
+  composer.setAuth(signedIn);
+  composer.selectReply(reply);
+  edit('Reply draft');
+  composer.setTarget('other');
+  expect(input.value).toBe('Reply draft');
+  expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
 });
 it('sends CSRF and target, clears accepted text and saves input history', async () => {
-  const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'sent-id' }) }); vi.stubGlobal('fetch', fetcher);
-  const { composer, input, status, edit, submit } = setup(); composer.setAuth(signedIn); edit('hello 😀'); submit();
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'sent-id' }) });
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, input, status, edit, submit } = setup();
+  composer.setAuth(signedIn);
+  edit('hello 😀');
+  submit();
   await vi.advanceTimersByTimeAsync(0);
-  expect(input.value).toBe(''); expect(status.textContent).toBe('Sent');
+  expect(input.value).toBe('');
+  expect(status.textContent).toBe('Sent');
   const options = fetcher.mock.calls[0]?.[1] as RequestInit;
   expect(options.headers).toEqual({ 'Content-Type': 'application/json', 'X-CSRF-Token': 'csrf' });
-  expect(JSON.parse(String(options.body))).toMatchObject({ channel: 'hasanabi', message: 'hello 😀', requestID: expect.any(String) });
+  expect(JSON.parse(String(options.body))).toMatchObject({
+    channel: 'hasanabi',
+    message: 'hello 😀',
+    requestID: expect.any(String),
+  });
   expect(JSON.parse(String(options.body))).not.toHaveProperty('sender_id');
-  edit('draft'); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true })); expect(input.value).toBe('hello 😀');
-  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true })); expect(input.value).toBe('draft');
+  edit('draft');
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true }));
+  expect(input.value).toBe('hello 😀');
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', cancelable: true }));
+  expect(input.value).toBe('draft');
 });
 it('keeps channel drafts separate and binds replies to their channel', async () => {
-  const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'id' }) }); vi.stubGlobal('fetch', fetcher);
-  const { composer, form, input, channel, edit, submit } = setup(); composer.setAuth(signedIn); edit('first draft');
-  composer.selectReply(reply); expect(channel.value).toBe('other');
-  expect(form.querySelector('#reply-label')?.textContent).toContain('<b>hi</b>'); expect(form.querySelector('#reply-label b')).toBeNull();
-  edit('reply text'); submit(); await vi.advanceTimersByTimeAsync(0);
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'id' }) });
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, form, input, channel, edit, submit } = setup();
+  composer.setAuth(signedIn);
+  edit('first draft');
+  composer.selectReply(reply);
+  expect(channel.value).toBe('other');
+  expect(form.querySelector('#reply-label')?.textContent).toContain('<b>hi</b>');
+  expect(form.querySelector('#reply-label b')).toBeNull();
+  edit('reply text');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
   expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body))).toMatchObject({ channel: 'other', replyID: 'parent-id' });
-  channel.value = 'hasanabi'; channel.dispatchEvent(new Event('change')); expect(input.value).toBe('first draft');
+  channel.value = 'hasanabi';
+  channel.dispatchEvent(new Event('change'));
+  expect(input.value).toBe('first draft');
   expect((form.querySelector('#reply-target') as HTMLElement).hidden).toBe(true);
 });
 it('preserves rejected text and permits a new request after a definite rejection', async () => {
-  const fetcher = vi.fn().mockResolvedValue({ ok: false, status: 422, json: async () => ({ sent: false, error: 'Twitch blocked this message' }) }); vi.stubGlobal('fetch', fetcher);
-  const { composer, input, status, edit, submit } = setup(); composer.setAuth(signedIn); edit('hello');
-  submit(); await vi.advanceTimersByTimeAsync(0); submit(); await vi.advanceTimersByTimeAsync(0);
-  expect(input.value).toBe('hello'); expect(status.textContent).toContain('blocked');
-  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body)).requestID).not.toBe(JSON.parse(String(fetcher.mock.calls[1]?.[1].body)).requestID);
+  const fetcher = vi.fn().mockResolvedValue({
+    ok: false,
+    status: 422,
+    json: async () => ({ sent: false, error: 'Twitch blocked this message' }),
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, input, status, edit, submit } = setup();
+  composer.setAuth(signedIn);
+  edit('hello');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(input.value).toBe('hello');
+  expect(status.textContent).toContain('blocked');
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body)).requestID).not.toBe(
+    JSON.parse(String(fetcher.mock.calls[1]?.[1].body)).requestID,
+  );
 });
 it('reuses a request identifier when the response is lost and prevents simultaneous posts', async () => {
-  const fetcher = vi.fn().mockRejectedValue(new Error('network')); vi.stubGlobal('fetch', fetcher);
-  const { composer, input, status, edit, submit } = setup(); composer.setAuth(signedIn); edit('hello');
-  submit(); submit(); await vi.advanceTimersByTimeAsync(0);
-  expect(fetcher).toHaveBeenCalledTimes(1); expect(input.value).toBe('hello'); expect(status.textContent).toContain('check chat');
-  submit(); await vi.advanceTimersByTimeAsync(0);
-  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body)).requestID).toBe(JSON.parse(String(fetcher.mock.calls[1]?.[1].body)).requestID);
+  const fetcher = vi.fn().mockRejectedValue(new Error('network'));
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, input, status, edit, submit } = setup();
+  composer.setAuth(signedIn);
+  edit('hello');
+  submit();
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(input.value).toBe('hello');
+  expect(status.textContent).toContain('check chat');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body)).requestID).toBe(
+    JSON.parse(String(fetcher.mock.calls[1]?.[1].body)).requestID,
+  );
 });
 it('disables expired sessions without losing the draft', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({ sent: false, error: 'Session expired; log in again' }) }));
-  const { composer, input, status, edit, submit } = setup(); composer.setAuth(signedIn); edit('draft'); submit(); await vi.advanceTimersByTimeAsync(0);
-  expect(input.disabled).toBe(true); expect(input.value).toBe('draft'); expect(status.textContent).toContain('expired');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ sent: false, error: 'Session expired; log in again' }),
+    }),
+  );
+  const { composer, input, status, edit, submit } = setup();
+  composer.setAuth(signedIn);
+  edit('draft');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(input.disabled).toBe(true);
+  expect(input.value).toBe('draft');
+  expect(status.textContent).toContain('expired');
 });
 it('lets completion consume Enter before send and cycles with Tab', async () => {
-  const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
-  const { composer, form, input, edit } = setup(); composer.setAuth(signedIn); composer.setCandidates(['viewer', 'violet'], ['Kappa']);
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, form, input, edit } = setup();
+  composer.setAuth(signedIn);
+  composer.setCandidates(['viewer', 'violet'], ['Kappa']);
   edit('@vi');
   expect((form.querySelector('#completions') as HTMLElement).hidden).toBe(false);
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }));
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
-  expect(input.value).toBe('@violet '); expect(fetcher).not.toHaveBeenCalled();
+  expect(input.value).toBe('@violet ');
+  expect(fetcher).not.toHaveBeenCalled();
   expect(input.getAttribute('aria-expanded')).toBe('false');
-  edit('Kap'); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }));
-  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })); expect(input.value).toBe('Kappa ');
+  edit('Kap');
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }));
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+  expect(input.value).toBe('Kappa ');
 });
 it('preserves multiline editing and IME Enter, then sends normalized text', async () => {
-  const fetcher = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'id' }) }); vi.stubGlobal('fetch', fetcher);
-  const { composer, input, edit } = setup(); composer.setAuth(signedIn); edit('one\ntwo');
-  const shift = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, cancelable: true }); input.dispatchEvent(shift); expect(shift.defaultPrevented).toBe(false);
-  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, cancelable: true })); expect(fetcher).not.toHaveBeenCalled();
-  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true })); await vi.advanceTimersByTimeAsync(0);
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, messageID: 'id' }) });
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, input, edit } = setup();
+  composer.setAuth(signedIn);
+  edit('one\ntwo');
+  const shift = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, cancelable: true });
+  input.dispatchEvent(shift);
+  expect(shift.defaultPrevented).toBe(false);
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, cancelable: true }));
+  expect(fetcher).not.toHaveBeenCalled();
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+  await vi.advanceTimersByTimeAsync(0);
   expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body)).message).toBe('one two');
 });
 it('keeps arrow keys inside multiline drafts and cancels replies with Escape', () => {
   localStorage.setItem('chatthing:v1:sent:hasanabi', '["old"]');
-  const { composer, input, form, edit } = setup(); composer.setAuth(signedIn); edit('one\ntwo'); input.setSelectionRange(6, 6);
-  const arrow = new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true }); input.dispatchEvent(arrow); expect(arrow.defaultPrevented).toBe(false); expect(input.value).toBe('one\ntwo');
-  composer.selectReply(reply); input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+  const { composer, input, form, edit } = setup();
+  composer.setAuth(signedIn);
+  edit('one\ntwo');
+  input.setSelectionRange(6, 6);
+  const arrow = new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true });
+  input.dispatchEvent(arrow);
+  expect(arrow.defaultPrevented).toBe(false);
+  expect(input.value).toBe('one\ntwo');
+  composer.selectReply(reply);
+  input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
   expect((form.querySelector('#reply-target') as HTMLElement).hidden).toBe(true);
 });
 it('inserts picker codes at the selection with spacing and preserves trailing text', () => {
-  const { composer, input, edit } = setup(); composer.setAuth(signedIn); edit('hello world'); input.setSelectionRange(6, 11);
-  composer.insert('Kappa'); expect(input.value).toBe('hello Kappa '); expect(input.selectionStart).toBe(12);
-  edit('hi'); input.setSelectionRange(2, 2); composer.insert('😀'); expect(input.value).toBe('hi 😀 ');
-  composer.setAuth(undefined); composer.insert('Kappa'); expect(input.value).toBe('hi 😀 ');
+  const { composer, input, edit } = setup();
+  composer.setAuth(signedIn);
+  edit('hello world');
+  input.setSelectionRange(6, 11);
+  composer.insert('Kappa');
+  expect(input.value).toBe('hello Kappa ');
+  expect(input.selectionStart).toBe(12);
+  edit('hi');
+  input.setSelectionRange(2, 2);
+  composer.insert('😀');
+  expect(input.value).toBe('hi 😀 ');
+  composer.setAuth(undefined);
+  composer.insert('Kappa');
+  expect(input.value).toBe('hi 😀 ');
 });
-it('accepts commands without echoing them into chat and preserves an armed reply',async()=>{
- const fetcher=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,command:true})});vi.stubGlobal('fetch',fetcher);
- const {composer,input,status,edit,submit,form}=setup();composer.setAuth(signedIn);
- composer.selectReply({id:'parent',command:'PRIVMSG',channel:'hasanabi',login:'alice',text:'hello',timestamp:1,tags:{}});
- edit('/slow 30');submit();await vi.advanceTimersByTimeAsync(0);expect(status.textContent).toBe('Command completed');expect(input.value).toBe('');
- expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
- expect(JSON.parse((fetcher.mock.calls[0]?.[1] as RequestInit).body as string)).not.toHaveProperty('replyID');
- expect(parseSendResult({sent:true,command:true})).toEqual({sent:true,command:true});expect(()=>parseSendResult({sent:true,command:'yes'})).toThrow();
+it('accepts commands without echoing them into chat and preserves an armed reply', async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, command: true }) });
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, input, status, edit, submit, form } = setup();
+  composer.setAuth(signedIn);
+  composer.selectReply({
+    id: 'parent',
+    command: 'PRIVMSG',
+    channel: 'hasanabi',
+    login: 'alice',
+    text: 'hello',
+    timestamp: 1,
+    tags: {},
+  });
+  edit('/slow 30');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(status.textContent).toBe('Command completed');
+  expect(input.value).toBe('');
+  expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
+  expect(JSON.parse((fetcher.mock.calls[0]?.[1] as RequestInit).body as string)).not.toHaveProperty('replyID');
+  expect(parseSendResult({ sent: true, command: true })).toEqual({ sent: true, command: true });
+  expect(() => parseSendResult({ sent: true, command: 'yes' })).toThrow();
 });
-it('permits supported slash commands and rejects unknown commands',()=>{
- for(const command of ['/ban alice','/timeout alice 60','/clear','/color blue','/announcepurple hello','/followers 10'])expect(validateMessage(command)).toBeUndefined();
- expect(validateMessage('/me hello')).toBeUndefined();expect(validateMessage('/raid alice')).toBeUndefined();
+it('permits supported slash commands and rejects unknown commands', () => {
+  for (const command of [
+    '/ban alice',
+    '/timeout alice 60',
+    '/clear',
+    '/color blue',
+    '/announcepurple hello',
+    '/followers 10',
+  ])
+    expect(validateMessage(command)).toBeUndefined();
+  expect(validateMessage('/me hello')).toBeUndefined();
+  expect(validateMessage('/raid alice')).toBeUndefined();
 });
-it('adopts action acknowledgements while retaining an armed reply',async()=>{
- vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,action:true,messageID:'action-id'})}));
- const{composer,input,status,edit,submit,form}=setup();composer.setAuth(signedIn);composer.selectReply(reply);edit('/me waves');submit();await vi.advanceTimersByTimeAsync(0);
- expect(status.textContent).toBe('Sent');expect(input.value).toBe('');expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
- expect(parseSendResult({sent:true,action:true,messageID:'action-id'})).toEqual({sent:true,action:true,messageID:'action-id'});
+it('adopts action acknowledgements while retaining an armed reply', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ sent: true, action: true, messageID: 'action-id' }),
+    }),
+  );
+  const { composer, input, status, edit, submit, form } = setup();
+  composer.setAuth(signedIn);
+  composer.selectReply(reply);
+  edit('/me waves');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(status.textContent).toBe('Sent');
+  expect(input.value).toBe('');
+  expect(form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(false);
+  expect(parseSendResult({ sent: true, action: true, messageID: 'action-id' })).toEqual({
+    sent: true,
+    action: true,
+    messageID: 'action-id',
+  });
 });
-it('keeps whisper content out of persistent drafts and sent history and allows it during room cooldown',async()=>{
- const fetcher=vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,command:true,whisper:true,recipient:'alice'})});vi.stubGlobal('fetch',fetcher);
- const {composer,input,status,edit,submit,button}=setup();composer.setAuth(signedIn);composer.setBlock('Slow mode');edit('/w alice private text');
- expect(button.disabled).toBe(false);expect(sessionStorage.getItem('chatthing:v1:draft:42:hasanabi')).toBe('');submit();await vi.advanceTimersByTimeAsync(0);
- expect(input.value).toBe('');expect(status.textContent).toContain('does not confirm delivery');expect(localStorage.getItem('chatthing:v1:sent:42:hasanabi')).not.toContain('private text');
- edit('unfinished');composer.prepareWhisper('alice');expect(input.value).toBe('unfinished');edit('');composer.prepareWhisper('alice');expect(input.value).toBe('/w alice ');
- for(const value of [{sent:true,whisper:true,messageID:'id'},{sent:true,command:true,whisper:'yes'},{sent:true,command:true,whisper:true,recipient:'bad!' }])expect(()=>parseSendResult(value)).toThrow();
+it('keeps whisper content out of persistent drafts and sent history and allows it during room cooldown', async () => {
+  const fetcher = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ sent: true, command: true, whisper: true, recipient: 'alice' }),
+  });
+  vi.stubGlobal('fetch', fetcher);
+  const { composer, input, status, edit, submit, button } = setup();
+  composer.setAuth(signedIn);
+  composer.setBlock('Slow mode');
+  edit('/w alice private text');
+  expect(button.disabled).toBe(false);
+  expect(sessionStorage.getItem('chatthing:v1:draft:42:hasanabi')).toBe('');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(input.value).toBe('');
+  expect(status.textContent).toContain('does not confirm delivery');
+  expect(localStorage.getItem('chatthing:v1:sent:42:hasanabi')).not.toContain('private text');
+  edit('unfinished');
+  composer.prepareWhisper('alice');
+  expect(input.value).toBe('unfinished');
+  edit('');
+  composer.prepareWhisper('alice');
+  expect(input.value).toBe('/w alice ');
+  for (const value of [
+    { sent: true, whisper: true, messageID: 'id' },
+    { sent: true, command: true, whisper: 'yes' },
+    { sent: true, command: true, whisper: true, recipient: 'bad!' },
+  ])
+    expect(() => parseSendResult(value)).toThrow();
 });
 
-it('reports a raid as a pending request rather than completed delivery',async()=>{
- vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,status:200,json:async()=>({sent:true,command:true})}));
- const {composer,edit,submit,status}=setup();composer.setAuth(signedIn);edit('/raid alice');submit();await vi.advanceTimersByTimeAsync(0);expect(status.textContent).toContain('Raid requested');
+it('reports a raid as a pending request rather than completed delivery', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ sent: true, command: true }) }),
+  );
+  const { composer, edit, submit, status } = setup();
+  composer.setAuth(signedIn);
+  edit('/raid alice');
+  submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(status.textContent).toContain('Raid requested');
 });
-it('previews a custom invocation without sending or replacing its unsent draft',()=>{
- const ui=setup();ui.composer.setAuth(signedIn);const preview=vi.fn(()=>true);const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);
- ui.composer.configureCommands(['/greet'],preview);ui.edit('/greet chat');expect(ui.button.disabled).toBe(false);ui.submit();
- expect(preview).toHaveBeenCalledWith('/greet chat');expect(fetcher).not.toHaveBeenCalled();expect(ui.input.value).toBe('/greet chat');
+it('previews a custom invocation without sending or replacing its unsent draft', () => {
+  const ui = setup();
+  ui.composer.setAuth(signedIn);
+  const preview = vi.fn(() => true);
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  ui.composer.configureCommands(['/greet'], preview);
+  ui.edit('/greet chat');
+  expect(ui.button.disabled).toBe(false);
+  ui.submit();
+  expect(preview).toHaveBeenCalledWith('/greet chat');
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(ui.input.value).toBe('/greet chat');
 });
-it('does not echo a pending private send into a new account or retain its private draft',async()=>{
- const ui=setup();ui.composer.setAuth(signedIn);const result=vi.fn();
- let resolve:((response:Response)=>void)|undefined;vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(done=>{resolve=done;})));
- const form=document.createElement('form');form.innerHTML=ui.form.innerHTML;const composer=new Composer(form,['hasanabi'],()=>{},result);stops.push(composer);composer.setAuth(signedIn);
- const input=form.querySelector<HTMLTextAreaElement>('#message')!;input.value='/w alice private body';input.dispatchEvent(new Event('input'));form.dispatchEvent(new SubmitEvent('submit',{cancelable:true}));composer.setAuth({...signedIn,userID:'other',login:'other'});expect(input.value).toBe('');resolve?.(new Response(JSON.stringify({sent:true,command:true,whisper:true,recipient:'alice'})));await vi.waitFor(()=>expect(form.querySelector('#send-status')!.textContent).toContain('Account changed'));expect(result).not.toHaveBeenCalled();
+it('does not echo a pending private send into a new account or retain its private draft', async () => {
+  const ui = setup();
+  ui.composer.setAuth(signedIn);
+  const result = vi.fn();
+  let resolve: ((response: Response) => void) | undefined;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise<Response>((done) => {
+          resolve = done;
+        }),
+    ),
+  );
+  const form = document.createElement('form');
+  form.innerHTML = ui.form.innerHTML;
+  const composer = new Composer(form, ['hasanabi'], () => {}, result);
+  stops.push(composer);
+  composer.setAuth(signedIn);
+  const input = form.querySelector<HTMLTextAreaElement>('#message')!;
+  input.value = '/w alice private body';
+  input.dispatchEvent(new Event('input'));
+  form.dispatchEvent(new SubmitEvent('submit', { cancelable: true }));
+  composer.setAuth({ ...signedIn, userID: 'other', login: 'other' });
+  expect(input.value).toBe('');
+  resolve?.(new Response(JSON.stringify({ sent: true, command: true, whisper: true, recipient: 'alice' })));
+  await vi.waitFor(() => expect(form.querySelector('#send-status')!.textContent).toContain('Account changed'));
+  expect(result).not.toHaveBeenCalled();
 });
-it('dispatches local commands while signed out, retains drafts and ignores IME submissions without contacting Twitch',async()=>{const x=setup(),dispatch=vi.fn(async()=> 'Local action completed'),fetch=vi.fn();vi.stubGlobal('fetch',fetch);x.composer.configureLocal(dispatch);x.edit('/clearmessages');expect(x.input.disabled).toBe(false);expect(x.button.textContent).toBe('Run locally');x.input.dispatchEvent(new Event('compositionstart'));x.submit();expect(dispatch).not.toHaveBeenCalled();x.input.dispatchEvent(new Event('compositionend'));x.submit();await vi.waitFor(()=>expect(x.status.textContent).toBe('Local action completed'));expect(x.input.value).toBe('/clearmessages');expect(fetch).not.toHaveBeenCalled();});
-it('stages a selected public reply without sending and preserves a different channel draft',()=>{const x=setup();x.composer.setAuth(signedIn);x.edit('source draft');x.composer.stageReply(reply,'public answer');expect(x.input.value).toBe('public answer');expect(x.form.querySelector('#reply-label')?.textContent).toContain('someone');expect(sessionStorage.getItem('chatthing:v1:draft:42:hasanabi')).toBe('source draft');x.composer.setAuth(undefined);expect(x.form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(true);});
-it('truncates an overlong message for review without sending, then strips a reply recipient only when sending that reply',async()=>{const {setPresentation,presentationDefaults}=await import('./presentation');const x=setup();x.composer.setAuth(signedIn);const fetch=vi.fn(async(_input:RequestInfo|URL,_init?:RequestInit)=>new Response(JSON.stringify({sent:true,messageID:'message-id'})));vi.stubGlobal('fetch',fetch);setPresentation({...presentationDefaults,overflow:'truncate'});x.edit('😀'.repeat(501));x.submit();expect([...x.input.value]).toHaveLength(500);expect(fetch).not.toHaveBeenCalled();expect(x.status.textContent).toContain('review');x.composer.stageReply(reply,'@someone public answer');x.submit();await vi.waitFor(()=>expect(fetch).toHaveBeenCalledOnce());expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({message:'public answer',replyID:'parent-id'});setPresentation({...presentationDefaults});});
-it('preserves the reply target in the accepted echo callback before clearing the composer',async()=>{const form=document.createElement('form');form.innerHTML='<select id="send-channel"></select><textarea id="message"></textarea><div id="completions" hidden></div><button id="send"></button><span id="message-length"></span><span id="send-status"></span><div id="reply-target"><span id="reply-label"></span><button type="button" id="cancel-reply"></button></div>';const accepted=vi.fn(),composer=new Composer(form,['other'],accepted);stops.push(composer);composer.setAuth(signedIn);composer.stageReply(reply,'answer');vi.stubGlobal('fetch',vi.fn(async()=>new Response(JSON.stringify({sent:true,messageID:'echo'}))));form.dispatchEvent(new SubmitEvent('submit',{cancelable:true}));await vi.advanceTimersByTimeAsync(0);expect(accepted).toHaveBeenCalledWith('echo','other','answer',reply);expect(form.querySelector('#reply-target')?.hasAttribute('hidden')).toBe(true);});
-it('routes advanced moderation to review before any send and preserves the source draft',async()=>{const x=setup();x.composer.setAuth(signedIn);const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);const review=vi.fn(()=>true);x.composer.configureModeration(review);x.edit('/warn alice respect the rules');x.submit();await vi.advanceTimersByTimeAsync(0);expect(review).toHaveBeenCalledWith('/warn alice respect the rules','hasanabi');expect(fetcher).not.toHaveBeenCalled();expect(x.input.value).toBe('/warn alice respect the rules');expect(x.status.textContent).toContain('confirmation sends separately');});
-it('completes review-only moderation commands at the caret',()=>{const x=setup();x.composer.setAuth(signedIn);x.composer.configureModeration(()=>true);x.input.value='/war';x.input.setSelectionRange(4,4);x.input.dispatchEvent(new Event('input'));expect(x.form.querySelector('#completions')?.textContent).toContain('/warn');});
+it('dispatches local commands while signed out, retains drafts and ignores IME submissions without contacting Twitch', async () => {
+  const x = setup(),
+    dispatch = vi.fn(async () => 'Local action completed'),
+    fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  x.composer.configureLocal(dispatch);
+  x.edit('/clearmessages');
+  expect(x.input.disabled).toBe(false);
+  expect(x.button.textContent).toBe('Run locally');
+  x.input.dispatchEvent(new Event('compositionstart'));
+  x.submit();
+  expect(dispatch).not.toHaveBeenCalled();
+  x.input.dispatchEvent(new Event('compositionend'));
+  x.submit();
+  await vi.waitFor(() => expect(x.status.textContent).toBe('Local action completed'));
+  expect(x.input.value).toBe('/clearmessages');
+  expect(fetch).not.toHaveBeenCalled();
+});
+it('stages a selected public reply without sending and preserves a different channel draft', () => {
+  const x = setup();
+  x.composer.setAuth(signedIn);
+  x.edit('source draft');
+  x.composer.stageReply(reply, 'public answer');
+  expect(x.input.value).toBe('public answer');
+  expect(x.form.querySelector('#reply-label')?.textContent).toContain('someone');
+  expect(sessionStorage.getItem('chatthing:v1:draft:42:hasanabi')).toBe('source draft');
+  x.composer.setAuth(undefined);
+  expect(x.form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(true);
+});
+it('truncates an overlong message for review without sending, then strips a reply recipient only when sending that reply', async () => {
+  const { setPresentation, presentationDefaults } = await import('./presentation');
+  const x = setup();
+  x.composer.setAuth(signedIn);
+  const fetch = vi.fn(
+    async (_input: RequestInfo | URL, _init?: RequestInit) =>
+      new Response(JSON.stringify({ sent: true, messageID: 'message-id' })),
+  );
+  vi.stubGlobal('fetch', fetch);
+  setPresentation({ ...presentationDefaults, overflow: 'truncate' });
+  x.edit('😀'.repeat(501));
+  x.submit();
+  expect([...x.input.value]).toHaveLength(500);
+  expect(fetch).not.toHaveBeenCalled();
+  expect(x.status.textContent).toContain('review');
+  x.composer.stageReply(reply, '@someone public answer');
+  x.submit();
+  await vi.waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+  expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toMatchObject({
+    message: 'public answer',
+    replyID: 'parent-id',
+  });
+  setPresentation({ ...presentationDefaults });
+});
+it('preserves the reply target in the accepted echo callback before clearing the composer', async () => {
+  const form = document.createElement('form');
+  form.innerHTML =
+    '<select id="send-channel"></select><textarea id="message"></textarea><div id="completions" hidden></div><button id="send"></button><span id="message-length"></span><span id="send-status"></span><div id="reply-target"><span id="reply-label"></span><button type="button" id="cancel-reply"></button></div>';
+  const accepted = vi.fn(),
+    composer = new Composer(form, ['other'], accepted);
+  stops.push(composer);
+  composer.setAuth(signedIn);
+  composer.stageReply(reply, 'answer');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => new Response(JSON.stringify({ sent: true, messageID: 'echo' }))),
+  );
+  form.dispatchEvent(new SubmitEvent('submit', { cancelable: true }));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(accepted).toHaveBeenCalledWith('echo', 'other', 'answer', reply);
+  expect(form.querySelector('#reply-target')?.hasAttribute('hidden')).toBe(true);
+});
+it('routes advanced moderation to review before any send and preserves the source draft', async () => {
+  const x = setup();
+  x.composer.setAuth(signedIn);
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  const review = vi.fn(() => true);
+  x.composer.configureModeration(review);
+  x.edit('/warn alice respect the rules');
+  x.submit();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(review).toHaveBeenCalledWith('/warn alice respect the rules', 'hasanabi');
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(x.input.value).toBe('/warn alice respect the rules');
+  expect(x.status.textContent).toContain('confirmation sends separately');
+});
+it('completes review-only moderation commands at the caret', () => {
+  const x = setup();
+  x.composer.setAuth(signedIn);
+  x.composer.configureModeration(() => true);
+  x.input.value = '/war';
+  x.input.setSelectionRange(4, 4);
+  x.input.dispatchEvent(new Event('input'));
+  expect(x.form.querySelector('#completions')?.textContent).toContain('/warn');
+});
 
-it('replies to the received shared-chat copy and labels the destination',async()=>{const {form,composer}=setup();composer.setAuth(signedIn);composer.selectReply({...reply,tags:{'room-id':'200','source-room-id':'100','source-id':'11111111-1111-4111-8111-111111111111'}});expect(form.querySelector('#reply-label')?.textContent).toContain('Reply in #other to this received copy');expect(form.querySelector<HTMLSelectElement>('#send-channel')?.value).toBe('other');});
+it('replies to the received shared-chat copy and labels the destination', async () => {
+  const { form, composer } = setup();
+  composer.setAuth(signedIn);
+  composer.selectReply({
+    ...reply,
+    tags: { 'room-id': '200', 'source-room-id': '100', 'source-id': '11111111-1111-4111-8111-111111111111' },
+  });
+  expect(form.querySelector('#reply-label')?.textContent).toContain('Reply in #other to this received copy');
+  expect(form.querySelector<HTMLSelectElement>('#send-channel')?.value).toBe('other');
+});

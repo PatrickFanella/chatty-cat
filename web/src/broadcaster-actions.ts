@@ -1,12 +1,168 @@
-import {parseSendResult,type SendResult} from './composer';
-import {validAccount} from './account-profiles';
-export const BROADCAST_ACTIONS={clip:'clips:edit',marker:'channel:manage:broadcast',settitle:'channel:manage:broadcast',setgame:'channel:manage:broadcast',commercial:'channel:edit:commercial'} as const;
-export type BroadcastAction=keyof typeof BROADCAST_ACTIONS;
-export interface BroadcastContext {account:string;channel:string;broadcasterID:string;role:'broadcaster'|'viewer';stream:'live'|'offline';streamID:string;broadcasterType:''|'affiliate'|'partner';title:string;gameID:string;gameName:string;revision:string;at:number;categories:{id:string;name:string}[];detail:string}
-const plain=(s:string,max:number)=>!!s&&s===s.trim()&&[...s].length<=max&&!/[\x00-\x1f\x7f-\x9f]/.test(s);
-const id=(s:unknown):s is string=>typeof s==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(s);
-export function broadcasterCommand(action:BroadcastAction,text:string,seconds:number,categoryID=''):string{if(!Object.hasOwn(BROADCAST_ACTIONS,action))throw new Error('Choose a supported broadcaster action');if(action==='clip')return '/clip';if(action==='commercial'){if(!Number.isInteger(seconds)||seconds<30||seconds>180||seconds%30)throw new Error('Choose 30–180 seconds in 30-second steps');return '/commercial '+seconds;}if(action==='setgame'){if(!/^[1-9][0-9]{0,29}$/.test(categoryID))throw new Error('Search and select an exact category ID');return '/setgame id:'+categoryID;}if(action==='marker'&&text==='')return '/marker';if(!plain(text,140))throw new Error('Use plain nonempty title/description up to 140 characters');return '/'+action+' '+text;}
-export function validBroadcasterJournalCommand(command:string):boolean{if(command==='/clip'||command==='/marker')return true;const match=/^\/(marker|settitle|setgame|commercial) (.+)$/.exec(command);if(!match)return false;const action=match[1] as BroadcastAction;try{if(action==='setgame')return /^id:[1-9][0-9]{0,29}$/.test(match[2]!);if(action==='commercial')return broadcasterCommand(action,'',Number(match[2]))===command;return broadcasterCommand(action,match[2]!,0)===command;}catch{return false;}}
-export function parseBroadcastContext(raw:unknown,account:string,channel:string):BroadcastContext{if(!raw||typeof raw!=='object')throw new Error('Invalid broadcaster context');const v=raw as Record<string,unknown>;if(v.account!==account||v.channel!==channel||typeof v.broadcasterID!=='string'||!validAccount(v.broadcasterID)||typeof v.role!=='string'||!['broadcaster','viewer'].includes(v.role)||v.role==='broadcaster'&&(v.broadcasterID!==account)||typeof v.stream!=='string'||!['live','offline'].includes(v.stream)||typeof v.streamID!=='string'||v.stream==='live'&&!id(v.streamID)||v.stream==='offline'&&v.streamID!==''||typeof v.broadcasterType!=='string'||!['','affiliate','partner'].includes(v.broadcasterType)||typeof v.title!=='string'||v.title.length>2000||typeof v.gameID!=='string'||v.gameID!==''&&v.gameID!=='0'&&!validAccount(v.gameID)||typeof v.gameName!=='string'||v.gameName.length>500||typeof v.revision!=='string'||!/^[0-9a-f]{64}$/.test(v.revision)||!Number.isSafeInteger(v.at)||Number(v.at)<0||Number(v.at)>Date.now()+300000||typeof v.detail!=='string'||v.detail.length>300||!Array.isArray(v.categories)||v.categories.length>20)throw new Error('Broadcaster context scope/state unavailable');const categories=v.categories.map(item=>{if(!item||typeof item!=='object')throw new Error('Invalid category');const c=item as Record<string,unknown>;if(typeof c.id!=='string'||!validAccount(c.id)||c.id==='0'||typeof c.name!=='string'||!plain(c.name,200))throw new Error('Category identity unavailable');return {id:c.id,name:c.name};});if(new Set(categories.map(c=>c.id)).size!==categories.length)throw new Error('Duplicate category ID');return {account,channel,broadcasterID:v.broadcasterID,role:v.role as BroadcastContext['role'],stream:v.stream as BroadcastContext['stream'],streamID:v.streamID,broadcasterType:v.broadcasterType as BroadcastContext['broadcasterType'],title:v.title,gameID:v.gameID,gameName:v.gameName,revision:v.revision,at:Number(v.at),categories,detail:v.detail};}
-export interface BroadcastResult {result:SendResult;resourceID:string;url:string;editURL:string;detail:string;retryAfter:number|undefined}
-export function parseBroadcastResult(raw:unknown):BroadcastResult{const result=parseSendResult(raw),v=raw as Record<string,unknown>;if(v.resourceID!==undefined&&!id(v.resourceID)||v.detail!==undefined&&(typeof v.detail!=='string'||v.detail.length>300)||v.retryAfter!==undefined&&(!Number.isInteger(v.retryAfter)||Number(v.retryAfter)<0||Number(v.retryAfter)>86400))throw new Error('Broadcaster acknowledgement unavailable');const resourceID=typeof v.resourceID==='string'?v.resourceID:'';const link=(value:unknown,edit:boolean):string=>{if(value===undefined||value==='')return '';if(typeof value!=='string'||!resourceID)throw new Error('Clip link unavailable');const u=new URL(value);if(u.protocol!=='https:'||u.host!=='clips.twitch.tv'||u.username||u.password||u.search||u.hash||u.pathname!=='/'+resourceID+(edit?'/edit':''))throw new Error('Clip link unavailable');return u.href;};return {result,resourceID,url:link(v.url,false),editURL:link(v.editURL,true),detail:typeof v.detail==='string'?v.detail:'',retryAfter:v.retryAfter===undefined?undefined:Number(v.retryAfter)};}
+import { parseSendResult, type SendResult } from './composer';
+import { validAccount } from './account-profiles';
+export const BROADCAST_ACTIONS = {
+  clip: 'clips:edit',
+  marker: 'channel:manage:broadcast',
+  settitle: 'channel:manage:broadcast',
+  setgame: 'channel:manage:broadcast',
+  commercial: 'channel:edit:commercial',
+} as const;
+export type BroadcastAction = keyof typeof BROADCAST_ACTIONS;
+export interface BroadcastContext {
+  account: string;
+  channel: string;
+  broadcasterID: string;
+  role: 'broadcaster' | 'viewer';
+  stream: 'live' | 'offline';
+  streamID: string;
+  broadcasterType: '' | 'affiliate' | 'partner';
+  title: string;
+  gameID: string;
+  gameName: string;
+  revision: string;
+  at: number;
+  categories: { id: string; name: string }[];
+  detail: string;
+}
+const plain = (s: string, max: number) =>
+  !!s && s === s.trim() && [...s].length <= max && !/[\x00-\x1f\x7f-\x9f]/.test(s);
+const id = (s: unknown): s is string => typeof s === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(s);
+export function broadcasterCommand(action: BroadcastAction, text: string, seconds: number, categoryID = ''): string {
+  if (!Object.hasOwn(BROADCAST_ACTIONS, action)) throw new Error('Choose a supported broadcaster action');
+  if (action === 'clip') return '/clip';
+  if (action === 'commercial') {
+    if (!Number.isInteger(seconds) || seconds < 30 || seconds > 180 || seconds % 30)
+      throw new Error('Choose 30–180 seconds in 30-second steps');
+    return '/commercial ' + seconds;
+  }
+  if (action === 'setgame') {
+    if (!/^[1-9][0-9]{0,29}$/.test(categoryID)) throw new Error('Search and select an exact category ID');
+    return '/setgame id:' + categoryID;
+  }
+  if (action === 'marker' && text === '') return '/marker';
+  if (!plain(text, 140)) throw new Error('Use plain nonempty title/description up to 140 characters');
+  return '/' + action + ' ' + text;
+}
+export function validBroadcasterJournalCommand(command: string): boolean {
+  if (command === '/clip' || command === '/marker') return true;
+  const match = /^\/(marker|settitle|setgame|commercial) (.+)$/.exec(command);
+  if (!match) return false;
+  const action = match[1] as BroadcastAction;
+  try {
+    if (action === 'setgame') return /^id:[1-9][0-9]{0,29}$/.test(match[2]!);
+    if (action === 'commercial') return broadcasterCommand(action, '', Number(match[2])) === command;
+    return broadcasterCommand(action, match[2]!, 0) === command;
+  } catch {
+    return false;
+  }
+}
+export function parseBroadcastContext(raw: unknown, account: string, channel: string): BroadcastContext {
+  if (!raw || typeof raw !== 'object') throw new Error('Invalid broadcaster context');
+  const v = raw as Record<string, unknown>;
+  if (
+    v.account !== account ||
+    v.channel !== channel ||
+    typeof v.broadcasterID !== 'string' ||
+    !validAccount(v.broadcasterID) ||
+    typeof v.role !== 'string' ||
+    !['broadcaster', 'viewer'].includes(v.role) ||
+    (v.role === 'broadcaster' && v.broadcasterID !== account) ||
+    typeof v.stream !== 'string' ||
+    !['live', 'offline'].includes(v.stream) ||
+    typeof v.streamID !== 'string' ||
+    (v.stream === 'live' && !id(v.streamID)) ||
+    (v.stream === 'offline' && v.streamID !== '') ||
+    typeof v.broadcasterType !== 'string' ||
+    !['', 'affiliate', 'partner'].includes(v.broadcasterType) ||
+    typeof v.title !== 'string' ||
+    v.title.length > 2000 ||
+    typeof v.gameID !== 'string' ||
+    (v.gameID !== '' && v.gameID !== '0' && !validAccount(v.gameID)) ||
+    typeof v.gameName !== 'string' ||
+    v.gameName.length > 500 ||
+    typeof v.revision !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(v.revision) ||
+    !Number.isSafeInteger(v.at) ||
+    Number(v.at) < 0 ||
+    Number(v.at) > Date.now() + 300000 ||
+    typeof v.detail !== 'string' ||
+    v.detail.length > 300 ||
+    !Array.isArray(v.categories) ||
+    v.categories.length > 20
+  )
+    throw new Error('Broadcaster context scope/state unavailable');
+  const categories = v.categories.map((item) => {
+    if (!item || typeof item !== 'object') throw new Error('Invalid category');
+    const c = item as Record<string, unknown>;
+    if (
+      typeof c.id !== 'string' ||
+      !validAccount(c.id) ||
+      c.id === '0' ||
+      typeof c.name !== 'string' ||
+      !plain(c.name, 200)
+    )
+      throw new Error('Category identity unavailable');
+    return { id: c.id, name: c.name };
+  });
+  if (new Set(categories.map((c) => c.id)).size !== categories.length) throw new Error('Duplicate category ID');
+  return {
+    account,
+    channel,
+    broadcasterID: v.broadcasterID,
+    role: v.role as BroadcastContext['role'],
+    stream: v.stream as BroadcastContext['stream'],
+    streamID: v.streamID,
+    broadcasterType: v.broadcasterType as BroadcastContext['broadcasterType'],
+    title: v.title,
+    gameID: v.gameID,
+    gameName: v.gameName,
+    revision: v.revision,
+    at: Number(v.at),
+    categories,
+    detail: v.detail,
+  };
+}
+export interface BroadcastResult {
+  result: SendResult;
+  resourceID: string;
+  url: string;
+  editURL: string;
+  detail: string;
+  retryAfter: number | undefined;
+}
+export function parseBroadcastResult(raw: unknown): BroadcastResult {
+  const result = parseSendResult(raw),
+    v = raw as Record<string, unknown>;
+  if (
+    (v.resourceID !== undefined && !id(v.resourceID)) ||
+    (v.detail !== undefined && (typeof v.detail !== 'string' || v.detail.length > 300)) ||
+    (v.retryAfter !== undefined &&
+      (!Number.isInteger(v.retryAfter) || Number(v.retryAfter) < 0 || Number(v.retryAfter) > 86400))
+  )
+    throw new Error('Broadcaster acknowledgement unavailable');
+  const resourceID = typeof v.resourceID === 'string' ? v.resourceID : '';
+  const link = (value: unknown, edit: boolean): string => {
+    if (value === undefined || value === '') return '';
+    if (typeof value !== 'string' || !resourceID) throw new Error('Clip link unavailable');
+    const u = new URL(value);
+    if (
+      u.protocol !== 'https:' ||
+      u.host !== 'clips.twitch.tv' ||
+      u.username ||
+      u.password ||
+      u.search ||
+      u.hash ||
+      u.pathname !== '/' + resourceID + (edit ? '/edit' : '')
+    )
+      throw new Error('Clip link unavailable');
+    return u.href;
+  };
+  return {
+    result,
+    resourceID,
+    url: link(v.url, false),
+    editURL: link(v.editURL, true),
+    detail: typeof v.detail === 'string' ? v.detail : '',
+    retryAfter: v.retryAfter === undefined ? undefined : Number(v.retryAfter),
+  };
+}

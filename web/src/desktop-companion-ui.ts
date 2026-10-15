@@ -1,34 +1,272 @@
-import {DesktopOverlayControls} from './desktop-overlay-ui';
-import type {AuthStatus} from './auth';
-import {DesktopCompanion,PLAYBACK_QUALITIES,type PlaybackRequest} from './desktop-companion';
-import {privacyEnabled} from './privacy';
-import {getProfileScope} from './account-profiles';
-export class DesktopPlaybackPanel{
- readonly root=document.createElement('dialog');private trigger=document.createElement('button');private code=document.createElement('input');private tool=document.createElement('select');private quality=document.createElement('select');private channel=document.createElement('select');private status=document.createElement('p');private preview=document.createElement('p');private confirm=document.createElement('button');private client:DesktopCompanion;private overlay:DesktopOverlayControls;private pending:{plan:PlaybackRequest;account:string;expires:number}|undefined;private generation=0;private busy=false;private uncertain='';
- constructor(private auth:()=>AuthStatus|undefined,private channels:()=>readonly string[],private current:()=>string,private hidden=false){
-  this.client=new DesktopCompanion(auth);this.overlay=new DesktopOverlayControls(this.client,auth,()=>this.channel.value);this.root.setAttribute('aria-label','Desktop playback');const title=document.createElement('h2');title.textContent='Optional desktop playback';const help=document.createElement('p');help.textContent='Install and run chatty-companion on this computer with a reviewed executable allowlist. Paste its one-use code to pair this signed-in account for this page. Your browser may request local-network permission. Native web playback stays available. Pairing does not launch a player. Unpair, privacy, account change or leaving the page revokes local access and requests managed playback stop; if the connection is lost, use Ctrl+C in the companion terminal. Separately spawned player children may need to be closed manually.';
-  this.code.type='password';this.code.autocomplete='off';this.code.maxLength=64;this.code.setAttribute('aria-label','Local companion pairing code');this.channel.setAttribute('aria-label','Desktop playback channel');this.tool.setAttribute('aria-label','Configured playback tool');this.quality.setAttribute('aria-label','Playback quality');for(const q of PLAYBACK_QUALITIES){const o=document.createElement('option');o.value=q;o.textContent=q==='audio_only'?'Audio only':q;this.quality.append(o);}this.confirm.textContent='Launch reviewed playback';this.confirm.disabled=true;this.confirm.addEventListener('click',()=>{void this.act(()=>this.launch());});this.status.setAttribute('role','status');
-  this.root.append(title,help,this.code,this.button('Pair local companion',async()=>{await this.client.pair(this.code.value.trim());this.code.value='';await this.refresh();}),this.button('Check companion status',()=>this.refresh()),this.channel,this.tool,this.quality,this.button('Review external playback',()=>this.review()),this.preview,this.confirm,this.button('Unpair and request playback stop',()=>this.disconnect()),this.button('Close playback panel',()=>this.root.close()),this.status);
-  this.trigger.type='button';this.trigger.textContent='Desktop playback';this.trigger.hidden=hidden;document.getElementById('commands-open')?.after(this.trigger);document.body.append(this.root);this.root.append(this.overlay.root);this.trigger.addEventListener('click',this.open);this.root.addEventListener('change',this.edit);document.addEventListener('privacychange',this.privacy);
- }
- private button(text:string,action:()=>void|Promise<void>):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.addEventListener('click',()=>{void this.act(action);});return b;}
- private async act(action:()=>void|Promise<void>):Promise<void>{if(this.busy)return;const generation=this.generation;try{if(privacyEnabled())throw new Error('Exit privacy mode first');this.busy=true;await action();}catch(error){if(generation===this.generation)this.status.textContent=error instanceof Error?error.message:'Companion unavailable; no automatic retry';}finally{if(generation===this.generation)this.busy=false;}}
- private async refresh():Promise<void>{const generation=this.generation,s=await this.client.status();if(generation!==this.generation)return;this.overlay.setAvailable(s.overlayAvailable===true);this.tool.replaceChildren();for(const t of s.tools){const o=document.createElement('option');o.value=t.id;o.textContent=t.label+(t.available?'':' — missing executable/dependency');o.disabled=!t.available;this.tool.append(o);}this.status.textContent='Paired on '+s.platform+'. '+(s.jobs.length?s.jobs.map(j=>j.channel+' / '+j.quality+': '+j.state+(j.exitCode===undefined?'':' (exit '+j.exitCode+')')).join('; '):'No playback launches.');if(this.uncertain&&s.jobs.some(j=>j.id===this.uncertain)){this.uncertain='';this.clear();}}
- private review():void{if(this.uncertain)throw new Error('Check status or retry the same reviewed request before reviewing another launch');const account=this.auth()?.userID,channel=this.channel.value,tool=this.tool.selectedOptions[0];if(!account||!this.channels().includes(channel)||!tool||tool.disabled)throw new Error('Pair, check status and choose an available tool/channel first');this.pending={plan:{tool:tool.value,channel,quality:this.quality.value,requestID:crypto.randomUUID()},account,expires:Date.now()+60000};this.preview.textContent='Launch '+tool.textContent+' for https://www.twitch.tv/'+channel+' · '+this.quality.value+'. Only the locally configured executable and arguments run. Provider/player authentication is separate from Chatty Cat. Review expires in 60 seconds.';this.confirm.disabled=false;}
- private async launch():Promise<void>{const p=this.pending;if(!p||p.account!==this.auth()?.userID||!this.channels().includes(p.plan.channel)||p.plan.channel!==this.channel.value||p.plan.tool!==this.tool.value||p.plan.quality!==this.quality.value||Date.now()>p.expires)throw new Error('Playback review expired or changed; review again');this.confirm.disabled=true;this.uncertain=p.plan.requestID;try{const j=await this.client.launch(p.plan);this.uncertain='';this.clear();this.status.textContent='Companion accepted '+j.channel+' / '+j.quality+' ('+j.state+'). Check status for process exit; this does not confirm audible playback.';}catch(error){this.confirm.disabled=false;this.confirm.textContent='Retry same reviewed playback request';throw new Error('Launch outcome uncertain. Check companion status; no automatic retry. '+(error instanceof Error?error.message:''));}}
- private clear():void{this.pending=undefined;this.preview.textContent='';this.confirm.disabled=true;this.confirm.textContent='Launch reviewed playback';}
- private disconnect():void{this.generation++;this.busy=false;this.client.disconnect();this.overlay.reset();this.code.value='';this.tool.replaceChildren();this.uncertain='';this.clear();this.status.textContent='Unpaired locally. If the companion is unreachable, close it with Ctrl+C. Restart it for a new pairing code.';}
- private open=():void=>{if(privacyEnabled())return;this.channel.replaceChildren();for(const c of this.channels()){const o=document.createElement('option');o.value=c;o.textContent='#'+c;this.channel.append(o);}this.channel.value=this.current();this.clear();this.overlay.discardReview();this.root.showModal();};
- private edit=():void=>{if(!this.uncertain)this.clear();};
- private privacy=():void=>{if(privacyEnabled()){this.disconnect();this.root.close();}};
- openReview(kind:'playback'|'overlay',channel=this.current()):void{
-  if(this.hidden)throw new Error('Open desktop review from the main workspace');
-  const auth=this.auth();if(privacyEnabled()||!auth?.authenticated||!auth.userID||getProfileScope()!==auth.userID)throw new Error('Use the current signed-in account outside privacy mode');
-  if(this.busy||this.uncertain)throw new Error('Resolve the current companion request before opening another review');
-  if(document.querySelector('dialog[open]:not([data-rail="true"])'))throw new Error('Close the current dialog before opening desktop review');
-  if(!this.channels().includes(channel))throw new Error('Select a joined channel before opening desktop review');
-  this.open();this.channel.value=channel;if(kind==='overlay')this.overlay.focusSettings();else{this.quality.scrollIntoView?.({block:'nearest'});this.quality.focus();}
- }
- authChanged():void{if(this.client.authChanged())this.disconnect();else if(this.pending?.account!==this.auth()?.userID)this.clear();}
- stop():void{this.disconnect();this.trigger.removeEventListener('click',this.open);this.root.removeEventListener('change',this.edit);document.removeEventListener('privacychange',this.privacy);this.trigger.remove();this.root.remove();}
+import { DesktopOverlayControls } from './desktop-overlay-ui';
+import type { AuthStatus } from './auth';
+import { DesktopCompanion, PLAYBACK_QUALITIES, type PlaybackRequest } from './desktop-companion';
+import { privacyEnabled } from './privacy';
+import { getProfileScope } from './account-profiles';
+export class DesktopPlaybackPanel {
+  readonly root = document.createElement('dialog');
+  private trigger = document.createElement('button');
+  private code = document.createElement('input');
+  private tool = document.createElement('select');
+  private quality = document.createElement('select');
+  private channel = document.createElement('select');
+  private status = document.createElement('p');
+  private preview = document.createElement('p');
+  private confirm = document.createElement('button');
+  private client: DesktopCompanion;
+  private overlay: DesktopOverlayControls;
+  private pending: { plan: PlaybackRequest; account: string; expires: number } | undefined;
+  private generation = 0;
+  private busy = false;
+  private uncertain = '';
+  constructor(
+    private auth: () => AuthStatus | undefined,
+    private channels: () => readonly string[],
+    private current: () => string,
+    private hidden = false,
+  ) {
+    this.client = new DesktopCompanion(auth);
+    this.overlay = new DesktopOverlayControls(this.client, auth, () => this.channel.value);
+    this.root.setAttribute('aria-label', 'Desktop playback');
+    const title = document.createElement('h2');
+    title.textContent = 'Optional desktop playback';
+    const help = document.createElement('p');
+    help.textContent =
+      'Install and run chatty-companion on this computer with a reviewed executable allowlist. Paste its one-use code to pair this signed-in account for this page. Your browser may request local-network permission. Native web playback stays available. Pairing does not launch a player. Unpair, privacy, account change or leaving the page revokes local access and requests managed playback stop; if the connection is lost, use Ctrl+C in the companion terminal. Separately spawned player children may need to be closed manually.';
+    this.code.type = 'password';
+    this.code.autocomplete = 'off';
+    this.code.maxLength = 64;
+    this.code.setAttribute('aria-label', 'Local companion pairing code');
+    this.channel.setAttribute('aria-label', 'Desktop playback channel');
+    this.tool.setAttribute('aria-label', 'Configured playback tool');
+    this.quality.setAttribute('aria-label', 'Playback quality');
+    for (const q of PLAYBACK_QUALITIES) {
+      const o = document.createElement('option');
+      o.value = q;
+      o.textContent = q === 'audio_only' ? 'Audio only' : q;
+      this.quality.append(o);
+    }
+    this.confirm.textContent = 'Launch reviewed playback';
+    this.confirm.disabled = true;
+    this.confirm.addEventListener('click', () => {
+      void this.act(() => this.launch());
+    });
+    this.status.setAttribute('role', 'status');
+    this.root.append(
+      title,
+      help,
+      this.code,
+      this.button('Pair local companion', async () => {
+        await this.client.pair(this.code.value.trim());
+        this.code.value = '';
+        await this.refresh();
+      }),
+      this.button('Check companion status', () => this.refresh()),
+      this.channel,
+      this.tool,
+      this.quality,
+      this.button('Review external playback', () => this.review()),
+      this.preview,
+      this.confirm,
+      this.button('Unpair and request playback stop', () => this.disconnect()),
+      this.button('Close playback panel', () => this.root.close()),
+      this.status,
+    );
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Desktop playback';
+    this.trigger.hidden = hidden;
+    document.getElementById('commands-open')?.after(this.trigger);
+    document.body.append(this.root);
+    this.root.append(this.overlay.root);
+    this.trigger.addEventListener('click', this.open);
+    this.root.addEventListener('change', this.edit);
+    document.addEventListener('privacychange', this.privacy);
+  }
+  private button(text: string, action: () => void | Promise<void>): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.addEventListener('click', () => {
+      void this.act(action);
+    });
+    return b;
+  }
+  private async act(action: () => void | Promise<void>): Promise<void> {
+    if (this.busy) return;
+    const generation = this.generation;
+    try {
+      if (privacyEnabled()) throw new Error('Exit privacy mode first');
+      this.busy = true;
+      await action();
+    } catch (error) {
+      if (generation === this.generation)
+        this.status.textContent = error instanceof Error ? error.message : 'Companion unavailable; no automatic retry';
+    } finally {
+      if (generation === this.generation) this.busy = false;
+    }
+  }
+  private async refresh(): Promise<void> {
+    const generation = this.generation,
+      s = await this.client.status();
+    if (generation !== this.generation) return;
+    this.overlay.setAvailable(s.overlayAvailable === true);
+    this.tool.replaceChildren();
+    for (const t of s.tools) {
+      const o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = t.label + (t.available ? '' : ' — missing executable/dependency');
+      o.disabled = !t.available;
+      this.tool.append(o);
+    }
+    this.status.textContent =
+      'Paired on ' +
+      s.platform +
+      '. ' +
+      (s.jobs.length
+        ? s.jobs
+            .map(
+              (j) =>
+                j.channel +
+                ' / ' +
+                j.quality +
+                ': ' +
+                j.state +
+                (j.exitCode === undefined ? '' : ' (exit ' + j.exitCode + ')'),
+            )
+            .join('; ')
+        : 'No playback launches.');
+    if (this.uncertain && s.jobs.some((j) => j.id === this.uncertain)) {
+      this.uncertain = '';
+      this.clear();
+    }
+  }
+  private review(): void {
+    if (this.uncertain)
+      throw new Error('Check status or retry the same reviewed request before reviewing another launch');
+    const account = this.auth()?.userID,
+      channel = this.channel.value,
+      tool = this.tool.selectedOptions[0];
+    if (!account || !this.channels().includes(channel) || !tool || tool.disabled)
+      throw new Error('Pair, check status and choose an available tool/channel first');
+    this.pending = {
+      plan: { tool: tool.value, channel, quality: this.quality.value, requestID: crypto.randomUUID() },
+      account,
+      expires: Date.now() + 60000,
+    };
+    this.preview.textContent =
+      'Launch ' +
+      tool.textContent +
+      ' for https://www.twitch.tv/' +
+      channel +
+      ' · ' +
+      this.quality.value +
+      '. Only the locally configured executable and arguments run. Provider/player authentication is separate from Chatty Cat. Review expires in 60 seconds.';
+    this.confirm.disabled = false;
+  }
+  private async launch(): Promise<void> {
+    const p = this.pending;
+    if (
+      !p ||
+      p.account !== this.auth()?.userID ||
+      !this.channels().includes(p.plan.channel) ||
+      p.plan.channel !== this.channel.value ||
+      p.plan.tool !== this.tool.value ||
+      p.plan.quality !== this.quality.value ||
+      Date.now() > p.expires
+    )
+      throw new Error('Playback review expired or changed; review again');
+    this.confirm.disabled = true;
+    this.uncertain = p.plan.requestID;
+    try {
+      const j = await this.client.launch(p.plan);
+      this.uncertain = '';
+      this.clear();
+      this.status.textContent =
+        'Companion accepted ' +
+        j.channel +
+        ' / ' +
+        j.quality +
+        ' (' +
+        j.state +
+        '). Check status for process exit; this does not confirm audible playback.';
+    } catch (error) {
+      this.confirm.disabled = false;
+      this.confirm.textContent = 'Retry same reviewed playback request';
+      throw new Error(
+        'Launch outcome uncertain. Check companion status; no automatic retry. ' +
+          (error instanceof Error ? error.message : ''),
+      );
+    }
+  }
+  private clear(): void {
+    this.pending = undefined;
+    this.preview.textContent = '';
+    this.confirm.disabled = true;
+    this.confirm.textContent = 'Launch reviewed playback';
+  }
+  private disconnect(): void {
+    this.generation++;
+    this.busy = false;
+    this.client.disconnect();
+    this.overlay.reset();
+    this.code.value = '';
+    this.tool.replaceChildren();
+    this.uncertain = '';
+    this.clear();
+    this.status.textContent =
+      'Unpaired locally. If the companion is unreachable, close it with Ctrl+C. Restart it for a new pairing code.';
+  }
+  private open = (): void => {
+    if (privacyEnabled()) return;
+    this.channel.replaceChildren();
+    for (const c of this.channels()) {
+      const o = document.createElement('option');
+      o.value = c;
+      o.textContent = '#' + c;
+      this.channel.append(o);
+    }
+    this.channel.value = this.current();
+    this.clear();
+    this.overlay.discardReview();
+    this.root.showModal();
+  };
+  private edit = (): void => {
+    if (!this.uncertain) this.clear();
+  };
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.disconnect();
+      this.root.close();
+    }
+  };
+  openReview(kind: 'playback' | 'overlay', channel = this.current()): void {
+    if (this.hidden) throw new Error('Open desktop review from the main workspace');
+    const auth = this.auth();
+    if (privacyEnabled() || !auth?.authenticated || !auth.userID || getProfileScope() !== auth.userID)
+      throw new Error('Use the current signed-in account outside privacy mode');
+    if (this.busy || this.uncertain)
+      throw new Error('Resolve the current companion request before opening another review');
+    if (document.querySelector('dialog[open]:not([data-rail="true"])'))
+      throw new Error('Close the current dialog before opening desktop review');
+    if (!this.channels().includes(channel)) throw new Error('Select a joined channel before opening desktop review');
+    this.open();
+    this.channel.value = channel;
+    if (kind === 'overlay') this.overlay.focusSettings();
+    else {
+      this.quality.scrollIntoView?.({ block: 'nearest' });
+      this.quality.focus();
+    }
+  }
+  authChanged(): void {
+    if (this.client.authChanged()) this.disconnect();
+    else if (this.pending?.account !== this.auth()?.userID) this.clear();
+  }
+  stop(): void {
+    this.disconnect();
+    this.trigger.removeEventListener('click', this.open);
+    this.root.removeEventListener('change', this.edit);
+    document.removeEventListener('privacychange', this.privacy);
+    this.trigger.remove();
+    this.root.remove();
+  }
 }

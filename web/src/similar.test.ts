@@ -1,6 +1,28 @@
-import {expect,it} from 'vitest';
-import {SimilarMessages,parseSimilarity} from './similar';
-import type {ChatMessage} from './protocol';
-const m=(id:string,text='hello wonderful chat',login='alice',timestamp=1000):ChatMessage=>({id,text,login,timestamp,channel:'one',command:'PRIVMSG',tags:{}});
-it('defaults off and classifies distinct messages without transport deduplication',()=>{expect(new SimilarMessages(parseSimilarity(null)).classify(m('1'))).toBe(false);const e=new SimilarMessages(parseSimilarity({enabled:true,sameAuthorExempt:false}));expect(e.classify(m('1'))).toBe(false);expect(e.classify(m('2'))).toBe(true);expect(e.classify(m('1'))).toBe(false);});
-it('bounds comparisons/time, respects author/self/channel exemptions and keeps stable outcomes',()=>{const e=new SimilarMessages(parseSimilarity({enabled:true,maxComparisons:1,windowSeconds:2}));expect(e.classify(m('1'))).toBe(false);expect(e.classify(m('2'))).toBe(false);expect(e.classify(m('3','hello wonderful chat','bob'))).toBe(true);expect(e.classify(m('4','hello wonderful chat','me'), 'me')).toBe(false);expect(e.classify(m('5','hello wonderful chat','c',4000))).toBe(false);expect(parseSimilarity({maxComparisons:1e9,windowSeconds:1e9}).maxComparisons).toBe(50);});
+import { expect, it } from 'vitest';
+import { SimilarMessages, parseSimilarity } from './similar';
+import type { ChatMessage } from './protocol';
+const m = (id: string, text = 'hello wonderful chat', login = 'alice', timestamp = 1000): ChatMessage => ({
+  id,
+  text,
+  login,
+  timestamp,
+  channel: 'one',
+  command: 'PRIVMSG',
+  tags: {},
+});
+it('defaults off and classifies distinct messages without transport deduplication', () => {
+  expect(new SimilarMessages(parseSimilarity(null)).classify(m('1'))).toBe(false);
+  const e = new SimilarMessages(parseSimilarity({ enabled: true, sameAuthorExempt: false }));
+  expect(e.classify(m('1'))).toBe(false);
+  expect(e.classify(m('2'))).toBe(true);
+  expect(e.classify(m('1'))).toBe(false);
+});
+it('bounds comparisons/time, respects author/self/channel exemptions and keeps stable outcomes', () => {
+  const e = new SimilarMessages(parseSimilarity({ enabled: true, maxComparisons: 1, windowSeconds: 2 }));
+  expect(e.classify(m('1'))).toBe(false);
+  expect(e.classify(m('2'))).toBe(false);
+  expect(e.classify(m('3', 'hello wonderful chat', 'bob'))).toBe(true);
+  expect(e.classify(m('4', 'hello wonderful chat', 'me'), 'me')).toBe(false);
+  expect(e.classify(m('5', 'hello wonderful chat', 'c', 4000))).toBe(false);
+  expect(parseSimilarity({ maxComparisons: 1e9, windowSeconds: 1e9 }).maxComparisons).toBe(50);
+});

@@ -1,5 +1,5 @@
-import {publicMessageKey} from './message-context';
-import {channelMuted} from './presentation';
+import { publicMessageKey } from './message-context';
+import { channelMuted } from './presentation';
 import { privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
 import type { DisplayOptions } from './display';
@@ -12,72 +12,208 @@ export class Attention {
   private lastSound = -Infinity;
   private streams = new Map<string, boolean>();
   private stopped = false;
-  private notes=new Set<Notification>();
-  constructor(private button: HTMLButtonElement, private options: () => DisplayOptions,
-    private jump: (id: string, channel: string) => void) {
-    button.addEventListener('click', this.click); document.addEventListener('pointerdown', this.unlock); document.addEventListener('privacychange',this.clearPrivateAlerts);
+  private notes = new Set<Notification>();
+  constructor(
+    private button: HTMLButtonElement,
+    private options: () => DisplayOptions,
+    private jump: (id: string, channel: string) => void,
+  ) {
+    button.addEventListener('click', this.click);
+    document.addEventListener('pointerdown', this.unlock);
+    document.addEventListener('privacychange', this.clearPrivateAlerts);
   }
   async permission(): Promise<void> {
-    if (!privacyEnabled() && this.options().notify && typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      try { await Notification.requestPermission(); } catch { /* browser denied or unavailable */ }
+    if (
+      !privacyEnabled() &&
+      this.options().notify &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'default'
+    ) {
+      try {
+        await Notification.requestPermission();
+      } catch {
+        /* browser denied or unavailable */
+      }
     }
   }
-  async test():Promise<string>{
-    if(privacyEnabled())return 'Alerts are suppressed in privacy mode';
-    this.unlock();if(this.audio?.state==='suspended')try{await this.audio.resume();}catch{/* report unavailable below */}
-    this.sound();const reports:string[]=[];
-    if(this.options().ping)reports.push(this.audio?.state==='running'?'Test sound requested':'Sound unavailable in this browser');
-    if(this.options().notify){await this.permission();if(typeof Notification!=='undefined'&&Notification.permission==='granted'){await this.notify('Chatty Cat test alert','Notifications are enabled','test','',true);reports.push('Test notification requested');}else reports.push('Notification permission unavailable');}
-    return reports.join(' · ')||'Enable mention sound or notifications to test';
+  async test(): Promise<string> {
+    if (privacyEnabled()) return 'Alerts are suppressed in privacy mode';
+    this.unlock();
+    if (this.audio?.state === 'suspended')
+      try {
+        await this.audio.resume();
+      } catch {
+        /* report unavailable below */
+      }
+    this.sound();
+    const reports: string[] = [];
+    if (this.options().ping)
+      reports.push(this.audio?.state === 'running' ? 'Test sound requested' : 'Sound unavailable in this browser');
+    if (this.options().notify) {
+      await this.permission();
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        await this.notify('Chatty Cat test alert', 'Notifications are enabled', 'test', '', true);
+        reports.push('Test notification requested');
+      } else reports.push('Notification permission unavailable');
+    }
+    return reports.join(' · ') || 'Enable mention sound or notifications to test';
   }
-  mention(message: ChatMessage, highlight: boolean, replay = false,policy:{sound:boolean;notify:boolean}={sound:true,notify:true}): void {
-    if (this.stopped || replay || !highlight || !message.id || message.command !== 'PRIVMSG' || (!document.hidden && document.hasFocus())) return;
+  mention(
+    message: ChatMessage,
+    highlight: boolean,
+    replay = false,
+    policy: { sound: boolean; notify: boolean } = { sound: true, notify: true },
+  ): void {
+    if (
+      this.stopped ||
+      replay ||
+      !highlight ||
+      !message.id ||
+      message.command !== 'PRIVMSG' ||
+      (!document.hidden && document.hasFocus())
+    )
+      return;
     const key = publicMessageKey(message);
     if (this.seen.has(key)) return;
-    this.seen.add(key); while (this.seen.size > 2000) { const first = this.seen.values().next().value; if (first) this.seen.delete(first); else break; }
-    this.missed.push({ id: message.id, channel: message.channel }); if (this.missed.length > 500) this.missed.shift(); this.render(); if(policy.sound)this.sound(message.channel);
-    if (policy.notify && !channelMuted(message.channel) && Date.now() - this.lastNote >= 8000) { this.lastNote = Date.now(); void this.notify(`${message.tags['display-name'] || message.login} mentioned you`, message.text.slice(0, 140), 'mention', message.channel); }
+    this.seen.add(key);
+    while (this.seen.size > 2000) {
+      const first = this.seen.values().next().value;
+      if (first) this.seen.delete(first);
+      else break;
+    }
+    this.missed.push({ id: message.id, channel: message.channel });
+    if (this.missed.length > 500) this.missed.shift();
+    this.render();
+    if (policy.sound) this.sound(message.channel);
+    if (policy.notify && !channelMuted(message.channel) && Date.now() - this.lastNote >= 8000) {
+      this.lastNote = Date.now();
+      void this.notify(
+        `${message.tags['display-name'] || message.login} mentioned you`,
+        message.text.slice(0, 140),
+        'mention',
+        message.channel,
+      );
+    }
   }
-  whisper(message: ChatMessage): void { if (document.hidden || !document.hasFocus()) { this.sound(); void this.notify(`${message.tags['display-name'] || message.login} whispered you`, message.text.slice(0, 140), 'whisper', ''); } }
+  whisper(message: ChatMessage): void {
+    if (document.hidden || !document.hasFocus()) {
+      this.sound();
+      void this.notify(
+        `${message.tags['display-name'] || message.login} whispered you`,
+        message.text.slice(0, 140),
+        'whisper',
+        '',
+      );
+    }
+  }
   stream(channel: string, live: boolean, title: string): void {
-    const previous = this.streams.get(channel); this.streams.set(channel, live);
-    if (previous === false && live) void this.notify(`${channel} is live`, title.slice(0, 300), 'live-' + channel, channel);
+    const previous = this.streams.get(channel);
+    this.streams.set(channel, live);
+    if (previous === false && live)
+      void this.notify(`${channel} is live`, title.slice(0, 300), 'live-' + channel, channel);
   }
-  private async notify(title: string, body: string, tag: string, channel: string,explicitTest=false): Promise<void> {
-    if ((!explicitTest&&channelMuted(channel)) || privacyEnabled() || this.stopped || !this.options().notify || (!explicitTest&&!document.hidden) || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  private async notify(title: string, body: string, tag: string, channel: string, explicitTest = false): Promise<void> {
+    if (
+      (!explicitTest && channelMuted(channel)) ||
+      privacyEnabled() ||
+      this.stopped ||
+      !this.options().notify ||
+      (!explicitTest && !document.hidden) ||
+      typeof Notification === 'undefined' ||
+      Notification.permission !== 'granted'
+    )
+      return;
     const options = { body, tag, icon: '/icon-192.png', data: { channel } };
     try {
       const registration = await navigator.serviceWorker?.getRegistration();
-      if (this.stopped || privacyEnabled() || !explicitTest&&channelMuted(channel)) return;
+      if (this.stopped || privacyEnabled() || (!explicitTest && channelMuted(channel))) return;
       if (registration) await registration.showNotification(title, options);
-      else { const note = new Notification(title, options);this.notes.add(note);note.onclose=()=>this.notes.delete(note); note.onclick = () => { window.focus(); note.close(); }; }
-    } catch { /* optional notifications must not interrupt chat */ }
+      else {
+        const note = new Notification(title, options);
+        this.notes.add(note);
+        note.onclose = () => this.notes.delete(note);
+        note.onclick = () => {
+          window.focus();
+          note.close();
+        };
+      }
+    } catch {
+      /* optional notifications must not interrupt chat */
+    }
   }
-  private clearPrivateAlerts=():void=>{if(!privacyEnabled())return;for(const note of this.notes)note.close();this.notes.clear();void navigator.serviceWorker?.getRegistration().then(registration=>registration?.getNotifications()).then(notes=>{for(const note of notes??[])note.close();}).catch(()=>{});};
+  private clearPrivateAlerts = (): void => {
+    if (!privacyEnabled()) return;
+    for (const note of this.notes) note.close();
+    this.notes.clear();
+    void navigator.serviceWorker
+      ?.getRegistration()
+      .then((registration) => registration?.getNotifications())
+      .then((notes) => {
+        for (const note of notes ?? []) note.close();
+      })
+      .catch(() => {});
+  };
   private unlock = (): void => {
     if (privacyEnabled() || !this.options().ping || this.stopped) return;
-    try { this.audio ??= new AudioContext(); if (this.audio.state === 'suspended') void this.audio.resume().catch(() => {}); } catch { /* unsupported */ }
+    try {
+      this.audio ??= new AudioContext();
+      if (this.audio.state === 'suspended') void this.audio.resume().catch(() => {});
+    } catch {
+      /* unsupported */
+    }
   };
-  private sound(channel=''): void {
-    if (channelMuted(channel) || privacyEnabled() || !this.options().ping || !this.audio || this.audio.state !== 'running' || Date.now() - this.lastSound < 250) return;
+  private sound(channel = ''): void {
+    if (
+      channelMuted(channel) ||
+      privacyEnabled() ||
+      !this.options().ping ||
+      !this.audio ||
+      this.audio.state !== 'running' ||
+      Date.now() - this.lastSound < 250
+    )
+      return;
     this.lastSound = Date.now();
     try {
-      const time = this.audio.currentTime, oscillator = this.audio.createOscillator(), gain = this.audio.createGain();
-      oscillator.frequency.setValueAtTime(880, time); oscillator.frequency.exponentialRampToValueAtTime(660, time + .12);
-      gain.gain.setValueAtTime(.07, time); gain.gain.exponentialRampToValueAtTime(.001, time + .3);
-      oscillator.connect(gain); gain.connect(this.audio.destination); oscillator.start(time); oscillator.stop(time + .32);
-      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
-    } catch { /* audio is optional */ }
+      const time = this.audio.currentTime,
+        oscillator = this.audio.createOscillator(),
+        gain = this.audio.createGain();
+      oscillator.frequency.setValueAtTime(880, time);
+      oscillator.frequency.exponentialRampToValueAtTime(660, time + 0.12);
+      gain.gain.setValueAtTime(0.07, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+      oscillator.connect(gain);
+      gain.connect(this.audio.destination);
+      oscillator.start(time);
+      oscillator.stop(time + 0.32);
+      oscillator.onended = () => {
+        oscillator.disconnect();
+        gain.disconnect();
+      };
+    } catch {
+      /* audio is optional */
+    }
   }
   private click = (event: MouseEvent): void => {
     if (event.shiftKey) this.missed = [];
-    else { const next = this.missed.shift(); if (next) this.jump(next.id, next.channel); }
+    else {
+      const next = this.missed.shift();
+      if (next) this.jump(next.id, next.channel);
+    }
     this.render();
   };
   private render(): void {
-    this.button.hidden = !this.missed.length; this.button.textContent = '@' + this.missed.length;
+    this.button.hidden = !this.missed.length;
+    this.button.textContent = '@' + this.missed.length;
     this.button.setAttribute('aria-label', `${this.missed.length} missed mentions. Jump to next; Shift-click clears.`);
     this.button.title = 'Missed mentions · click to jump · Shift-click clears';
   }
-  stop(): void { this.stopped = true;document.removeEventListener('privacychange',this.clearPrivateAlerts);for(const note of this.notes)note.close();this.notes.clear(); this.button.removeEventListener('click', this.click); document.removeEventListener('pointerdown', this.unlock); void this.audio?.close().catch(() => {}); }
+  stop(): void {
+    this.stopped = true;
+    document.removeEventListener('privacychange', this.clearPrivateAlerts);
+    for (const note of this.notes) note.close();
+    this.notes.clear();
+    this.button.removeEventListener('click', this.click);
+    document.removeEventListener('pointerdown', this.unlock);
+    void this.audio?.close().catch(() => {});
+  }
 }

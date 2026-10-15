@@ -1,11 +1,126 @@
-import type {AuthStatus} from './auth';
-import {privacyEnabled} from './privacy';
-import {parseSuspiciousSnapshot} from './suspicious';
+import type { AuthStatus } from './auth';
+import { privacyEnabled } from './privacy';
+import { parseSuspiciousSnapshot } from './suspicious';
 export class SuspiciousPanel {
- readonly root=document.createElement('fieldset');private list=document.createElement('div');private status=document.createElement('p');private auth:AuthStatus|undefined;private channel='';private source:EventSource|undefined;private generation=0;
- constructor(private guarded:()=>boolean,private review:(command:string,channel:string,userID:string)=>void){this.root.dataset.privateSuspicious='true';const legend=document.createElement('legend');legend.textContent='Private suspicious-user signals';const help=document.createElement('p');help.textContent='Only live signals delivered by Twitch appear here. Missing signals, earlier status and Lead Moderator assignment are unavailable. Limits: 100 users / 15 minutes, four tabs sharing one login session, one channel/account. Signal types and ban-evasion evaluations are provider reports; they do not prove evasion. Preview opens a reviewed action with separate confirmation and a private receipt. Removing monitoring/restriction clears suspicious treatment; it does not certify a user safe.';this.status.setAttribute('role','status');this.list.className='automod-list';this.root.append(legend,help,this.button('Grant suspicious-user consent',()=>{if(!this.auth?.authenticated)throw new Error('Log in first');const url=new URL(this.auth.loginURL);url.searchParams.set('suspicious','read');url.searchParams.set('account',this.auth.userID??'');url.searchParams.set('channel',this.channel);location.assign(url.href);}),this.button('Connect private suspicious-user signals',()=>this.connect()),this.button('Disconnect private suspicious-user signals',()=>{this.stop();this.status.textContent='Private signals disconnected';}),this.list,this.status);}
- private button(text:string,action:()=>void):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=()=>{try{if(!this.guarded()||privacyEnabled())throw new Error('Wait for the current action or exit privacy mode');action();}catch(e){this.status.textContent=e instanceof Error?e.message:'Private signals unavailable';}};return b;}
- setScope(auth:AuthStatus|undefined,channel:string):void{if(this.auth?.userID!==auth?.userID||this.auth?.csrf!==auth?.csrf||this.channel!==channel||!auth?.authenticated||!auth.suspiciousEnabled)this.stop();this.auth=auth;this.channel=channel;}
- private connect():void{if(!this.auth?.authenticated||!this.auth.userID||!this.auth.suspiciousEnabled)throw new Error('Grant moderator:read:suspicious_users consent first');this.stop();const generation=this.generation,account=this.auth.userID,channel=this.channel,source=this.source=new EventSource('/api/auth/suspicious/events?'+new URLSearchParams({channel}));this.status.textContent='Connecting private signals…';source.addEventListener('snapshot',event=>{if(generation!==this.generation||this.source!==source||privacyEnabled())return;try{const data=(event as MessageEvent<string>).data;if(data.length>256*1024)throw new Error('Signal snapshot capacity');const value=parseSuspiciousSnapshot(JSON.parse(data),account,channel);this.list.replaceChildren();for(const row of value.rows){const item=document.createElement('p');item.append(document.createTextNode(`${new Date(row.at).toISOString()} · ${row.login} / ID ${row.userID} · ${row.status} · types: ${row.types.join(', ')||'Unavailable'} · shared ban channels: ${row.shared.join(', ')||'Unavailable'} · ban-evasion evaluation: ${row.evaluation} · ${row.messageID?row.messageID+': '+row.text:'message unavailable'} `));for(const action of ['monitor','unmonitor','restrict','unrestrict']){const b=this.button('Preview '+action+' '+row.login,()=>this.review('/'+action+' '+row.login,channel,row.userID));b.disabled=!value.active||!this.auth?.suspiciousManageEnabled;item.append(b);}this.list.append(item);}this.status.textContent=`Account ${account} · #${channel} / ID ${value.broadcasterID} · ${value.rows.length} observed users. ${value.detail}`;if(value.state==='unavailable'){source.close();this.source=undefined;}}catch{this.stop();this.status.textContent='Private signals unavailable; check consent/role and reconnect';}});source.onerror=()=>{if(generation!==this.generation||this.source!==source)return;this.stop();this.status.textContent='Private signals disconnected/unavailable; check consent/role and reconnect. Missing signals are unavailable.';};}
- stop():void{this.generation++;this.source?.close();this.source=undefined;this.list.replaceChildren();this.status.textContent='';}
+  readonly root = document.createElement('fieldset');
+  private list = document.createElement('div');
+  private status = document.createElement('p');
+  private auth: AuthStatus | undefined;
+  private channel = '';
+  private source: EventSource | undefined;
+  private generation = 0;
+  constructor(
+    private guarded: () => boolean,
+    private review: (command: string, channel: string, userID: string) => void,
+  ) {
+    this.root.dataset.privateSuspicious = 'true';
+    const legend = document.createElement('legend');
+    legend.textContent = 'Private suspicious-user signals';
+    const help = document.createElement('p');
+    help.textContent =
+      'Only live signals delivered by Twitch appear here. Missing signals, earlier status and Lead Moderator assignment are unavailable. Limits: 100 users / 15 minutes, four tabs sharing one login session, one channel/account. Signal types and ban-evasion evaluations are provider reports; they do not prove evasion. Preview opens a reviewed action with separate confirmation and a private receipt. Removing monitoring/restriction clears suspicious treatment; it does not certify a user safe.';
+    this.status.setAttribute('role', 'status');
+    this.list.className = 'automod-list';
+    this.root.append(
+      legend,
+      help,
+      this.button('Grant suspicious-user consent', () => {
+        if (!this.auth?.authenticated) throw new Error('Log in first');
+        const url = new URL(this.auth.loginURL);
+        url.searchParams.set('suspicious', 'read');
+        url.searchParams.set('account', this.auth.userID ?? '');
+        url.searchParams.set('channel', this.channel);
+        location.assign(url.href);
+      }),
+      this.button('Connect private suspicious-user signals', () => this.connect()),
+      this.button('Disconnect private suspicious-user signals', () => {
+        this.stop();
+        this.status.textContent = 'Private signals disconnected';
+      }),
+      this.list,
+      this.status,
+    );
+  }
+  private button(text: string, action: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.onclick = () => {
+      try {
+        if (!this.guarded() || privacyEnabled()) throw new Error('Wait for the current action or exit privacy mode');
+        action();
+      } catch (e) {
+        this.status.textContent = e instanceof Error ? e.message : 'Private signals unavailable';
+      }
+    };
+    return b;
+  }
+  setScope(auth: AuthStatus | undefined, channel: string): void {
+    if (
+      this.auth?.userID !== auth?.userID ||
+      this.auth?.csrf !== auth?.csrf ||
+      this.channel !== channel ||
+      !auth?.authenticated ||
+      !auth.suspiciousEnabled
+    )
+      this.stop();
+    this.auth = auth;
+    this.channel = channel;
+  }
+  private connect(): void {
+    if (!this.auth?.authenticated || !this.auth.userID || !this.auth.suspiciousEnabled)
+      throw new Error('Grant moderator:read:suspicious_users consent first');
+    this.stop();
+    const generation = this.generation,
+      account = this.auth.userID,
+      channel = this.channel,
+      source = (this.source = new EventSource('/api/auth/suspicious/events?' + new URLSearchParams({ channel })));
+    this.status.textContent = 'Connecting private signals…';
+    source.addEventListener('snapshot', (event) => {
+      if (generation !== this.generation || this.source !== source || privacyEnabled()) return;
+      try {
+        const data = (event as MessageEvent<string>).data;
+        if (data.length > 256 * 1024) throw new Error('Signal snapshot capacity');
+        const value = parseSuspiciousSnapshot(JSON.parse(data), account, channel);
+        this.list.replaceChildren();
+        for (const row of value.rows) {
+          const item = document.createElement('p');
+          item.append(
+            document.createTextNode(
+              `${new Date(row.at).toISOString()} · ${row.login} / ID ${row.userID} · ${row.status} · types: ${row.types.join(', ') || 'Unavailable'} · shared ban channels: ${row.shared.join(', ') || 'Unavailable'} · ban-evasion evaluation: ${row.evaluation} · ${row.messageID ? row.messageID + ': ' + row.text : 'message unavailable'} `,
+            ),
+          );
+          for (const action of ['monitor', 'unmonitor', 'restrict', 'unrestrict']) {
+            const b = this.button('Preview ' + action + ' ' + row.login, () =>
+              this.review('/' + action + ' ' + row.login, channel, row.userID),
+            );
+            b.disabled = !value.active || !this.auth?.suspiciousManageEnabled;
+            item.append(b);
+          }
+          this.list.append(item);
+        }
+        this.status.textContent = `Account ${account} · #${channel} / ID ${value.broadcasterID} · ${value.rows.length} observed users. ${value.detail}`;
+        if (value.state === 'unavailable') {
+          source.close();
+          this.source = undefined;
+        }
+      } catch {
+        this.stop();
+        this.status.textContent = 'Private signals unavailable; check consent/role and reconnect';
+      }
+    });
+    source.onerror = () => {
+      if (generation !== this.generation || this.source !== source) return;
+      this.stop();
+      this.status.textContent =
+        'Private signals disconnected/unavailable; check consent/role and reconnect. Missing signals are unavailable.';
+    };
+  }
+  stop(): void {
+    this.generation++;
+    this.source?.close();
+    this.source = undefined;
+    this.list.replaceChildren();
+    this.status.textContent = '';
+  }
 }

@@ -1,9 +1,87 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';
-import {DeviceSyncClient,DeviceConflict} from './device-sync-client';
-import {setProfileScope} from './account-profiles';
-const auth={enabled:true,authenticated:true,loginURL:'https://chat.subcult.tv/api/auth/login',userID:'42',login:'alice',csrf:'opaque'};
-afterEach(()=>{vi.unstubAllGlobals();setProfileScope('anonymous');});
-it('is local-only until connect and requires an observed revision for writes',async()=>{setProfileScope('42');const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({enabled:true,maxBytes:2097152}))).mockResolvedValueOnce(new Response(JSON.stringify({revision:'0',updated:0,document:null}))).mockResolvedValueOnce(new Response(JSON.stringify({revision:'a'.repeat(32),updated:Date.now(),document:null})));vi.stubGlobal('fetch',fetcher);const client=new DeviceSyncClient(()=>auth);expect(fetcher).not.toHaveBeenCalled();await expect(client.mutate({kind:'delete'},'0','request')).rejects.toThrow('Fetch');await client.connect();await client.mutate({kind:'delete'},'0','request');const init=fetcher.mock.calls[2]![1];expect(init.headers['X-Account-ID']).toBe('42');expect(init.headers['X-CSRF-Token']).toBe('opaque');expect(init.headers['If-Match']).toBe('"0"');expect(fetcher).toHaveBeenCalledTimes(3);client.disconnect();});
-it('rejects conflicts and discards late responses after an account change',async()=>{setProfileScope('42');const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({enabled:true,maxBytes:2097152}))).mockResolvedValueOnce(new Response(JSON.stringify({revision:'0',updated:0,document:null}))).mockResolvedValueOnce(new Response('',{status:409}));vi.stubGlobal('fetch',fetcher);let current=auth;const client=new DeviceSyncClient(()=>current);await client.connect();await expect(client.mutate({kind:'delete'},'0','request')).rejects.toBeInstanceOf(DeviceConflict);expect(fetcher).toHaveBeenCalledTimes(3);let finish:(value:Response)=>void=()=>{};vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(resolve=>{finish=resolve;})));const pending=client.connect();current={...auth,userID:'43'};setProfileScope('43');finish(new Response(JSON.stringify({enabled:true,maxBytes:2097152})));await expect(pending).rejects.toThrow('changed');client.disconnect();});
-it('refuses to apply a downloaded snapshot after another device advances its revision',async()=>{setProfileScope('42');vi.stubGlobal('fetch',vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({enabled:true,maxBytes:2097152}))).mockResolvedValueOnce(new Response(JSON.stringify({revision:'a'.repeat(32),updated:Date.now(),document:null}))).mockResolvedValueOnce(new Response(JSON.stringify({revision:'b'.repeat(32),updated:Date.now(),document:null}))));const client=new DeviceSyncClient(()=>auth);await client.connect();await expect(client.verify('a'.repeat(32))).rejects.toBeInstanceOf(DeviceConflict);client.disconnect();});
+import { afterEach, expect, it, vi } from 'vitest';
+import { DeviceSyncClient, DeviceConflict } from './device-sync-client';
+import { setProfileScope } from './account-profiles';
+const auth = {
+  enabled: true,
+  authenticated: true,
+  loginURL: 'https://chat.subcult.tv/api/auth/login',
+  userID: '42',
+  login: 'alice',
+  csrf: 'opaque',
+};
+afterEach(() => {
+  vi.unstubAllGlobals();
+  setProfileScope('anonymous');
+});
+it('is local-only until connect and requires an observed revision for writes', async () => {
+  setProfileScope('42');
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ enabled: true, maxBytes: 2097152 })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ revision: '0', updated: 0, document: null })))
+    .mockResolvedValueOnce(
+      new Response(JSON.stringify({ revision: 'a'.repeat(32), updated: Date.now(), document: null })),
+    );
+  vi.stubGlobal('fetch', fetcher);
+  const client = new DeviceSyncClient(() => auth);
+  expect(fetcher).not.toHaveBeenCalled();
+  await expect(client.mutate({ kind: 'delete' }, '0', 'request')).rejects.toThrow('Fetch');
+  await client.connect();
+  await client.mutate({ kind: 'delete' }, '0', 'request');
+  const init = fetcher.mock.calls[2]![1];
+  expect(init.headers['X-Account-ID']).toBe('42');
+  expect(init.headers['X-CSRF-Token']).toBe('opaque');
+  expect(init.headers['If-Match']).toBe('"0"');
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  client.disconnect();
+});
+it('rejects conflicts and discards late responses after an account change', async () => {
+  setProfileScope('42');
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify({ enabled: true, maxBytes: 2097152 })))
+    .mockResolvedValueOnce(new Response(JSON.stringify({ revision: '0', updated: 0, document: null })))
+    .mockResolvedValueOnce(new Response('', { status: 409 }));
+  vi.stubGlobal('fetch', fetcher);
+  let current = auth;
+  const client = new DeviceSyncClient(() => current);
+  await client.connect();
+  await expect(client.mutate({ kind: 'delete' }, '0', 'request')).rejects.toBeInstanceOf(DeviceConflict);
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  let finish: (value: Response) => void = () => {};
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+    ),
+  );
+  const pending = client.connect();
+  current = { ...auth, userID: '43' };
+  setProfileScope('43');
+  finish(new Response(JSON.stringify({ enabled: true, maxBytes: 2097152 })));
+  await expect(pending).rejects.toThrow('changed');
+  client.disconnect();
+});
+it('refuses to apply a downloaded snapshot after another device advances its revision', async () => {
+  setProfileScope('42');
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ enabled: true, maxBytes: 2097152 })))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ revision: 'a'.repeat(32), updated: Date.now(), document: null })),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ revision: 'b'.repeat(32), updated: Date.now(), document: null })),
+      ),
+  );
+  const client = new DeviceSyncClient(() => auth);
+  await client.connect();
+  await expect(client.verify('a'.repeat(32))).rejects.toBeInstanceOf(DeviceConflict);
+  client.disconnect();
+});

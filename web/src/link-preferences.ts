@@ -1,42 +1,506 @@
-import {getProfileScope,profileKey} from './account-profiles';
-import {privacyEnabled} from './privacy';
-export interface LinkPreferences {version:1;enabled:boolean;tooltip:boolean;thumbnails:boolean;doubleClick:boolean;unshorten:boolean;lowercaseDomains:boolean;emoteTooltip:boolean;thumbnailSize:number;streamSize:number;searchEnabled:boolean;engineURL:string;engineName:string}
-export const linkDefaults:LinkPreferences={version:1,enabled:false,tooltip:false,thumbnails:false,doubleClick:false,unshorten:false,lowercaseDomains:true,emoteTooltip:false,thumbnailSize:240,streamSize:360,searchEnabled:false,engineURL:'https://duckduckgo.com/?q={query}',engineName:'DuckDuckGo'};
-function record(value:unknown):value is Record<string,unknown>{return !!value&&typeof value==='object'&&!Array.isArray(value);}
-export function parseLinkPreferences(value:unknown):LinkPreferences{if(value===null)return {...linkDefaults};if(!record(value)||value.version!==1)throw new Error('Invalid link preferences');const p={...linkDefaults};for(const key of ['enabled','tooltip','thumbnails','doubleClick','unshorten','lowercaseDomains','emoteTooltip','searchEnabled'] as const){if(typeof value[key]!=='boolean')throw new Error('Link options must be boolean');p[key]=value[key];}for(const key of ['thumbnailSize','streamSize'] as const){if(typeof value[key]!=='number'||!Number.isInteger(value[key])||value[key]<80||value[key]>640)throw new Error('Preview sizes must be 80–640 px');p[key]=value[key];}if(typeof value.engineURL!=='string'||value.engineURL.length>2048||value.engineURL.split('{query}').length!==2||/[\x00-\x20<>]/.test(value.engineURL)||value.engineURL.replace('{query}','').includes('{'))throw new Error('Use one {query} placeholder in an HTTP(S) search URL');const url=new URL(value.engineURL.replace('{query}','fixture'));if(!['http:','https:'].includes(url.protocol)||url.username||url.password||!url.hostname)throw new Error('Invalid search engine URL');if(typeof value.engineName!=='string'||!value.engineName.trim()||value.engineName.length>40||/[\x00-\x1f\x7f]/.test(value.engineName))throw new Error('Invalid search engine name');p.engineURL=value.engineURL;p.engineName=value.engineName.trim();return p;}
-let current={...linkDefaults};
-export function getLinkPreferences():LinkPreferences{return current;}
-export function setLinkPreferences(value:LinkPreferences):void{current=parseLinkPreferences(value);}
-export function searchURL(p:LinkPreferences,text:string):string{if(!p.searchEnabled||!text.trim()||text.length>1000||/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text))throw new Error('Select 1–1,000 public chat characters first');return p.engineURL.replace('{query}',encodeURIComponent(text.trim()));}
+import { getProfileScope, profileKey } from './account-profiles';
+import { privacyEnabled } from './privacy';
+export interface LinkPreferences {
+  version: 1;
+  enabled: boolean;
+  tooltip: boolean;
+  thumbnails: boolean;
+  doubleClick: boolean;
+  unshorten: boolean;
+  lowercaseDomains: boolean;
+  emoteTooltip: boolean;
+  thumbnailSize: number;
+  streamSize: number;
+  searchEnabled: boolean;
+  engineURL: string;
+  engineName: string;
+}
+export const linkDefaults: LinkPreferences = {
+  version: 1,
+  enabled: false,
+  tooltip: false,
+  thumbnails: false,
+  doubleClick: false,
+  unshorten: false,
+  lowercaseDomains: true,
+  emoteTooltip: false,
+  thumbnailSize: 240,
+  streamSize: 360,
+  searchEnabled: false,
+  engineURL: 'https://duckduckgo.com/?q={query}',
+  engineName: 'DuckDuckGo',
+};
+function record(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+export function parseLinkPreferences(value: unknown): LinkPreferences {
+  if (value === null) return { ...linkDefaults };
+  if (!record(value) || value.version !== 1) throw new Error('Invalid link preferences');
+  const p = { ...linkDefaults };
+  for (const key of [
+    'enabled',
+    'tooltip',
+    'thumbnails',
+    'doubleClick',
+    'unshorten',
+    'lowercaseDomains',
+    'emoteTooltip',
+    'searchEnabled',
+  ] as const) {
+    if (typeof value[key] !== 'boolean') throw new Error('Link options must be boolean');
+    p[key] = value[key];
+  }
+  for (const key of ['thumbnailSize', 'streamSize'] as const) {
+    if (typeof value[key] !== 'number' || !Number.isInteger(value[key]) || value[key] < 80 || value[key] > 640)
+      throw new Error('Preview sizes must be 80–640 px');
+    p[key] = value[key];
+  }
+  if (
+    typeof value.engineURL !== 'string' ||
+    value.engineURL.length > 2048 ||
+    value.engineURL.split('{query}').length !== 2 ||
+    /[\x00-\x20<>]/.test(value.engineURL) ||
+    value.engineURL.replace('{query}', '').includes('{')
+  )
+    throw new Error('Use one {query} placeholder in an HTTP(S) search URL');
+  const url = new URL(value.engineURL.replace('{query}', 'fixture'));
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || !url.hostname)
+    throw new Error('Invalid search engine URL');
+  if (
+    typeof value.engineName !== 'string' ||
+    !value.engineName.trim() ||
+    value.engineName.length > 40 ||
+    /[\x00-\x1f\x7f]/.test(value.engineName)
+  )
+    throw new Error('Invalid search engine name');
+  p.engineURL = value.engineURL;
+  p.engineName = value.engineName.trim();
+  return p;
+}
+let current = { ...linkDefaults };
+export function getLinkPreferences(): LinkPreferences {
+  return current;
+}
+export function setLinkPreferences(value: LinkPreferences): void {
+  current = parseLinkPreferences(value);
+}
+export function searchURL(p: LinkPreferences, text: string): string {
+  if (!p.searchEnabled || !text.trim() || text.length > 1000 || /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text))
+    throw new Error('Select 1–1,000 public chat characters first');
+  return p.engineURL.replace('{query}', encodeURIComponent(text.trim()));
+}
 export class LinkPreferenceStore {
- private account=getProfileScope();private key=profileKey('chatthing:v1:link-preferences');private raw:string|null;
- constructor(){this.raw=localStorage.getItem(this.key);}
- read():LinkPreferences{if(getProfileScope()!==this.account)throw new Error('Account changed; reopen link preferences');if(this.raw&&this.raw.length>8192)throw new Error('Saved link preferences exceed limit');return parseLinkPreferences(this.raw?JSON.parse(this.raw):null);}
- save(value:LinkPreferences):void{this.read();if(localStorage.getItem(this.key)!==this.raw)throw new Error('Link preferences changed in another tab; reopen');const raw=JSON.stringify(parseLinkPreferences(value));localStorage.setItem(this.key,raw);this.raw=raw;}
+  private account = getProfileScope();
+  private key = profileKey('chatthing:v1:link-preferences');
+  private raw: string | null;
+  constructor() {
+    this.raw = localStorage.getItem(this.key);
+  }
+  read(): LinkPreferences {
+    if (getProfileScope() !== this.account) throw new Error('Account changed; reopen link preferences');
+    if (this.raw && this.raw.length > 8192) throw new Error('Saved link preferences exceed limit');
+    return parseLinkPreferences(this.raw ? JSON.parse(this.raw) : null);
+  }
+  save(value: LinkPreferences): void {
+    this.read();
+    if (localStorage.getItem(this.key) !== this.raw) throw new Error('Link preferences changed in another tab; reopen');
+    const raw = JSON.stringify(parseLinkPreferences(value));
+    localStorage.setItem(this.key, raw);
+    this.raw = raw;
+  }
 }
 export class LinkTools {
- readonly root=document.createElement('dialog');private search=document.createElement('dialog');private trigger=document.createElement('button');private searchTrigger=document.createElement('button');private report=document.createElement('pre');private openingStatus=document.createElement('p');private status=document.createElement('p');private store:LinkPreferenceStore|undefined;private pending:LinkPreferences|undefined;private apply:HTMLButtonElement;private selected='';private resolveAbort:AbortController|undefined;private resolveGeneration=0;
- constructor(private log:HTMLElement,private changed:()=>void=()=>{},private readonlyView=false){
-  this.trigger.type='button';this.trigger.textContent='Link preferences';this.trigger.hidden=readonlyView;document.getElementById('commands-open')?.after(this.trigger);this.trigger.addEventListener('click',this.open);this.root.setAttribute('aria-label','Link preferences');const heading=document.createElement('h2');heading.textContent='Link previews and selection search';const note=document.createElement('p');note.textContent='Enabling remote previews permits Chatty Cat to request the public destination. Thumbnails/icons contact image hosts from your browser and expose its IP. Preview buttons can request one preview explicitly even while automatic previews are off. Media players still require a separate click. Browser settings control private/incognito windows; this web app opens ordinary tabs.';this.root.append(heading,note);
-  for(const [key,label] of [['enabled','Allow automatic remote link previews'],['tooltip','Show automatic link tooltips on hover/focus'],['thumbnails','Allow remote link thumbnails and icons'],['doubleClick','Require double-click to open chat links (Enter still works)'],['unshorten','Enable explicit shortened-link resolution'],['lowercaseDomains','Display normalized lowercase domains'],['emoteTooltip','Show emote and badge tooltip images'],['searchEnabled','Enable reviewed selection search']] as const){const field=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.name=key;field.append(input,label);this.root.append(field);}
-  for(const [key,label,type] of [['thumbnailSize','General preview image width','number'],['streamSize','Stream preview image width','number'],['engineURL','Search engine URL with {query}','text'],['engineName','Search engine name','text']] as const){const field=document.createElement('label'),input=document.createElement('input');field.textContent=label;input.type=type;input.name=key;input.setAttribute('aria-label',label);if(type==='number'){input.min='80';input.max='640';}else input.maxLength=key==='engineURL'?2048:40;field.append(input);this.root.append(field);}
-  this.status.setAttribute('role','status');this.root.append(this.button('Review link preferences',()=>this.review()),this.report);this.apply=this.button('Apply link preferences',()=>this.commit());this.root.append(this.apply,this.button('Close link preferences',()=>this.root.close()),this.status);document.body.append(this.root,this.search);this.search.setAttribute('aria-label','Review selection search');this.searchTrigger.type='button';this.searchTrigger.textContent='Search selected chat text';this.searchTrigger.hidden=readonlyView;log.before(this.searchTrigger,this.openingStatus);this.openingStatus.setAttribute('role','status');this.searchTrigger.addEventListener('click',this.selection);this.root.addEventListener('input',this.invalidate);this.root.addEventListener('change',this.invalidate);this.root.addEventListener('close',this.closed);this.search.addEventListener('close',this.clearSearch);document.addEventListener('privacychange',this.privacy);log.addEventListener('click',this.click,true);log.addEventListener('dblclick',this.double,true);this.load();this.invalidate();
- }
- private button(text:string,action:()=>void):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.addEventListener('click',()=>{try{if(privacyEnabled()||this.readonlyView)throw new Error('Link tools hidden in this view');action();}catch(error){this.status.textContent=error instanceof Error?error.message:'Link tools unavailable';}});return b;}
- private load():void{try{this.store=new LinkPreferenceStore();const p=this.store.read();setLinkPreferences(p);this.sync(p);}catch(error){this.store=undefined;setLinkPreferences(linkDefaults);this.status.textContent=error instanceof Error?error.message:'Link preferences unavailable';}this.announce();}
- private field(name:string):HTMLInputElement{const input=this.root.querySelector('[name='+name+']');if(!(input instanceof HTMLInputElement))throw new Error('Missing link preference');return input;}
- private sync(p:LinkPreferences):void{for(const key of ['enabled','tooltip','thumbnails','doubleClick','unshorten','lowercaseDomains','emoteTooltip','searchEnabled'] as const)this.field(key).checked=p[key];for(const key of ['thumbnailSize','streamSize','engineURL','engineName'] as const)this.field(key).value=String(p[key]);}
- private review():void{this.invalidate();if(!this.store)throw new Error('Existing preferences unavailable; data retained');this.store.read();const raw:Record<string,unknown>={version:1};for(const key of ['enabled','tooltip','thumbnails','doubleClick','unshorten','lowercaseDomains','emoteTooltip','searchEnabled'])raw[key]=this.field(key).checked;for(const key of ['thumbnailSize','streamSize'])raw[key]=Number(this.field(key).value);for(const key of ['engineURL','engineName'])raw[key]=this.field(key).value;this.pending=parseLinkPreferences(raw);this.report.textContent='Remote previews: '+this.pending.enabled+'; hover/focus: '+this.pending.tooltip+'\nBrowser image requests: '+this.pending.thumbnails+'\nPreview widths: '+this.pending.thumbnailSize+' / '+this.pending.streamSize+' px\nDouble-click: '+this.pending.doubleClick+'; explicit resolution: '+this.pending.unshorten+'\nSelection search: '+(this.pending.searchEnabled?this.pending.engineName+' at '+new URL(this.pending.engineURL.replace('{query}','fixture')).origin:'off')+'\nNo remote request or search occurs when saving.';this.apply.disabled=false;}
- private commit():void{if(!this.pending||!this.store)return;this.store.save(this.pending);setLinkPreferences(this.pending);this.invalidate();this.announce();this.status.textContent='Saved link preferences for this local account';}
- private announce():void{document.dispatchEvent(new Event('presentation-before-change'));document.dispatchEvent(new Event('linkpreferenceschange'));this.searchTrigger.disabled=!current.searchEnabled||privacyEnabled();this.changed();}
- private invalidate=():void=>{this.pending=undefined;this.apply.disabled=true;this.report.textContent='';};
- private open=():void=>{if(privacyEnabled()||this.readonlyView)return;this.load();this.invalidate();this.root.showModal();};
- private closed=():void=>{this.invalidate();this.field('engineURL').value='';this.field('engineName').value='';};
- private selection=():void=>{if(privacyEnabled()||this.readonlyView||!current.searchEnabled)return;const selection=document.getSelection();if(!selection?.anchorNode||!selection.focusNode||!this.log.contains(selection.anchorNode)||!this.log.contains(selection.focusNode))return;this.selected=selection.toString();let href:string;try{href=searchURL(current,this.selected);}catch(error){this.status.textContent=error instanceof Error?error.message:'Selection unavailable';return;}const h=document.createElement('h2');h.textContent='Review selection search';const text=document.createElement('pre');text.textContent=this.selected;const note=document.createElement('p');note.textContent='Opening this link sends the displayed selection to '+new URL(href).origin+'. Nothing is sent until you choose Open search. Your browser controls new-tab and private-window behavior.';const link=document.createElement('a');link.href=href;link.textContent='Open search in '+current.engineName;link.target='_blank';link.rel='noopener noreferrer';this.search.replaceChildren(h,text,note,link,this.button('Close selection search',()=>this.search.close()));this.search.showModal();};
- private resolveReview(raw:string):void{if(privacyEnabled()||this.readonlyView||!current.unshorten)return;let url:URL;try{url=new URL(raw);if(raw.length>2048||!['http:','https:'].includes(url.protocol)||url.username||url.password)return;}catch{return;}this.clearSearch();const generation=this.resolveGeneration,h=document.createElement('h2');h.textContent='Review link resolution';const note=document.createElement('p');note.textContent='Chatty Cat will request this public URL and follow at most four redirects using its protected preview service. Destinations can observe server requests. This does not open the resolved link or load browser images. '+url.href;const result=document.createElement('p'),resolve=this.button('Resolve this public URL',()=>{if(generation!==this.resolveGeneration)return;this.resolveAbort?.abort();const abort=this.resolveAbort=new AbortController();resolve.disabled=true;result.textContent='Resolving…';void fetch('/api/preview?url='+encodeURIComponent(url.href),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.any([abort.signal,AbortSignal.timeout(15000)])}).then(async response=>{if(!response.ok)throw new Error('Resolution unavailable');const value:unknown=await response.json();if(generation!==this.resolveGeneration||privacyEnabled())return;if(!record(value)||typeof value.url!=='string'||value.url.length>2048||/[\x00-\x20\x7f]/.test(value.url))throw new Error('Invalid resolved URL');const destination=new URL(value.url);if(!['http:','https:'].includes(destination.protocol)||destination.username||destination.password)throw new Error('Invalid resolved URL');const link=document.createElement('a');link.href=destination.href;link.textContent=destination.href;link.target='_blank';link.rel='noopener noreferrer';result.replaceChildren('Resolved destination: ',link);}).catch(error=>{if(generation===this.resolveGeneration&&!privacyEnabled()){result.textContent=error instanceof Error?error.message:'Resolution unavailable';resolve.disabled=false;}});});this.search.replaceChildren(h,note,resolve,result,this.button('Close link resolution',()=>this.search.close()));this.search.showModal();}
- private clearSearch=():void=>{this.resolveGeneration++;this.resolveAbort?.abort();this.resolveAbort=undefined;this.selected='';this.search.replaceChildren();};
- private click=(event:MouseEvent):void=>{if(!(event.target instanceof Element))return;const resolve=event.target.closest<HTMLButtonElement>('button[data-resolve-link]');if(resolve){event.preventDefault();this.resolveReview(resolve.dataset.resolveLink??'');return;}if(!event.target.closest('a.chat-link,a.chat-image-link'))return;if(privacyEnabled()){event.preventDefault();event.stopImmediatePropagation();return;}if(current.doubleClick&&event.detail>0&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey){event.preventDefault();event.stopImmediatePropagation();}};
- private double=(event:MouseEvent):void=>{if(!current.doubleClick||privacyEnabled()||!(event.target instanceof Element))return;const anchor=event.target.closest('a.chat-link,a.chat-image-link');if(!(anchor instanceof HTMLAnchorElement))return;event.preventDefault();event.stopImmediatePropagation();const url=new URL(anchor.href);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return;window.open(url.href,'_blank','noopener,noreferrer');this.status.textContent='If your browser blocked the new tab, focus the link and press Enter. This opens an ordinary tab.';this.openingStatus.textContent=this.status.textContent;};
- private privacy=():void=>{if(privacyEnabled()){this.closed();this.clearSearch();if(this.root.open)this.root.close();if(this.search.open)this.search.close();}this.announce();};
- stop():void{this.clearSearch();this.trigger.removeEventListener('click',this.open);this.searchTrigger.removeEventListener('click',this.selection);this.root.removeEventListener('input',this.invalidate);this.root.removeEventListener('change',this.invalidate);this.root.removeEventListener('close',this.closed);this.search.removeEventListener('close',this.clearSearch);document.removeEventListener('privacychange',this.privacy);this.log.removeEventListener('click',this.click,true);this.log.removeEventListener('dblclick',this.double,true);this.openingStatus.remove();this.root.remove();this.search.remove();this.trigger.remove();this.searchTrigger.remove();setLinkPreferences(linkDefaults);}
+  readonly root = document.createElement('dialog');
+  private search = document.createElement('dialog');
+  private trigger = document.createElement('button');
+  private searchTrigger = document.createElement('button');
+  private report = document.createElement('pre');
+  private openingStatus = document.createElement('p');
+  private status = document.createElement('p');
+  private store: LinkPreferenceStore | undefined;
+  private pending: LinkPreferences | undefined;
+  private apply: HTMLButtonElement;
+  private selected = '';
+  private resolveAbort: AbortController | undefined;
+  private resolveGeneration = 0;
+  constructor(
+    private log: HTMLElement,
+    private changed: () => void = () => {},
+    private readonlyView = false,
+  ) {
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Link preferences';
+    this.trigger.hidden = readonlyView;
+    document.getElementById('commands-open')?.after(this.trigger);
+    this.trigger.addEventListener('click', this.open);
+    this.root.setAttribute('aria-label', 'Link preferences');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Link previews and selection search';
+    const note = document.createElement('p');
+    note.textContent =
+      'Enabling remote previews permits Chatty Cat to request the public destination. Thumbnails/icons contact image hosts from your browser and expose its IP. Preview buttons can request one preview explicitly even while automatic previews are off. Media players still require a separate click. Browser settings control private/incognito windows; this web app opens ordinary tabs.';
+    this.root.append(heading, note);
+    for (const [key, label] of [
+      ['enabled', 'Allow automatic remote link previews'],
+      ['tooltip', 'Show automatic link tooltips on hover/focus'],
+      ['thumbnails', 'Allow remote link thumbnails and icons'],
+      ['doubleClick', 'Require double-click to open chat links (Enter still works)'],
+      ['unshorten', 'Enable explicit shortened-link resolution'],
+      ['lowercaseDomains', 'Display normalized lowercase domains'],
+      ['emoteTooltip', 'Show emote and badge tooltip images'],
+      ['searchEnabled', 'Enable reviewed selection search'],
+    ] as const) {
+      const field = document.createElement('label'),
+        input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = key;
+      field.append(input, label);
+      this.root.append(field);
+    }
+    for (const [key, label, type] of [
+      ['thumbnailSize', 'General preview image width', 'number'],
+      ['streamSize', 'Stream preview image width', 'number'],
+      ['engineURL', 'Search engine URL with {query}', 'text'],
+      ['engineName', 'Search engine name', 'text'],
+    ] as const) {
+      const field = document.createElement('label'),
+        input = document.createElement('input');
+      field.textContent = label;
+      input.type = type;
+      input.name = key;
+      input.setAttribute('aria-label', label);
+      if (type === 'number') {
+        input.min = '80';
+        input.max = '640';
+      } else input.maxLength = key === 'engineURL' ? 2048 : 40;
+      field.append(input);
+      this.root.append(field);
+    }
+    this.status.setAttribute('role', 'status');
+    this.root.append(
+      this.button('Review link preferences', () => this.review()),
+      this.report,
+    );
+    this.apply = this.button('Apply link preferences', () => this.commit());
+    this.root.append(
+      this.apply,
+      this.button('Close link preferences', () => this.root.close()),
+      this.status,
+    );
+    document.body.append(this.root, this.search);
+    this.search.setAttribute('aria-label', 'Review selection search');
+    this.searchTrigger.type = 'button';
+    this.searchTrigger.textContent = 'Search selected chat text';
+    this.searchTrigger.hidden = readonlyView;
+    log.before(this.searchTrigger, this.openingStatus);
+    this.openingStatus.setAttribute('role', 'status');
+    this.searchTrigger.addEventListener('click', this.selection);
+    this.root.addEventListener('input', this.invalidate);
+    this.root.addEventListener('change', this.invalidate);
+    this.root.addEventListener('close', this.closed);
+    this.search.addEventListener('close', this.clearSearch);
+    document.addEventListener('privacychange', this.privacy);
+    log.addEventListener('click', this.click, true);
+    log.addEventListener('dblclick', this.double, true);
+    this.load();
+    this.invalidate();
+  }
+  private button(text: string, action: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.addEventListener('click', () => {
+      try {
+        if (privacyEnabled() || this.readonlyView) throw new Error('Link tools hidden in this view');
+        action();
+      } catch (error) {
+        this.status.textContent = error instanceof Error ? error.message : 'Link tools unavailable';
+      }
+    });
+    return b;
+  }
+  private load(): void {
+    try {
+      this.store = new LinkPreferenceStore();
+      const p = this.store.read();
+      setLinkPreferences(p);
+      this.sync(p);
+    } catch (error) {
+      this.store = undefined;
+      setLinkPreferences(linkDefaults);
+      this.status.textContent = error instanceof Error ? error.message : 'Link preferences unavailable';
+    }
+    this.announce();
+  }
+  private field(name: string): HTMLInputElement {
+    const input = this.root.querySelector('[name=' + name + ']');
+    if (!(input instanceof HTMLInputElement)) throw new Error('Missing link preference');
+    return input;
+  }
+  private sync(p: LinkPreferences): void {
+    for (const key of [
+      'enabled',
+      'tooltip',
+      'thumbnails',
+      'doubleClick',
+      'unshorten',
+      'lowercaseDomains',
+      'emoteTooltip',
+      'searchEnabled',
+    ] as const)
+      this.field(key).checked = p[key];
+    for (const key of ['thumbnailSize', 'streamSize', 'engineURL', 'engineName'] as const)
+      this.field(key).value = String(p[key]);
+  }
+  private review(): void {
+    this.invalidate();
+    if (!this.store) throw new Error('Existing preferences unavailable; data retained');
+    this.store.read();
+    const raw: Record<string, unknown> = { version: 1 };
+    for (const key of [
+      'enabled',
+      'tooltip',
+      'thumbnails',
+      'doubleClick',
+      'unshorten',
+      'lowercaseDomains',
+      'emoteTooltip',
+      'searchEnabled',
+    ])
+      raw[key] = this.field(key).checked;
+    for (const key of ['thumbnailSize', 'streamSize']) raw[key] = Number(this.field(key).value);
+    for (const key of ['engineURL', 'engineName']) raw[key] = this.field(key).value;
+    this.pending = parseLinkPreferences(raw);
+    this.report.textContent =
+      'Remote previews: ' +
+      this.pending.enabled +
+      '; hover/focus: ' +
+      this.pending.tooltip +
+      '\nBrowser image requests: ' +
+      this.pending.thumbnails +
+      '\nPreview widths: ' +
+      this.pending.thumbnailSize +
+      ' / ' +
+      this.pending.streamSize +
+      ' px\nDouble-click: ' +
+      this.pending.doubleClick +
+      '; explicit resolution: ' +
+      this.pending.unshorten +
+      '\nSelection search: ' +
+      (this.pending.searchEnabled
+        ? this.pending.engineName + ' at ' + new URL(this.pending.engineURL.replace('{query}', 'fixture')).origin
+        : 'off') +
+      '\nNo remote request or search occurs when saving.';
+    this.apply.disabled = false;
+  }
+  private commit(): void {
+    if (!this.pending || !this.store) return;
+    this.store.save(this.pending);
+    setLinkPreferences(this.pending);
+    this.invalidate();
+    this.announce();
+    this.status.textContent = 'Saved link preferences for this local account';
+  }
+  private announce(): void {
+    document.dispatchEvent(new Event('presentation-before-change'));
+    document.dispatchEvent(new Event('linkpreferenceschange'));
+    this.searchTrigger.disabled = !current.searchEnabled || privacyEnabled();
+    this.changed();
+  }
+  private invalidate = (): void => {
+    this.pending = undefined;
+    this.apply.disabled = true;
+    this.report.textContent = '';
+  };
+  private open = (): void => {
+    if (privacyEnabled() || this.readonlyView) return;
+    this.load();
+    this.invalidate();
+    this.root.showModal();
+  };
+  private closed = (): void => {
+    this.invalidate();
+    this.field('engineURL').value = '';
+    this.field('engineName').value = '';
+  };
+  private selection = (): void => {
+    if (privacyEnabled() || this.readonlyView || !current.searchEnabled) return;
+    const selection = document.getSelection();
+    if (
+      !selection?.anchorNode ||
+      !selection.focusNode ||
+      !this.log.contains(selection.anchorNode) ||
+      !this.log.contains(selection.focusNode)
+    )
+      return;
+    this.selected = selection.toString();
+    let href: string;
+    try {
+      href = searchURL(current, this.selected);
+    } catch (error) {
+      this.status.textContent = error instanceof Error ? error.message : 'Selection unavailable';
+      return;
+    }
+    const h = document.createElement('h2');
+    h.textContent = 'Review selection search';
+    const text = document.createElement('pre');
+    text.textContent = this.selected;
+    const note = document.createElement('p');
+    note.textContent =
+      'Opening this link sends the displayed selection to ' +
+      new URL(href).origin +
+      '. Nothing is sent until you choose Open search. Your browser controls new-tab and private-window behavior.';
+    const link = document.createElement('a');
+    link.href = href;
+    link.textContent = 'Open search in ' + current.engineName;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    this.search.replaceChildren(
+      h,
+      text,
+      note,
+      link,
+      this.button('Close selection search', () => this.search.close()),
+    );
+    this.search.showModal();
+  };
+  private resolveReview(raw: string): void {
+    if (privacyEnabled() || this.readonlyView || !current.unshorten) return;
+    let url: URL;
+    try {
+      url = new URL(raw);
+      if (raw.length > 2048 || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) return;
+    } catch {
+      return;
+    }
+    this.clearSearch();
+    const generation = this.resolveGeneration,
+      h = document.createElement('h2');
+    h.textContent = 'Review link resolution';
+    const note = document.createElement('p');
+    note.textContent =
+      'Chatty Cat will request this public URL and follow at most four redirects using its protected preview service. Destinations can observe server requests. This does not open the resolved link or load browser images. ' +
+      url.href;
+    const result = document.createElement('p'),
+      resolve = this.button('Resolve this public URL', () => {
+        if (generation !== this.resolveGeneration) return;
+        this.resolveAbort?.abort();
+        const abort = (this.resolveAbort = new AbortController());
+        resolve.disabled = true;
+        result.textContent = 'Resolving…';
+        void fetch('/api/preview?url=' + encodeURIComponent(url.href), {
+          credentials: 'same-origin',
+          cache: 'no-store',
+          signal: AbortSignal.any([abort.signal, AbortSignal.timeout(15000)]),
+        })
+          .then(async (response) => {
+            if (!response.ok) throw new Error('Resolution unavailable');
+            const value: unknown = await response.json();
+            if (generation !== this.resolveGeneration || privacyEnabled()) return;
+            if (
+              !record(value) ||
+              typeof value.url !== 'string' ||
+              value.url.length > 2048 ||
+              /[\x00-\x20\x7f]/.test(value.url)
+            )
+              throw new Error('Invalid resolved URL');
+            const destination = new URL(value.url);
+            if (!['http:', 'https:'].includes(destination.protocol) || destination.username || destination.password)
+              throw new Error('Invalid resolved URL');
+            const link = document.createElement('a');
+            link.href = destination.href;
+            link.textContent = destination.href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            result.replaceChildren('Resolved destination: ', link);
+          })
+          .catch((error) => {
+            if (generation === this.resolveGeneration && !privacyEnabled()) {
+              result.textContent = error instanceof Error ? error.message : 'Resolution unavailable';
+              resolve.disabled = false;
+            }
+          });
+      });
+    this.search.replaceChildren(
+      h,
+      note,
+      resolve,
+      result,
+      this.button('Close link resolution', () => this.search.close()),
+    );
+    this.search.showModal();
+  }
+  private clearSearch = (): void => {
+    this.resolveGeneration++;
+    this.resolveAbort?.abort();
+    this.resolveAbort = undefined;
+    this.selected = '';
+    this.search.replaceChildren();
+  };
+  private click = (event: MouseEvent): void => {
+    if (!(event.target instanceof Element)) return;
+    const resolve = event.target.closest<HTMLButtonElement>('button[data-resolve-link]');
+    if (resolve) {
+      event.preventDefault();
+      this.resolveReview(resolve.dataset.resolveLink ?? '');
+      return;
+    }
+    if (!event.target.closest('a.chat-link,a.chat-image-link')) return;
+    if (privacyEnabled()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (
+      current.doubleClick &&
+      event.detail > 0 &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      !event.altKey
+    ) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+  private double = (event: MouseEvent): void => {
+    if (!current.doubleClick || privacyEnabled() || !(event.target instanceof Element)) return;
+    const anchor = event.target.closest('a.chat-link,a.chat-image-link');
+    if (!(anchor instanceof HTMLAnchorElement)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const url = new URL(anchor.href);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return;
+    window.open(url.href, '_blank', 'noopener,noreferrer');
+    this.status.textContent =
+      'If your browser blocked the new tab, focus the link and press Enter. This opens an ordinary tab.';
+    this.openingStatus.textContent = this.status.textContent;
+  };
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.closed();
+      this.clearSearch();
+      if (this.root.open) this.root.close();
+      if (this.search.open) this.search.close();
+    }
+    this.announce();
+  };
+  stop(): void {
+    this.clearSearch();
+    this.trigger.removeEventListener('click', this.open);
+    this.searchTrigger.removeEventListener('click', this.selection);
+    this.root.removeEventListener('input', this.invalidate);
+    this.root.removeEventListener('change', this.invalidate);
+    this.root.removeEventListener('close', this.closed);
+    this.search.removeEventListener('close', this.clearSearch);
+    document.removeEventListener('privacychange', this.privacy);
+    this.log.removeEventListener('click', this.click, true);
+    this.log.removeEventListener('dblclick', this.double, true);
+    this.openingStatus.remove();
+    this.root.remove();
+    this.search.remove();
+    this.trigger.remove();
+    this.searchTrigger.remove();
+    setLinkPreferences(linkDefaults);
+  }
 }

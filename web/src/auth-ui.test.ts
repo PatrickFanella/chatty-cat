@@ -2,13 +2,33 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { mountAuth } from './auth';
 
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); history.replaceState(null, '', '/'); });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+  history.replaceState(null, '', '/');
+});
 it('renders account and signs out with CSRF', async () => {
   vi.useFakeTimers();
   const button = document.createElement('button');
   const label = document.createElement('span');
-  const fetcher = vi.fn().mockResolvedValueOnce({ ok: true, json: async () => ({ enabled: true, authenticated: true, loginURL: 'https://chat.subcult.tv/api/auth/login', login: 'viewer', userID: '42', csrf: 'csrf' }) })
-    .mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: true, json: async () => ({ enabled: true, authenticated: false, loginURL: 'https://chat.subcult.tv/api/auth/login' }) });
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        enabled: true,
+        authenticated: true,
+        loginURL: 'https://chat.subcult.tv/api/auth/login',
+        login: 'viewer',
+        userID: '42',
+        csrf: 'csrf',
+      }),
+    })
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ enabled: true, authenticated: false, loginURL: 'https://chat.subcult.tv/api/auth/login' }),
+    });
   vi.stubGlobal('fetch', fetcher);
   const stop = mountAuth(button, label);
   await vi.advanceTimersByTimeAsync(0);
@@ -25,8 +45,15 @@ it('renders account and signs out with CSRF', async () => {
 it('keeps consent cancellation visible and removes its query', async () => {
   vi.useFakeTimers();
   history.replaceState(null, '', '/?channel=hasanabi&auth=denied');
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ enabled: true, authenticated: false, loginURL: 'https://chat.subcult.tv/api/auth/login' }) }));
-  const button = document.createElement('button'); const label = document.createElement('span');
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ enabled: true, authenticated: false, loginURL: 'https://chat.subcult.tv/api/auth/login' }),
+    }),
+  );
+  const button = document.createElement('button');
+  const label = document.createElement('span');
   const stop = mountAuth(button, label);
   await vi.advanceTimersByTimeAsync(0);
   expect(label.textContent).toBe('Twitch login was cancelled');

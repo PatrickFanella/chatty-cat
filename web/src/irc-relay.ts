@@ -1,29 +1,224 @@
-import type {AuthStatus} from './auth';
-import {getProfileScope} from './account-profiles';
-import {privacyEnabled} from './privacy';
-import {parseArchiveQuery} from './archive-query';
-export interface IRCNetwork{id:string;name:string;nick:string;channels:string[]}
-export interface IRCMessage{id:string;target:string;nick:string;text:string;time:number;delivery:'pending'|'submitted'|'observed'|'uncertain'}
-export interface IRCSnapshot{network:string;epoch:string;nick:string;state:'connecting'|'connected'|'unavailable';detail:string;channels:string[];messages:IRCMessage[]}
-export interface IRCAction{kind:'connect'|'disconnect'|'send'|'join'|'part';network:string;requestID:string;epoch?:string;target?:string;text?:string}
-function record(v:unknown):v is Record<string,unknown>{return !!v&&typeof v==='object'&&!Array.isArray(v);}
-const network=/^[a-z][a-z0-9-]{0,31}$/;
-const nick=/^[A-Za-z_\[\]\\`^{|}][A-Za-z0-9_\-\[\]\\`^{|}]{0,29}$/;
-const channel=/^#[A-Za-z0-9_\-\[\]\\`^{|}]{1,49}$/;
-export function parseIRCMessage(v:unknown):IRCMessage{if(!record(v)||typeof v.id!=='string'||v.id.length>128||typeof v.target!=='string'||!channel.test(v.target)&&!nick.test(v.target)||typeof v.nick!=='string'||!nick.test(v.nick)||typeof v.text!=='string'||new TextEncoder().encode(v.text).length>2048||!Number.isSafeInteger(v.time)||Number(v.time)<1||Number(v.time)>Date.now()+300000||!['pending','submitted','observed','uncertain'].includes(String(v.delivery)))throw new Error('Invalid private IRC message');return v as unknown as IRCMessage;}
-export function parseIRCSnapshot(v:unknown,id:string):IRCSnapshot{if(!record(v)||v.network!==id||typeof v.epoch!=='string'||!/^[a-f0-9]{32}$/.test(v.epoch)||typeof v.nick!=='string'||!nick.test(v.nick)||!['connecting','connected','unavailable'].includes(String(v.state))||typeof v.detail!=='string'||v.detail.length>200||!Array.isArray(v.channels)||v.channels.length>8||v.channels.some(c=>typeof c!=='string'||!channel.test(c))||!Array.isArray(v.messages)||v.messages.length>500)throw new Error('Invalid IRC snapshot');const messages=v.messages.map(parseIRCMessage);if(new Set(messages.map(m=>m.id)).size!==messages.length)throw new Error('Duplicate IRC records');return {...v,messages} as unknown as IRCSnapshot;}
-export function ircIdentity(value:string):string{return value.toLowerCase().replace(/^[#@]/,'').replace(/[\[\]\\~]/g,c=>({'[':'{',']':'}','\\':'|','~':'^'}[c]!));}
-export function ircQuery(source:string):(m:IRCMessage)=>boolean{const query=parseArchiveQuery(source,{normalize:ircIdentity,valid:(field,name)=>field==='sender'?nick.test(name):nick.test(name)||channel.test('#'+name)});if(query.clauses.some(c=>!['text','sender','channel','regex','after','before'].includes(c.field)))throw new Error('IRC search supports text, sender, channel, regex and dates only; Twitch-only predicates are unavailable');return m=>query.matches({id:m.id,channel:m.target,login:m.nick,text:m.text,timestamp:m.time,command:'PRIVMSG',tags:{}});}
-export class IRCClient{
- private generation=0;private abort=new AbortController();private observed='';
- constructor(private auth:()=>AuthStatus|undefined){this.observed=this.identity();}
- private identity():string{const a=this.auth();return a?.authenticated?(a.userID??'')+':'+(a.csrf??''):'';}
- private context():{id:string;csrf:string}{const a=this.auth();if(privacyEnabled()||!a?.authenticated||!a.userID||!a.csrf||getProfileScope()!==a.userID)throw new Error('Use the current signed-in account outside privacy mode');return {id:a.userID,csrf:a.csrf};}
- private async request(path:string,body?:IRCAction):Promise<unknown>{const c=this.context(),generation=this.generation;const r=await fetch(path,{method:body?'POST':'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:AbortSignal.any([this.abort.signal,AbortSignal.timeout(15000)]),headers:{'X-Account-ID':c.id,...(body?{'Content-Type':'application/json','X-CSRF-Token':c.csrf}:{})},...(body?{body:JSON.stringify(body)}:{})});if(this.generation!==generation||this.identity()!==c.id+':'+c.csrf)throw new Error('IRC account/session changed');if(!r.ok)throw new Error('IRC unavailable (HTTP '+r.status+'); no automatic retry');const reader=r.body?.getReader();if(!reader)throw new Error('Missing IRC response');let bytes=0;const chunks:Uint8Array[]=[];try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.length;if(bytes>2*1024*1024)throw new Error('IRC response exceeds limit');chunks.push(value);}}finally{await reader.cancel();}const result=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){result.set(chunk,offset);offset+=chunk.length;}if(this.generation!==generation||this.identity()!==c.id+':'+c.csrf)throw new Error('IRC account/session changed');return JSON.parse(new TextDecoder().decode(result));}
- async networks():Promise<IRCNetwork[]>{const config=await this.request('/api/irc/config');if(!record(config)||config.enabled!==true)throw new Error('Owner IRC relay is not configured');const v=await this.request('/api/irc/networks');if(!record(v)||v.protocol!=='irc-tls'||!Array.isArray(v.networks)||v.networks.length>8)throw new Error('Invalid IRC networks');return v.networks.map(n=>{if(!record(n)||typeof n.id!=='string'||!network.test(n.id)||typeof n.name!=='string'||n.name.length>64||typeof n.nick!=='string'||!nick.test(n.nick)||!Array.isArray(n.channels)||n.channels.length>8||n.channels.some(c=>typeof c!=='string'||!channel.test(c)))throw new Error('Invalid configured IRC network');return n as unknown as IRCNetwork;});}
- async read(id:string):Promise<IRCSnapshot>{if(!network.test(id))throw new Error('Invalid network');return parseIRCSnapshot(await this.request('/api/irc/snapshot?network='+encodeURIComponent(id)),id);}
- async action(action:IRCAction):Promise<unknown>{if(!network.test(action.network)||!/^[A-Za-z0-9_-]{1,64}$/.test(action.requestID))throw new Error('Invalid IRC action');return this.request('/api/irc/action',action);}
- disconnect():void{this.generation++;this.abort.abort();this.abort=new AbortController();}
- authChanged():boolean{const identity=this.identity();if(identity===this.observed)return false;this.observed=identity;this.disconnect();return true;}
- closeLease(id:string,epoch:string):void{const a=this.auth();if(!a?.authenticated||!a.userID||!a.csrf)return;void fetch('/api/irc/action',{method:'POST',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json','X-Account-ID':a.userID,'X-CSRF-Token':a.csrf},body:JSON.stringify({kind:'disconnect',network:id,epoch,requestID:crypto.randomUUID()})}).catch(()=>{});}
+import type { AuthStatus } from './auth';
+import { getProfileScope } from './account-profiles';
+import { privacyEnabled } from './privacy';
+import { parseArchiveQuery } from './archive-query';
+export interface IRCNetwork {
+  id: string;
+  name: string;
+  nick: string;
+  channels: string[];
+}
+export interface IRCMessage {
+  id: string;
+  target: string;
+  nick: string;
+  text: string;
+  time: number;
+  delivery: 'pending' | 'submitted' | 'observed' | 'uncertain';
+}
+export interface IRCSnapshot {
+  network: string;
+  epoch: string;
+  nick: string;
+  state: 'connecting' | 'connected' | 'unavailable';
+  detail: string;
+  channels: string[];
+  messages: IRCMessage[];
+}
+export interface IRCAction {
+  kind: 'connect' | 'disconnect' | 'send' | 'join' | 'part';
+  network: string;
+  requestID: string;
+  epoch?: string;
+  target?: string;
+  text?: string;
+}
+function record(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+const network = /^[a-z][a-z0-9-]{0,31}$/;
+const nick = /^[A-Za-z_\[\]\\`^{|}][A-Za-z0-9_\-\[\]\\`^{|}]{0,29}$/;
+const channel = /^#[A-Za-z0-9_\-\[\]\\`^{|}]{1,49}$/;
+export function parseIRCMessage(v: unknown): IRCMessage {
+  if (
+    !record(v) ||
+    typeof v.id !== 'string' ||
+    v.id.length > 128 ||
+    typeof v.target !== 'string' ||
+    (!channel.test(v.target) && !nick.test(v.target)) ||
+    typeof v.nick !== 'string' ||
+    !nick.test(v.nick) ||
+    typeof v.text !== 'string' ||
+    new TextEncoder().encode(v.text).length > 2048 ||
+    !Number.isSafeInteger(v.time) ||
+    Number(v.time) < 1 ||
+    Number(v.time) > Date.now() + 300000 ||
+    !['pending', 'submitted', 'observed', 'uncertain'].includes(String(v.delivery))
+  )
+    throw new Error('Invalid private IRC message');
+  return v as unknown as IRCMessage;
+}
+export function parseIRCSnapshot(v: unknown, id: string): IRCSnapshot {
+  if (
+    !record(v) ||
+    v.network !== id ||
+    typeof v.epoch !== 'string' ||
+    !/^[a-f0-9]{32}$/.test(v.epoch) ||
+    typeof v.nick !== 'string' ||
+    !nick.test(v.nick) ||
+    !['connecting', 'connected', 'unavailable'].includes(String(v.state)) ||
+    typeof v.detail !== 'string' ||
+    v.detail.length > 200 ||
+    !Array.isArray(v.channels) ||
+    v.channels.length > 8 ||
+    v.channels.some((c) => typeof c !== 'string' || !channel.test(c)) ||
+    !Array.isArray(v.messages) ||
+    v.messages.length > 500
+  )
+    throw new Error('Invalid IRC snapshot');
+  const messages = v.messages.map(parseIRCMessage);
+  if (new Set(messages.map((m) => m.id)).size !== messages.length) throw new Error('Duplicate IRC records');
+  return { ...v, messages } as unknown as IRCSnapshot;
+}
+export function ircIdentity(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/^[#@]/, '')
+    .replace(/[\[\]\\~]/g, (c) => ({ '[': '{', ']': '}', '\\': '|', '~': '^' })[c]!);
+}
+export function ircQuery(source: string): (m: IRCMessage) => boolean {
+  const query = parseArchiveQuery(source, {
+    normalize: ircIdentity,
+    valid: (field, name) => (field === 'sender' ? nick.test(name) : nick.test(name) || channel.test('#' + name)),
+  });
+  if (query.clauses.some((c) => !['text', 'sender', 'channel', 'regex', 'after', 'before'].includes(c.field)))
+    throw new Error(
+      'IRC search supports text, sender, channel, regex and dates only; Twitch-only predicates are unavailable',
+    );
+  return (m) =>
+    query.matches({
+      id: m.id,
+      channel: m.target,
+      login: m.nick,
+      text: m.text,
+      timestamp: m.time,
+      command: 'PRIVMSG',
+      tags: {},
+    });
+}
+export class IRCClient {
+  private generation = 0;
+  private abort = new AbortController();
+  private observed = '';
+  constructor(private auth: () => AuthStatus | undefined) {
+    this.observed = this.identity();
+  }
+  private identity(): string {
+    const a = this.auth();
+    return a?.authenticated ? (a.userID ?? '') + ':' + (a.csrf ?? '') : '';
+  }
+  private context(): { id: string; csrf: string } {
+    const a = this.auth();
+    if (privacyEnabled() || !a?.authenticated || !a.userID || !a.csrf || getProfileScope() !== a.userID)
+      throw new Error('Use the current signed-in account outside privacy mode');
+    return { id: a.userID, csrf: a.csrf };
+  }
+  private async request(path: string, body?: IRCAction): Promise<unknown> {
+    const c = this.context(),
+      generation = this.generation;
+    const r = await fetch(path, {
+      method: body ? 'POST' : 'GET',
+      credentials: 'same-origin',
+      redirect: 'error',
+      cache: 'no-store',
+      signal: AbortSignal.any([this.abort.signal, AbortSignal.timeout(15000)]),
+      headers: {
+        'X-Account-ID': c.id,
+        ...(body ? { 'Content-Type': 'application/json', 'X-CSRF-Token': c.csrf } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    if (this.generation !== generation || this.identity() !== c.id + ':' + c.csrf)
+      throw new Error('IRC account/session changed');
+    if (!r.ok) throw new Error('IRC unavailable (HTTP ' + r.status + '); no automatic retry');
+    const reader = r.body?.getReader();
+    if (!reader) throw new Error('Missing IRC response');
+    let bytes = 0;
+    const chunks: Uint8Array[] = [];
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.length;
+        if (bytes > 2 * 1024 * 1024) throw new Error('IRC response exceeds limit');
+        chunks.push(value);
+      }
+    } finally {
+      await reader.cancel();
+    }
+    const result = new Uint8Array(bytes);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    if (this.generation !== generation || this.identity() !== c.id + ':' + c.csrf)
+      throw new Error('IRC account/session changed');
+    return JSON.parse(new TextDecoder().decode(result));
+  }
+  async networks(): Promise<IRCNetwork[]> {
+    const config = await this.request('/api/irc/config');
+    if (!record(config) || config.enabled !== true) throw new Error('Owner IRC relay is not configured');
+    const v = await this.request('/api/irc/networks');
+    if (!record(v) || v.protocol !== 'irc-tls' || !Array.isArray(v.networks) || v.networks.length > 8)
+      throw new Error('Invalid IRC networks');
+    return v.networks.map((n) => {
+      if (
+        !record(n) ||
+        typeof n.id !== 'string' ||
+        !network.test(n.id) ||
+        typeof n.name !== 'string' ||
+        n.name.length > 64 ||
+        typeof n.nick !== 'string' ||
+        !nick.test(n.nick) ||
+        !Array.isArray(n.channels) ||
+        n.channels.length > 8 ||
+        n.channels.some((c) => typeof c !== 'string' || !channel.test(c))
+      )
+        throw new Error('Invalid configured IRC network');
+      return n as unknown as IRCNetwork;
+    });
+  }
+  async read(id: string): Promise<IRCSnapshot> {
+    if (!network.test(id)) throw new Error('Invalid network');
+    return parseIRCSnapshot(await this.request('/api/irc/snapshot?network=' + encodeURIComponent(id)), id);
+  }
+  async action(action: IRCAction): Promise<unknown> {
+    if (!network.test(action.network) || !/^[A-Za-z0-9_-]{1,64}$/.test(action.requestID))
+      throw new Error('Invalid IRC action');
+    return this.request('/api/irc/action', action);
+  }
+  disconnect(): void {
+    this.generation++;
+    this.abort.abort();
+    this.abort = new AbortController();
+  }
+  authChanged(): boolean {
+    const identity = this.identity();
+    if (identity === this.observed) return false;
+    this.observed = identity;
+    this.disconnect();
+    return true;
+  }
+  closeLease(id: string, epoch: string): void {
+    const a = this.auth();
+    if (!a?.authenticated || !a.userID || !a.csrf) return;
+    void fetch('/api/irc/action', {
+      method: 'POST',
+      credentials: 'same-origin',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json', 'X-Account-ID': a.userID, 'X-CSRF-Token': a.csrf },
+      body: JSON.stringify({ kind: 'disconnect', network: id, epoch, requestID: crypto.randomUUID() }),
+    }).catch(() => {});
+  }
 }

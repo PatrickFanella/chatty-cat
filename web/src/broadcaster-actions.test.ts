@@ -1,4 +1,58 @@
-import {expect,it} from 'vitest';import {broadcasterCommand,parseBroadcastContext,parseBroadcastResult,validBroadcasterJournalCommand} from './broadcaster-actions';
-const context={account:'42',channel:'one',broadcasterID:'42',role:'broadcaster',stream:'live',streamID:'stream-one',broadcasterType:'affiliate',title:'Original',gameID:'100',gameName:'Fixture',revision:'a'.repeat(64),at:Date.now(),categories:[{id:'101',name:'Exact game'}],detail:'Provider eligibility final',access_token:'never-export'};
-it('validates staged broadcaster commands and exact category IDs',()=>{for(const command of ['/clip','/marker','/marker hello','/settitle New title','/setgame id:101','/commercial 30'])expect(validBroadcasterJournalCommand(command)).toBe(true);for(const command of ['/clip extra','/commercial 31','/settitle','/setgame Exact game','/marker hello\n/clip'])expect(validBroadcasterJournalCommand(command)).toBe(false);expect(()=>broadcasterCommand('setgame','',0,'')).toThrow();expect(()=>broadcasterCommand('settitle','x'.repeat(141),0)).toThrow();});
-it('keeps typed identity/state and refuses unconfirmed or unsafe clip links',()=>{expect(JSON.stringify(parseBroadcastContext(context,'42','one'))).not.toContain('never-export');expect(()=>parseBroadcastContext({...context,broadcasterID:'43'},'42','one')).toThrow();expect(()=>parseBroadcastContext({...context,categories:[context.categories[0],context.categories[0]]},'42','one')).toThrow();expect(()=>parseBroadcastResult({sent:true,command:true,resourceID:'Clip',url:'https://evil.example/Clip'})).toThrow();expect(parseBroadcastResult({sent:true,command:true,resourceID:'Clip',url:'https://clips.twitch.tv/Clip',editURL:'https://clips.twitch.tv/Clip/edit'}).url).toBe('https://clips.twitch.tv/Clip');});
+import { expect, it } from 'vitest';
+import {
+  broadcasterCommand,
+  parseBroadcastContext,
+  parseBroadcastResult,
+  validBroadcasterJournalCommand,
+} from './broadcaster-actions';
+const context = {
+  account: '42',
+  channel: 'one',
+  broadcasterID: '42',
+  role: 'broadcaster',
+  stream: 'live',
+  streamID: 'stream-one',
+  broadcasterType: 'affiliate',
+  title: 'Original',
+  gameID: '100',
+  gameName: 'Fixture',
+  revision: 'a'.repeat(64),
+  at: Date.now(),
+  categories: [{ id: '101', name: 'Exact game' }],
+  detail: 'Provider eligibility final',
+  access_token: 'never-export',
+};
+it('validates staged broadcaster commands and exact category IDs', () => {
+  for (const command of [
+    '/clip',
+    '/marker',
+    '/marker hello',
+    '/settitle New title',
+    '/setgame id:101',
+    '/commercial 30',
+  ])
+    expect(validBroadcasterJournalCommand(command)).toBe(true);
+  for (const command of ['/clip extra', '/commercial 31', '/settitle', '/setgame Exact game', '/marker hello\n/clip'])
+    expect(validBroadcasterJournalCommand(command)).toBe(false);
+  expect(() => broadcasterCommand('setgame', '', 0, '')).toThrow();
+  expect(() => broadcasterCommand('settitle', 'x'.repeat(141), 0)).toThrow();
+});
+it('keeps typed identity/state and refuses unconfirmed or unsafe clip links', () => {
+  expect(JSON.stringify(parseBroadcastContext(context, '42', 'one'))).not.toContain('never-export');
+  expect(() => parseBroadcastContext({ ...context, broadcasterID: '43' }, '42', 'one')).toThrow();
+  expect(() =>
+    parseBroadcastContext({ ...context, categories: [context.categories[0], context.categories[0]] }, '42', 'one'),
+  ).toThrow();
+  expect(() =>
+    parseBroadcastResult({ sent: true, command: true, resourceID: 'Clip', url: 'https://evil.example/Clip' }),
+  ).toThrow();
+  expect(
+    parseBroadcastResult({
+      sent: true,
+      command: true,
+      resourceID: 'Clip',
+      url: 'https://clips.twitch.tv/Clip',
+      editURL: 'https://clips.twitch.tv/Clip/edit',
+    }).url,
+  ).toBe('https://clips.twitch.tv/Clip');
+});

@@ -1,7 +1,98 @@
-import {validAccount} from './account-profiles';
-export interface AutoModRow {id:string;eventID:string;userID:string;login:string;text:string;reason:string;at:number;status:'held'|'pending'|'uncertain'}
-export interface AutoModSnapshot {format:'chatty-cat-private-automod';account:string;channel:string;broadcasterID:string;epoch:string;state:'connecting'|'live'|'unavailable';active:boolean;detail:string;rows:AutoModRow[]}
-const id=(v:unknown):v is string=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(v);
-export function parseAutoModSnapshot(raw:unknown,account:string,channel:string):AutoModSnapshot{if(!raw||typeof raw!=='object')throw new Error('Invalid private AutoMod snapshot');const v=raw as Record<string,unknown>;if(v.format!=='chatty-cat-private-automod'||v.account!==account||v.channel!==channel||typeof v.broadcasterID!=='string'||!validAccount(v.broadcasterID)||typeof v.epoch!=='string'||!/^[A-Za-z0-9_-]{16,64}$/.test(v.epoch)||typeof v.state!=='string'||!['connecting','live','unavailable'].includes(v.state)||typeof v.active!=='boolean'||v.active!==(v.state==='live')||typeof v.detail!=='string'||v.detail.length>300||!Array.isArray(v.rows)||v.rows.length>100||!v.active&&v.rows.length)throw new Error('Private AutoMod scope/state changed');const rows=v.rows.map(item=>{if(!item||typeof item!=='object')throw new Error('Invalid held message');const r=item as Record<string,unknown>;if(!id(r.id)||!id(r.eventID)||typeof r.userID!=='string'||!validAccount(r.userID)||typeof r.login!=='string'||!/^[a-z0-9_]{1,25}$/.test(r.login)||typeof r.text!=='string'||!r.text||[...r.text].length>500||typeof r.reason!=='string'||r.reason.length>150||!Number.isSafeInteger(r.at)||Number(r.at)<0||Number(r.at)>Date.now()+300000||typeof r.status!=='string'||!['held','pending','uncertain'].includes(r.status))throw new Error('Invalid held message');return {id:r.id,eventID:r.eventID,userID:r.userID,login:r.login,text:r.text,reason:r.reason,at:Number(r.at),status:r.status as AutoModRow['status']};});if(new Set(rows.map(x=>x.id)).size!==rows.length)throw new Error('Duplicate held-message identity');return {format:'chatty-cat-private-automod',account,channel,broadcasterID:v.broadcasterID,epoch:v.epoch,state:v.state as AutoModSnapshot['state'],active:v.active,detail:v.detail,rows};}
-export function autoModJournalCommand(action:'ALLOW'|'DENY',messageID:string):string{if(!id(messageID))throw new Error('Invalid held message ID');return '/automod'+(action==='ALLOW'?'allow':'deny')+' '+messageID;}
-export function validAutoModJournalCommand(command:string):boolean{return /^\/automod(?:allow|deny) [A-Za-z0-9_-]{1,128}$/.test(command);}
+import { validAccount } from './account-profiles';
+export interface AutoModRow {
+  id: string;
+  eventID: string;
+  userID: string;
+  login: string;
+  text: string;
+  reason: string;
+  at: number;
+  status: 'held' | 'pending' | 'uncertain';
+}
+export interface AutoModSnapshot {
+  format: 'chatty-cat-private-automod';
+  account: string;
+  channel: string;
+  broadcasterID: string;
+  epoch: string;
+  state: 'connecting' | 'live' | 'unavailable';
+  active: boolean;
+  detail: string;
+  rows: AutoModRow[];
+}
+const id = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(v);
+export function parseAutoModSnapshot(raw: unknown, account: string, channel: string): AutoModSnapshot {
+  if (!raw || typeof raw !== 'object') throw new Error('Invalid private AutoMod snapshot');
+  const v = raw as Record<string, unknown>;
+  if (
+    v.format !== 'chatty-cat-private-automod' ||
+    v.account !== account ||
+    v.channel !== channel ||
+    typeof v.broadcasterID !== 'string' ||
+    !validAccount(v.broadcasterID) ||
+    typeof v.epoch !== 'string' ||
+    !/^[A-Za-z0-9_-]{16,64}$/.test(v.epoch) ||
+    typeof v.state !== 'string' ||
+    !['connecting', 'live', 'unavailable'].includes(v.state) ||
+    typeof v.active !== 'boolean' ||
+    v.active !== (v.state === 'live') ||
+    typeof v.detail !== 'string' ||
+    v.detail.length > 300 ||
+    !Array.isArray(v.rows) ||
+    v.rows.length > 100 ||
+    (!v.active && v.rows.length)
+  )
+    throw new Error('Private AutoMod scope/state changed');
+  const rows = v.rows.map((item) => {
+    if (!item || typeof item !== 'object') throw new Error('Invalid held message');
+    const r = item as Record<string, unknown>;
+    if (
+      !id(r.id) ||
+      !id(r.eventID) ||
+      typeof r.userID !== 'string' ||
+      !validAccount(r.userID) ||
+      typeof r.login !== 'string' ||
+      !/^[a-z0-9_]{1,25}$/.test(r.login) ||
+      typeof r.text !== 'string' ||
+      !r.text ||
+      [...r.text].length > 500 ||
+      typeof r.reason !== 'string' ||
+      r.reason.length > 150 ||
+      !Number.isSafeInteger(r.at) ||
+      Number(r.at) < 0 ||
+      Number(r.at) > Date.now() + 300000 ||
+      typeof r.status !== 'string' ||
+      !['held', 'pending', 'uncertain'].includes(r.status)
+    )
+      throw new Error('Invalid held message');
+    return {
+      id: r.id,
+      eventID: r.eventID,
+      userID: r.userID,
+      login: r.login,
+      text: r.text,
+      reason: r.reason,
+      at: Number(r.at),
+      status: r.status as AutoModRow['status'],
+    };
+  });
+  if (new Set(rows.map((x) => x.id)).size !== rows.length) throw new Error('Duplicate held-message identity');
+  return {
+    format: 'chatty-cat-private-automod',
+    account,
+    channel,
+    broadcasterID: v.broadcasterID,
+    epoch: v.epoch,
+    state: v.state as AutoModSnapshot['state'],
+    active: v.active,
+    detail: v.detail,
+    rows,
+  };
+}
+export function autoModJournalCommand(action: 'ALLOW' | 'DENY', messageID: string): string {
+  if (!id(messageID)) throw new Error('Invalid held message ID');
+  return '/automod' + (action === 'ALLOW' ? 'allow' : 'deny') + ' ' + messageID;
+}
+export function validAutoModJournalCommand(command: string): boolean {
+  return /^\/automod(?:allow|deny) [A-Za-z0-9_-]{1,128}$/.test(command);
+}

@@ -1,9 +1,73 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';
-import {ModerationPresetStore,parseModerationPresets,expandModerationPreset} from './moderation-presets';
-const scope={account:'42',workspace:'watching',channel:'one'};
-afterEach(()=>{localStorage.clear();vi.restoreAllMocks();vi.unstubAllGlobals();});
-it('isolates ordered definitions by account, workspace and channel, with reviewed same-scope import',()=>{const a=new ModerationPresetStore(scope);const presets=[{name:'Ban',template:'/ban {user} review'},{name:'Short timeout',template:'/timeout {user} 3'}];a.save(presets);expect(new ModerationPresetStore(scope).all()).toEqual(presets);for(const change of [{account:'43'},{workspace:'other'},{channel:'two'}]){const other=new ModerationPresetStore({...scope,...change});expect(other.all()).not.toEqual(presets);expect(()=>other.import(a.export())).toThrow('same account');}const b=new ModerationPresetStore(scope);const imported=b.import(a.export());expect(b.all()).toEqual(presets);b.save(imported);expect(b.all()).toEqual(presets);});
-it('refuses arbitrary targets, unsupported commands, malformed definitions and invalid selected identities',()=>{for(const template of ['/ban bob','/delete fixed-id','/timeout prefix{user} 600','/w {user} secret','/ban {unknown}','/timeout {user} 0','/slow 121'])expect(()=>parseModerationPresets([{name:'unsafe',template}])).toThrow();const item={name:'Delete',template:'/delete {messageID}'};expect(()=>expandModerationPreset(item,'alice','')).toThrow('Select');expect(()=>expandModerationPreset({name:'Ban',template:'/ban {user}'},'alice\n/clear','')).toThrow();expect(expandModerationPreset({name:'Timeout',template:'/timeout {user} 60'},'alice','')).toEqual({action:'timeout',command:'/timeout alice 60'});expect(()=>parseModerationPresets(Array.from({length:13},(_,i)=>({name:String(i),template:'/clear'})))).toThrow();});
-it('rejects stale writers and storage failures without replacing definitions',()=>{const a=new ModerationPresetStore(scope),b=new ModerationPresetStore(scope);const safe=[{name:'Short',template:'/timeout {user} 3'}];a.save(safe);expect(()=>b.save([])).toThrow('another tab');const c=new ModerationPresetStore(scope);const original=localStorage;vi.stubGlobal('localStorage',{getItem:original.getItem.bind(original),clear:original.clear.bind(original),setItem:()=>{throw new Error('quota');}});expect(()=>c.save([])).toThrow('retained');expect(new ModerationPresetStore(scope).all()).toEqual(safe);});
-it('binds numeric ban templates to the reviewed user ID',()=>{const list=parseModerationPresets([{name:'Numeric ban',template:'/banid {userID} review'}]);expect(expandModerationPreset(list[0]!,'alice','','456').command).toBe('/banid 456 review');expect(()=>parseModerationPresets([{name:'Fixed ban',template:'/banid 999'}])).toThrow();});
+import { afterEach, expect, it, vi } from 'vitest';
+import { ModerationPresetStore, parseModerationPresets, expandModerationPreset } from './moderation-presets';
+const scope = { account: '42', workspace: 'watching', channel: 'one' };
+afterEach(() => {
+  localStorage.clear();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+it('isolates ordered definitions by account, workspace and channel, with reviewed same-scope import', () => {
+  const a = new ModerationPresetStore(scope);
+  const presets = [
+    { name: 'Ban', template: '/ban {user} review' },
+    { name: 'Short timeout', template: '/timeout {user} 3' },
+  ];
+  a.save(presets);
+  expect(new ModerationPresetStore(scope).all()).toEqual(presets);
+  for (const change of [{ account: '43' }, { workspace: 'other' }, { channel: 'two' }]) {
+    const other = new ModerationPresetStore({ ...scope, ...change });
+    expect(other.all()).not.toEqual(presets);
+    expect(() => other.import(a.export())).toThrow('same account');
+  }
+  const b = new ModerationPresetStore(scope);
+  const imported = b.import(a.export());
+  expect(b.all()).toEqual(presets);
+  b.save(imported);
+  expect(b.all()).toEqual(presets);
+});
+it('refuses arbitrary targets, unsupported commands, malformed definitions and invalid selected identities', () => {
+  for (const template of [
+    '/ban bob',
+    '/delete fixed-id',
+    '/timeout prefix{user} 600',
+    '/w {user} secret',
+    '/ban {unknown}',
+    '/timeout {user} 0',
+    '/slow 121',
+  ])
+    expect(() => parseModerationPresets([{ name: 'unsafe', template }])).toThrow();
+  const item = { name: 'Delete', template: '/delete {messageID}' };
+  expect(() => expandModerationPreset(item, 'alice', '')).toThrow('Select');
+  expect(() => expandModerationPreset({ name: 'Ban', template: '/ban {user}' }, 'alice\n/clear', '')).toThrow();
+  expect(expandModerationPreset({ name: 'Timeout', template: '/timeout {user} 60' }, 'alice', '')).toEqual({
+    action: 'timeout',
+    command: '/timeout alice 60',
+  });
+  expect(() =>
+    parseModerationPresets(Array.from({ length: 13 }, (_, i) => ({ name: String(i), template: '/clear' }))),
+  ).toThrow();
+});
+it('rejects stale writers and storage failures without replacing definitions', () => {
+  const a = new ModerationPresetStore(scope),
+    b = new ModerationPresetStore(scope);
+  const safe = [{ name: 'Short', template: '/timeout {user} 3' }];
+  a.save(safe);
+  expect(() => b.save([])).toThrow('another tab');
+  const c = new ModerationPresetStore(scope);
+  const original = localStorage;
+  vi.stubGlobal('localStorage', {
+    getItem: original.getItem.bind(original),
+    clear: original.clear.bind(original),
+    setItem: () => {
+      throw new Error('quota');
+    },
+  });
+  expect(() => c.save([])).toThrow('retained');
+  expect(new ModerationPresetStore(scope).all()).toEqual(safe);
+});
+it('binds numeric ban templates to the reviewed user ID', () => {
+  const list = parseModerationPresets([{ name: 'Numeric ban', template: '/banid {userID} review' }]);
+  expect(expandModerationPreset(list[0]!, 'alice', '', '456').command).toBe('/banid 456 review');
+  expect(() => parseModerationPresets([{ name: 'Fixed ban', template: '/banid 999' }])).toThrow();
+});

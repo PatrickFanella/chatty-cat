@@ -1,8 +1,101 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';
-import {VirtualLog} from './virtual-log';
-import {setPresentation,presentationDefaults} from './presentation';
-afterEach(()=>{setPresentation({...presentationDefaults});vi.useRealTimers();vi.restoreAllMocks();document.body.replaceChildren();});
-it('bounds highlight markers, scales wheel movement with reduced motion and releases a held modifier even after focus enters the input',()=>{const log=document.createElement('main');document.body.append(log);Object.defineProperty(log,'clientHeight',{value:400});Object.defineProperty(log,'scrollHeight',{value:3200});vi.spyOn(log,'getBoundingClientRect').mockReturnValue(new DOMRect(0,0,400,400));const scroll=vi.spyOn(log,'scrollBy').mockImplementation(()=>{});vi.spyOn(window,'matchMedia').mockReturnValue({matches:true} as MediaQueryList);setPresentation({...presentationDefaults,scrollMultiplier:2,pauseModifier:'shift'});const view=new VirtualLog(log);view.set(Array.from({length:100},(_,i)=>({key:String(i),highlight:()=>true,render:()=>{const r=document.createElement('article');r.className='row';return r;}})),true);expect(document.querySelectorAll('.scroll-markers button')).toHaveLength(50);log.dispatchEvent(new WheelEvent('wheel',{deltaY:10,cancelable:true}));expect(scroll).toHaveBeenCalledWith({top:20,behavior:'auto'});window.dispatchEvent(new KeyboardEvent('keydown',{key:'Shift',shiftKey:true}));expect(view.pausedByHover()).toBe(true);const input=document.createElement('textarea');document.body.append(input);input.dispatchEvent(new KeyboardEvent('keyup',{key:'Shift',bubbles:true}));expect(view.pausedByHover()).toBe(false);view.stop();expect(document.querySelector('.scroll-markers')).toBeNull();});
-it('delays configured hover pause and cancels the pending pause on departure',()=>{vi.useFakeTimers();setPresentation({...presentationDefaults,pauseHoverSeconds:1});const log=document.createElement('main');document.body.append(log);const view=new VirtualLog(log);view.set([{key:'one',render:()=>{const r=document.createElement('article');r.className='row';return r;}}],true);log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));expect(view.pausedByHover()).toBe(false);vi.advanceTimersByTime(1000);expect(view.pausedByHover()).toBe(true);log.dispatchEvent(new MouseEvent('mouseleave'));expect(view.pausedByHover()).toBe(false);view.stop();});
-it('keeps the reader key and pixel offset when a style revision replaces estimated row heights',()=>{const log=document.createElement('main');document.body.append(log);Object.defineProperty(log,'clientHeight',{value:400});Object.defineProperty(log,'scrollHeight',{value:3200});vi.spyOn(log,'getBoundingClientRect').mockReturnValue(new DOMRect(0,0,400,400));const view=new VirtualLog(log);const items=Array.from({length:100},(_,i)=>({key:String(i),render:()=>{const row=document.createElement('article');row.className='row';vi.spyOn(row,'getBoundingClientRect').mockImplementation(()=>{let top=-log.scrollTop;for(const sibling of log.children){if(sibling===row)break;top+=sibling.classList.contains('log-spacer')?parseFloat((sibling as HTMLElement).style.height):30;}return new DOMRect(0,top,400,30);});return row;}}));view.set(items,false);expect(view.restoreReader({key:'40',offset:12})).toBe(true);const before=view.readerPosition();view.set(items,false,1);expect(view.readerPosition()).toEqual(before);view.stop();});
+import { afterEach, expect, it, vi } from 'vitest';
+import { VirtualLog } from './virtual-log';
+import { setPresentation, presentationDefaults } from './presentation';
+afterEach(() => {
+  setPresentation({ ...presentationDefaults });
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+  document.body.replaceChildren();
+});
+it('bounds highlight markers, scales wheel movement with reduced motion and releases a held modifier even after focus enters the input', () => {
+  const log = document.createElement('main');
+  document.body.append(log);
+  Object.defineProperty(log, 'clientHeight', { value: 400 });
+  Object.defineProperty(log, 'scrollHeight', { value: 3200 });
+  vi.spyOn(log, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 400, 400));
+  const scroll = vi.spyOn(log, 'scrollBy').mockImplementation(() => {});
+  vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+  setPresentation({ ...presentationDefaults, scrollMultiplier: 2, pauseModifier: 'shift' });
+  const view = new VirtualLog(log);
+  view.set(
+    Array.from({ length: 100 }, (_, i) => ({
+      key: String(i),
+      highlight: () => true,
+      render: () => {
+        const r = document.createElement('article');
+        r.className = 'row';
+        return r;
+      },
+    })),
+    true,
+  );
+  expect(document.querySelectorAll('.scroll-markers button')).toHaveLength(50);
+  log.dispatchEvent(new WheelEvent('wheel', { deltaY: 10, cancelable: true }));
+  expect(scroll).toHaveBeenCalledWith({ top: 20, behavior: 'auto' });
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', shiftKey: true }));
+  expect(view.pausedByHover()).toBe(true);
+  const input = document.createElement('textarea');
+  document.body.append(input);
+  input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
+  expect(view.pausedByHover()).toBe(false);
+  view.stop();
+  expect(document.querySelector('.scroll-markers')).toBeNull();
+});
+it('delays configured hover pause and cancels the pending pause on departure', () => {
+  vi.useFakeTimers();
+  setPresentation({ ...presentationDefaults, pauseHoverSeconds: 1 });
+  const log = document.createElement('main');
+  document.body.append(log);
+  const view = new VirtualLog(log);
+  view.set(
+    [
+      {
+        key: 'one',
+        render: () => {
+          const r = document.createElement('article');
+          r.className = 'row';
+          return r;
+        },
+      },
+    ],
+    true,
+  );
+  log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+  expect(view.pausedByHover()).toBe(false);
+  vi.advanceTimersByTime(1000);
+  expect(view.pausedByHover()).toBe(true);
+  log.dispatchEvent(new MouseEvent('mouseleave'));
+  expect(view.pausedByHover()).toBe(false);
+  view.stop();
+});
+it('keeps the reader key and pixel offset when a style revision replaces estimated row heights', () => {
+  const log = document.createElement('main');
+  document.body.append(log);
+  Object.defineProperty(log, 'clientHeight', { value: 400 });
+  Object.defineProperty(log, 'scrollHeight', { value: 3200 });
+  vi.spyOn(log, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 400, 400));
+  const view = new VirtualLog(log);
+  const items = Array.from({ length: 100 }, (_, i) => ({
+    key: String(i),
+    render: () => {
+      const row = document.createElement('article');
+      row.className = 'row';
+      vi.spyOn(row, 'getBoundingClientRect').mockImplementation(() => {
+        let top = -log.scrollTop;
+        for (const sibling of log.children) {
+          if (sibling === row) break;
+          top += sibling.classList.contains('log-spacer') ? parseFloat((sibling as HTMLElement).style.height) : 30;
+        }
+        return new DOMRect(0, top, 400, 30);
+      });
+      return row;
+    },
+  }));
+  view.set(items, false);
+  expect(view.restoreReader({ key: '40', offset: 12 })).toBe(true);
+  const before = view.readerPosition();
+  view.set(items, false, 1);
+  expect(view.readerPosition()).toEqual(before);
+  view.stop();
+});
