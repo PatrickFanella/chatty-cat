@@ -1,3 +1,4 @@
+import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import {
   IRCClient,
@@ -11,9 +12,11 @@ import {
 } from './irc-relay';
 import { VirtualLog } from './virtual-log';
 import { privacyEnabled } from './privacy';
-export class IRCRelayPanel {
+export class IRCRelayPanel implements Panel {
+  readonly id = 'irc-relay-panel';
+  readonly title = 'IRC conversations';
+  readonly group = 'tools';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private network = document.createElement('select');
   private target = document.createElement('input');
   private search = document.createElement('input');
@@ -34,9 +37,10 @@ export class IRCRelayPanel {
   private uncertain = '';
   constructor(
     private auth: () => AuthStatus | undefined,
-    hidden = false,
+    private readonlyView = false,
   ) {
     this.client = new IRCClient(auth);
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Owner IRC conversations');
     const h = document.createElement('h2');
     h.textContent = 'Separate TLS IRC conversations';
@@ -95,12 +99,7 @@ export class IRCRelayPanel {
       this.button('Close IRC and request disconnect', () => this.root.close()),
       this.status,
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'IRC conversations';
-    this.trigger.hidden = hidden;
-    document.getElementById('commands-open')?.after(this.trigger);
     document.body.append(this.root);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     this.network.addEventListener('change', this.networkChanged);
     this.target.addEventListener('input', this.edited);
@@ -312,8 +311,8 @@ export class IRCRelayPanel {
     this.search.value = '';
     this.virtual.set([], true, ++this.revision);
   }
-  private open = (): void => {
-    if (privacyEnabled()) return;
+  open = (): void => {
+    if (this.readonlyView || privacyEnabled()) return;
     this.root.showModal();
   };
   private closed = (): void => this.clear();
@@ -343,17 +342,18 @@ export class IRCRelayPanel {
       this.target.value = '';
     }
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.clear();
     this.virtual.stop();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('close', this.closed);
     this.network.removeEventListener('change', this.networkChanged);
     this.target.removeEventListener('input', this.edited);
     this.draft.removeEventListener('input', this.edited);
     this.search.removeEventListener('input', this.searchChanged);
     document.removeEventListener('privacychange', this.privacy);
-    this.trigger.remove();
     this.root.remove();
   }
 }

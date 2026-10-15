@@ -148,6 +148,16 @@ repeats Wave 1's scenarios. Close #143 only after its twelve delivery issues hav
 passed their gates and the resulting behavior has been verified. Keep individual
 local, hosted, merged and deployed results distinguishable.
 
+## Current lifecycle progress
+
+The first #130 slice introduces explicit lazy registration for IRC conversations
+and Chatterino import. See [lifecycle progress and compatibility](lazy-panel-progress.md)
+for local checks, stable placement IDs and the next batch. #130 remains open;
+other panels still construct eagerly and the legacy shell adapters remain.
+#142's formatter and #134's resource readout/first local baseline are merged.
+The resource baseline retains its unmeasured deployed, hidden-tab and CPU/GPU
+scenarios; merge did not complete those qualifications.
+
 ## Live acceptance track — independent of M6
 
 - [#32 — Twitch message context](https://git.subcult.tv/subculture-collective/chatty-cat/issues/32)

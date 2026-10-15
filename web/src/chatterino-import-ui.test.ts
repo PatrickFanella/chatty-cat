@@ -27,6 +27,8 @@ function setup() {
     });
   store.create('Original', current);
   panel = new ChatterinoImportPanel(store, () => current);
+  panel.open();
+  expect(panel.root.id).toBe('chatterino-import-panel');
   const source = panel.root.querySelector<HTMLTextAreaElement>('[aria-label="Chatterino settings JSON"]')!;
   source.value = '{"appearance":{"messages":{"showTimestamps":false}},"accounts":{"token":"SECRET"}}';
   const click = (name: string) => {

@@ -82,6 +82,7 @@ export class Workbench {
   private shareDrag:
     { id: number; zone: ZoneName; prev: string; next: string; start: number; length: number } | undefined;
   private bundleDispose: () => void;
+  private layoutListeners = new Set<() => void>();
   constructor(private options: WorkbenchOptions) {
     patchDialogs();
     this.layout = this.load();
@@ -135,6 +136,13 @@ export class Workbench {
   /** Adopt a panel root now (static panels); runtime dialogs are adopted when they first open. */
   adopt(root: HTMLElement): void {
     this.manage(root);
+  }
+  wantsPanel(id: string): boolean {
+    return placementOf(this.layout, id).kind !== 'modal' && !this.layout.closed.includes(id);
+  }
+  onLayoutChange(listener: () => void): () => void {
+    this.layoutListeners.add(listener);
+    return () => this.layoutListeners.delete(listener);
   }
   releaseAll(ids: readonly string[]): void {
     for (const id of ids)
@@ -207,6 +215,7 @@ export class Workbench {
     } catch {
       /* optional storage */
     }
+    for (const listener of this.layoutListeners) listener();
   }
   private mutated = (records: MutationRecord[]): void => {
     for (const record of records) {
@@ -764,6 +773,7 @@ export class Workbench {
     this.apply(setShares(this.layout, zone, { [prev]: ratio * total, [next]: (1 - ratio) * total }));
   };
   stop(): void {
+    this.layoutListeners.clear();
     this.bundleDispose();
     this.observer?.disconnect();
     this.floatObserver?.disconnect();

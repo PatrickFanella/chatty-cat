@@ -49,8 +49,10 @@ it('requires confirmation, invalidates edited reviews, and clears private UI whe
   vi.spyOn(IRCClient.prototype, 'read').mockResolvedValue(snapshot);
   const action = vi.spyOn(IRCClient.prototype, 'action').mockResolvedValue(snapshot);
   vi.spyOn(IRCClient.prototype, 'closeLease').mockImplementation(() => {});
-  document.body.innerHTML = '<button id="commands-open">Commands</button>';
   panel = new IRCRelayPanel(() => auth);
+  panel.open();
+  expect(panel.root.id).toBe('irc-relay-panel');
+  expect(panel.root.open).toBe(true);
   const button = (text: string) =>
     Array.from(panel!.root.querySelectorAll('button')).find((b) => b.textContent === text)!;
   expect(action).not.toHaveBeenCalled();
