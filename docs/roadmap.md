@@ -151,8 +151,8 @@ local, hosted, merged and deployed results distinguishable.
 ## Current lifecycle progress
 
 The #130 slices introduce explicit lazy registration for IRC conversations,
-Chatterino import, Completion, Link preferences, Custom themes, Compare activity
-and Export logs. Saved completion,
+Chatterino import, Completion, Link preferences, Custom themes, Compare activity,
+Export logs and Device sync. Saved completion,
 link and theme behavior remains active independently of their editors. See [lifecycle progress and compatibility](lazy-panel-progress.md)
 for local checks, stable placement IDs and the next batch. #130 remains open;
 other panels still construct eagerly and the legacy shell adapters remain.

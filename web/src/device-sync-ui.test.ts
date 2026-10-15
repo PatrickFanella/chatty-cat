@@ -28,7 +28,7 @@ function button(text: string): HTMLButtonElement {
 }
 it('requires review and confirmation to clear a private backup, and rejects stale review', () => {
   setProfileScope('42');
-  document.body.innerHTML = '<button id="commands-open"></button>';
+  document.body.replaceChildren();
   const fetcher = vi.fn();
   vi.stubGlobal('fetch', fetcher);
   panel = new DeviceSyncPanel(
@@ -41,7 +41,7 @@ it('requires review and confirmation to clear a private backup, and rejects stal
   );
   const key = profileKey('chatthing:v1:sync-annotation-backup');
   localStorage.setItem(key, 'private original');
-  button('Device sync').click();
+  panel.open();
   button('Review clear private annotation backup').click();
   expect(localStorage.getItem(key)).toBe('private original');
   expect(document.querySelector('textarea')?.value).toBe('');
@@ -55,7 +55,7 @@ it('requires review and confirmation to clear a private backup, and rejects stal
 });
 it('clears a pending review on privacy and does not reconnect when reopened', () => {
   setProfileScope('42');
-  document.body.innerHTML = '<button id="commands-open"></button>';
+  document.body.replaceChildren();
   const fetcher = vi.fn();
   vi.stubGlobal('fetch', fetcher);
   panel = new DeviceSyncPanel(
@@ -67,7 +67,7 @@ it('clears a pending review on privacy and does not reconnect when reopened', ()
     () => {},
   );
   localStorage.setItem(profileKey('chatthing:v1:sync-annotation-backup'), 'private');
-  button('Device sync').click();
+  panel.open();
   button('Review clear private annotation backup').click();
   expect(button('Confirm reviewed sync action').disabled).toBe(false);
   savePrivacy({ version: 1, enabled: true, allowed: [], panic: true });
@@ -76,4 +76,60 @@ it('clears a pending review on privacy and does not reconnect when reopened', ()
   expect(button('Confirm reviewed sync action').disabled).toBe(true);
   expect(panel.root.querySelector('textarea')?.value).toBe('');
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+it('opens and restores the recovery notice without reading public data or making a sync request', () => {
+  const fetcher = vi.fn(),
+    local = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  panel = new DeviceSyncPanel(
+    () => auth,
+    local,
+    () => true,
+    () => {},
+    false,
+    'Synthetic recovery result',
+  );
+  expect(local).not.toHaveBeenCalled();
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(panel.root.id).toBe('device-sync-panel');
+  panel.open();
+  expect(panel.root.textContent).toContain('Synthetic recovery result');
+  panel.close();
+  panel.open();
+  expect(panel.root.textContent).toContain('Synthetic recovery result');
+  expect(button('Confirm reviewed sync action').disabled).toBe(true);
+  expect(local).not.toHaveBeenCalled();
+  expect(fetcher).not.toHaveBeenCalled();
+});
+it('aborts an explicit pending connection on close and does not reconnect on reopen', async () => {
+  setProfileScope('42');
+  let resolve: ((value: Response) => void) | undefined;
+  let signal: AbortSignal | undefined;
+  const fetcher = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+    signal = init?.signal ?? undefined;
+    return new Promise<Response>((finish) => {
+      resolve = finish;
+    });
+  });
+  vi.stubGlobal('fetch', fetcher);
+  panel = new DeviceSyncPanel(
+    () => auth,
+    vi.fn(),
+    () => true,
+    () => {},
+  );
+  panel.open();
+  button('Connect / fetch current revision').click();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(signal?.aborted).toBe(false);
+  panel.close();
+  expect(signal?.aborted).toBe(true);
+  resolve?.(new Response(JSON.stringify({ enabled: true, maxBytes: 2 * 1024 * 1024 })));
+  await new Promise((finish) => setTimeout(finish, 0));
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  panel.open();
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(button('Confirm reviewed sync action').disabled).toBe(true);
+  expect(panel.root.querySelector('textarea')?.value).toBe('');
 });
