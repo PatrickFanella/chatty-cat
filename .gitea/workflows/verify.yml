@@ -30,6 +30,7 @@ jobs:
         with:
           node-version: '24'
       - run: npm --prefix web ci
+      - run: npm --prefix web run format:check
       - run: npm --prefix web test -- --maxWorkers=2
       - run: npm --prefix web run build
       - name: Browser companion syntax and packaging
