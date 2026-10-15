@@ -82,18 +82,48 @@ The [Chatterino inventory](chatterino-coverage.csv) and [report](chatterino-cove
 - [#47](https://git.subcult.tv/subculture-collective/chatty-cat/issues/47) — Add an optional paired desktop overlay with click-through controls.
 - [#48](https://git.subcult.tv/subculture-collective/chatty-cat/issues/48) — Private per-user notes in account-isolated user cards.
 
+## Current issue review — October 15, 2026
+
+Main is `30aaea2`, including the shell in merged PR #144 and crawler metadata in
+PR #145. All 18 open issues were reviewed against the implementation and retained
+acceptance records. No additional issue is complete enough to close.
+
+- M0–M3 are closed. The owner accepted direct, uncached GIPHY lookup under #4.
+- M4 has one open issue, #32: positive shared-chat, reward, streak, effect and
+  private hold/update events still need controlled live acceptance.
+- M5 has two open issues: #36 needs the installed browser companion's watched
+  channel, workspace/focus and removal round trip; #38 needs an approved IRC
+  endpoint, identity and live network acceptance. Both implementations are merged.
+- M6 has fourteen open issues, #130–#143. Shell #129 is closed through PR #144.
+  Lazy panels, readable option labels, dense/narrow layouts, resource measurement,
+  scheduling, animation, workers, overlay entry, data extraction, fonts, bundle
+  budgets and formatting remain unfinished.
+
+The next change implements #140's selected-font loading: remove the twelve-family
+startup stylesheet, request one selected family with `display=swap`, and restore
+it through the existing saved-settings path. The local production build passed
+797 frontend tests. A fresh isolated Chromium preview made zero Google Fonts
+requests; selecting Fira Code loaded its stylesheet and font, reload restored it,
+and selecting the system font removed the stylesheet. This is local verification;
+merge and deployment remain separate.
+
+After #140, continue with #142 before #130 as recorded in planning issue #143.
+Closure still requires the relevant acceptance; a new PR does not establish
+deployment or live acceptance.
+
 ## Operating the board
 
-- PR #2 is merged. The coverage audit is complete; named workspaces #6 and the conversation inbox #9 are the first implementation priorities.
+- PR #2 and the coverage audit are complete. Use the current issue review above
+  for continuation; the earlier stage descriptions retain their historical context.
 - Internal dependencies remain Backlog until their blockers are satisfied. Move the next available tickets to Ready and apply `ready-for-agent`; a closed but unmerged PR does not satisfy the baseline.
 - Use In Progress for owned work, Review for an attached PR, Blocked for external impediments, and Done after acceptance evidence is recorded.
 - Each issue has a demoable outcome, acceptance criteria and native dependency links. Delivery issues remain unassigned until work is owned; milestone dates are unset until an owner commits to delivery.
 - Keep web features usable without native integrations. Streamlink/player launch, watched-channel bridging and process-aware privacy require explicit companion pairing.
 - Chatterino import must exclude its stored credentials. Provider-specific unavailable features are disclosed rather than invented.
 
-## Legacy parity exception
+## Accepted legacy parity adaptation
 
-The remaining original GIPHY cache/proxy gate is tracked in [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4). Direct client lookup works. Provider approval or explicit acceptance of that supported adaptation is required to close the gate.
+The owner accepted direct, uncached GIPHY lookup on October 14, 2026. [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4) and M0 are closed for that documented adaptation; provider cache/proxy approval is not claimed.
 
 
 Public-context connection acceptance: on October 13, the owner granted the required access and connected from the signed-in browser. The panel reported “Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded”. This passes consent/connection and does not establish a positive shared-chat, reward, streak, effect or private hold/update event. Those controlled-event checks remain open under #32.
