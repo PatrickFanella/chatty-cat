@@ -1,9 +1,49 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it} from 'vitest';
-import {EMOJIS,EMOJI_CATALOG,EMOJI_VERSION,emojiEntry,emojiImage,appendEmojiText,setEmojiStyle} from './emoji';
-import {tokenize,nativeEmoteTag} from './tokens';
-afterEach(()=>setEmojiStyle('native'));
-it('pins the full Unicode 17 catalog with categories and skin-tone sequences',()=>{expect(EMOJI_VERSION).toBe('17.0');expect(EMOJIS).toHaveLength(3944);expect(new Set(EMOJIS).size).toBe(3944);expect(emojiEntry('🫪')?.name).toBe('distorted face');expect(emojiEntry('🧑🏽‍🩰')?.name).toContain('ballet dancer');expect(emojiEntry('👍🏿')?.group).toBe('People & Body');expect(new Set(EMOJI_CATALOG.map(x=>x.group)).size).toBe(9);});
-it('uses only pinned local image paths and preserves qualified ZWJ sequences',()=>{expect(emojiImage('❤️‍🔥')).toBe('/emoji/twemoji-17.0.3/2764-fe0f-200d-1f525.svg');expect(emojiImage('❤️')).toBe('/emoji/twemoji-17.0.3/2764.svg');expect(emojiImage('javascript:evil')).toBeUndefined();});
-it('renders local images with literal textual fallbacks and leaves native text unchanged',()=>{const root=document.createElement('span');appendEmojiText(root,'Hi 👩🏽‍💻 🫪!');expect(root.textContent).toBe('Hi 👩🏽‍💻 🫪!');setEmojiStyle('image');root.replaceChildren();appendEmojiText(root,'Hi 👩🏽‍💻 🫪!');expect(root.querySelectorAll('img')).toHaveLength(2);const image=root.querySelector('img')!;expect(image.getAttribute('src')).toMatch(/^\/emoji\/twemoji-17.0.3\//);image.dispatchEvent(new Event('error'));expect(root.textContent).toContain('woman technologist');setEmojiStyle('labels');root.replaceChildren();appendEmojiText(root,'🫪');expect(root.textContent).toContain('distorted face');});
-it('retains Twitch code-point ranges beside multi-codepoint emoji and skin tones',()=>{const text='👩🏽‍💻 Kappa 🧑🏽‍🩰';const emote={code:'Kappa',url:'https://static-cdn.jtvnw.net/emoticons/v2/25/animated/dark/2.0',staticUrl:'',source:'Twitch',animated:true,zeroWidth:false};expect(nativeEmoteTag(text,[emote])).toBe('25:5-9');expect(tokenize(text,'25:5-9',{}).filter(x=>x.type==='emote')).toHaveLength(1);});
+import { afterEach, expect, it } from 'vitest';
+import { EMOJIS, EMOJI_CATALOG, EMOJI_VERSION, emojiEntry, emojiImage, appendEmojiText, setEmojiStyle } from './emoji';
+import { tokenize, nativeEmoteTag } from './tokens';
+afterEach(() => setEmojiStyle('native'));
+it('pins the full Unicode 17 catalog with categories and skin-tone sequences', () => {
+  expect(EMOJI_VERSION).toBe('17.0');
+  expect(EMOJIS).toHaveLength(3944);
+  expect(new Set(EMOJIS).size).toBe(3944);
+  expect(emojiEntry('🫪')?.name).toBe('distorted face');
+  expect(emojiEntry('🧑🏽‍🩰')?.name).toContain('ballet dancer');
+  expect(emojiEntry('👍🏿')?.group).toBe('People & Body');
+  expect(new Set(EMOJI_CATALOG.map((x) => x.group)).size).toBe(9);
+});
+it('uses only pinned local image paths and preserves qualified ZWJ sequences', () => {
+  expect(emojiImage('❤️‍🔥')).toBe('/emoji/twemoji-17.0.3/2764-fe0f-200d-1f525.svg');
+  expect(emojiImage('❤️')).toBe('/emoji/twemoji-17.0.3/2764.svg');
+  expect(emojiImage('javascript:evil')).toBeUndefined();
+});
+it('renders local images with literal textual fallbacks and leaves native text unchanged', () => {
+  const root = document.createElement('span');
+  appendEmojiText(root, 'Hi 👩🏽‍💻 🫪!');
+  expect(root.textContent).toBe('Hi 👩🏽‍💻 🫪!');
+  setEmojiStyle('image');
+  root.replaceChildren();
+  appendEmojiText(root, 'Hi 👩🏽‍💻 🫪!');
+  expect(root.querySelectorAll('img')).toHaveLength(2);
+  const image = root.querySelector('img')!;
+  expect(image.getAttribute('src')).toMatch(/^\/emoji\/twemoji-17.0.3\//);
+  image.dispatchEvent(new Event('error'));
+  expect(root.textContent).toContain('woman technologist');
+  setEmojiStyle('labels');
+  root.replaceChildren();
+  appendEmojiText(root, '🫪');
+  expect(root.textContent).toContain('distorted face');
+});
+it('retains Twitch code-point ranges beside multi-codepoint emoji and skin tones', () => {
+  const text = '👩🏽‍💻 Kappa 🧑🏽‍🩰';
+  const emote = {
+    code: 'Kappa',
+    url: 'https://static-cdn.jtvnw.net/emoticons/v2/25/animated/dark/2.0',
+    staticUrl: '',
+    source: 'Twitch',
+    animated: true,
+    zeroWidth: false,
+  };
+  expect(nativeEmoteTag(text, [emote])).toBe('25:5-9');
+  expect(tokenize(text, '25:5-9', {}).filter((x) => x.type === 'emote')).toHaveLength(1);
+});

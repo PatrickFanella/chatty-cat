@@ -1,42 +1,425 @@
-import type {AuthStatus} from './auth';
-import {getProfileScope,profileKey} from './account-profiles';
-import {privacyEnabled} from './privacy';
-import {makeDeviceDocument,parseDeviceDocument,planDeviceApply,commitDeviceApply,type DeviceData,type DeviceSelection,type DeviceDocument,type DeviceApplyPlan} from './device-sync';
-import {DeviceSyncClient,DeviceConflict,type DeviceSnapshot,type DeviceMutation} from './device-sync-client';
-type Pending={kind:'server';operation:DeviceMutation;revision:string;requestID:string;account:string;csrf:string}|{kind:'local';plan:DeviceApplyPlan;document:DeviceDocument;revision:string;account:string;csrf:string}|{kind:'recovery-clear';account:string;csrf:string;raw:string;suffix:'sync-local-recovery'|'sync-annotation-backup'};
+import type { AuthStatus } from './auth';
+import { getProfileScope, profileKey } from './account-profiles';
+import { privacyEnabled } from './privacy';
+import {
+  makeDeviceDocument,
+  parseDeviceDocument,
+  planDeviceApply,
+  commitDeviceApply,
+  type DeviceData,
+  type DeviceSelection,
+  type DeviceDocument,
+  type DeviceApplyPlan,
+} from './device-sync';
+import { DeviceSyncClient, DeviceConflict, type DeviceSnapshot, type DeviceMutation } from './device-sync-client';
+type Pending =
+  | { kind: 'server'; operation: DeviceMutation; revision: string; requestID: string; account: string; csrf: string }
+  | { kind: 'local'; plan: DeviceApplyPlan; document: DeviceDocument; revision: string; account: string; csrf: string }
+  | {
+      kind: 'recovery-clear';
+      account: string;
+      csrf: string;
+      raw: string;
+      suffix: 'sync-local-recovery' | 'sync-annotation-backup';
+    };
 export class DeviceSyncPanel {
- readonly root=document.createElement('dialog');private trigger=document.createElement('button');private status=document.createElement('p');private report=document.createElement('pre');private exact=document.createElement('textarea');private confirm:HTMLButtonElement;private exportButton:HTMLButtonElement;private client:DeviceSyncClient;private snapshot:DeviceSnapshot|undefined;private pending:Pending|undefined;private recoveryNotice='';private busy=false;private generation=0;private snapshotScope:{account:string;csrf:string}|undefined;
- constructor(private auth:()=>AuthStatus|undefined,private local:()=>DeviceData,private canAct:()=>boolean,private applied:()=>void,readonlyView=false,recovery=''){
-  this.client=new DeviceSyncClient(auth);this.root.setAttribute('aria-label','Device sync');const h=document.createElement('h2');h.textContent='Optional self-hosted device sync';const note=document.createElement('p');note.textContent='Local-only by default. Nothing is fetched or uploaded until you act here. Select public record categories and review the exact JSON before publishing. Workspaces include channels, layouts, saved public rules and command templates; their text is included. Common preferences include display/filter text, presentation, picker, provider and link options. Bookmark excerpts include authors, channel, message/context text and record timestamps. Private bookmark notes/tags, local nickname annotations, drafts, whispers, moderation journals and own-message feedback are excluded. Server snapshots are private to your signed-in Twitch account. No OAuth token is sent by this browser.';this.root.append(h,note);
-  for(const [key,label] of [['workspaces','Sync saved workspaces'],['preferences','Sync common preferences'],['bookmarks','Sync public bookmark excerpts']] as const){const field=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.name=key;field.append(input,label);this.root.append(field);}
-  const bounds=document.createElement('p');bounds.textContent='Manual fetch/publish/apply only; two MiB per snapshot. Concurrent edits are rejected by revision. Failed requests never retry automatically. Refresh and review to resolve a conflict. Delete removes active server data but retains a minimal revision tombstone against stale clients; downloaded copies and operator backups are separate. Applying a remote snapshot replaces selected local public records, preserves private annotations locally, records a recovery backup, and reloads the selected view.';this.root.append(bounds);
-  this.exact.readOnly=true;this.exact.rows=12;this.exact.setAttribute('aria-label','Exact reviewed public sync JSON');this.status.setAttribute('role','status');this.report.style.whiteSpace='pre-wrap';this.report.style.maxHeight='12rem';this.report.style.overflow='auto';
-  this.confirm=this.button('Confirm reviewed sync action',()=>this.commit());this.exportButton=this.button('Export reviewed public JSON',()=>this.exportReviewed());this.root.append(this.button('Connect / fetch current revision',()=>this.fetch()),this.button('Review publish local selection',()=>this.reviewPublish()),this.button('Review apply server snapshot',()=>this.reviewApply()),this.button('Review delete server snapshot',()=>this.reviewDelete()),this.report,this.exact,this.confirm,this.exportButton,this.button('Disconnect and clear review',()=>this.disconnect(),false),this.button('Review clear local recovery record',()=>this.reviewRecoveryClear()),this.button('Export local recovery backup',()=>this.exportLocal('sync-local-recovery','chatty-cat-local-sync-recovery.json')),this.button('Review clear private annotation backup',()=>this.reviewAnnotationClear()),this.button('Export private bookmark annotation backup',()=>this.exportLocal('sync-annotation-backup','chatty-cat-private-bookmark-backup.json')),this.button('Close device sync',()=>this.root.close(),false),this.status);
-  this.trigger.type='button';this.trigger.textContent='Device sync';this.trigger.hidden=readonlyView;document.getElementById('commands-open')?.after(this.trigger);this.trigger.addEventListener('click',this.open);this.root.addEventListener('change',this.edit);this.root.addEventListener('close',this.closed);document.addEventListener('privacychange',this.privacy);document.body.append(this.root);this.clearReview();this.recoveryNotice=recovery;if(recovery)this.status.textContent=recovery;
- }
- private button(text:string,action:()=>void|Promise<void>,guarded=true):HTMLButtonElement{const button=document.createElement('button');button.type='button';button.textContent=text;button.addEventListener('click',()=>{try{if(privacyEnabled()||guarded&&(this.busy||!this.canAct()))throw new Error('Wait for the current action and exit privacy mode');void Promise.resolve(action()).catch(error=>this.error(error));}catch(error){this.error(error);}});return button;}
- private error(error:unknown):void{this.status.textContent=error instanceof Error?error.message:'Device sync unavailable; no automatic retry';}
- private context():{account:string;csrf:string}{const auth=this.auth();if(!auth?.authenticated||!auth.userID||!auth.csrf||getProfileScope()!==auth.userID||privacyEnabled())throw new Error('Use the current signed-in account outside privacy mode');return {account:auth.userID,csrf:auth.csrf};}
- private checked():{account:string;csrf:string}{const context=this.context();if(!this.snapshot||this.snapshotScope?.account!==context.account||this.snapshotScope.csrf!==context.csrf)throw new Error('Connect and fetch this account revision first');return context;}
- private selected():DeviceSelection{const field=(key:string):boolean=>this.root.querySelector<HTMLInputElement>('input[name="'+key+'"]')?.checked===true;return {workspaces:field('workspaces'),preferences:field('preferences'),bookmarks:field('bookmarks')};}
- private async fetch():Promise<void>{this.clearReview();const context=this.context(),generation=this.generation;this.snapshotScope=context;this.busy=true;try{const value=await this.client.connect();if(generation!==this.generation)return;this.snapshot=value;this.snapshotScope=context;this.status.textContent=value.document?'Read account '+context.account+' revision '+value.revision+' · '+new Date(value.updated).toLocaleString()+'. Review before an action.':'No active server snapshot. Revision '+value.revision+'. Select records and review publishing.';}finally{if(generation===this.generation)this.busy=false;}}
- private show(pending:Pending,summary:string,document:DeviceDocument|null):void{this.pending=pending;this.report.textContent=summary;this.exact.value=document?JSON.stringify(document,null,2):'null';this.confirm.disabled=false;this.exportButton.disabled=!document;}
- private reviewPublish():void{const context=this.checked(),document=makeDeviceDocument(this.selected(),this.local());this.show({kind:'server',operation:{kind:'publish',document},revision:this.snapshot!.revision,requestID:crypto.randomUUID(),...context},'Review publishing this exact selected snapshot. It replaces the server snapshot at revision '+this.snapshot!.revision+'. Omitted categories are removed from the server snapshot. Local records are not changed.\n'+this.identities(document),document);}
- private async reviewApply():Promise<void>{const context=this.checked(),remote=this.snapshot!.document;if(!remote)throw new Error('No active server snapshot to apply');const selection=this.selected(),document=parseDeviceDocument({format:'chatty-cat-device-sync',version:1,...(selection.workspaces&&remote.workspaces?{workspaces:remote.workspaces,...(remote.activeWorkspace?{activeWorkspace:remote.activeWorkspace}:{})}:{}),...(selection.preferences&&remote.preferences?{preferences:remote.preferences}:{}),...(selection.bookmarks&&remote.bookmarks?{bookmarks:remote.bookmarks}:{})});this.busy=true;const generation=this.generation,revision=this.snapshot!.revision;try{const plan=await planDeviceApply(document,context.account);if(generation!==this.generation)return;this.show({kind:'local',plan,document,revision,...context},'Apply reviewed server revision '+revision+' · '+new Date(this.snapshot!.updated).toLocaleString()+'\n'+plan.summary+'\n'+this.identities(document),document);}finally{if(generation===this.generation)this.busy=false;}}
- private reviewDelete():void{const context=this.checked();this.show({kind:'server',operation:{kind:'delete'},revision:this.snapshot!.revision,requestID:crypto.randomUUID(),...context},'Review deletion of this account’s active server snapshot at revision '+this.snapshot!.revision+'. Local records stay intact. The server retains a minimal revision tombstone so older clients cannot recreate deleted data.',null);}
- private identities(d:DeviceDocument):string{return 'Workspace records: '+(d.workspaces?.map(w=>w.id+' / '+w.name).join(', ')??'unchanged locally')+'\nCommon preferences: '+(d.preferences?'included':'not included')+'\nPublic bookmarks: '+(d.bookmarks?.map(b=>b.id+' / #'+b.message.channel+' / message '+b.message.id).join(', ')??'not included');}
- private reviewRecoveryClear():void{const context=this.context(),raw=localStorage.getItem(profileKey('chatthing:v1:sync-local-recovery'));if(!raw)throw new Error('No local recovery record');let value:unknown;try{value=JSON.parse(raw);}catch{throw new Error('Unreadable recovery record; export and inspect it before changing local data');}if(!value||typeof value!=='object'||!('state' in value)||value.state!==1&&value.state!==2)throw new Error('An apply may still be active; reload to recover before clearing its record');this.pending={kind:'recovery-clear',raw,suffix:'sync-local-recovery',...context};this.report.textContent='Review clearing only the last local recovery record. It can contain older preferences and private bookmark annotations. Export the local recovery backup first if needed. Actual saved workspaces, preferences, bookmarks and the separate private-annotation backup stay intact.';this.exact.value='';this.confirm.disabled=false;this.exportButton.disabled=true;}
- private reviewAnnotationClear():void{const context=this.context(),raw=localStorage.getItem(profileKey('chatthing:v1:sync-annotation-backup'));if(!raw)throw new Error('No private annotation backup');this.pending={kind:'recovery-clear',raw,suffix:'sync-annotation-backup',...context};this.report.textContent='Review clearing the separate local private bookmark annotation backup. Export it first if you need to retain those annotations. Actual saved bookmarks, workspaces, preferences and the last recovery record stay intact.';this.exact.value='';this.confirm.disabled=false;this.exportButton.disabled=true;}
- private async commit():Promise<void>{const pending=this.pending;if(!pending)throw new Error('Review the action first');const context=this.context();if(context.account!==pending.account||context.csrf!==pending.csrf)throw new Error('Account changed; reconnect and review');this.busy=true;const generation=this.generation;try{if(pending.kind==='recovery-clear'){const key=profileKey('chatthing:v1:'+pending.suffix);if(localStorage.getItem(key)!==pending.raw)throw new Error('Recovery record changed; review again');localStorage.removeItem(key);if(pending.suffix==='sync-local-recovery')this.recoveryNotice='';this.clearReview();this.status.textContent='Selected local backup cleared; saved data retained';return;}if(pending.kind==='local'){await this.client.verify(pending.revision);await commitDeviceApply(pending.plan,()=>{try{const now=this.context();return generation===this.generation&&now.account===pending.account&&now.csrf===pending.csrf&&this.canAct();}catch{return false;}});if(generation===this.generation)this.applied();return;}const value=await this.client.mutate(pending.operation,pending.revision,pending.requestID);if(generation!==this.generation)return;this.snapshot=value;this.clearReview();this.status.textContent='Server confirmed revision '+value.revision+'. No chat or moderation message was sent.';}catch(error){if(error instanceof DeviceConflict){this.snapshot=undefined;this.snapshotScope=undefined;this.clearReview();}else if(pending.kind==='server')throw new Error('Outcome may be uncertain. Confirm again only to retry this same reviewed request/ID; fetch and review after a conflict. '+(error instanceof Error?error.message:'Sync unavailable'));throw error;}finally{if(generation===this.generation)this.busy=false;}}
- private download(raw:string,name:string):void{const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),0);}
- private exportReviewed():void{const p=this.pending;if(!p)throw new Error('Review selected public data first');const document=p.kind==='local'?p.document:p.kind==='server'&&p.operation.kind==='publish'?p.operation.document:null;if(!document)throw new Error('Deletion has no public document to export');this.download(JSON.stringify(parseDeviceDocument(document),null,2),'chatty-cat-public-device-sync.json');}
- private exportLocal(suffix:string,name:string):void{this.context();const raw=localStorage.getItem(profileKey('chatthing:v1:'+suffix));if(!raw)throw new Error('No local backup of this type');this.status.textContent='This local backup can contain private bookmark annotations and older local preferences. It is downloaded only; it is not uploaded.';this.download(raw,name);}
- private clearReview():void{this.pending=undefined;this.report.textContent='';this.exact.value='';this.confirm.disabled=true;this.exportButton.disabled=true;}
- private disconnect():void{this.generation++;this.busy=false;this.client.disconnect();this.snapshot=undefined;this.snapshotScope=undefined;this.clearReview();this.status.textContent='Disconnected. All sync data remains local unless you explicitly published it.';}
- private open=():void=>{if(privacyEnabled())return;this.disconnect();if(this.recoveryNotice)this.status.textContent=this.recoveryNotice;this.root.showModal();};
- private edit=():void=>this.clearReview();
- private closed=():void=>this.disconnect();
- private privacy=():void=>{if(privacyEnabled()){this.disconnect();this.root.close();}};
- authChanged():void{if(!this.snapshotScope)return;const auth=this.auth();if(!auth?.authenticated||auth.userID!==this.snapshotScope.account||auth.csrf!==this.snapshotScope.csrf)this.disconnect();}
- stop():void{this.disconnect();this.trigger.removeEventListener('click',this.open);this.root.removeEventListener('change',this.edit);this.root.removeEventListener('close',this.closed);document.removeEventListener('privacychange',this.privacy);this.root.remove();this.trigger.remove();}
+  readonly root = document.createElement('dialog');
+  private trigger = document.createElement('button');
+  private status = document.createElement('p');
+  private report = document.createElement('pre');
+  private exact = document.createElement('textarea');
+  private confirm: HTMLButtonElement;
+  private exportButton: HTMLButtonElement;
+  private client: DeviceSyncClient;
+  private snapshot: DeviceSnapshot | undefined;
+  private pending: Pending | undefined;
+  private recoveryNotice = '';
+  private busy = false;
+  private generation = 0;
+  private snapshotScope: { account: string; csrf: string } | undefined;
+  constructor(
+    private auth: () => AuthStatus | undefined,
+    private local: () => DeviceData,
+    private canAct: () => boolean,
+    private applied: () => void,
+    readonlyView = false,
+    recovery = '',
+  ) {
+    this.client = new DeviceSyncClient(auth);
+    this.root.setAttribute('aria-label', 'Device sync');
+    const h = document.createElement('h2');
+    h.textContent = 'Optional self-hosted device sync';
+    const note = document.createElement('p');
+    note.textContent =
+      'Local-only by default. Nothing is fetched or uploaded until you act here. Select public record categories and review the exact JSON before publishing. Workspaces include channels, layouts, saved public rules and command templates; their text is included. Common preferences include display/filter text, presentation, picker, provider and link options. Bookmark excerpts include authors, channel, message/context text and record timestamps. Private bookmark notes/tags, local nickname annotations, drafts, whispers, moderation journals and own-message feedback are excluded. Server snapshots are private to your signed-in Twitch account. No OAuth token is sent by this browser.';
+    this.root.append(h, note);
+    for (const [key, label] of [
+      ['workspaces', 'Sync saved workspaces'],
+      ['preferences', 'Sync common preferences'],
+      ['bookmarks', 'Sync public bookmark excerpts'],
+    ] as const) {
+      const field = document.createElement('label'),
+        input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = key;
+      field.append(input, label);
+      this.root.append(field);
+    }
+    const bounds = document.createElement('p');
+    bounds.textContent =
+      'Manual fetch/publish/apply only; two MiB per snapshot. Concurrent edits are rejected by revision. Failed requests never retry automatically. Refresh and review to resolve a conflict. Delete removes active server data but retains a minimal revision tombstone against stale clients; downloaded copies and operator backups are separate. Applying a remote snapshot replaces selected local public records, preserves private annotations locally, records a recovery backup, and reloads the selected view.';
+    this.root.append(bounds);
+    this.exact.readOnly = true;
+    this.exact.rows = 12;
+    this.exact.setAttribute('aria-label', 'Exact reviewed public sync JSON');
+    this.status.setAttribute('role', 'status');
+    this.report.style.whiteSpace = 'pre-wrap';
+    this.report.style.maxHeight = '12rem';
+    this.report.style.overflow = 'auto';
+    this.confirm = this.button('Confirm reviewed sync action', () => this.commit());
+    this.exportButton = this.button('Export reviewed public JSON', () => this.exportReviewed());
+    this.root.append(
+      this.button('Connect / fetch current revision', () => this.fetch()),
+      this.button('Review publish local selection', () => this.reviewPublish()),
+      this.button('Review apply server snapshot', () => this.reviewApply()),
+      this.button('Review delete server snapshot', () => this.reviewDelete()),
+      this.report,
+      this.exact,
+      this.confirm,
+      this.exportButton,
+      this.button('Disconnect and clear review', () => this.disconnect(), false),
+      this.button('Review clear local recovery record', () => this.reviewRecoveryClear()),
+      this.button('Export local recovery backup', () =>
+        this.exportLocal('sync-local-recovery', 'chatty-cat-local-sync-recovery.json'),
+      ),
+      this.button('Review clear private annotation backup', () => this.reviewAnnotationClear()),
+      this.button('Export private bookmark annotation backup', () =>
+        this.exportLocal('sync-annotation-backup', 'chatty-cat-private-bookmark-backup.json'),
+      ),
+      this.button('Close device sync', () => this.root.close(), false),
+      this.status,
+    );
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Device sync';
+    this.trigger.hidden = readonlyView;
+    document.getElementById('commands-open')?.after(this.trigger);
+    this.trigger.addEventListener('click', this.open);
+    this.root.addEventListener('change', this.edit);
+    this.root.addEventListener('close', this.closed);
+    document.addEventListener('privacychange', this.privacy);
+    document.body.append(this.root);
+    this.clearReview();
+    this.recoveryNotice = recovery;
+    if (recovery) this.status.textContent = recovery;
+  }
+  private button(text: string, action: () => void | Promise<void>, guarded = true): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = text;
+    button.addEventListener('click', () => {
+      try {
+        if (privacyEnabled() || (guarded && (this.busy || !this.canAct())))
+          throw new Error('Wait for the current action and exit privacy mode');
+        void Promise.resolve(action()).catch((error) => this.error(error));
+      } catch (error) {
+        this.error(error);
+      }
+    });
+    return button;
+  }
+  private error(error: unknown): void {
+    this.status.textContent = error instanceof Error ? error.message : 'Device sync unavailable; no automatic retry';
+  }
+  private context(): { account: string; csrf: string } {
+    const auth = this.auth();
+    if (!auth?.authenticated || !auth.userID || !auth.csrf || getProfileScope() !== auth.userID || privacyEnabled())
+      throw new Error('Use the current signed-in account outside privacy mode');
+    return { account: auth.userID, csrf: auth.csrf };
+  }
+  private checked(): { account: string; csrf: string } {
+    const context = this.context();
+    if (!this.snapshot || this.snapshotScope?.account !== context.account || this.snapshotScope.csrf !== context.csrf)
+      throw new Error('Connect and fetch this account revision first');
+    return context;
+  }
+  private selected(): DeviceSelection {
+    const field = (key: string): boolean =>
+      this.root.querySelector<HTMLInputElement>('input[name="' + key + '"]')?.checked === true;
+    return { workspaces: field('workspaces'), preferences: field('preferences'), bookmarks: field('bookmarks') };
+  }
+  private async fetch(): Promise<void> {
+    this.clearReview();
+    const context = this.context(),
+      generation = this.generation;
+    this.snapshotScope = context;
+    this.busy = true;
+    try {
+      const value = await this.client.connect();
+      if (generation !== this.generation) return;
+      this.snapshot = value;
+      this.snapshotScope = context;
+      this.status.textContent = value.document
+        ? 'Read account ' +
+          context.account +
+          ' revision ' +
+          value.revision +
+          ' · ' +
+          new Date(value.updated).toLocaleString() +
+          '. Review before an action.'
+        : 'No active server snapshot. Revision ' + value.revision + '. Select records and review publishing.';
+    } finally {
+      if (generation === this.generation) this.busy = false;
+    }
+  }
+  private show(pending: Pending, summary: string, document: DeviceDocument | null): void {
+    this.pending = pending;
+    this.report.textContent = summary;
+    this.exact.value = document ? JSON.stringify(document, null, 2) : 'null';
+    this.confirm.disabled = false;
+    this.exportButton.disabled = !document;
+  }
+  private reviewPublish(): void {
+    const context = this.checked(),
+      document = makeDeviceDocument(this.selected(), this.local());
+    this.show(
+      {
+        kind: 'server',
+        operation: { kind: 'publish', document },
+        revision: this.snapshot!.revision,
+        requestID: crypto.randomUUID(),
+        ...context,
+      },
+      'Review publishing this exact selected snapshot. It replaces the server snapshot at revision ' +
+        this.snapshot!.revision +
+        '. Omitted categories are removed from the server snapshot. Local records are not changed.\n' +
+        this.identities(document),
+      document,
+    );
+  }
+  private async reviewApply(): Promise<void> {
+    const context = this.checked(),
+      remote = this.snapshot!.document;
+    if (!remote) throw new Error('No active server snapshot to apply');
+    const selection = this.selected(),
+      document = parseDeviceDocument({
+        format: 'chatty-cat-device-sync',
+        version: 1,
+        ...(selection.workspaces && remote.workspaces
+          ? {
+              workspaces: remote.workspaces,
+              ...(remote.activeWorkspace ? { activeWorkspace: remote.activeWorkspace } : {}),
+            }
+          : {}),
+        ...(selection.preferences && remote.preferences ? { preferences: remote.preferences } : {}),
+        ...(selection.bookmarks && remote.bookmarks ? { bookmarks: remote.bookmarks } : {}),
+      });
+    this.busy = true;
+    const generation = this.generation,
+      revision = this.snapshot!.revision;
+    try {
+      const plan = await planDeviceApply(document, context.account);
+      if (generation !== this.generation) return;
+      this.show(
+        { kind: 'local', plan, document, revision, ...context },
+        'Apply reviewed server revision ' +
+          revision +
+          ' · ' +
+          new Date(this.snapshot!.updated).toLocaleString() +
+          '\n' +
+          plan.summary +
+          '\n' +
+          this.identities(document),
+        document,
+      );
+    } finally {
+      if (generation === this.generation) this.busy = false;
+    }
+  }
+  private reviewDelete(): void {
+    const context = this.checked();
+    this.show(
+      {
+        kind: 'server',
+        operation: { kind: 'delete' },
+        revision: this.snapshot!.revision,
+        requestID: crypto.randomUUID(),
+        ...context,
+      },
+      'Review deletion of this account’s active server snapshot at revision ' +
+        this.snapshot!.revision +
+        '. Local records stay intact. The server retains a minimal revision tombstone so older clients cannot recreate deleted data.',
+      null,
+    );
+  }
+  private identities(d: DeviceDocument): string {
+    return (
+      'Workspace records: ' +
+      (d.workspaces?.map((w) => w.id + ' / ' + w.name).join(', ') ?? 'unchanged locally') +
+      '\nCommon preferences: ' +
+      (d.preferences ? 'included' : 'not included') +
+      '\nPublic bookmarks: ' +
+      (d.bookmarks?.map((b) => b.id + ' / #' + b.message.channel + ' / message ' + b.message.id).join(', ') ??
+        'not included')
+    );
+  }
+  private reviewRecoveryClear(): void {
+    const context = this.context(),
+      raw = localStorage.getItem(profileKey('chatthing:v1:sync-local-recovery'));
+    if (!raw) throw new Error('No local recovery record');
+    let value: unknown;
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      throw new Error('Unreadable recovery record; export and inspect it before changing local data');
+    }
+    if (!value || typeof value !== 'object' || !('state' in value) || (value.state !== 1 && value.state !== 2))
+      throw new Error('An apply may still be active; reload to recover before clearing its record');
+    this.pending = { kind: 'recovery-clear', raw, suffix: 'sync-local-recovery', ...context };
+    this.report.textContent =
+      'Review clearing only the last local recovery record. It can contain older preferences and private bookmark annotations. Export the local recovery backup first if needed. Actual saved workspaces, preferences, bookmarks and the separate private-annotation backup stay intact.';
+    this.exact.value = '';
+    this.confirm.disabled = false;
+    this.exportButton.disabled = true;
+  }
+  private reviewAnnotationClear(): void {
+    const context = this.context(),
+      raw = localStorage.getItem(profileKey('chatthing:v1:sync-annotation-backup'));
+    if (!raw) throw new Error('No private annotation backup');
+    this.pending = { kind: 'recovery-clear', raw, suffix: 'sync-annotation-backup', ...context };
+    this.report.textContent =
+      'Review clearing the separate local private bookmark annotation backup. Export it first if you need to retain those annotations. Actual saved bookmarks, workspaces, preferences and the last recovery record stay intact.';
+    this.exact.value = '';
+    this.confirm.disabled = false;
+    this.exportButton.disabled = true;
+  }
+  private async commit(): Promise<void> {
+    const pending = this.pending;
+    if (!pending) throw new Error('Review the action first');
+    const context = this.context();
+    if (context.account !== pending.account || context.csrf !== pending.csrf)
+      throw new Error('Account changed; reconnect and review');
+    this.busy = true;
+    const generation = this.generation;
+    try {
+      if (pending.kind === 'recovery-clear') {
+        const key = profileKey('chatthing:v1:' + pending.suffix);
+        if (localStorage.getItem(key) !== pending.raw) throw new Error('Recovery record changed; review again');
+        localStorage.removeItem(key);
+        if (pending.suffix === 'sync-local-recovery') this.recoveryNotice = '';
+        this.clearReview();
+        this.status.textContent = 'Selected local backup cleared; saved data retained';
+        return;
+      }
+      if (pending.kind === 'local') {
+        await this.client.verify(pending.revision);
+        await commitDeviceApply(pending.plan, () => {
+          try {
+            const now = this.context();
+            return (
+              generation === this.generation &&
+              now.account === pending.account &&
+              now.csrf === pending.csrf &&
+              this.canAct()
+            );
+          } catch {
+            return false;
+          }
+        });
+        if (generation === this.generation) this.applied();
+        return;
+      }
+      const value = await this.client.mutate(pending.operation, pending.revision, pending.requestID);
+      if (generation !== this.generation) return;
+      this.snapshot = value;
+      this.clearReview();
+      this.status.textContent =
+        'Server confirmed revision ' + value.revision + '. No chat or moderation message was sent.';
+    } catch (error) {
+      if (error instanceof DeviceConflict) {
+        this.snapshot = undefined;
+        this.snapshotScope = undefined;
+        this.clearReview();
+      } else if (pending.kind === 'server')
+        throw new Error(
+          'Outcome may be uncertain. Confirm again only to retry this same reviewed request/ID; fetch and review after a conflict. ' +
+            (error instanceof Error ? error.message : 'Sync unavailable'),
+        );
+      throw error;
+    } finally {
+      if (generation === this.generation) this.busy = false;
+    }
+  }
+  private download(raw: string, name: string): void {
+    const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' })),
+      anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = name;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+  private exportReviewed(): void {
+    const p = this.pending;
+    if (!p) throw new Error('Review selected public data first');
+    const document =
+      p.kind === 'local'
+        ? p.document
+        : p.kind === 'server' && p.operation.kind === 'publish'
+          ? p.operation.document
+          : null;
+    if (!document) throw new Error('Deletion has no public document to export');
+    this.download(JSON.stringify(parseDeviceDocument(document), null, 2), 'chatty-cat-public-device-sync.json');
+  }
+  private exportLocal(suffix: string, name: string): void {
+    this.context();
+    const raw = localStorage.getItem(profileKey('chatthing:v1:' + suffix));
+    if (!raw) throw new Error('No local backup of this type');
+    this.status.textContent =
+      'This local backup can contain private bookmark annotations and older local preferences. It is downloaded only; it is not uploaded.';
+    this.download(raw, name);
+  }
+  private clearReview(): void {
+    this.pending = undefined;
+    this.report.textContent = '';
+    this.exact.value = '';
+    this.confirm.disabled = true;
+    this.exportButton.disabled = true;
+  }
+  private disconnect(): void {
+    this.generation++;
+    this.busy = false;
+    this.client.disconnect();
+    this.snapshot = undefined;
+    this.snapshotScope = undefined;
+    this.clearReview();
+    this.status.textContent = 'Disconnected. All sync data remains local unless you explicitly published it.';
+  }
+  private open = (): void => {
+    if (privacyEnabled()) return;
+    this.disconnect();
+    if (this.recoveryNotice) this.status.textContent = this.recoveryNotice;
+    this.root.showModal();
+  };
+  private edit = (): void => this.clearReview();
+  private closed = (): void => this.disconnect();
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.disconnect();
+      this.root.close();
+    }
+  };
+  authChanged(): void {
+    if (!this.snapshotScope) return;
+    const auth = this.auth();
+    if (!auth?.authenticated || auth.userID !== this.snapshotScope.account || auth.csrf !== this.snapshotScope.csrf)
+      this.disconnect();
+  }
+  stop(): void {
+    this.disconnect();
+    this.trigger.removeEventListener('click', this.open);
+    this.root.removeEventListener('change', this.edit);
+    this.root.removeEventListener('close', this.closed);
+    document.removeEventListener('privacychange', this.privacy);
+    this.root.remove();
+    this.trigger.remove();
+  }
 }

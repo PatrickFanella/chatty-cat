@@ -1,12 +1,137 @@
 // @vitest-environment happy-dom
-import 'fake-indexeddb/auto';import {afterEach,expect,it,vi} from 'vitest';import {PollPanel} from './polls-ui';import {ModerationJournal} from './moderation-journal';
-let panel:PollPanel|undefined;let journal:ModerationJournal|undefined;
-const auth={enabled:true,authenticated:true,userID:'42',login:'one',csrf:'fixture',loginURL:'http://127.0.0.1:5200/api/auth/login',pollsEnabled:true,pollsManageEnabled:true};
-const poll={id:'poll-one',broadcaster_id:'42',title:'Question?',status:'ACTIVE',duration:30,channel_points_voting_enabled:false,channel_points_per_vote:0,started_at:'2026-10-12T12:00:00Z',ended_at:null,choices:[{id:'choice-one',title:'One',votes:0,channel_points_votes:0},{id:'choice-two',title:'Two',votes:0,channel_points_votes:0}]};
-afterEach(async()=>{panel?.stop();await journal?.stop();document.body.replaceChildren();vi.restoreAllMocks();vi.unstubAllGlobals();await new Promise(r=>setTimeout(r,10));await new Promise<void>((resolve,reject)=>{const q=indexedDB.deleteDatabase('chatthing-moderation-journal');q.onsuccess=()=>resolve();q.onerror=()=>reject(q.error);});});
-async function setup(polls:unknown[]=[]){journal=new ModerationJournal();panel=new PollPanel(journal,()=>true,async()=>{});panel.setScope(auth,'one');document.body.append(panel.root);const fetcher=vi.fn(async()=>new Response(JSON.stringify({account:'42',broadcasterID:'42',channel:'one',at:Date.now(),polls})));vi.stubGlobal('fetch',fetcher);const button=(text:string)=>[...panel!.root.querySelectorAll('button')].find(x=>x.textContent===text)!;button('Refresh/reconnect broadcaster polls').click();await vi.waitFor(()=>expect(panel!.root.textContent).toContain('Latest '+polls.length+' polls'));return {fetcher,button};}
-it('previews validated creation without a write and saves pending before confirmation',async()=>{const x=await setup();panel!.root.querySelector<HTMLInputElement>('[aria-label="Poll title"]')!.value='Question?';panel!.root.querySelector<HTMLTextAreaElement>('[aria-label="Poll choices, one per line"]')!.value='One\nTwo';x.button('Preview new poll').click();expect(x.fetcher).toHaveBeenCalledTimes(1);x.fetcher.mockImplementation(async()=>{expect((await journal!.list('42')).entries[0]?.outcome).toBe('pending');return new Response(JSON.stringify({sent:true,poll}));});x.button('Confirm reviewed poll action').click();await vi.waitFor(async()=>expect((await journal!.list('42')).entries[0]?.outcome).toBe('confirmed'));expect(panel!.root.textContent).toContain('ACTIVE');expect(x.fetcher).toHaveBeenCalledTimes(2);});
-it('keeps uncertain endings in the original account and never retries automatically',async()=>{const x=await setup([poll]);let resolve:((response:Response)=>void)|undefined;x.fetcher.mockImplementation(()=>new Promise<Response>(r=>{resolve=r;}));x.button('Preview end and archive poll poll-one').click();x.button('Confirm reviewed poll action').click();await vi.waitFor(()=>expect(resolve).toBeDefined());panel!.setScope({...auth,userID:'43',csrf:'new'},'one');resolve!(new Response(JSON.stringify({sent:false,uncertain:true,error:'Unknown result'}),{status:502}));await vi.waitFor(async()=>expect((await journal!.list('42')).entries[0]?.outcome).toBe('uncertain'));expect((await journal!.list('43')).entries).toEqual([]);expect(panel!.root.textContent).not.toContain('Question?');expect(x.fetcher).toHaveBeenCalledTimes(2);});
-it('restores provider state on refresh and rejects changed identities or missing manage consent',async()=>{const x=await setup([poll]);x.button('Preview end poll poll-one').click();expect(x.button('Confirm reviewed poll action').disabled).toBe(false);panel!.setScope({...auth,pollsManageEnabled:false},'one');expect(()=>x.button('Preview end poll poll-one').click()).not.toThrow();expect(panel!.root.textContent).toContain('manage-poll consent');expect(x.button('Confirm reviewed poll action').disabled).toBe(true);x.fetcher.mockImplementation(async()=>new Response(JSON.stringify({account:'43',broadcasterID:'43',channel:'one',at:Date.now(),polls:[{...poll,broadcaster_id:'43'}]})));x.button('Refresh/reconnect broadcaster polls').click();await vi.waitFor(()=>expect(panel!.root.textContent).toContain('Broadcaster poll scope changed'));expect(panel!.root.textContent).not.toContain('Question?');});
+import 'fake-indexeddb/auto';
+import { afterEach, expect, it, vi } from 'vitest';
+import { PollPanel } from './polls-ui';
+import { ModerationJournal } from './moderation-journal';
+let panel: PollPanel | undefined;
+let journal: ModerationJournal | undefined;
+const auth = {
+  enabled: true,
+  authenticated: true,
+  userID: '42',
+  login: 'one',
+  csrf: 'fixture',
+  loginURL: 'http://127.0.0.1:5200/api/auth/login',
+  pollsEnabled: true,
+  pollsManageEnabled: true,
+};
+const poll = {
+  id: 'poll-one',
+  broadcaster_id: '42',
+  title: 'Question?',
+  status: 'ACTIVE',
+  duration: 30,
+  channel_points_voting_enabled: false,
+  channel_points_per_vote: 0,
+  started_at: '2026-10-12T12:00:00Z',
+  ended_at: null,
+  choices: [
+    { id: 'choice-one', title: 'One', votes: 0, channel_points_votes: 0 },
+    { id: 'choice-two', title: 'Two', votes: 0, channel_points_votes: 0 },
+  ],
+};
+afterEach(async () => {
+  panel?.stop();
+  await journal?.stop();
+  document.body.replaceChildren();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  await new Promise((r) => setTimeout(r, 10));
+  await new Promise<void>((resolve, reject) => {
+    const q = indexedDB.deleteDatabase('chatthing-moderation-journal');
+    q.onsuccess = () => resolve();
+    q.onerror = () => reject(q.error);
+  });
+});
+async function setup(polls: unknown[] = []) {
+  journal = new ModerationJournal();
+  panel = new PollPanel(
+    journal,
+    () => true,
+    async () => {},
+  );
+  panel.setScope(auth, 'one');
+  document.body.append(panel.root);
+  const fetcher = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ account: '42', broadcasterID: '42', channel: 'one', at: Date.now(), polls })),
+  );
+  vi.stubGlobal('fetch', fetcher);
+  const button = (text: string) => [...panel!.root.querySelectorAll('button')].find((x) => x.textContent === text)!;
+  button('Refresh/reconnect broadcaster polls').click();
+  await vi.waitFor(() => expect(panel!.root.textContent).toContain('Latest ' + polls.length + ' polls'));
+  return { fetcher, button };
+}
+it('previews validated creation without a write and saves pending before confirmation', async () => {
+  const x = await setup();
+  panel!.root.querySelector<HTMLInputElement>('[aria-label="Poll title"]')!.value = 'Question?';
+  panel!.root.querySelector<HTMLTextAreaElement>('[aria-label="Poll choices, one per line"]')!.value = 'One\nTwo';
+  x.button('Preview new poll').click();
+  expect(x.fetcher).toHaveBeenCalledTimes(1);
+  x.fetcher.mockImplementation(async () => {
+    expect((await journal!.list('42')).entries[0]?.outcome).toBe('pending');
+    return new Response(JSON.stringify({ sent: true, poll }));
+  });
+  x.button('Confirm reviewed poll action').click();
+  await vi.waitFor(async () => expect((await journal!.list('42')).entries[0]?.outcome).toBe('confirmed'));
+  expect(panel!.root.textContent).toContain('ACTIVE');
+  expect(x.fetcher).toHaveBeenCalledTimes(2);
+});
+it('keeps uncertain endings in the original account and never retries automatically', async () => {
+  const x = await setup([poll]);
+  let resolve: ((response: Response) => void) | undefined;
+  x.fetcher.mockImplementation(
+    () =>
+      new Promise<Response>((r) => {
+        resolve = r;
+      }),
+  );
+  x.button('Preview end and archive poll poll-one').click();
+  x.button('Confirm reviewed poll action').click();
+  await vi.waitFor(() => expect(resolve).toBeDefined());
+  panel!.setScope({ ...auth, userID: '43', csrf: 'new' }, 'one');
+  resolve!(new Response(JSON.stringify({ sent: false, uncertain: true, error: 'Unknown result' }), { status: 502 }));
+  await vi.waitFor(async () => expect((await journal!.list('42')).entries[0]?.outcome).toBe('uncertain'));
+  expect((await journal!.list('43')).entries).toEqual([]);
+  expect(panel!.root.textContent).not.toContain('Question?');
+  expect(x.fetcher).toHaveBeenCalledTimes(2);
+});
+it('restores provider state on refresh and rejects changed identities or missing manage consent', async () => {
+  const x = await setup([poll]);
+  x.button('Preview end poll poll-one').click();
+  expect(x.button('Confirm reviewed poll action').disabled).toBe(false);
+  panel!.setScope({ ...auth, pollsManageEnabled: false }, 'one');
+  expect(() => x.button('Preview end poll poll-one').click()).not.toThrow();
+  expect(panel!.root.textContent).toContain('manage-poll consent');
+  expect(x.button('Confirm reviewed poll action').disabled).toBe(true);
+  x.fetcher.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          account: '43',
+          broadcasterID: '43',
+          channel: 'one',
+          at: Date.now(),
+          polls: [{ ...poll, broadcaster_id: '43' }],
+        }),
+      ),
+  );
+  x.button('Refresh/reconnect broadcaster polls').click();
+  await vi.waitFor(() => expect(panel!.root.textContent).toContain('Broadcaster poll scope changed'));
+  expect(panel!.root.textContent).not.toContain('Question?');
+});
 
-it('requires an explicit refresh before another action after an uncertain response',async()=>{const x=await setup([poll]);x.fetcher.mockImplementation(async()=>new Response(JSON.stringify({sent:false,uncertain:true,error:'Unknown result'}),{status:502}));x.button('Preview end poll poll-one').click();x.button('Confirm reviewed poll action').click();await vi.waitFor(async()=>expect((await journal!.list('42')).entries[0]?.outcome).toBe('uncertain'));x.button('Preview end poll poll-one').click();expect(x.button('Confirm reviewed poll action').disabled).toBe(true);expect(panel!.root.textContent).toContain('Refresh provider state before another action');expect(x.fetcher).toHaveBeenCalledTimes(2);});
+it('requires an explicit refresh before another action after an uncertain response', async () => {
+  const x = await setup([poll]);
+  x.fetcher.mockImplementation(
+    async () =>
+      new Response(JSON.stringify({ sent: false, uncertain: true, error: 'Unknown result' }), { status: 502 }),
+  );
+  x.button('Preview end poll poll-one').click();
+  x.button('Confirm reviewed poll action').click();
+  await vi.waitFor(async () => expect((await journal!.list('42')).entries[0]?.outcome).toBe('uncertain'));
+  x.button('Preview end poll poll-one').click();
+  expect(x.button('Confirm reviewed poll action').disabled).toBe(true);
+  expect(panel!.root.textContent).toContain('Refresh provider state before another action');
+  expect(x.fetcher).toHaveBeenCalledTimes(2);
+});

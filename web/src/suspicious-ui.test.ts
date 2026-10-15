@@ -1,9 +1,91 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';import {SuspiciousPanel} from './suspicious-ui';
-const sources:Source[]=[];class Source extends EventTarget{onerror:(()=>void)|null=null;closed=false;constructor(){super();sources.push(this);}close(){this.closed=true;}emit(value:unknown){this.dispatchEvent(new MessageEvent('snapshot',{data:JSON.stringify(value)}));}}
-const snapshot={format:'chatty-cat-private-suspicious',account:'42',channel:'one',broadcasterID:'123',epoch:'epoch-123456789012345',state:'live',active:true,detail:'Live private signals',rows:[{userID:'456',login:'alice',status:'restricted',text:'private-suspicious <script>inert</script>',messageID:'message-one',eventID:'event-one',at:Date.now(),types:['ban_evader'],shared:['99'],evaluation:'likely'}]};
-const auth={enabled:true,authenticated:true,suspiciousEnabled:true,suspiciousManageEnabled:true,userID:'42',login:'moderator',csrf:'fixture',loginURL:'http://127.0.0.1:5199/api/auth/login'};let panel:SuspiciousPanel|undefined;
-afterEach(()=>{panel?.stop();document.body.replaceChildren();sources.splice(0);vi.unstubAllGlobals();});
-function setup(){vi.stubGlobal('EventSource',Source);const review=vi.fn();panel=new SuspiciousPanel(()=>true,review);panel.setScope(auth,'one');document.body.append(panel.root);const button=(text:string)=>[...panel!.root.querySelectorAll('button')].find(x=>x.textContent===text)!;button('Connect private suspicious-user signals').click();sources[0]!.emit(snapshot);return {review,button};}
-it('renders inert reported signals and stages the exact subject without sending',()=>{const x=setup();const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);expect(panel!.root.querySelector('script')).toBeNull();x.button('Preview restrict alice').click();expect(x.review).toHaveBeenCalledWith('/restrict alice','one','456');expect(fetcher).not.toHaveBeenCalled();expect(localStorage.length).toBe(0);});
-it('clears private signals on revocation/account change and disables writes without manage consent',()=>{const x=setup();panel!.setScope({...auth,suspiciousManageEnabled:false},'one');sources[0]!.emit(snapshot);expect(x.button('Preview monitor alice').disabled).toBe(true);sources[0]!.emit({...snapshot,state:'unavailable',active:false,rows:[],detail:'Revoked'});expect(sources[0]!.closed).toBe(true);expect(panel!.root.textContent).not.toContain('private-suspicious');panel!.setScope({...auth,userID:'43'},'one');expect(panel!.root.textContent).not.toContain('likely');});
+import { afterEach, expect, it, vi } from 'vitest';
+import { SuspiciousPanel } from './suspicious-ui';
+const sources: Source[] = [];
+class Source extends EventTarget {
+  onerror: (() => void) | null = null;
+  closed = false;
+  constructor() {
+    super();
+    sources.push(this);
+  }
+  close() {
+    this.closed = true;
+  }
+  emit(value: unknown) {
+    this.dispatchEvent(new MessageEvent('snapshot', { data: JSON.stringify(value) }));
+  }
+}
+const snapshot = {
+  format: 'chatty-cat-private-suspicious',
+  account: '42',
+  channel: 'one',
+  broadcasterID: '123',
+  epoch: 'epoch-123456789012345',
+  state: 'live',
+  active: true,
+  detail: 'Live private signals',
+  rows: [
+    {
+      userID: '456',
+      login: 'alice',
+      status: 'restricted',
+      text: 'private-suspicious <script>inert</script>',
+      messageID: 'message-one',
+      eventID: 'event-one',
+      at: Date.now(),
+      types: ['ban_evader'],
+      shared: ['99'],
+      evaluation: 'likely',
+    },
+  ],
+};
+const auth = {
+  enabled: true,
+  authenticated: true,
+  suspiciousEnabled: true,
+  suspiciousManageEnabled: true,
+  userID: '42',
+  login: 'moderator',
+  csrf: 'fixture',
+  loginURL: 'http://127.0.0.1:5199/api/auth/login',
+};
+let panel: SuspiciousPanel | undefined;
+afterEach(() => {
+  panel?.stop();
+  document.body.replaceChildren();
+  sources.splice(0);
+  vi.unstubAllGlobals();
+});
+function setup() {
+  vi.stubGlobal('EventSource', Source);
+  const review = vi.fn();
+  panel = new SuspiciousPanel(() => true, review);
+  panel.setScope(auth, 'one');
+  document.body.append(panel.root);
+  const button = (text: string) => [...panel!.root.querySelectorAll('button')].find((x) => x.textContent === text)!;
+  button('Connect private suspicious-user signals').click();
+  sources[0]!.emit(snapshot);
+  return { review, button };
+}
+it('renders inert reported signals and stages the exact subject without sending', () => {
+  const x = setup();
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  expect(panel!.root.querySelector('script')).toBeNull();
+  x.button('Preview restrict alice').click();
+  expect(x.review).toHaveBeenCalledWith('/restrict alice', 'one', '456');
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(localStorage.length).toBe(0);
+});
+it('clears private signals on revocation/account change and disables writes without manage consent', () => {
+  const x = setup();
+  panel!.setScope({ ...auth, suspiciousManageEnabled: false }, 'one');
+  sources[0]!.emit(snapshot);
+  expect(x.button('Preview monitor alice').disabled).toBe(true);
+  sources[0]!.emit({ ...snapshot, state: 'unavailable', active: false, rows: [], detail: 'Revoked' });
+  expect(sources[0]!.closed).toBe(true);
+  expect(panel!.root.textContent).not.toContain('private-suspicious');
+  panel!.setScope({ ...auth, userID: '43' }, 'one');
+  expect(panel!.root.textContent).not.toContain('likely');
+});

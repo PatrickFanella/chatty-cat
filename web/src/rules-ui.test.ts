@@ -1,5 +1,39 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';
-import {RulePanel} from './rules-ui';
-let panel:RulePanel|undefined;afterEach(()=>{panel?.stop();vi.unstubAllGlobals();localStorage.clear();document.body.replaceChildren();});
-it('requires a matching preview before applying rules, reports storage failures and enforces overnight quiet hours',()=>{document.body.innerHTML='<button id="commands-open"></button>';const changed=vi.fn();panel=new RulePanel(changed);const field=(id:string)=>panel!.root.querySelector<HTMLInputElement>('#rule-'+id)!;field('name').value='Greeting';field('pattern').value='hello';const click=(a:string)=>panel!.root.querySelector<HTMLButtonElement>('[data-action='+a+']')!.click();click('save');expect(panel.engine.rules).toHaveLength(0);click('preview');expect(panel.root.querySelector('#rule-result')?.textContent).toContain('Highlighted');click('save');expect(panel.engine.rules).toHaveLength(1);expect(localStorage.getItem('chatthing:v1:rules')).toContain('Greeting');panel.preferences={muted:false,quietStart:22,quietEnd:7};expect(panel.alertsAllowed(new Date(2026,0,1,23))).toBe(false);expect(panel.alertsAllowed(new Date(2026,0,1,12))).toBe(true);const saved=localStorage.getItem('chatthing:v1:rules');vi.stubGlobal('localStorage',{getItem:()=>saved,setItem:()=>{throw new Error('Quota');}});click('preferences');expect(panel.root.querySelector('#rule-status')?.textContent).toBe('Quota');vi.unstubAllGlobals();});
+import { afterEach, expect, it, vi } from 'vitest';
+import { RulePanel } from './rules-ui';
+let panel: RulePanel | undefined;
+afterEach(() => {
+  panel?.stop();
+  vi.unstubAllGlobals();
+  localStorage.clear();
+  document.body.replaceChildren();
+});
+it('requires a matching preview before applying rules, reports storage failures and enforces overnight quiet hours', () => {
+  document.body.innerHTML = '<button id="commands-open"></button>';
+  const changed = vi.fn();
+  panel = new RulePanel(changed);
+  const field = (id: string) => panel!.root.querySelector<HTMLInputElement>('#rule-' + id)!;
+  field('name').value = 'Greeting';
+  field('pattern').value = 'hello';
+  const click = (a: string) => panel!.root.querySelector<HTMLButtonElement>('[data-action=' + a + ']')!.click();
+  click('save');
+  expect(panel.engine.rules).toHaveLength(0);
+  click('preview');
+  expect(panel.root.querySelector('#rule-result')?.textContent).toContain('Highlighted');
+  click('save');
+  expect(panel.engine.rules).toHaveLength(1);
+  expect(localStorage.getItem('chatthing:v1:rules')).toContain('Greeting');
+  panel.preferences = { muted: false, quietStart: 22, quietEnd: 7 };
+  expect(panel.alertsAllowed(new Date(2026, 0, 1, 23))).toBe(false);
+  expect(panel.alertsAllowed(new Date(2026, 0, 1, 12))).toBe(true);
+  const saved = localStorage.getItem('chatthing:v1:rules');
+  vi.stubGlobal('localStorage', {
+    getItem: () => saved,
+    setItem: () => {
+      throw new Error('Quota');
+    },
+  });
+  click('preferences');
+  expect(panel.root.querySelector('#rule-status')?.textContent).toBe('Quota');
+  vi.unstubAllGlobals();
+});

@@ -1,17 +1,191 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
-import {afterEach,expect,it,vi} from 'vitest';
-import {AutoModPanel} from './automod-ui';
-import {ModerationJournal} from './moderation-journal';
-import {ModerationWorkspace} from './moderation-ui';
-const sources:FakeSource[]=[];class FakeSource extends EventTarget{onerror:(()=>void)|null=null;closed=false;constructor(readonly url:string){super();sources.push(this);}close(){this.closed=true;}emit(value:unknown){this.dispatchEvent(new MessageEvent('snapshot',{data:JSON.stringify(value)}));}}
-const snapshot={format:'chatty-cat-private-automod',account:'42',channel:'one',broadcasterID:'123',epoch:'epoch-123456789012345',active:true,state:'live',detail:'Live private fixture',rows:[{id:'held-one',eventID:'event-one',userID:'456',login:'alice',text:'private-held-sentinel <script>inert</script>',reason:'AutoMod',at:Date.now(),status:'held'}]};
-const auth={enabled:true,authenticated:true,automodEnabled:true,userID:'42',login:'moderator',csrf:'fixture',loginURL:'http://127.0.0.1:5197/api/auth/login'};
-const stores:ModerationJournal[]=[];let panel:AutoModPanel|undefined,workspace:ModerationWorkspace|undefined;
-afterEach(async()=>{panel?.stop();workspace?.stop();for(const store of stores.splice(0))await store.stop();sources.splice(0);document.body.replaceChildren();localStorage.clear();vi.restoreAllMocks();vi.unstubAllGlobals();await new Promise(r=>setTimeout(r,10));await new Promise<void>((resolve,reject)=>{const q=indexedDB.deleteDatabase('chatthing-moderation-journal');q.onsuccess=()=>resolve();q.onerror=()=>reject(q.error);});});
-function setup(){vi.stubGlobal('EventSource',FakeSource);const journal=new ModerationJournal();stores.push(journal);panel=new AutoModPanel(journal,()=>true,async()=>{});panel.setScope(auth,'one');document.body.append(panel.root);const button=(text:string)=>[...panel!.root.querySelectorAll('button')].find(x=>x.textContent===text)!;button('Connect private AutoMod queue').click();sources.at(-1)!.emit(snapshot);return {journal,button};}
-it('stages inert private held text and saves pending before one confirmed decision',async()=>{const x=setup();expect(panel!.root.querySelector('script')).toBeNull();const fetcher=vi.fn(async(_url:string,options:RequestInit)=>{expect((await x.journal.list('42')).entries[0]?.outcome).toBe('pending');expect(JSON.parse(String(options.body))).toMatchObject({account:'42',channel:'one',userID:'456',messageID:'held-one',action:'ALLOW'});return new Response(JSON.stringify({sent:true,command:true}));});vi.stubGlobal('fetch',fetcher);x.button('Preview ALLOW held-one').click();expect(fetcher).not.toHaveBeenCalled();x.button('Confirm reviewed AutoMod decision').click();await vi.waitFor(async()=>expect((await x.journal.list('42')).entries[0]?.outcome).toBe('confirmed'));expect(fetcher).toHaveBeenCalledTimes(1);expect(localStorage.length).toBe(0);});
-it('clears staged decisions when a provider resolution arrives, without a write',()=>{const x=setup();const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);x.button('Preview DENY held-one').click();sources.at(-1)!.emit({...snapshot,rows:[]});expect(x.button('Confirm reviewed AutoMod decision').disabled).toBe(true);expect(panel!.root.textContent).not.toContain('private-held-sentinel');expect(fetcher).not.toHaveBeenCalled();});
-it('keeps in-flight outcomes in the original account after a scope switch',async()=>{const x=setup();let resolve:((value:Response)=>void)|undefined;vi.stubGlobal('fetch',vi.fn(()=>new Promise<Response>(r=>{resolve=r;})));x.button('Preview DENY held-one').click();x.button('Confirm reviewed AutoMod decision').click();await vi.waitFor(()=>expect(resolve).toBeDefined());panel!.setScope({...auth,userID:'43',login:'bob',csrf:'new'},'one');resolve!(new Response(JSON.stringify({sent:false,uncertain:true,error:'Unknown result'})));await vi.waitFor(async()=>expect((await x.journal.list('42')).entries[0]?.outcome).toBe('uncertain'));expect((await x.journal.list('43')).entries).toEqual([]);expect(panel!.root.textContent).not.toContain('private-held-sentinel');expect(sources[0]?.closed).toBe(true);});
-it('refuses missing consent and suppresses private stream state when workspace privacy activates',async()=>{vi.stubGlobal('EventSource',FakeSource);document.body.innerHTML='<button id="archive-open"></button>';workspace=new ModerationWorkspace(['one'],{searchPage:async()=>({messages:[],next:undefined,scanned:0,bounds:{rows:0,oldest:undefined,newest:undefined}}),scanChannel:async()=>{}});workspace.setAuth({...auth,automodEnabled:false});workspace.show();const button=(text:string)=>[...workspace!.root.querySelectorAll('button')].find(x=>x.textContent===text)!;button('Connect private AutoMod queue').click();expect(sources).toHaveLength(0);expect(workspace.root.textContent).toContain('Grant moderator:manage:automod');workspace.setAuth(auth);button('Connect private AutoMod queue').click();sources.at(-1)!.emit(snapshot);expect(workspace.root.textContent).toContain('private-held-sentinel');localStorage.setItem('chatthing:v1:privacy',JSON.stringify({version:1,enabled:true,allowed:[],panic:true}));document.dispatchEvent(new Event('privacychange'));expect(workspace.root.open).toBe(false);expect(workspace.root.textContent).not.toContain('private-held-sentinel');expect(sources.at(-1)?.closed).toBe(true);});
-it('waits through connecting snapshots and closes only terminal unavailable state',()=>{vi.stubGlobal('EventSource',FakeSource);const journal=new ModerationJournal();stores.push(journal);panel=new AutoModPanel(journal,()=>true,async()=>{});panel.setScope(auth,'one');document.body.append(panel.root);[...panel.root.querySelectorAll('button')].find(x=>x.textContent==='Connect private AutoMod queue')!.click();const source=sources.at(-1)!;source.emit({...snapshot,state:'connecting',active:false,rows:[]});expect(source.closed).toBe(false);source.emit(snapshot);expect(panel.root.textContent).toContain('Private AutoMod connected');expect(panel.root.textContent).not.toContain('Connecting private AutoMod');expect(panel.root.textContent).toContain('private-held-sentinel');source.emit({...snapshot,state:'unavailable',active:false,rows:[],detail:'Permission revoked'});expect(source.closed).toBe(true);expect(panel.root.textContent).not.toContain('private-held-sentinel');});
+import { afterEach, expect, it, vi } from 'vitest';
+import { AutoModPanel } from './automod-ui';
+import { ModerationJournal } from './moderation-journal';
+import { ModerationWorkspace } from './moderation-ui';
+const sources: FakeSource[] = [];
+class FakeSource extends EventTarget {
+  onerror: (() => void) | null = null;
+  closed = false;
+  constructor(readonly url: string) {
+    super();
+    sources.push(this);
+  }
+  close() {
+    this.closed = true;
+  }
+  emit(value: unknown) {
+    this.dispatchEvent(new MessageEvent('snapshot', { data: JSON.stringify(value) }));
+  }
+}
+const snapshot = {
+  format: 'chatty-cat-private-automod',
+  account: '42',
+  channel: 'one',
+  broadcasterID: '123',
+  epoch: 'epoch-123456789012345',
+  active: true,
+  state: 'live',
+  detail: 'Live private fixture',
+  rows: [
+    {
+      id: 'held-one',
+      eventID: 'event-one',
+      userID: '456',
+      login: 'alice',
+      text: 'private-held-sentinel <script>inert</script>',
+      reason: 'AutoMod',
+      at: Date.now(),
+      status: 'held',
+    },
+  ],
+};
+const auth = {
+  enabled: true,
+  authenticated: true,
+  automodEnabled: true,
+  userID: '42',
+  login: 'moderator',
+  csrf: 'fixture',
+  loginURL: 'http://127.0.0.1:5197/api/auth/login',
+};
+const stores: ModerationJournal[] = [];
+let panel: AutoModPanel | undefined, workspace: ModerationWorkspace | undefined;
+afterEach(async () => {
+  panel?.stop();
+  workspace?.stop();
+  for (const store of stores.splice(0)) await store.stop();
+  sources.splice(0);
+  document.body.replaceChildren();
+  localStorage.clear();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  await new Promise((r) => setTimeout(r, 10));
+  await new Promise<void>((resolve, reject) => {
+    const q = indexedDB.deleteDatabase('chatthing-moderation-journal');
+    q.onsuccess = () => resolve();
+    q.onerror = () => reject(q.error);
+  });
+});
+function setup() {
+  vi.stubGlobal('EventSource', FakeSource);
+  const journal = new ModerationJournal();
+  stores.push(journal);
+  panel = new AutoModPanel(
+    journal,
+    () => true,
+    async () => {},
+  );
+  panel.setScope(auth, 'one');
+  document.body.append(panel.root);
+  const button = (text: string) => [...panel!.root.querySelectorAll('button')].find((x) => x.textContent === text)!;
+  button('Connect private AutoMod queue').click();
+  sources.at(-1)!.emit(snapshot);
+  return { journal, button };
+}
+it('stages inert private held text and saves pending before one confirmed decision', async () => {
+  const x = setup();
+  expect(panel!.root.querySelector('script')).toBeNull();
+  const fetcher = vi.fn(async (_url: string, options: RequestInit) => {
+    expect((await x.journal.list('42')).entries[0]?.outcome).toBe('pending');
+    expect(JSON.parse(String(options.body))).toMatchObject({
+      account: '42',
+      channel: 'one',
+      userID: '456',
+      messageID: 'held-one',
+      action: 'ALLOW',
+    });
+    return new Response(JSON.stringify({ sent: true, command: true }));
+  });
+  vi.stubGlobal('fetch', fetcher);
+  x.button('Preview ALLOW held-one').click();
+  expect(fetcher).not.toHaveBeenCalled();
+  x.button('Confirm reviewed AutoMod decision').click();
+  await vi.waitFor(async () => expect((await x.journal.list('42')).entries[0]?.outcome).toBe('confirmed'));
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(localStorage.length).toBe(0);
+});
+it('clears staged decisions when a provider resolution arrives, without a write', () => {
+  const x = setup();
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  x.button('Preview DENY held-one').click();
+  sources.at(-1)!.emit({ ...snapshot, rows: [] });
+  expect(x.button('Confirm reviewed AutoMod decision').disabled).toBe(true);
+  expect(panel!.root.textContent).not.toContain('private-held-sentinel');
+  expect(fetcher).not.toHaveBeenCalled();
+});
+it('keeps in-flight outcomes in the original account after a scope switch', async () => {
+  const x = setup();
+  let resolve: ((value: Response) => void) | undefined;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      () =>
+        new Promise<Response>((r) => {
+          resolve = r;
+        }),
+    ),
+  );
+  x.button('Preview DENY held-one').click();
+  x.button('Confirm reviewed AutoMod decision').click();
+  await vi.waitFor(() => expect(resolve).toBeDefined());
+  panel!.setScope({ ...auth, userID: '43', login: 'bob', csrf: 'new' }, 'one');
+  resolve!(new Response(JSON.stringify({ sent: false, uncertain: true, error: 'Unknown result' })));
+  await vi.waitFor(async () => expect((await x.journal.list('42')).entries[0]?.outcome).toBe('uncertain'));
+  expect((await x.journal.list('43')).entries).toEqual([]);
+  expect(panel!.root.textContent).not.toContain('private-held-sentinel');
+  expect(sources[0]?.closed).toBe(true);
+});
+it('refuses missing consent and suppresses private stream state when workspace privacy activates', async () => {
+  vi.stubGlobal('EventSource', FakeSource);
+  document.body.innerHTML = '<button id="archive-open"></button>';
+  workspace = new ModerationWorkspace(['one'], {
+    searchPage: async () => ({
+      messages: [],
+      next: undefined,
+      scanned: 0,
+      bounds: { rows: 0, oldest: undefined, newest: undefined },
+    }),
+    scanChannel: async () => {},
+  });
+  workspace.setAuth({ ...auth, automodEnabled: false });
+  workspace.show();
+  const button = (text: string) => [...workspace!.root.querySelectorAll('button')].find((x) => x.textContent === text)!;
+  button('Connect private AutoMod queue').click();
+  expect(sources).toHaveLength(0);
+  expect(workspace.root.textContent).toContain('Grant moderator:manage:automod');
+  workspace.setAuth(auth);
+  button('Connect private AutoMod queue').click();
+  sources.at(-1)!.emit(snapshot);
+  expect(workspace.root.textContent).toContain('private-held-sentinel');
+  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  document.dispatchEvent(new Event('privacychange'));
+  expect(workspace.root.open).toBe(false);
+  expect(workspace.root.textContent).not.toContain('private-held-sentinel');
+  expect(sources.at(-1)?.closed).toBe(true);
+});
+it('waits through connecting snapshots and closes only terminal unavailable state', () => {
+  vi.stubGlobal('EventSource', FakeSource);
+  const journal = new ModerationJournal();
+  stores.push(journal);
+  panel = new AutoModPanel(
+    journal,
+    () => true,
+    async () => {},
+  );
+  panel.setScope(auth, 'one');
+  document.body.append(panel.root);
+  [...panel.root.querySelectorAll('button')].find((x) => x.textContent === 'Connect private AutoMod queue')!.click();
+  const source = sources.at(-1)!;
+  source.emit({ ...snapshot, state: 'connecting', active: false, rows: [] });
+  expect(source.closed).toBe(false);
+  source.emit(snapshot);
+  expect(panel.root.textContent).toContain('Private AutoMod connected');
+  expect(panel.root.textContent).not.toContain('Connecting private AutoMod');
+  expect(panel.root.textContent).toContain('private-held-sentinel');
+  source.emit({ ...snapshot, state: 'unavailable', active: false, rows: [], detail: 'Permission revoked' });
+  expect(source.closed).toBe(true);
+  expect(panel.root.textContent).not.toContain('private-held-sentinel');
+});

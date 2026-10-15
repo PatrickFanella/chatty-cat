@@ -1,11 +1,87 @@
 // @vitest-environment happy-dom
-import {afterEach,expect,it,vi} from 'vitest';
-import {parseUserHolds,UserHoldPanel} from './user-holds';
-const auth={enabled:true,authenticated:true,loginURL:'https://chat.subcult.tv/api/auth/login',login:'alice',userID:'42',csrf:'fixture',userFeedbackEnabled:true};
-const snapshot={format:'chatty-cat-private-user-holds',account:'42',channel:'one',broadcasterID:'123',epoch:'abcdefghijklmnop',state:'live',active:true,detail:'Own feedback',rows:[{id:'one',eventID:'held-event',text:'private-own-held-canary <script>inert</script>',at:Date.now(),status:'held'}]};
-afterEach(()=>{vi.unstubAllGlobals();localStorage.clear();});
-it('accepts only exact private scope and statuses, rejecting public envelopes and unsafe shapes',()=>{expect(parseUserHolds(snapshot,'42','one').rows).toHaveLength(1);for(const raw of [{...snapshot,account:'99'},{...snapshot,channel:'other'},{...snapshot,format:'chatty-cat-archive'},{...snapshot,active:false},{...snapshot,rows:[{...snapshot.rows[0],status:'pending'}]}])expect(()=>parseUserHolds(raw,'42','one')).toThrow();});
-it('connects explicitly, renders inert private text, and drops late events on close/account change',()=>{
- class Source {static all:Source[]=[];listeners=new Map<string,(event:MessageEvent)=>void>();closed=false;constructor(readonly url:string){Source.all.push(this)}addEventListener(kind:string,callback:(event:MessageEvent)=>void){this.listeners.set(kind,callback)}close(){this.closed=true}}
- vi.stubGlobal('EventSource',Source);document.body.innerHTML='<button id="commands-open">Commands</button>';let current:typeof auth|undefined=auth;const panel=new UserHoldPanel(()=>current,()=>['one'],()=> 'one');try{expect(Source.all).toHaveLength(0);[...document.querySelectorAll('button')].find(b=>b.textContent==='Own message feedback')!.click();[...panel.root.querySelectorAll('button')].find(b=>b.textContent==='Connect own-message feedback')!.click();const source=Source.all[0]!;source.listeners.get('snapshot')!(new MessageEvent('snapshot',{data:JSON.stringify(snapshot)}));expect(panel.root.textContent).toContain('private-own-held-canary <script>inert</script>');expect(panel.root.querySelector('script')).toBeNull();expect(JSON.stringify(localStorage)).not.toContain('private-own-held-canary');current=undefined;panel.authChanged();expect(source.closed).toBe(true);source.listeners.get('snapshot')!(new MessageEvent('snapshot',{data:JSON.stringify(snapshot)}));expect(panel.root.textContent).not.toContain('private-own-held-canary');}finally{panel.stop();}
+import { afterEach, expect, it, vi } from 'vitest';
+import { parseUserHolds, UserHoldPanel } from './user-holds';
+const auth = {
+  enabled: true,
+  authenticated: true,
+  loginURL: 'https://chat.subcult.tv/api/auth/login',
+  login: 'alice',
+  userID: '42',
+  csrf: 'fixture',
+  userFeedbackEnabled: true,
+};
+const snapshot = {
+  format: 'chatty-cat-private-user-holds',
+  account: '42',
+  channel: 'one',
+  broadcasterID: '123',
+  epoch: 'abcdefghijklmnop',
+  state: 'live',
+  active: true,
+  detail: 'Own feedback',
+  rows: [
+    {
+      id: 'one',
+      eventID: 'held-event',
+      text: 'private-own-held-canary <script>inert</script>',
+      at: Date.now(),
+      status: 'held',
+    },
+  ],
+};
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
+it('accepts only exact private scope and statuses, rejecting public envelopes and unsafe shapes', () => {
+  expect(parseUserHolds(snapshot, '42', 'one').rows).toHaveLength(1);
+  for (const raw of [
+    { ...snapshot, account: '99' },
+    { ...snapshot, channel: 'other' },
+    { ...snapshot, format: 'chatty-cat-archive' },
+    { ...snapshot, active: false },
+    { ...snapshot, rows: [{ ...snapshot.rows[0], status: 'pending' }] },
+  ])
+    expect(() => parseUserHolds(raw, '42', 'one')).toThrow();
+});
+it('connects explicitly, renders inert private text, and drops late events on close/account change', () => {
+  class Source {
+    static all: Source[] = [];
+    listeners = new Map<string, (event: MessageEvent) => void>();
+    closed = false;
+    constructor(readonly url: string) {
+      Source.all.push(this);
+    }
+    addEventListener(kind: string, callback: (event: MessageEvent) => void) {
+      this.listeners.set(kind, callback);
+    }
+    close() {
+      this.closed = true;
+    }
+  }
+  vi.stubGlobal('EventSource', Source);
+  document.body.innerHTML = '<button id="commands-open">Commands</button>';
+  let current: typeof auth | undefined = auth;
+  const panel = new UserHoldPanel(
+    () => current,
+    () => ['one'],
+    () => 'one',
+  );
+  try {
+    expect(Source.all).toHaveLength(0);
+    [...document.querySelectorAll('button')].find((b) => b.textContent === 'Own message feedback')!.click();
+    [...panel.root.querySelectorAll('button')].find((b) => b.textContent === 'Connect own-message feedback')!.click();
+    const source = Source.all[0]!;
+    source.listeners.get('snapshot')!(new MessageEvent('snapshot', { data: JSON.stringify(snapshot) }));
+    expect(panel.root.textContent).toContain('private-own-held-canary <script>inert</script>');
+    expect(panel.root.querySelector('script')).toBeNull();
+    expect(JSON.stringify(localStorage)).not.toContain('private-own-held-canary');
+    current = undefined;
+    panel.authChanged();
+    expect(source.closed).toBe(true);
+    source.listeners.get('snapshot')!(new MessageEvent('snapshot', { data: JSON.stringify(snapshot) }));
+    expect(panel.root.textContent).not.toContain('private-own-held-canary');
+  } finally {
+    panel.stop();
+  }
 });

@@ -1,51 +1,370 @@
-import {getPresentation} from './presentation';
-import type {MessageArchive} from './archive';
-import {PRIVACY_KEY,privacyEnabled} from './privacy';
-import type {ChatMessage} from './protocol';
-import {replyRoot,threadKey,ThreadMessages,ThreadViews} from './threads';
+import { getPresentation } from './presentation';
+import type { MessageArchive } from './archive';
+import { PRIVACY_KEY, privacyEnabled } from './privacy';
+import type { ChatMessage } from './protocol';
+import { replyRoot, threadKey, ThreadMessages, ThreadViews } from './threads';
 export class ThreadsPanel {
- readonly root=document.createElement('aside');private trigger=document.createElement('button');private tabs=document.createElement('div');private results=document.createElement('div');private status=document.createElement('p');private search=document.createElement('input');private preview=document.createElement('pre');private copy=document.createElement('button');
- readonly views=new ThreadViews();private loaded=new Map<string,ThreadMessages>();private controller:AbortController|undefined;private generation=0;private loading=false;private account:string|undefined;private workspace='';
- constructor(private log:HTMLElement,private messages:()=>readonly ChatMessage[],private archive:Pick<MessageArchive,'get'|'scanChannel'>,private channels:readonly string[],private reply:(message:ChatMessage)=>void,private layoutChange:(change:()=>void)=>void=change=>change()){
-  this.root.id='threads-panel';this.root.hidden=true;this.root.setAttribute('aria-label','Public reply threads');this.root.dataset.rail='true';
-  this.trigger.type='button';this.trigger.textContent='Threads';this.trigger.id='threads-open';document.getElementById('archive-open')?.after(this.trigger);this.trigger.addEventListener('click',this.toggle);
-  const title=document.createElement('h2');title.textContent='Reply threads';this.root.append(title,this.button('Hide threads',this.toggle),this.tabs);
-  const note=document.createElement('p');note.textContent='Public messages retained on this device only. Up to 8 views and 500 messages per thread; gaps and unsaved replies are unavailable. Read state stays in this account and workspace.';
-  this.search.type='search';this.search.maxLength=500;this.search.setAttribute('aria-label','Search this thread');this.search.placeholder='Search this thread';this.search.addEventListener('input',this.paintRows);
-  this.status.setAttribute('role','status');this.results.className='thread-results';this.results.tabIndex=0;
-  this.copy=this.button('Copy reviewed thread',()=>{if(privacyEnabled()||this.copy.disabled)return;void navigator.clipboard.writeText(this.preview.textContent??'').then(()=>{this.status.textContent='Reviewed public context copied';}).catch(()=>{this.status.textContent='Clipboard unavailable; select the preview text to copy';});});this.copy.disabled=true;
-  this.root.append(note,this.search,this.button('Refresh retained thread',()=>{void this.load();}),this.button('Mark thread read',()=>{const view=this.active(),data=view&&this.loaded.get(threadKey(view));if(view&&data){this.views.markRead(view,data);this.paintTabs();}}),this.status,this.results,this.button('Preview public context',()=>{const view=this.active(),data=view&&this.loaded.get(threadKey(view));this.preview.textContent=data?('Public retained thread context; missing parents: '+(data.missing().join(', ')||'none')+(data.truncated?' · truncated at 500 messages':'')+'\n'+data.context(this.search.value)):'';this.copy.disabled=!this.preview.textContent;}),this.preview,this.copy);
-  // Keep thread scrolling separate; the host restores chat anchors when width changes.
-  this.root.addEventListener('focusout',this.focusOut);this.root.className='thread-panel';this.log.parentElement?.append(this.root);log.addEventListener('click',this.clicked);document.addEventListener('privacychange',this.privacy);window.addEventListener('storage',this.storage);document.addEventListener('visibilitychange',this.visible);
- }
- private focusOut=(event:FocusEvent):void=>{if(this.root.hidden||privacyEnabled()||!getPresentation().autoCloseThreadPopup||!(event.relatedTarget instanceof Node)||this.root.contains(event.relatedTarget))return;try{this.views.state.open=false;this.views.save();this.setHidden(true);}catch(e){this.error(e);}};
- private setHidden(hidden:boolean):void{if(this.root.hidden!==hidden)this.layoutChange(()=>{this.root.hidden=hidden;});}
- private button(name:string,action:()=>void):HTMLButtonElement{const button=document.createElement('button');button.type='button';button.textContent=name;button.addEventListener('click',()=>{try{if(!privacyEnabled())action();}catch(e){this.error(e);}});return button;}
- private error(error:unknown):void{this.status.textContent=error instanceof Error?error.message:'Public thread unavailable';}
- setScope(account:string|undefined,workspace:string):void{if(account===this.account&&workspace===this.workspace)return;this.account=account;this.workspace=workspace;this.reset();try{this.views.setScope(account,workspace);this.setHidden(privacyEnabled()||!this.views.state.open);this.paintTabs();if(!privacyEnabled())void this.load();}catch(e){this.error(e);}}
- private reset():void{this.generation++;this.controller?.abort();this.loading=false;this.loaded.clear();this.results.replaceChildren();this.tabs.replaceChildren();this.search.value='';this.preview.textContent='';this.copy.disabled=true;this.status.textContent='';this.setHidden(true);}
- private active(){return this.views.state.views.find(v=>threadKey(v)===this.views.state.active);}
- async open(message:ChatMessage):Promise<void>{if(privacyEnabled()||message.command!=='PRIVMSG'||!message.id||!this.channels.includes(message.channel))return;try{
-  const generation=++this.generation;this.controller?.abort();let root=replyRoot(message),steps=0;const visited=new Set<string>([message.id]);while(root!==message.id&&!visited.has(root)&&steps++<20){visited.add(root);const parent=await this.archive.get(root,[message.channel]);if(generation!==this.generation||privacyEnabled())return;if(!parent)break;const next=replyRoot(parent);if(next===root)break;root=next;}
-  if(steps>20)throw new Error('Parent lookup reached its 20-message limit; open an earlier retained parent');
-  this.views.open(message.channel,root);this.setHidden(false);this.search.value='';this.paintTabs();await this.load(message);
- }catch(e){this.error(e);}}
- private clicked=(event:Event):void=>{if(!(event.target instanceof Element))return;const button=event.target.closest<HTMLButtonElement>('button[data-thread]'),channel=button?.closest<HTMLElement>('.row')?.dataset.channel;if(!button)return;const message=this.messages().find(m=>m.id===button.dataset.thread&&m.channel===channel);if(message)void this.open(message);};
- private toggle=():void=>{if(privacyEnabled()||this.account===undefined)return;try{this.views.state.open=!this.views.state.open;this.views.save();this.setHidden(!this.views.state.open);if(!this.root.hidden)void this.load();}catch(e){this.error(e);}};
- private paintTabs():void{this.tabs.replaceChildren();for(const view of this.views.state.views){const key=threadKey(view),data=this.loaded.get(key),unread=data?this.views.unread(view,data):0;const select=this.button(`#${view.channel} · ${view.root.slice(0,12)}${unread?' · '+unread+' unread':''}`,()=>{this.views.state.active=key;this.views.state.open=true;this.views.save();this.search.value='';void this.load();});select.setAttribute('aria-pressed',String(key===this.views.state.active));this.tabs.append(select,this.button('Close thread '+view.root.slice(0,12),()=>{this.views.close(key);this.loaded.delete(key);this.paintTabs();this.setHidden(!this.views.state.open);void this.load();}));}}
- private async load(anchor?:ChatMessage):Promise<void>{this.controller?.abort();const generation=++this.generation,controller=this.controller=new AbortController();this.preview.textContent='';this.copy.disabled=true;const view=this.active();if(!view||privacyEnabled()||!this.channels.includes(view.channel)){this.results.replaceChildren();return;}
-  this.results.replaceChildren();this.loading=true;this.status.textContent='Reading retained threads…';try{
-   const pending=new Map(this.views.state.views.filter(v=>this.channels.includes(v.channel)).map(v=>[threadKey(v),new ThreadMessages(v.channel,v.root)]));
-   for(const channel of new Set([...pending.values()].map(data=>data.channel)))await this.archive.scanChannel(channel,m=>{for(const data of pending.values())data.observe(m);},controller.signal);
-   if(generation!==this.generation||privacyEnabled())return;for(const data of pending.values()){for(const m of this.messages())data.observe(m);if(anchor)data.observe(anchor);}this.loaded=pending;this.loading=false;this.paintRows();this.paintTabs();
-  }catch(e){if(generation===this.generation&&!controller.signal.aborted)this.error(e);}finally{if(generation===this.generation)this.loading=false;}}
+  readonly root = document.createElement('aside');
+  private trigger = document.createElement('button');
+  private tabs = document.createElement('div');
+  private results = document.createElement('div');
+  private status = document.createElement('p');
+  private search = document.createElement('input');
+  private preview = document.createElement('pre');
+  private copy = document.createElement('button');
+  readonly views = new ThreadViews();
+  private loaded = new Map<string, ThreadMessages>();
+  private controller: AbortController | undefined;
+  private generation = 0;
+  private loading = false;
+  private account: string | undefined;
+  private workspace = '';
+  constructor(
+    private log: HTMLElement,
+    private messages: () => readonly ChatMessage[],
+    private archive: Pick<MessageArchive, 'get' | 'scanChannel'>,
+    private channels: readonly string[],
+    private reply: (message: ChatMessage) => void,
+    private layoutChange: (change: () => void) => void = (change) => change(),
+  ) {
+    this.root.id = 'threads-panel';
+    this.root.hidden = true;
+    this.root.setAttribute('aria-label', 'Public reply threads');
+    this.root.dataset.rail = 'true';
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Threads';
+    this.trigger.id = 'threads-open';
+    document.getElementById('archive-open')?.after(this.trigger);
+    this.trigger.addEventListener('click', this.toggle);
+    const title = document.createElement('h2');
+    title.textContent = 'Reply threads';
+    this.root.append(title, this.button('Hide threads', this.toggle), this.tabs);
+    const note = document.createElement('p');
+    note.textContent =
+      'Public messages retained on this device only. Up to 8 views and 500 messages per thread; gaps and unsaved replies are unavailable. Read state stays in this account and workspace.';
+    this.search.type = 'search';
+    this.search.maxLength = 500;
+    this.search.setAttribute('aria-label', 'Search this thread');
+    this.search.placeholder = 'Search this thread';
+    this.search.addEventListener('input', this.paintRows);
+    this.status.setAttribute('role', 'status');
+    this.results.className = 'thread-results';
+    this.results.tabIndex = 0;
+    this.copy = this.button('Copy reviewed thread', () => {
+      if (privacyEnabled() || this.copy.disabled) return;
+      void navigator.clipboard
+        .writeText(this.preview.textContent ?? '')
+        .then(() => {
+          this.status.textContent = 'Reviewed public context copied';
+        })
+        .catch(() => {
+          this.status.textContent = 'Clipboard unavailable; select the preview text to copy';
+        });
+    });
+    this.copy.disabled = true;
+    this.root.append(
+      note,
+      this.search,
+      this.button('Refresh retained thread', () => {
+        void this.load();
+      }),
+      this.button('Mark thread read', () => {
+        const view = this.active(),
+          data = view && this.loaded.get(threadKey(view));
+        if (view && data) {
+          this.views.markRead(view, data);
+          this.paintTabs();
+        }
+      }),
+      this.status,
+      this.results,
+      this.button('Preview public context', () => {
+        const view = this.active(),
+          data = view && this.loaded.get(threadKey(view));
+        this.preview.textContent = data
+          ? 'Public retained thread context; missing parents: ' +
+            (data.missing().join(', ') || 'none') +
+            (data.truncated ? ' · truncated at 500 messages' : '') +
+            '\n' +
+            data.context(this.search.value)
+          : '';
+        this.copy.disabled = !this.preview.textContent;
+      }),
+      this.preview,
+      this.copy,
+    );
+    // Keep thread scrolling separate; the host restores chat anchors when width changes.
+    this.root.addEventListener('focusout', this.focusOut);
+    this.root.className = 'thread-panel';
+    this.log.parentElement?.append(this.root);
+    log.addEventListener('click', this.clicked);
+    document.addEventListener('privacychange', this.privacy);
+    window.addEventListener('storage', this.storage);
+    document.addEventListener('visibilitychange', this.visible);
+  }
+  private focusOut = (event: FocusEvent): void => {
+    if (
+      this.root.hidden ||
+      privacyEnabled() ||
+      !getPresentation().autoCloseThreadPopup ||
+      !(event.relatedTarget instanceof Node) ||
+      this.root.contains(event.relatedTarget)
+    )
+      return;
+    try {
+      this.views.state.open = false;
+      this.views.save();
+      this.setHidden(true);
+    } catch (e) {
+      this.error(e);
+    }
+  };
+  private setHidden(hidden: boolean): void {
+    if (this.root.hidden !== hidden)
+      this.layoutChange(() => {
+        this.root.hidden = hidden;
+      });
+  }
+  private button(name: string, action: () => void): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = name;
+    button.addEventListener('click', () => {
+      try {
+        if (!privacyEnabled()) action();
+      } catch (e) {
+        this.error(e);
+      }
+    });
+    return button;
+  }
+  private error(error: unknown): void {
+    this.status.textContent = error instanceof Error ? error.message : 'Public thread unavailable';
+  }
+  setScope(account: string | undefined, workspace: string): void {
+    if (account === this.account && workspace === this.workspace) return;
+    this.account = account;
+    this.workspace = workspace;
+    this.reset();
+    try {
+      this.views.setScope(account, workspace);
+      this.setHidden(privacyEnabled() || !this.views.state.open);
+      this.paintTabs();
+      if (!privacyEnabled()) void this.load();
+    } catch (e) {
+      this.error(e);
+    }
+  }
+  private reset(): void {
+    this.generation++;
+    this.controller?.abort();
+    this.loading = false;
+    this.loaded.clear();
+    this.results.replaceChildren();
+    this.tabs.replaceChildren();
+    this.search.value = '';
+    this.preview.textContent = '';
+    this.copy.disabled = true;
+    this.status.textContent = '';
+    this.setHidden(true);
+  }
+  private active() {
+    return this.views.state.views.find((v) => threadKey(v) === this.views.state.active);
+  }
+  async open(message: ChatMessage): Promise<void> {
+    if (privacyEnabled() || message.command !== 'PRIVMSG' || !message.id || !this.channels.includes(message.channel))
+      return;
+    try {
+      const generation = ++this.generation;
+      this.controller?.abort();
+      let root = replyRoot(message),
+        steps = 0;
+      const visited = new Set<string>([message.id]);
+      while (root !== message.id && !visited.has(root) && steps++ < 20) {
+        visited.add(root);
+        const parent = await this.archive.get(root, [message.channel]);
+        if (generation !== this.generation || privacyEnabled()) return;
+        if (!parent) break;
+        const next = replyRoot(parent);
+        if (next === root) break;
+        root = next;
+      }
+      if (steps > 20) throw new Error('Parent lookup reached its 20-message limit; open an earlier retained parent');
+      this.views.open(message.channel, root);
+      this.setHidden(false);
+      this.search.value = '';
+      this.paintTabs();
+      await this.load(message);
+    } catch (e) {
+      this.error(e);
+    }
+  }
+  private clicked = (event: Event): void => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest<HTMLButtonElement>('button[data-thread]'),
+      channel = button?.closest<HTMLElement>('.row')?.dataset.channel;
+    if (!button) return;
+    const message = this.messages().find((m) => m.id === button.dataset.thread && m.channel === channel);
+    if (message) void this.open(message);
+  };
+  private toggle = (): void => {
+    if (privacyEnabled() || this.account === undefined) return;
+    try {
+      this.views.state.open = !this.views.state.open;
+      this.views.save();
+      this.setHidden(!this.views.state.open);
+      if (!this.root.hidden) void this.load();
+    } catch (e) {
+      this.error(e);
+    }
+  };
+  private paintTabs(): void {
+    this.tabs.replaceChildren();
+    for (const view of this.views.state.views) {
+      const key = threadKey(view),
+        data = this.loaded.get(key),
+        unread = data ? this.views.unread(view, data) : 0;
+      const select = this.button(
+        `#${view.channel} · ${view.root.slice(0, 12)}${unread ? ' · ' + unread + ' unread' : ''}`,
+        () => {
+          this.views.state.active = key;
+          this.views.state.open = true;
+          this.views.save();
+          this.search.value = '';
+          void this.load();
+        },
+      );
+      select.setAttribute('aria-pressed', String(key === this.views.state.active));
+      this.tabs.append(
+        select,
+        this.button('Close thread ' + view.root.slice(0, 12), () => {
+          this.views.close(key);
+          this.loaded.delete(key);
+          this.paintTabs();
+          this.setHidden(!this.views.state.open);
+          void this.load();
+        }),
+      );
+    }
+  }
+  private async load(anchor?: ChatMessage): Promise<void> {
+    this.controller?.abort();
+    const generation = ++this.generation,
+      controller = (this.controller = new AbortController());
+    this.preview.textContent = '';
+    this.copy.disabled = true;
+    const view = this.active();
+    if (!view || privacyEnabled() || !this.channels.includes(view.channel)) {
+      this.results.replaceChildren();
+      return;
+    }
+    this.results.replaceChildren();
+    this.loading = true;
+    this.status.textContent = 'Reading retained threads…';
+    try {
+      const pending = new Map(
+        this.views.state.views
+          .filter((v) => this.channels.includes(v.channel))
+          .map((v) => [threadKey(v), new ThreadMessages(v.channel, v.root)]),
+      );
+      for (const channel of new Set([...pending.values()].map((data) => data.channel)))
+        await this.archive.scanChannel(
+          channel,
+          (m) => {
+            for (const data of pending.values()) data.observe(m);
+          },
+          controller.signal,
+        );
+      if (generation !== this.generation || privacyEnabled()) return;
+      for (const data of pending.values()) {
+        for (const m of this.messages()) data.observe(m);
+        if (anchor) data.observe(anchor);
+      }
+      this.loaded = pending;
+      this.loading = false;
+      this.paintRows();
+      this.paintTabs();
+    } catch (e) {
+      if (generation === this.generation && !controller.signal.aborted) this.error(e);
+    } finally {
+      if (generation === this.generation) this.loading = false;
+    }
+  }
 
- observe(message:ChatMessage):void{if(privacyEnabled())return;let changed=false;for(const data of this.loaded.values())if(data.observe(message))changed=true;if(changed){this.preview.textContent='';this.copy.disabled=true;this.paintTabs();this.paintRows();}}
- private paintRows=():void=>{this.preview.textContent='';this.copy.disabled=true;const view=this.active(),data=view&&this.loaded.get(threadKey(view));if(!data)return;const scroll=this.results.scrollTop,atEnd=this.results.scrollHeight-this.results.clientHeight-scroll<24;this.results.replaceChildren();this.status.textContent=`${data.messages.size} retained messages${data.truncated?' · 500-message limit reached; later replies omitted':''}${this.loading?' · refresh running':''}. ${data.missing().length?'Missing parents: '+data.missing().join(', '):'Available parent relationships reconstructed.'}`;
-  for(const message of data.rows().filter(m=>data.matches(m,this.search.value))){const row=document.createElement('article');row.className='thread-message';row.dataset.id=message.id;const parent=message.tags['reply-parent-msg-id'];const label=document.createElement('p');label.textContent=`${new Date(message.timestamp).toLocaleString()} #${message.channel} ${message.login}${parent?' · replies to '+parent:''}`;const text=document.createElement('p');text.textContent=data.removed(message)?'[removed message]':message.text;row.append(label,text);if(!data.removed(message))row.append(this.button('Reply to '+message.login,()=>this.reply(message)));this.results.append(row);}this.results.scrollTop=atEnd?this.results.scrollHeight:scroll;
- };
- private visible=():void=>{if(!document.hidden&&!this.root.hidden)this.paintRows();};
- private privacy=():void=>{if(privacyEnabled())this.reset();else{try{this.views.reload();this.setHidden(!this.views.state.open);this.paintTabs();void this.load();}catch(e){this.error(e);}}};
- private storage=(event:StorageEvent):void=>{if(event.key===this.views.key){this.reset();try{this.views.reload();this.setHidden(privacyEnabled()||!this.views.state.open);this.paintTabs();if(!privacyEnabled())void this.load();}catch(e){this.error(e);}}else if(event.key===PRIVACY_KEY||event.key===null)this.privacy();};
- stop():void{this.root.removeEventListener('focusout',this.focusOut);this.reset();this.log.removeEventListener('click',this.clicked);this.trigger.removeEventListener('click',this.toggle);document.removeEventListener('privacychange',this.privacy);window.removeEventListener('storage',this.storage);document.removeEventListener('visibilitychange',this.visible);this.root.remove();this.trigger.remove();}
+  observe(message: ChatMessage): void {
+    if (privacyEnabled()) return;
+    let changed = false;
+    for (const data of this.loaded.values()) if (data.observe(message)) changed = true;
+    if (changed) {
+      this.preview.textContent = '';
+      this.copy.disabled = true;
+      this.paintTabs();
+      this.paintRows();
+    }
+  }
+  private paintRows = (): void => {
+    this.preview.textContent = '';
+    this.copy.disabled = true;
+    const view = this.active(),
+      data = view && this.loaded.get(threadKey(view));
+    if (!data) return;
+    const scroll = this.results.scrollTop,
+      atEnd = this.results.scrollHeight - this.results.clientHeight - scroll < 24;
+    this.results.replaceChildren();
+    this.status.textContent = `${data.messages.size} retained messages${data.truncated ? ' · 500-message limit reached; later replies omitted' : ''}${this.loading ? ' · refresh running' : ''}. ${data.missing().length ? 'Missing parents: ' + data.missing().join(', ') : 'Available parent relationships reconstructed.'}`;
+    for (const message of data.rows().filter((m) => data.matches(m, this.search.value))) {
+      const row = document.createElement('article');
+      row.className = 'thread-message';
+      row.dataset.id = message.id;
+      const parent = message.tags['reply-parent-msg-id'];
+      const label = document.createElement('p');
+      label.textContent = `${new Date(message.timestamp).toLocaleString()} #${message.channel} ${message.login}${parent ? ' · replies to ' + parent : ''}`;
+      const text = document.createElement('p');
+      text.textContent = data.removed(message) ? '[removed message]' : message.text;
+      row.append(label, text);
+      if (!data.removed(message)) row.append(this.button('Reply to ' + message.login, () => this.reply(message)));
+      this.results.append(row);
+    }
+    this.results.scrollTop = atEnd ? this.results.scrollHeight : scroll;
+  };
+  private visible = (): void => {
+    if (!document.hidden && !this.root.hidden) this.paintRows();
+  };
+  private privacy = (): void => {
+    if (privacyEnabled()) this.reset();
+    else {
+      try {
+        this.views.reload();
+        this.setHidden(!this.views.state.open);
+        this.paintTabs();
+        void this.load();
+      } catch (e) {
+        this.error(e);
+      }
+    }
+  };
+  private storage = (event: StorageEvent): void => {
+    if (event.key === this.views.key) {
+      this.reset();
+      try {
+        this.views.reload();
+        this.setHidden(privacyEnabled() || !this.views.state.open);
+        this.paintTabs();
+        if (!privacyEnabled()) void this.load();
+      } catch (e) {
+        this.error(e);
+      }
+    } else if (event.key === PRIVACY_KEY || event.key === null) this.privacy();
+  };
+  stop(): void {
+    this.root.removeEventListener('focusout', this.focusOut);
+    this.reset();
+    this.log.removeEventListener('click', this.clicked);
+    this.trigger.removeEventListener('click', this.toggle);
+    document.removeEventListener('privacychange', this.privacy);
+    window.removeEventListener('storage', this.storage);
+    document.removeEventListener('visibilitychange', this.visible);
+    this.root.remove();
+    this.trigger.remove();
+  }
 }

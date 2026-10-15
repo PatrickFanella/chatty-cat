@@ -1,97 +1,672 @@
-import {profileKey} from './account-profiles';
+import { profileKey } from './account-profiles';
 import { privacyEnabled } from './privacy';
 import { loadChatFont } from './chat-font';
-import {captureBundle,parseBundle,restoreBundle,type SettingsBundle} from './settings-bundle';
+import { captureBundle, parseBundle, restoreBundle, type SettingsBundle } from './settings-bundle';
 import './palettes.css';
 import './fonts.css';
-import { PRESETS, COLOURS, VARIANTS, FONT_STACKS, FONT_SIZES, LINE_HEIGHTS, WEIGHTS, LS_STEPS, LEGACY_THEME, LEGACY_SHADE, COLOUR_SHADE, SHADE_NAMES } from './display-data';
+import {
+  PRESETS,
+  COLOURS,
+  VARIANTS,
+  FONT_STACKS,
+  FONT_SIZES,
+  LINE_HEIGHTS,
+  WEIGHTS,
+  LS_STEPS,
+  LEGACY_THEME,
+  LEGACY_SHADE,
+  COLOUR_SHADE,
+  SHADE_NAMES,
+} from './display-data';
 import type { ChatMessage } from './protocol';
-export interface DisplayOptions { colour: string; variant: string; shade: number; font: string; size: number; lh: number; weight: number; spacing: number; lines: number; zebra: number; times: number; keywords: string; blocked: string; hidden: string; hideMode: 'vanish' | 'stub' | 'ghost'; pause: boolean; self: boolean; ping: boolean; notify: boolean; nbots: boolean; shadow: number; eonly: number; scrollback: number; anim: number; rbw: number; sub: string; clean: boolean; cmodes: boolean; autoShade: boolean; rev: boolean; bartop: boolean; pn: boolean; split: number; min: number; hfs: number; hpfs: number; lw: number; links: boolean; stitle:boolean; bauto: number; peek: number; yt: boolean; lkico: boolean; gifsafe: boolean; lbls:boolean; }
-export function defaultDisplay(): DisplayOptions { return { colour: 'gray', variant: 'standard', shade: 7, font: 'sans', size: 14, lh: 1.3, weight: 400, spacing: 0, lines: 4, zebra: 2, times: 2, keywords: '', blocked: '', hidden: '', hideMode: 'stub', pause: false, self: true, ping: false, notify: false, nbots: false, shadow: 0, eonly: 0, scrollback: 5000, anim: 3, rbw: 0, sub: 'num-left', clean: false, cmodes: true, autoShade: false, rev: false, bartop: false, pn: true, split: 1, min: 0, hfs: 0, hpfs: 0, lw: 400, links: false, stitle:true, bauto: 0, peek: 2, yt: true, lkico: true, gifsafe: false, lbls:true }; }
+export interface DisplayOptions {
+  colour: string;
+  variant: string;
+  shade: number;
+  font: string;
+  size: number;
+  lh: number;
+  weight: number;
+  spacing: number;
+  lines: number;
+  zebra: number;
+  times: number;
+  keywords: string;
+  blocked: string;
+  hidden: string;
+  hideMode: 'vanish' | 'stub' | 'ghost';
+  pause: boolean;
+  self: boolean;
+  ping: boolean;
+  notify: boolean;
+  nbots: boolean;
+  shadow: number;
+  eonly: number;
+  scrollback: number;
+  anim: number;
+  rbw: number;
+  sub: string;
+  clean: boolean;
+  cmodes: boolean;
+  autoShade: boolean;
+  rev: boolean;
+  bartop: boolean;
+  pn: boolean;
+  split: number;
+  min: number;
+  hfs: number;
+  hpfs: number;
+  lw: number;
+  links: boolean;
+  stitle: boolean;
+  bauto: number;
+  peek: number;
+  yt: boolean;
+  lkico: boolean;
+  gifsafe: boolean;
+  lbls: boolean;
+}
+export function defaultDisplay(): DisplayOptions {
+  return {
+    colour: 'gray',
+    variant: 'standard',
+    shade: 7,
+    font: 'sans',
+    size: 14,
+    lh: 1.3,
+    weight: 400,
+    spacing: 0,
+    lines: 4,
+    zebra: 2,
+    times: 2,
+    keywords: '',
+    blocked: '',
+    hidden: '',
+    hideMode: 'stub',
+    pause: false,
+    self: true,
+    ping: false,
+    notify: false,
+    nbots: false,
+    shadow: 0,
+    eonly: 0,
+    scrollback: 5000,
+    anim: 3,
+    rbw: 0,
+    sub: 'num-left',
+    clean: false,
+    cmodes: true,
+    autoShade: false,
+    rev: false,
+    bartop: false,
+    pn: true,
+    split: 1,
+    min: 0,
+    hfs: 0,
+    hpfs: 0,
+    lw: 400,
+    links: false,
+    stitle: true,
+    bauto: 0,
+    peek: 2,
+    yt: true,
+    lkico: true,
+    gifsafe: false,
+    lbls: true,
+  };
+}
 export function parseDisplay(value: unknown): DisplayOptions {
-  const result = defaultDisplay(); if (!value || typeof value !== 'object') return result; const d = value as Record<string, unknown>;
-  for (const [key, choices] of [['colour', COLOURS], ['variant', VARIANTS], ['font', Object.keys(FONT_STACKS)], ['hideMode', ['vanish', 'stub', 'ghost']], ['sub', ['right', 'num-right', 'left', 'num-left', 'hidden']]] as const) if (typeof d[key] === 'string' && (choices as readonly (string | number)[]).includes(d[key])) Object.assign(result, { [key]: d[key] });
-  for (const [key, choices] of [['size', FONT_SIZES], ['lh', LINE_HEIGHTS], ['weight', WEIGHTS], ['spacing', LS_STEPS], ['shade', SHADE_NAMES.map((_, i) => i)], ['lines', [0, 1, 2, 3, 4]], ['zebra', [0, 1, 2, 3, 4]], ['times', [0, 1, 2, 3, 4]], ['shadow', [0, 1, 2, 3, 4, 5]], ['eonly', [0, 1, 2]], ['split',[1,2,3,4,5,6]],['min',[0,1,2]],['hfs',[0,7,8,9,10,11,12,13,14,15,16,18,20]],['hpfs',[-3,-2,-1,0,...FONT_SIZES]],['lw',WEIGHTS],['peek',[0,1,2,3]],['bauto',[0,1,2]],['anim', [0, 1, 2, 3]], ['rbw', [0, 1, 2, 3, 4]], ['scrollback', [250, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000]]] as const) if (typeof d[key] === 'number' && (choices as readonly (string | number)[]).includes(d[key])) Object.assign(result, { [key]: d[key] });
-  for (const key of ['keywords', 'blocked', 'hidden'] as const) if (typeof d[key] === 'string') result[key] = d[key].slice(0, 1000);
-  for (const key of ['pause', 'self', 'ping', 'notify', 'nbots', 'clean', 'cmodes', 'autoShade','rev','bartop','pn','yt','lkico','links','stitle','gifsafe','lbls'] as const) if (typeof d[key] === 'boolean') result[key] = d[key]; return result;
+  const result = defaultDisplay();
+  if (!value || typeof value !== 'object') return result;
+  const d = value as Record<string, unknown>;
+  for (const [key, choices] of [
+    ['colour', COLOURS],
+    ['variant', VARIANTS],
+    ['font', Object.keys(FONT_STACKS)],
+    ['hideMode', ['vanish', 'stub', 'ghost']],
+    ['sub', ['right', 'num-right', 'left', 'num-left', 'hidden']],
+  ] as const)
+    if (typeof d[key] === 'string' && (choices as readonly (string | number)[]).includes(d[key]))
+      Object.assign(result, { [key]: d[key] });
+  for (const [key, choices] of [
+    ['size', FONT_SIZES],
+    ['lh', LINE_HEIGHTS],
+    ['weight', WEIGHTS],
+    ['spacing', LS_STEPS],
+    ['shade', SHADE_NAMES.map((_, i) => i)],
+    ['lines', [0, 1, 2, 3, 4]],
+    ['zebra', [0, 1, 2, 3, 4]],
+    ['times', [0, 1, 2, 3, 4]],
+    ['shadow', [0, 1, 2, 3, 4, 5]],
+    ['eonly', [0, 1, 2]],
+    ['split', [1, 2, 3, 4, 5, 6]],
+    ['min', [0, 1, 2]],
+    ['hfs', [0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20]],
+    ['hpfs', [-3, -2, -1, 0, ...FONT_SIZES]],
+    ['lw', WEIGHTS],
+    ['peek', [0, 1, 2, 3]],
+    ['bauto', [0, 1, 2]],
+    ['anim', [0, 1, 2, 3]],
+    ['rbw', [0, 1, 2, 3, 4]],
+    ['scrollback', [250, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000]],
+  ] as const)
+    if (typeof d[key] === 'number' && (choices as readonly (string | number)[]).includes(d[key]))
+      Object.assign(result, { [key]: d[key] });
+  for (const key of ['keywords', 'blocked', 'hidden'] as const)
+    if (typeof d[key] === 'string') result[key] = d[key].slice(0, 1000);
+  for (const key of [
+    'pause',
+    'self',
+    'ping',
+    'notify',
+    'nbots',
+    'clean',
+    'cmodes',
+    'autoShade',
+    'rev',
+    'bartop',
+    'pn',
+    'yt',
+    'lkico',
+    'links',
+    'stitle',
+    'gifsafe',
+    'lbls',
+  ] as const)
+    if (typeof d[key] === 'boolean') result[key] = d[key];
+  return result;
 }
 export function displayFromURL(saved: DisplayOptions, query: URLSearchParams): DisplayOptions {
-  let data: Record<string, unknown> = { ...saved }; const theme = query.get('theme'); const preset = PRESETS[theme === 'default' ? 'old-default' : theme ?? ''];
-  if (preset) { data = { ...data, ...preset, autoShade:false, size: preset.px ?? saved.size, lh: preset.lhv ?? saved.lh, weight: preset.wv ?? 400, lw:preset.lwv??saved.lw, spacing:preset.lsv??saved.spacing, lbls:preset.lbls===undefined?saved.lbls:!!preset.lbls, sub: ['right','num-right','left','num-left','hidden'][typeof preset.subMode==='number'?preset.subMode:3], hfs: preset.hfspx === -1 ? 0 : preset.hfspx ?? saved.hfs, hpfs: preset.hpfs ?? saved.hpfs, zebra: preset.zebra === true ? 2 : preset.zebra === false ? 0 : preset.zebra }; }
+  let data: Record<string, unknown> = { ...saved };
+  const theme = query.get('theme');
+  const preset = PRESETS[theme === 'default' ? 'old-default' : (theme ?? '')];
+  if (preset) {
+    data = {
+      ...data,
+      ...preset,
+      autoShade: false,
+      size: preset.px ?? saved.size,
+      lh: preset.lhv ?? saved.lh,
+      weight: preset.wv ?? 400,
+      lw: preset.lwv ?? saved.lw,
+      spacing: preset.lsv ?? saved.spacing,
+      lbls: preset.lbls === undefined ? saved.lbls : !!preset.lbls,
+      sub: ['right', 'num-right', 'left', 'num-left', 'hidden'][
+        typeof preset.subMode === 'number' ? preset.subMode : 3
+      ],
+      hfs: preset.hfspx === -1 ? 0 : (preset.hfspx ?? saved.hfs),
+      hpfs: preset.hpfs ?? saved.hpfs,
+      zebra: preset.zebra === true ? 2 : preset.zebra === false ? 0 : preset.zebra,
+    };
+  }
   const colour = query.get('colour') || query.get('color') || query.get('style') || (!preset ? theme : null);
-  if (colour) { const legacy = LEGACY_THEME[colour]; data.colour = legacy?.[0] ?? colour; data.variant = legacy?.[1] ?? 'standard'; data.shade = LEGACY_SHADE[colour] ?? COLOUR_SHADE[String(data.colour)] ?? data.shade; }
-  for (const key of ['font', 'variant', 'keywords', 'blocked', 'hidden', 'hideMode', 'sub']) if (query.has(key)) data[key] = query.get(key);
-  for (const [param, key] of [['size', 'size'], ['lh', 'lh'], ['wght', 'weight'], ['ls', 'spacing'], ['shade', 'shade'], ['lines', 'lines'], ['zebra', 'zebra'], ['times', 'times'], ['shadow', 'shadow'], ['eonly', 'eonly'], ['scrollback', 'scrollback'], ['anim', 'anim'], ['rbw', 'rbw'], ['split','split'],['min','min'],['hfs','hfs'],['hpfs','hpfs'],['lw','lw'],['peek','peek'],['bauto','bauto']] as const) if (query.has(param)) data[key] = Number(query.get(param));
-  if(query.has('bauto')&&query.get('bauto')==='')data.bauto=1;
-  if(query.has('split')&&query.get('split')==='')data.split=2;
-  if(query.has('min'))data.min=(query.get('min')==='graph'||query.get('min')==='2')?2:query.get('min')==='0'?0:1;
-  if(query.get('hfs')==='auto')data.hfs=0;
-  for (const [alias, key] of [['kw','keywords'],['bw','blocked'],['hw','hidden'],['hwm','hideMode']] as const) if(query.has(alias)&&!query.has(key)) data[key]=query.get(alias);
-  if(query.has('zebra')&&query.get('zebra')==='')data.zebra=2;
-  if(query.has('shade'))data.autoShade=query.get('shade')==='auto';
-  if(data.autoShade)data.shade=saved.shade;
-  if(['labels','both'].includes(query.get('help')??''))data.lbls=true;
-  if (query.has('times')) data.times = ({ nosec: 1, '24h': 1, '24hsec': 2, '12h': 3, '12hsec': 4 } as Record<string, number>)[query.get('times') ?? ''] ?? data.times;
-  if (query.has('eonly')) data.eonly = ['inline', 'right', 'off'].indexOf(query.get('eonly') ?? '') >= 0 ? ['inline', 'right', 'off'].indexOf(query.get('eonly') ?? '') : data.eonly;
-  for (const key of ['pause', 'self', 'ping', 'notify', 'nbots', 'clean', 'cmodes','rev','bartop','pn','yt','lkico','links','stitle','gifsafe','lbls']) if (query.has(key)) data[key] = query.get(key) !== '0'; return parseDisplay(data);
+  if (colour) {
+    const legacy = LEGACY_THEME[colour];
+    data.colour = legacy?.[0] ?? colour;
+    data.variant = legacy?.[1] ?? 'standard';
+    data.shade = LEGACY_SHADE[colour] ?? COLOUR_SHADE[String(data.colour)] ?? data.shade;
+  }
+  for (const key of ['font', 'variant', 'keywords', 'blocked', 'hidden', 'hideMode', 'sub'])
+    if (query.has(key)) data[key] = query.get(key);
+  for (const [param, key] of [
+    ['size', 'size'],
+    ['lh', 'lh'],
+    ['wght', 'weight'],
+    ['ls', 'spacing'],
+    ['shade', 'shade'],
+    ['lines', 'lines'],
+    ['zebra', 'zebra'],
+    ['times', 'times'],
+    ['shadow', 'shadow'],
+    ['eonly', 'eonly'],
+    ['scrollback', 'scrollback'],
+    ['anim', 'anim'],
+    ['rbw', 'rbw'],
+    ['split', 'split'],
+    ['min', 'min'],
+    ['hfs', 'hfs'],
+    ['hpfs', 'hpfs'],
+    ['lw', 'lw'],
+    ['peek', 'peek'],
+    ['bauto', 'bauto'],
+  ] as const)
+    if (query.has(param)) data[key] = Number(query.get(param));
+  if (query.has('bauto') && query.get('bauto') === '') data.bauto = 1;
+  if (query.has('split') && query.get('split') === '') data.split = 2;
+  if (query.has('min'))
+    data.min = query.get('min') === 'graph' || query.get('min') === '2' ? 2 : query.get('min') === '0' ? 0 : 1;
+  if (query.get('hfs') === 'auto') data.hfs = 0;
+  for (const [alias, key] of [
+    ['kw', 'keywords'],
+    ['bw', 'blocked'],
+    ['hw', 'hidden'],
+    ['hwm', 'hideMode'],
+  ] as const)
+    if (query.has(alias) && !query.has(key)) data[key] = query.get(alias);
+  if (query.has('zebra') && query.get('zebra') === '') data.zebra = 2;
+  if (query.has('shade')) data.autoShade = query.get('shade') === 'auto';
+  if (data.autoShade) data.shade = saved.shade;
+  if (['labels', 'both'].includes(query.get('help') ?? '')) data.lbls = true;
+  if (query.has('times'))
+    data.times =
+      ({ nosec: 1, '24h': 1, '24hsec': 2, '12h': 3, '12hsec': 4 } as Record<string, number>)[
+        query.get('times') ?? ''
+      ] ?? data.times;
+  if (query.has('eonly'))
+    data.eonly =
+      ['inline', 'right', 'off'].indexOf(query.get('eonly') ?? '') >= 0
+        ? ['inline', 'right', 'off'].indexOf(query.get('eonly') ?? '')
+        : data.eonly;
+  for (const key of [
+    'pause',
+    'self',
+    'ping',
+    'notify',
+    'nbots',
+    'clean',
+    'cmodes',
+    'rev',
+    'bartop',
+    'pn',
+    'yt',
+    'lkico',
+    'links',
+    'stitle',
+    'gifsafe',
+    'lbls',
+  ])
+    if (query.has(key)) data[key] = query.get(key) !== '0';
+  return parseDisplay(data);
 }
 export function wordsPattern(text: string): RegExp | undefined {
-  const words = text.split(',').map(s => s.trim()).filter(Boolean).slice(0, 100).map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const words = text
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 100)
+    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   return words.length ? new RegExp('\\b(?:' + words.join('|') + ')\\b', 'i') : undefined;
 }
-const compiled = new WeakMap<DisplayOptions, { keywords: RegExp | undefined; blocked: RegExp | undefined; hidden: Set<string>; self: string; own: RegExp | undefined }>();
-export function messageVisibility(message: ChatMessage, options: DisplayOptions, self = ''): { highlight: boolean; blocked: boolean; hiddenUser: boolean } {
+const compiled = new WeakMap<
+  DisplayOptions,
+  {
+    keywords: RegExp | undefined;
+    blocked: RegExp | undefined;
+    hidden: Set<string>;
+    self: string;
+    own: RegExp | undefined;
+  }
+>();
+export function messageVisibility(
+  message: ChatMessage,
+  options: DisplayOptions,
+  self = '',
+): { highlight: boolean; blocked: boolean; hiddenUser: boolean } {
   if (message.command !== 'PRIVMSG') return { highlight: false, blocked: false, hiddenUser: false };
   let filters = compiled.get(options);
-  if (!filters) { filters = { keywords: wordsPattern(options.keywords), blocked: wordsPattern(options.blocked), hidden: new Set(options.hidden.toLowerCase().split(/[\s,]+/)), self, own: self ? wordsPattern(self) : undefined }; compiled.set(options, filters); }
-  if (filters.self !== self) { filters.self = self; filters.own = self ? wordsPattern(self) : undefined; }
-  return { highlight: message.login.toLowerCase() !== self.toLowerCase() && (!!filters.keywords?.test(message.text) || (options.self && !!self && !!filters.own?.test(message.text))), blocked: !!filters.blocked?.test(message.text), hiddenUser: filters.hidden.has(message.login.toLowerCase()) || (options.nbots && ['fossabot', 'blammobot', 'streamelements', 'nightbot', 'moobot', 'streamlabs'].includes(message.login.toLowerCase())) };
+  if (!filters) {
+    filters = {
+      keywords: wordsPattern(options.keywords),
+      blocked: wordsPattern(options.blocked),
+      hidden: new Set(options.hidden.toLowerCase().split(/[\s,]+/)),
+      self,
+      own: self ? wordsPattern(self) : undefined,
+    };
+    compiled.set(options, filters);
+  }
+  if (filters.self !== self) {
+    filters.self = self;
+    filters.own = self ? wordsPattern(self) : undefined;
+  }
+  return {
+    highlight:
+      message.login.toLowerCase() !== self.toLowerCase() &&
+      (!!filters.keywords?.test(message.text) || (options.self && !!self && !!filters.own?.test(message.text))),
+    blocked: !!filters.blocked?.test(message.text),
+    hiddenUser:
+      filters.hidden.has(message.login.toLowerCase()) ||
+      (options.nbots &&
+        ['fossabot', 'blammobot', 'streamelements', 'nightbot', 'moobot', 'streamlabs'].includes(
+          message.login.toLowerCase(),
+        )),
+  };
 }
 export class DisplaySettings {
   options = defaultDisplay();
   private form: HTMLFormElement;
-  private slots: (SettingsBundle|null)[]=[null,null,null];
-  private slotFrame=0;
+  private slots: (SettingsBundle | null)[] = [null, null, null];
+  private slotFrame = 0;
   private systemTone = matchMedia('(prefers-color-scheme: dark)');
-  constructor(private dialog: HTMLDialogElement, private trigger: HTMLButtonElement, private changed: () => void) {
+  constructor(
+    private dialog: HTMLDialogElement,
+    private trigger: HTMLButtonElement,
+    private changed: () => void,
+  ) {
     this.form = dialog.querySelector('form')!;
-    try { const saved=localStorage.getItem(profileKey('chatthing:v1:display'));this.options=saved?parseDisplay(JSON.parse(saved)):displayFromURL(defaultDisplay(),new URLSearchParams('theme=nightshade')); } catch { /* optional storage */ }
-    try { if (!localStorage.getItem(profileKey('chatthing:v1:display')) && localStorage.getItem(profileKey('chatthing:v1:theme')) === 'light') this.options.shade = 1; } catch { /* optional storage */ }
+    try {
+      const saved = localStorage.getItem(profileKey('chatthing:v1:display'));
+      this.options = saved
+        ? parseDisplay(JSON.parse(saved))
+        : displayFromURL(defaultDisplay(), new URLSearchParams('theme=nightshade'));
+    } catch {
+      /* optional storage */
+    }
+    try {
+      if (
+        !localStorage.getItem(profileKey('chatthing:v1:display')) &&
+        localStorage.getItem(profileKey('chatthing:v1:theme')) === 'light'
+      )
+        this.options.shade = 1;
+    } catch {
+      /* optional storage */
+    }
     this.options = displayFromURL(this.options, new URL(location.href).searchParams);
-    const choices: Record<string, readonly (string | number)[]> = { colour: COLOURS, variant: VARIANTS, shade: SHADE_NAMES.map((_, i) => i), font: Object.keys(FONT_STACKS), size: FONT_SIZES, lh: LINE_HEIGHTS, weight: WEIGHTS, spacing: LS_STEPS, lines: [0, 1, 2, 3, 4], zebra: [0, 1, 2, 3, 4], times: [0, 1, 2, 3, 4], split:[1,2,3,4,5,6],min:[0,1,2],hfs:[0,7,8,9,10,11,12,13,14,15,16,18,20],hpfs:[-3,-2,-1,0,...FONT_SIZES],lw:WEIGHTS,peek:[0,1,2,3],bauto:[0,1,2],anim: [0,1,2,3], rbw: [0,1,2,3,4], sub: ['right','num-right','left','num-left','hidden'], shadow: [0, 1, 2, 3, 4, 5], eonly: [0, 1, 2], scrollback: [250, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000], hideMode: ['vanish', 'stub', 'ghost'] };
-    for (const [name, values] of Object.entries(choices)) { const select = this.form.elements.namedItem(name); if (!(select instanceof HTMLSelectElement)) continue; for (const value of values) { const option = document.createElement('option'); option.value = String(value); option.textContent = name === 'shade' ? SHADE_NAMES[Number(value)] ?? String(value) : String(value); select.append(option); } }
-    const presets = this.form.elements.namedItem('preset'); if (presets instanceof HTMLSelectElement) for (const name of Object.keys(PRESETS)) { const option = document.createElement('option'); option.value = name; option.textContent = name; presets.append(option); }
-    this.readSlots(); this.paintSlots(); this.dialog.addEventListener('click',this.slot);this.dialog.addEventListener('contextmenu',this.slot);document.getElementById('header-min')?.addEventListener('click',this.minimize);
-    this.apply(); this.sync(); this.trigger.addEventListener('click', this.open); this.form.addEventListener('change', this.change); this.form.addEventListener('submit', this.submit);
-    dialog.querySelector('#display-close')?.addEventListener('click', this.close); dialog.querySelector('#display-reset')?.addEventListener('click', this.reset); dialog.querySelector('#display-share')?.addEventListener('click', this.share); window.addEventListener('storage', this.storage); this.systemTone.addEventListener('change',this.toneChanged);
+    const choices: Record<string, readonly (string | number)[]> = {
+      colour: COLOURS,
+      variant: VARIANTS,
+      shade: SHADE_NAMES.map((_, i) => i),
+      font: Object.keys(FONT_STACKS),
+      size: FONT_SIZES,
+      lh: LINE_HEIGHTS,
+      weight: WEIGHTS,
+      spacing: LS_STEPS,
+      lines: [0, 1, 2, 3, 4],
+      zebra: [0, 1, 2, 3, 4],
+      times: [0, 1, 2, 3, 4],
+      split: [1, 2, 3, 4, 5, 6],
+      min: [0, 1, 2],
+      hfs: [0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20],
+      hpfs: [-3, -2, -1, 0, ...FONT_SIZES],
+      lw: WEIGHTS,
+      peek: [0, 1, 2, 3],
+      bauto: [0, 1, 2],
+      anim: [0, 1, 2, 3],
+      rbw: [0, 1, 2, 3, 4],
+      sub: ['right', 'num-right', 'left', 'num-left', 'hidden'],
+      shadow: [0, 1, 2, 3, 4, 5],
+      eonly: [0, 1, 2],
+      scrollback: [250, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000],
+      hideMode: ['vanish', 'stub', 'ghost'],
+    };
+    for (const [name, values] of Object.entries(choices)) {
+      const select = this.form.elements.namedItem(name);
+      if (!(select instanceof HTMLSelectElement)) continue;
+      for (const value of values) {
+        const option = document.createElement('option');
+        option.value = String(value);
+        option.textContent = name === 'shade' ? (SHADE_NAMES[Number(value)] ?? String(value)) : String(value);
+        select.append(option);
+      }
+    }
+    const presets = this.form.elements.namedItem('preset');
+    if (presets instanceof HTMLSelectElement)
+      for (const name of Object.keys(PRESETS)) {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        presets.append(option);
+      }
+    this.readSlots();
+    this.paintSlots();
+    this.dialog.addEventListener('click', this.slot);
+    this.dialog.addEventListener('contextmenu', this.slot);
+    document.getElementById('header-min')?.addEventListener('click', this.minimize);
+    this.apply();
+    this.sync();
+    this.trigger.addEventListener('click', this.open);
+    this.form.addEventListener('change', this.change);
+    this.form.addEventListener('submit', this.submit);
+    dialog.querySelector('#display-close')?.addEventListener('click', this.close);
+    dialog.querySelector('#display-reset')?.addEventListener('click', this.reset);
+    dialog.querySelector('#display-share')?.addEventListener('click', this.share);
+    window.addEventListener('storage', this.storage);
+    this.systemTone.addEventListener('change', this.toneChanged);
   }
-  private sync(): void { for (const [key, value] of Object.entries(this.options)) { const input = this.form.elements.namedItem(key); if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) { input.value = String(value); if (input instanceof HTMLInputElement && input.type === 'checkbox') input.checked = value === true; } } }
-  private toneChanged = (): void => { if(this.options.autoShade){this.apply();this.sync();this.changed();} };
+  private sync(): void {
+    for (const [key, value] of Object.entries(this.options)) {
+      const input = this.form.elements.namedItem(key);
+      if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) {
+        input.value = String(value);
+        if (input instanceof HTMLInputElement && input.type === 'checkbox') input.checked = value === true;
+      }
+    }
+  }
+  private toneChanged = (): void => {
+    if (this.options.autoShade) {
+      this.apply();
+      this.sync();
+      this.changed();
+    }
+  };
   private apply(): void {
     document.dispatchEvent(new Event('presentation-before-change'));
-    if(this.options.autoShade)this.options.shade=this.systemTone.matches?7:1;
-    const o = this.options; const root = document.documentElement; root.dataset.colour = o.colour; root.dataset.variant = o.variant; root.dataset.shade = String(o.shade); root.dataset.theme = o.shade <= 3 ? 'light' : 'dark';
+    if (this.options.autoShade) this.options.shade = this.systemTone.matches ? 7 : 1;
+    const o = this.options;
+    const root = document.documentElement;
+    root.dataset.colour = o.colour;
+    root.dataset.variant = o.variant;
+    root.dataset.shade = String(o.shade);
+    root.dataset.theme = o.shade <= 3 ? 'light' : 'dark';
     loadChatFont(o.font);
-    root.style.setProperty('--chat-family', FONT_STACKS[o.font] ?? 'sans-serif'); root.style.setProperty('--chat-size', o.size + 'px'); root.style.setProperty('--chat-height', String(o.lh)); root.style.setProperty('--chat-weight', String(o.weight)); root.style.setProperty('--chat-spacing', o.spacing + 'em'); root.style.setProperty('--chat-line', o.lines ? `color-mix(in srgb, var(--line) ${o.lines * 25}%, transparent)` : 'transparent'); root.style.setProperty('--chat-zebra', o.zebra ? `color-mix(in srgb, var(--panel) ${o.zebra * 20}%, var(--bg))` : 'transparent'); root.dataset.times = String(o.times); root.dataset.eonly = String(o.eonly); root.dataset.min=String(o.min);root.style.setProperty('--header-size',(o.hfs||o.size)+'px');root.style.setProperty('--help-size',(o.hpfs>0?o.hpfs:o.hpfs===0?o.size:FONT_SIZES[Math.max(0,FONT_SIZES.indexOf(o.size)+o.hpfs)]??o.size)+'px');root.style.setProperty('--resource-link-weight',String(o.lw));root.dataset.stitle=String(o.stitle);root.dataset.lbls=String(o.lbls);root.dataset.bauto=String(o.bauto);root.dataset.peek=String(o.peek);root.dataset.yt=String(o.yt);root.dataset.gifsafe=String(o.gifsafe);root.dataset.lkico=String(o.lkico);document.dispatchEvent(new Event('previewsettings'));root.dataset.bartop=String(o.bartop); root.dataset.cmodes=String(o.cmodes); root.dataset.anim=String(o.anim); root.dataset.rbw=String(o.rbw); root.dataset.sub=o.sub; root.dataset.clean=String(o.clean); root.style.setProperty('--shim-t',[0,12,6,3][o.anim]+'s'); root.style.setProperty('--rbw-t',[0,24,12,6][o.anim]+'s');
-    root.style.setProperty('--chat-shadow', ['none', '0 1px 2px color-mix(in srgb, var(--fg) 35%, transparent)', '0 1px 3px color-mix(in srgb, var(--fg) 55%, transparent)', '0 2px 5px color-mix(in srgb, var(--fg) 75%, transparent)', '0 1px 3px rgba(0,0,0,.85)', '0 0 3px rgba(0,0,0,.9), 0 2px 7px rgba(0,0,0,.95)'][o.shadow] ?? 'none');
+    root.style.setProperty('--chat-family', FONT_STACKS[o.font] ?? 'sans-serif');
+    root.style.setProperty('--chat-size', o.size + 'px');
+    root.style.setProperty('--chat-height', String(o.lh));
+    root.style.setProperty('--chat-weight', String(o.weight));
+    root.style.setProperty('--chat-spacing', o.spacing + 'em');
+    root.style.setProperty(
+      '--chat-line',
+      o.lines ? `color-mix(in srgb, var(--line) ${o.lines * 25}%, transparent)` : 'transparent',
+    );
+    root.style.setProperty(
+      '--chat-zebra',
+      o.zebra ? `color-mix(in srgb, var(--panel) ${o.zebra * 20}%, var(--bg))` : 'transparent',
+    );
+    root.dataset.times = String(o.times);
+    root.dataset.eonly = String(o.eonly);
+    root.dataset.min = String(o.min);
+    root.style.setProperty('--header-size', (o.hfs || o.size) + 'px');
+    root.style.setProperty(
+      '--help-size',
+      (o.hpfs > 0
+        ? o.hpfs
+        : o.hpfs === 0
+          ? o.size
+          : (FONT_SIZES[Math.max(0, FONT_SIZES.indexOf(o.size) + o.hpfs)] ?? o.size)) + 'px',
+    );
+    root.style.setProperty('--resource-link-weight', String(o.lw));
+    root.dataset.stitle = String(o.stitle);
+    root.dataset.lbls = String(o.lbls);
+    root.dataset.bauto = String(o.bauto);
+    root.dataset.peek = String(o.peek);
+    root.dataset.yt = String(o.yt);
+    root.dataset.gifsafe = String(o.gifsafe);
+    root.dataset.lkico = String(o.lkico);
+    document.dispatchEvent(new Event('previewsettings'));
+    root.dataset.bartop = String(o.bartop);
+    root.dataset.cmodes = String(o.cmodes);
+    root.dataset.anim = String(o.anim);
+    root.dataset.rbw = String(o.rbw);
+    root.dataset.sub = o.sub;
+    root.dataset.clean = String(o.clean);
+    root.style.setProperty('--shim-t', [0, 12, 6, 3][o.anim] + 's');
+    root.style.setProperty('--rbw-t', [0, 24, 12, 6][o.anim] + 's');
+    root.style.setProperty(
+      '--chat-shadow',
+      [
+        'none',
+        '0 1px 2px color-mix(in srgb, var(--fg) 35%, transparent)',
+        '0 1px 3px color-mix(in srgb, var(--fg) 55%, transparent)',
+        '0 2px 5px color-mix(in srgb, var(--fg) 75%, transparent)',
+        '0 1px 3px rgba(0,0,0,.85)',
+        '0 0 3px rgba(0,0,0,.9), 0 2px 7px rgba(0,0,0,.95)',
+      ][o.shadow] ?? 'none',
+    );
   }
-  private readSlots():void {try{const values:unknown=JSON.parse(localStorage.getItem(profileKey('chatthing:v1:display-slots'))??'null');if(Array.isArray(values))this.slots=[0,1,2].map(i=>parseBundle(values[i],parseDisplay));}catch{/* optional storage */}}
-  private paintSlots():void {for(const button of this.dialog.querySelectorAll<HTMLButtonElement>('[data-slot]')){const index=Number(button.dataset.slot),value=this.slots[index];button.textContent='Slot '+(index+1)+(value?' · saved':' · empty');button.title=value?`${value.display.colour} · ${value.display.font} ${value.display.size}px. Click to recall; Shift-click or right-click overwrites.`:'Click to save current settings and panel state';}}
-  private slot=(event:MouseEvent):void=>{if(!(event.target instanceof Element))return;const button=event.target.closest<HTMLButtonElement>('[data-slot]');if(!button)return;const index=Number(button.dataset.slot);if(!Number.isInteger(index)||index<0||index>2)return;event.preventDefault();const value=this.slots[index];if(value&&!event.shiftKey&&event.type!=='contextmenu'){this.options=parseDisplay(value.display);this.sync();this.apply();this.save();this.changed();cancelAnimationFrame(this.slotFrame);this.slotFrame=requestAnimationFrame(()=>{this.slotFrame=0;restoreBundle(value);button.focus({preventScroll:true});});}else{this.slots[index]=captureBundle(this.options);try{localStorage.setItem(profileKey('chatthing:v1:display-slots'),JSON.stringify(this.slots));}catch{/* optional storage */}this.paintSlots();}};
-  private minimize=():void=>{this.options.min=(this.options.min+1)%3;this.sync();this.apply();this.save();this.changed();};
-  setOptions(value: unknown): void { this.options=parseDisplay(value); this.apply(); this.sync(); this.save(); this.changed(); }
-  toggleTone(): void { this.options.shade = this.options.shade <= 3 ? 7 : 1; this.options.autoShade=false; this.apply(); this.sync(); this.save(); this.changed(); }
-  private save(): void { try { localStorage.setItem(profileKey('chatthing:v1:display'), JSON.stringify(this.options)); } catch { /* optional storage */ } }
-  private open = (): void => {if(!privacyEnabled())this.dialog.showModal();};
-  private close = (): void => { this.dialog.close(); this.trigger.focus(); };
+  private readSlots(): void {
+    try {
+      const values: unknown = JSON.parse(localStorage.getItem(profileKey('chatthing:v1:display-slots')) ?? 'null');
+      if (Array.isArray(values)) this.slots = [0, 1, 2].map((i) => parseBundle(values[i], parseDisplay));
+    } catch {
+      /* optional storage */
+    }
+  }
+  private paintSlots(): void {
+    for (const button of this.dialog.querySelectorAll<HTMLButtonElement>('[data-slot]')) {
+      const index = Number(button.dataset.slot),
+        value = this.slots[index];
+      button.textContent = 'Slot ' + (index + 1) + (value ? ' · saved' : ' · empty');
+      button.title = value
+        ? `${value.display.colour} · ${value.display.font} ${value.display.size}px. Click to recall; Shift-click or right-click overwrites.`
+        : 'Click to save current settings and panel state';
+    }
+  }
+  private slot = (event: MouseEvent): void => {
+    if (!(event.target instanceof Element)) return;
+    const button = event.target.closest<HTMLButtonElement>('[data-slot]');
+    if (!button) return;
+    const index = Number(button.dataset.slot);
+    if (!Number.isInteger(index) || index < 0 || index > 2) return;
+    event.preventDefault();
+    const value = this.slots[index];
+    if (value && !event.shiftKey && event.type !== 'contextmenu') {
+      this.options = parseDisplay(value.display);
+      this.sync();
+      this.apply();
+      this.save();
+      this.changed();
+      cancelAnimationFrame(this.slotFrame);
+      this.slotFrame = requestAnimationFrame(() => {
+        this.slotFrame = 0;
+        restoreBundle(value);
+        button.focus({ preventScroll: true });
+      });
+    } else {
+      this.slots[index] = captureBundle(this.options);
+      try {
+        localStorage.setItem(profileKey('chatthing:v1:display-slots'), JSON.stringify(this.slots));
+      } catch {
+        /* optional storage */
+      }
+      this.paintSlots();
+    }
+  };
+  private minimize = (): void => {
+    this.options.min = (this.options.min + 1) % 3;
+    this.sync();
+    this.apply();
+    this.save();
+    this.changed();
+  };
+  setOptions(value: unknown): void {
+    this.options = parseDisplay(value);
+    this.apply();
+    this.sync();
+    this.save();
+    this.changed();
+  }
+  toggleTone(): void {
+    this.options.shade = this.options.shade <= 3 ? 7 : 1;
+    this.options.autoShade = false;
+    this.apply();
+    this.sync();
+    this.save();
+    this.changed();
+  }
+  private save(): void {
+    try {
+      localStorage.setItem(profileKey('chatthing:v1:display'), JSON.stringify(this.options));
+    } catch {
+      /* optional storage */
+    }
+  }
+  private open = (): void => {
+    if (!privacyEnabled()) this.dialog.showModal();
+  };
+  private close = (): void => {
+    this.dialog.close();
+    this.trigger.focus();
+  };
   private submit = (event: Event): void => event.preventDefault();
   private change = (event: Event): void => {
-    if (event.target instanceof HTMLSelectElement && event.target.name === 'preset' && event.target.value) { this.options = displayFromURL(this.options, new URLSearchParams({ theme: event.target.value })); this.sync();document.dispatchEvent(new CustomEvent('displaypreset',{detail:event.target.value})); }
-    else { const values: Record<string, unknown> = {}; for (const [key, current] of Object.entries(this.options)) { const input = this.form.elements.namedItem(key); if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement) values[key] = typeof current === 'number' ? Number(input.value) : typeof current === 'boolean' && input instanceof HTMLInputElement ? input.checked : input.value; } if(event.target instanceof HTMLSelectElement&&event.target.name==='shade')values.autoShade=false; this.options = parseDisplay(values); }
-    this.apply(); this.save(); this.changed();
+    if (event.target instanceof HTMLSelectElement && event.target.name === 'preset' && event.target.value) {
+      this.options = displayFromURL(this.options, new URLSearchParams({ theme: event.target.value }));
+      this.sync();
+      document.dispatchEvent(new CustomEvent('displaypreset', { detail: event.target.value }));
+    } else {
+      const values: Record<string, unknown> = {};
+      for (const [key, current] of Object.entries(this.options)) {
+        const input = this.form.elements.namedItem(key);
+        if (input instanceof HTMLInputElement || input instanceof HTMLSelectElement)
+          values[key] =
+            typeof current === 'number'
+              ? Number(input.value)
+              : typeof current === 'boolean' && input instanceof HTMLInputElement
+                ? input.checked
+                : input.value;
+      }
+      if (event.target instanceof HTMLSelectElement && event.target.name === 'shade') values.autoShade = false;
+      this.options = parseDisplay(values);
+    }
+    this.apply();
+    this.save();
+    this.changed();
   };
-  private reset = (): void => { this.options = displayFromURL(defaultDisplay(),new URLSearchParams('theme=nightshade'));document.dispatchEvent(new CustomEvent('displaypreset',{detail:'nightshade'}));this.apply(); this.sync(); this.save(); this.changed(); };
-  private share = (): void => { if(privacyEnabled())return; const url = new URL(location.href); for (const [key, value] of Object.entries(this.options)) url.searchParams.set(({ weight: 'wght', spacing: 'ls' } as Record<string, string>)[key] ?? key, key==='shade'&&this.options.autoShade?'auto':typeof value === 'boolean' ? value ? '1' : '0' : String(value)); document.dispatchEvent(new CustomEvent('share-settings',{detail:url}));const output = this.dialog.querySelector<HTMLInputElement>('#display-url')!; output.value = url.href; output.hidden = false; output.select(); };
-  private storage = (event: StorageEvent): void => { if(event.key===profileKey('chatthing:v1:display-slots')){this.readSlots();this.paintSlots();return;} if (event.key !== profileKey('chatthing:v1:display')) return; try { this.options = parseDisplay(JSON.parse(event.newValue ?? 'null')); this.apply(); this.sync(); this.changed(); } catch { /* malformed remote storage */ } };
-  stop(): void { cancelAnimationFrame(this.slotFrame);this.dialog.removeEventListener('click',this.slot);this.dialog.removeEventListener('contextmenu',this.slot);document.getElementById('header-min')?.removeEventListener('click',this.minimize); this.trigger.removeEventListener('click', this.open); this.form.removeEventListener('change', this.change); this.form.removeEventListener('submit', this.submit); this.dialog.querySelector('#display-close')?.removeEventListener('click', this.close); this.dialog.querySelector('#display-reset')?.removeEventListener('click', this.reset); this.dialog.querySelector('#display-share')?.removeEventListener('click', this.share); window.removeEventListener('storage', this.storage);this.systemTone.removeEventListener('change',this.toneChanged); }
+  private reset = (): void => {
+    this.options = displayFromURL(defaultDisplay(), new URLSearchParams('theme=nightshade'));
+    document.dispatchEvent(new CustomEvent('displaypreset', { detail: 'nightshade' }));
+    this.apply();
+    this.sync();
+    this.save();
+    this.changed();
+  };
+  private share = (): void => {
+    if (privacyEnabled()) return;
+    const url = new URL(location.href);
+    for (const [key, value] of Object.entries(this.options))
+      url.searchParams.set(
+        ({ weight: 'wght', spacing: 'ls' } as Record<string, string>)[key] ?? key,
+        key === 'shade' && this.options.autoShade
+          ? 'auto'
+          : typeof value === 'boolean'
+            ? value
+              ? '1'
+              : '0'
+            : String(value),
+      );
+    document.dispatchEvent(new CustomEvent('share-settings', { detail: url }));
+    const output = this.dialog.querySelector<HTMLInputElement>('#display-url')!;
+    output.value = url.href;
+    output.hidden = false;
+    output.select();
+  };
+  private storage = (event: StorageEvent): void => {
+    if (event.key === profileKey('chatthing:v1:display-slots')) {
+      this.readSlots();
+      this.paintSlots();
+      return;
+    }
+    if (event.key !== profileKey('chatthing:v1:display')) return;
+    try {
+      this.options = parseDisplay(JSON.parse(event.newValue ?? 'null'));
+      this.apply();
+      this.sync();
+      this.changed();
+    } catch {
+      /* malformed remote storage */
+    }
+  };
+  stop(): void {
+    cancelAnimationFrame(this.slotFrame);
+    this.dialog.removeEventListener('click', this.slot);
+    this.dialog.removeEventListener('contextmenu', this.slot);
+    document.getElementById('header-min')?.removeEventListener('click', this.minimize);
+    this.trigger.removeEventListener('click', this.open);
+    this.form.removeEventListener('change', this.change);
+    this.form.removeEventListener('submit', this.submit);
+    this.dialog.querySelector('#display-close')?.removeEventListener('click', this.close);
+    this.dialog.querySelector('#display-reset')?.removeEventListener('click', this.reset);
+    this.dialog.querySelector('#display-share')?.removeEventListener('click', this.share);
+    window.removeEventListener('storage', this.storage);
+    this.systemTone.removeEventListener('change', this.toneChanged);
+  }
 }

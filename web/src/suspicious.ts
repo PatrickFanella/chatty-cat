@@ -1,12 +1,105 @@
-import {validAccount} from './account-profiles';
-export interface SuspiciousRow {userID:string;login:string;status:'no_treatment'|'active_monitoring'|'restricted';text:string;messageID:string;eventID:string;at:number;types:string[];shared:string[];evaluation:string}
-export interface SuspiciousSnapshot {format:'chatty-cat-private-suspicious';account:string;channel:string;broadcasterID:string;epoch:string;state:'connecting'|'live'|'unavailable';active:boolean;detail:string;rows:SuspiciousRow[]}
-const id=(v:unknown):v is string=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(v);
-export function parseSuspiciousSnapshot(raw:unknown,account:string,channel:string):SuspiciousSnapshot {
- if(!raw||typeof raw!=='object')throw new Error('Invalid private signals');const v=raw as Record<string,unknown>;
- if(v.format!=='chatty-cat-private-suspicious'||v.account!==account||v.channel!==channel||typeof v.broadcasterID!=='string'||!validAccount(v.broadcasterID)||typeof v.epoch!=='string'||!/^[A-Za-z0-9_-]{16,64}$/.test(v.epoch)||typeof v.state!=='string'||!['connecting','live','unavailable'].includes(v.state)||typeof v.active!=='boolean'||v.active!==(v.state==='live')||typeof v.detail!=='string'||v.detail.length>300||!Array.isArray(v.rows)||v.rows.length>100||!v.active&&v.rows.length)throw new Error('Private signal scope/state changed');
- const rows:SuspiciousRow[]=v.rows.map(item=>{if(!item||typeof item!=='object')throw new Error('Invalid signal');const r=item as Record<string,unknown>;
- if(typeof r.userID!=='string'||!validAccount(r.userID)||typeof r.login!=='string'||!/^[a-z0-9_]{1,25}$/.test(r.login)||!id(r.eventID)||typeof r.messageID!=='string'||r.messageID!==''&&!id(r.messageID)||typeof r.text!=='string'||[...r.text].length>500||typeof r.status!=='string'||!['no_treatment','active_monitoring','restricted'].includes(r.status)||!Number.isSafeInteger(r.at)||Number(r.at)<0||Number(r.at)>Date.now()+300000||!Array.isArray(r.types)||r.types.length>10||r.types.some(x=>typeof x!=='string'||!['manually_added','ban_evader','banned_in_shared_channel','detected_sus_chatter'].includes(x))||!Array.isArray(r.shared)||r.shared.length>100||r.shared.some(x=>typeof x!=='string'||!validAccount(x))||typeof r.evaluation!=='string'||!['Unavailable','unknown','possible','likely'].includes(r.evaluation))throw new Error('Invalid signal fields');
- return {userID:r.userID,login:r.login,status:r.status as SuspiciousRow['status'],text:r.text,messageID:r.messageID,eventID:r.eventID,at:Number(r.at),types:r.types as string[],shared:r.shared as string[],evaluation:r.evaluation};});
- if(new Set(rows.map(x=>x.userID)).size!==rows.length)throw new Error('Duplicate signal subject');return {format:'chatty-cat-private-suspicious',account,channel,broadcasterID:v.broadcasterID,epoch:v.epoch,state:v.state as SuspiciousSnapshot['state'],active:v.active,detail:v.detail,rows};
+import { validAccount } from './account-profiles';
+export interface SuspiciousRow {
+  userID: string;
+  login: string;
+  status: 'no_treatment' | 'active_monitoring' | 'restricted';
+  text: string;
+  messageID: string;
+  eventID: string;
+  at: number;
+  types: string[];
+  shared: string[];
+  evaluation: string;
+}
+export interface SuspiciousSnapshot {
+  format: 'chatty-cat-private-suspicious';
+  account: string;
+  channel: string;
+  broadcasterID: string;
+  epoch: string;
+  state: 'connecting' | 'live' | 'unavailable';
+  active: boolean;
+  detail: string;
+  rows: SuspiciousRow[];
+}
+const id = (v: unknown): v is string => typeof v === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(v);
+export function parseSuspiciousSnapshot(raw: unknown, account: string, channel: string): SuspiciousSnapshot {
+  if (!raw || typeof raw !== 'object') throw new Error('Invalid private signals');
+  const v = raw as Record<string, unknown>;
+  if (
+    v.format !== 'chatty-cat-private-suspicious' ||
+    v.account !== account ||
+    v.channel !== channel ||
+    typeof v.broadcasterID !== 'string' ||
+    !validAccount(v.broadcasterID) ||
+    typeof v.epoch !== 'string' ||
+    !/^[A-Za-z0-9_-]{16,64}$/.test(v.epoch) ||
+    typeof v.state !== 'string' ||
+    !['connecting', 'live', 'unavailable'].includes(v.state) ||
+    typeof v.active !== 'boolean' ||
+    v.active !== (v.state === 'live') ||
+    typeof v.detail !== 'string' ||
+    v.detail.length > 300 ||
+    !Array.isArray(v.rows) ||
+    v.rows.length > 100 ||
+    (!v.active && v.rows.length)
+  )
+    throw new Error('Private signal scope/state changed');
+  const rows: SuspiciousRow[] = v.rows.map((item) => {
+    if (!item || typeof item !== 'object') throw new Error('Invalid signal');
+    const r = item as Record<string, unknown>;
+    if (
+      typeof r.userID !== 'string' ||
+      !validAccount(r.userID) ||
+      typeof r.login !== 'string' ||
+      !/^[a-z0-9_]{1,25}$/.test(r.login) ||
+      !id(r.eventID) ||
+      typeof r.messageID !== 'string' ||
+      (r.messageID !== '' && !id(r.messageID)) ||
+      typeof r.text !== 'string' ||
+      [...r.text].length > 500 ||
+      typeof r.status !== 'string' ||
+      !['no_treatment', 'active_monitoring', 'restricted'].includes(r.status) ||
+      !Number.isSafeInteger(r.at) ||
+      Number(r.at) < 0 ||
+      Number(r.at) > Date.now() + 300000 ||
+      !Array.isArray(r.types) ||
+      r.types.length > 10 ||
+      r.types.some(
+        (x) =>
+          typeof x !== 'string' ||
+          !['manually_added', 'ban_evader', 'banned_in_shared_channel', 'detected_sus_chatter'].includes(x),
+      ) ||
+      !Array.isArray(r.shared) ||
+      r.shared.length > 100 ||
+      r.shared.some((x) => typeof x !== 'string' || !validAccount(x)) ||
+      typeof r.evaluation !== 'string' ||
+      !['Unavailable', 'unknown', 'possible', 'likely'].includes(r.evaluation)
+    )
+      throw new Error('Invalid signal fields');
+    return {
+      userID: r.userID,
+      login: r.login,
+      status: r.status as SuspiciousRow['status'],
+      text: r.text,
+      messageID: r.messageID,
+      eventID: r.eventID,
+      at: Number(r.at),
+      types: r.types as string[],
+      shared: r.shared as string[],
+      evaluation: r.evaluation,
+    };
+  });
+  if (new Set(rows.map((x) => x.userID)).size !== rows.length) throw new Error('Duplicate signal subject');
+  return {
+    format: 'chatty-cat-private-suspicious',
+    account,
+    channel,
+    broadcasterID: v.broadcasterID,
+    epoch: v.epoch,
+    state: v.state as SuspiciousSnapshot['state'],
+    active: v.active,
+    detail: v.detail,
+    rows,
+  };
 }

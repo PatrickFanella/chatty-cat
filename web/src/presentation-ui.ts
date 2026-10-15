@@ -1,26 +1,216 @@
-import {overlayAppearance,overlayAppearanceStyles} from './overlay-appearance';
-import {profileKey} from './account-profiles';
-import {parsePresentation,setPresentation,presentationDefaults,presentationFields,type PresentationOptions} from './presentation';
-import {registerSettings} from './settings-bundle';
-import {privacyEnabled} from './privacy';
+import { overlayAppearance, overlayAppearanceStyles } from './overlay-appearance';
+import { profileKey } from './account-profiles';
+import {
+  parsePresentation,
+  setPresentation,
+  presentationDefaults,
+  presentationFields,
+  type PresentationOptions,
+} from './presentation';
+import { registerSettings } from './settings-bundle';
+import { privacyEnabled } from './privacy';
 export class PresentationPanel {
- readonly root=document.createElement('dialog');readonly trigger=document.createElement('button');options={...presentationDefaults};private saved={...presentationDefaults};private raw:string|null=null;private stopSettings:()=>void;
- constructor(private changed:()=>void){
-  this.root.id='presentation-panel';this.root.setAttribute('aria-label','Presentation settings');const heading=document.createElement('h2');heading.textContent='Presentation';const search=document.createElement('input');search.type='search';search.placeholder='Search settings';search.setAttribute('aria-label','Search presentation settings');search.addEventListener('input',()=>{for(const label of this.root.querySelectorAll<HTMLElement>('[data-setting]'))label.hidden=!label.textContent?.toLowerCase().includes(search.value.toLowerCase());});this.root.append(heading,search);
-  for(const [key,field] of Object.entries(presentationFields)){const label=document.createElement('label');label.dataset.setting=key;label.append(field.label+' ');const defaultValue=presentationDefaults[key as keyof PresentationOptions];const input=field.choices?document.createElement('select'):document.createElement('input');input.id='presentation-'+key;input.setAttribute('aria-label',field.label);if(input instanceof HTMLSelectElement)for(const value of field.choices??[]){const option=document.createElement('option');option.value=value;option.textContent=value;input.append(option);}else{input.type=typeof defaultValue==='boolean'?'checkbox':typeof defaultValue==='number'?'number':(key==='lastColor'||key==='overlayShadowColor')?'color':'text';if(field.min!==undefined)input.min=String(field.min);if(field.max!==undefined)input.max=String(field.max);if(field.step!==undefined)input.step=String(field.step);}label.append(input);this.root.append(label);}
-  const notes=document.createElement('p');notes.textContent='Preview is temporary. Apply saves supported preferences; Cancel restores the saved view. Existing font, palette, separator strength, alternation strength and timestamp presets remain in Settings. Chat pronouns are off by default and use bounded public lookups; profile-card pronouns have a separate Settings control. Browser defaults preserve current chat behavior. Truncate stages an edited message for review and never sends it automatically. The empty input stays focusable when collapsed. Reduced motion overrides smooth scrolling and pulses. Bare-name detection uses at most 1,000 recently observed message authors per channel; it does not fetch a complete chatter list. Join/departure notices show only events supplied by Twitch and are unavailable in rooms above 1,000 chatters. Previewing membership/history controls may reconnect the read stream; drafts and retained history stay intact. Duplicate-send bypass and alternate send transports are unavailable with the supported API. Twitch sending uses the existing supported API; iframe login remains separate. History limits, font settings and pronouns remain in Settings.';this.root.append(notes);
-  for(const [name,action] of [['Preview',()=>{this.options=this.read();this.apply();this.changed();this.status('Temporary preview; Apply to save');}],['Apply',()=>this.persist(this.read())],['Cancel',()=>this.root.close()],['Reset to defaults',()=>{this.sync(presentationDefaults);this.status('Defaults loaded into controls; preview or apply to use');}]] as const){const button=document.createElement('button');button.type='button';button.textContent=name;button.addEventListener('click',()=>{try{action();}catch(e){this.status(e instanceof Error?e.message:'Could not update presentation');}});this.root.append(button);}
-  const status=document.createElement('p');status.id='presentation-status';status.setAttribute('role','status');this.root.append(status);this.trigger.type='button';this.trigger.textContent='Presentation';document.getElementById('display-open')?.after(this.trigger);this.trigger.addEventListener('click',this.open);this.root.addEventListener('close',this.cancel);window.addEventListener('storage',this.storage);window.addEventListener('focus',this.focus);window.addEventListener('blur',this.focus);document.body.append(this.root);
-  try{this.raw=localStorage.getItem(profileKey('chatthing:v1:presentation'));if(this.raw)this.saved=parsePresentation(JSON.parse(this.raw));}catch{this.status('Saved presentation could not be read; defaults are active');}this.options={...this.saved};this.sync(this.options);this.apply();this.focus();this.stopSettings=registerSettings('presentation',()=>this.saved,value=>this.persist(parsePresentation(value)));
- }
- private status(text:string):void{this.root.querySelector('#presentation-status')!.textContent=text;}
- private sync(value:PresentationOptions):void{for(const [key,v] of Object.entries(value)){const input=this.root.querySelector<HTMLInputElement|HTMLSelectElement>('#presentation-'+key)!;if(typeof v==='boolean'&&input instanceof HTMLInputElement)input.checked=v;else input.value=String(v);}}
- private read():PresentationOptions{const result:Record<string,unknown>={};for(const [key,v] of Object.entries(presentationDefaults)){const input=this.root.querySelector<HTMLInputElement|HTMLSelectElement>('#presentation-'+key)!;result[key]=typeof v==='boolean'&&input instanceof HTMLInputElement?input.checked:typeof v==='number'?Number(input.value):input.value;}return parsePresentation(result);}
- private persist(value:PresentationOptions):void{if(localStorage.getItem(profileKey('chatthing:v1:presentation'))!==this.raw)throw new Error('Presentation changed in another tab; reload before saving');const raw=JSON.stringify(value);localStorage.setItem(profileKey('chatthing:v1:presentation'),raw);this.raw=raw;this.saved={...value};this.options={...value};this.sync(value);this.apply();this.changed();this.status('Presentation saved');}
- private apply():void{document.dispatchEvent(new Event('presentation-before-change'));setPresentation(this.options);const root=document.documentElement;for(const [key,v] of Object.entries(this.options))root.dataset['presentation'+key[0]!.toUpperCase()+key.slice(1)]=String(v);root.style.setProperty('--bold-scale',String(this.options.boldScale));root.style.setProperty('--presentation-scale',String(this.options.uiScale));root.style.setProperty('--last-message-color',this.options.lastColor);root.style.setProperty('--last-message-pattern',this.options.lastPattern);root.style.setProperty('--collapse-lines',String(this.options.collapseLines));for(const [key,value] of Object.entries(overlayAppearanceStyles(overlayAppearance(this.options))))root.style.setProperty(key,value);document.dispatchEvent(new CustomEvent('presentationchange',{detail:this.options}));}
- private focus=():void=>{document.documentElement.dataset.windowFocused=String(document.hasFocus());if(this.options.animateOnlyFocused)this.changed();};
- private open=():void=>{if(privacyEnabled())return;this.sync(this.saved);this.root.showModal();};
- private cancel=():void=>{this.options={...this.saved};this.sync(this.saved);this.apply();this.changed();this.trigger.focus();};
- private storage=(e:StorageEvent):void=>{if(e.key!==profileKey('chatthing:v1:presentation'))return;try{this.raw=e.newValue;this.saved=parsePresentation(JSON.parse(e.newValue??'null'));this.cancel();}catch{this.status('Remote presentation could not be read; existing view retained');}};
- stop():void{this.stopSettings();window.removeEventListener('storage',this.storage);window.removeEventListener('focus',this.focus);window.removeEventListener('blur',this.focus);this.trigger.removeEventListener('click',this.open);this.root.removeEventListener('close',this.cancel);this.root.remove();this.trigger.remove();}
+  readonly root = document.createElement('dialog');
+  readonly trigger = document.createElement('button');
+  options = { ...presentationDefaults };
+  private saved = { ...presentationDefaults };
+  private raw: string | null = null;
+  private stopSettings: () => void;
+  constructor(private changed: () => void) {
+    this.root.id = 'presentation-panel';
+    this.root.setAttribute('aria-label', 'Presentation settings');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Presentation';
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.placeholder = 'Search settings';
+    search.setAttribute('aria-label', 'Search presentation settings');
+    search.addEventListener('input', () => {
+      for (const label of this.root.querySelectorAll<HTMLElement>('[data-setting]'))
+        label.hidden = !label.textContent?.toLowerCase().includes(search.value.toLowerCase());
+    });
+    this.root.append(heading, search);
+    for (const [key, field] of Object.entries(presentationFields)) {
+      const label = document.createElement('label');
+      label.dataset.setting = key;
+      label.append(field.label + ' ');
+      const defaultValue = presentationDefaults[key as keyof PresentationOptions];
+      const input = field.choices ? document.createElement('select') : document.createElement('input');
+      input.id = 'presentation-' + key;
+      input.setAttribute('aria-label', field.label);
+      if (input instanceof HTMLSelectElement)
+        for (const value of field.choices ?? []) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = value;
+          input.append(option);
+        }
+      else {
+        input.type =
+          typeof defaultValue === 'boolean'
+            ? 'checkbox'
+            : typeof defaultValue === 'number'
+              ? 'number'
+              : key === 'lastColor' || key === 'overlayShadowColor'
+                ? 'color'
+                : 'text';
+        if (field.min !== undefined) input.min = String(field.min);
+        if (field.max !== undefined) input.max = String(field.max);
+        if (field.step !== undefined) input.step = String(field.step);
+      }
+      label.append(input);
+      this.root.append(label);
+    }
+    const notes = document.createElement('p');
+    notes.textContent =
+      'Preview is temporary. Apply saves supported preferences; Cancel restores the saved view. Existing font, palette, separator strength, alternation strength and timestamp presets remain in Settings. Chat pronouns are off by default and use bounded public lookups; profile-card pronouns have a separate Settings control. Browser defaults preserve current chat behavior. Truncate stages an edited message for review and never sends it automatically. The empty input stays focusable when collapsed. Reduced motion overrides smooth scrolling and pulses. Bare-name detection uses at most 1,000 recently observed message authors per channel; it does not fetch a complete chatter list. Join/departure notices show only events supplied by Twitch and are unavailable in rooms above 1,000 chatters. Previewing membership/history controls may reconnect the read stream; drafts and retained history stay intact. Duplicate-send bypass and alternate send transports are unavailable with the supported API. Twitch sending uses the existing supported API; iframe login remains separate. History limits, font settings and pronouns remain in Settings.';
+    this.root.append(notes);
+    for (const [name, action] of [
+      [
+        'Preview',
+        () => {
+          this.options = this.read();
+          this.apply();
+          this.changed();
+          this.status('Temporary preview; Apply to save');
+        },
+      ],
+      ['Apply', () => this.persist(this.read())],
+      ['Cancel', () => this.root.close()],
+      [
+        'Reset to defaults',
+        () => {
+          this.sync(presentationDefaults);
+          this.status('Defaults loaded into controls; preview or apply to use');
+        },
+      ],
+    ] as const) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = name;
+      button.addEventListener('click', () => {
+        try {
+          action();
+        } catch (e) {
+          this.status(e instanceof Error ? e.message : 'Could not update presentation');
+        }
+      });
+      this.root.append(button);
+    }
+    const status = document.createElement('p');
+    status.id = 'presentation-status';
+    status.setAttribute('role', 'status');
+    this.root.append(status);
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Presentation';
+    document.getElementById('display-open')?.after(this.trigger);
+    this.trigger.addEventListener('click', this.open);
+    this.root.addEventListener('close', this.cancel);
+    window.addEventListener('storage', this.storage);
+    window.addEventListener('focus', this.focus);
+    window.addEventListener('blur', this.focus);
+    document.body.append(this.root);
+    try {
+      this.raw = localStorage.getItem(profileKey('chatthing:v1:presentation'));
+      if (this.raw) this.saved = parsePresentation(JSON.parse(this.raw));
+    } catch {
+      this.status('Saved presentation could not be read; defaults are active');
+    }
+    this.options = { ...this.saved };
+    this.sync(this.options);
+    this.apply();
+    this.focus();
+    this.stopSettings = registerSettings(
+      'presentation',
+      () => this.saved,
+      (value) => this.persist(parsePresentation(value)),
+    );
+  }
+  private status(text: string): void {
+    this.root.querySelector('#presentation-status')!.textContent = text;
+  }
+  private sync(value: PresentationOptions): void {
+    for (const [key, v] of Object.entries(value)) {
+      const input = this.root.querySelector<HTMLInputElement | HTMLSelectElement>('#presentation-' + key)!;
+      if (typeof v === 'boolean' && input instanceof HTMLInputElement) input.checked = v;
+      else input.value = String(v);
+    }
+  }
+  private read(): PresentationOptions {
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of Object.entries(presentationDefaults)) {
+      const input = this.root.querySelector<HTMLInputElement | HTMLSelectElement>('#presentation-' + key)!;
+      result[key] =
+        typeof v === 'boolean' && input instanceof HTMLInputElement
+          ? input.checked
+          : typeof v === 'number'
+            ? Number(input.value)
+            : input.value;
+    }
+    return parsePresentation(result);
+  }
+  private persist(value: PresentationOptions): void {
+    if (localStorage.getItem(profileKey('chatthing:v1:presentation')) !== this.raw)
+      throw new Error('Presentation changed in another tab; reload before saving');
+    const raw = JSON.stringify(value);
+    localStorage.setItem(profileKey('chatthing:v1:presentation'), raw);
+    this.raw = raw;
+    this.saved = { ...value };
+    this.options = { ...value };
+    this.sync(value);
+    this.apply();
+    this.changed();
+    this.status('Presentation saved');
+  }
+  private apply(): void {
+    document.dispatchEvent(new Event('presentation-before-change'));
+    setPresentation(this.options);
+    const root = document.documentElement;
+    for (const [key, v] of Object.entries(this.options))
+      root.dataset['presentation' + key[0]!.toUpperCase() + key.slice(1)] = String(v);
+    root.style.setProperty('--bold-scale', String(this.options.boldScale));
+    root.style.setProperty('--presentation-scale', String(this.options.uiScale));
+    root.style.setProperty('--last-message-color', this.options.lastColor);
+    root.style.setProperty('--last-message-pattern', this.options.lastPattern);
+    root.style.setProperty('--collapse-lines', String(this.options.collapseLines));
+    for (const [key, value] of Object.entries(overlayAppearanceStyles(overlayAppearance(this.options))))
+      root.style.setProperty(key, value);
+    document.dispatchEvent(new CustomEvent('presentationchange', { detail: this.options }));
+  }
+  private focus = (): void => {
+    document.documentElement.dataset.windowFocused = String(document.hasFocus());
+    if (this.options.animateOnlyFocused) this.changed();
+  };
+  private open = (): void => {
+    if (privacyEnabled()) return;
+    this.sync(this.saved);
+    this.root.showModal();
+  };
+  private cancel = (): void => {
+    this.options = { ...this.saved };
+    this.sync(this.saved);
+    this.apply();
+    this.changed();
+    this.trigger.focus();
+  };
+  private storage = (e: StorageEvent): void => {
+    if (e.key !== profileKey('chatthing:v1:presentation')) return;
+    try {
+      this.raw = e.newValue;
+      this.saved = parsePresentation(JSON.parse(e.newValue ?? 'null'));
+      this.cancel();
+    } catch {
+      this.status('Remote presentation could not be read; existing view retained');
+    }
+  };
+  stop(): void {
+    this.stopSettings();
+    window.removeEventListener('storage', this.storage);
+    window.removeEventListener('focus', this.focus);
+    window.removeEventListener('blur', this.focus);
+    this.trigger.removeEventListener('click', this.open);
+    this.root.removeEventListener('close', this.cancel);
+    this.root.remove();
+    this.trigger.remove();
+  }
 }

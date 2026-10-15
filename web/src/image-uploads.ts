@@ -1,48 +1,509 @@
-import type {AuthStatus} from './auth';
-import {privacyEnabled} from './privacy';
-interface UploadConfig {enabled:boolean;maxBytes:number;maxPixels:number;retentionSeconds:number}
-interface UploadItem {id:string;url:string;type:'image/png'|'image/jpeg';bytes:number;expires:number}
-interface Context {auth:AuthStatus|undefined;channel:string;canInsert:boolean}
-function record(value:unknown):value is Record<string,unknown>{return !!value&&typeof value==='object'&&!Array.isArray(value);}
-function bounded(value:unknown,max:number):value is number{return typeof value==='number'&&Number.isSafeInteger(value)&&value>0&&value<=max;}
-export function parseUploadConfig(value:unknown):UploadConfig{if(!record(value)||typeof value.enabled!=='boolean'||!bounded(value.maxBytes,10*1024*1024)||!bounded(value.maxPixels,16000000)||!bounded(value.retentionSeconds,30*86400))throw new Error('Upload configuration unavailable');return {enabled:value.enabled,maxBytes:value.maxBytes,maxPixels:value.maxPixels,retentionSeconds:value.retentionSeconds};}
-export function parseUploadItem(value:unknown):UploadItem{if(!record(value)||typeof value.id!=='string'||! /^[a-f0-9]{32}$/.test(value.id)||value.url!=='/uploads/'+value.id||(value.type!=='image/png'&&value.type!=='image/jpeg')||!bounded(value.bytes,10*1024*1024)||!bounded(value.expires,Number.MAX_SAFE_INTEGER)||value.expires<=Date.now())throw new Error('Invalid hosted image receipt');return {id:value.id,url:value.url,type:value.type,bytes:value.bytes,expires:value.expires};}
-export async function validateUpload(file:File,config:UploadConfig):Promise<void>{if(file.type!=='image/png'&&file.type!=='image/jpeg')throw new Error('Choose a PNG or JPEG image');if(file.size<1||file.size>config.maxBytes)throw new Error('Image size exceeds the configured limit');const bitmap=await createImageBitmap(file);try{if(!Number.isSafeInteger(bitmap.width)||!Number.isSafeInteger(bitmap.height)||bitmap.width<1||bitmap.height<1||bitmap.width>config.maxPixels/bitmap.height)throw new Error('Image dimensions exceed the configured limit');}finally{bitmap.close();}}
-type Transport=(file:File,id:string,auth:AuthStatus,signal:AbortSignal,progress:(percent:number)=>void)=>Promise<unknown>;
-export const uploadImage:Transport=(file,id,auth,signal,progress)=>new Promise((resolve,reject)=>{const xhr=new XMLHttpRequest();xhr.open('POST','/api/uploads/'+id);xhr.timeout=30000;xhr.setRequestHeader('Content-Type',file.type);xhr.setRequestHeader('X-CSRF-Token',auth.csrf??'');xhr.setRequestHeader('X-Account-ID',auth.userID??'');const abort=():void=>xhr.abort();const finish=():void=>signal.removeEventListener('abort',abort);xhr.upload.onprogress=event=>{if(event.lengthComputable)progress(Math.round(event.loaded/event.total*100));};xhr.onload=()=>{finish();if(xhr.status<200||xhr.status>=300){reject(new Error(xhr.status===429?'Upload service busy; retry later':xhr.status===413?'Image exceeds server size limit':xhr.status===401||xhr.status===403?'Login or account changed; reopen uploads':'Upload rejected; check image limits or storage quota'));return;}try{resolve(JSON.parse(xhr.responseText));}catch{reject(new Error('Invalid upload response'));}};xhr.onerror=()=>{finish();reject(new Error('Upload connection failed; retry uses the same upload ID'));};xhr.ontimeout=()=>{finish();reject(new Error('Upload timed out; retry uses the same upload ID'));};xhr.onabort=()=>{finish();reject(new Error('Upload cancelled; it may already be hosted. Use My hosted images to check.'));};signal.addEventListener('abort',abort,{once:true});if(signal.aborted){finish();reject(new Error('Upload cancelled'));return;}xhr.send(file);});
-type Stage={file:File;id:string;account:string;channel:string};
+import type { AuthStatus } from './auth';
+import { privacyEnabled } from './privacy';
+interface UploadConfig {
+  enabled: boolean;
+  maxBytes: number;
+  maxPixels: number;
+  retentionSeconds: number;
+}
+interface UploadItem {
+  id: string;
+  url: string;
+  type: 'image/png' | 'image/jpeg';
+  bytes: number;
+  expires: number;
+}
+interface Context {
+  auth: AuthStatus | undefined;
+  channel: string;
+  canInsert: boolean;
+}
+function record(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+function bounded(value: unknown, max: number): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 && value <= max;
+}
+export function parseUploadConfig(value: unknown): UploadConfig {
+  if (
+    !record(value) ||
+    typeof value.enabled !== 'boolean' ||
+    !bounded(value.maxBytes, 10 * 1024 * 1024) ||
+    !bounded(value.maxPixels, 16000000) ||
+    !bounded(value.retentionSeconds, 30 * 86400)
+  )
+    throw new Error('Upload configuration unavailable');
+  return {
+    enabled: value.enabled,
+    maxBytes: value.maxBytes,
+    maxPixels: value.maxPixels,
+    retentionSeconds: value.retentionSeconds,
+  };
+}
+export function parseUploadItem(value: unknown): UploadItem {
+  if (
+    !record(value) ||
+    typeof value.id !== 'string' ||
+    !/^[a-f0-9]{32}$/.test(value.id) ||
+    value.url !== '/uploads/' + value.id ||
+    (value.type !== 'image/png' && value.type !== 'image/jpeg') ||
+    !bounded(value.bytes, 10 * 1024 * 1024) ||
+    !bounded(value.expires, Number.MAX_SAFE_INTEGER) ||
+    value.expires <= Date.now()
+  )
+    throw new Error('Invalid hosted image receipt');
+  return { id: value.id, url: value.url, type: value.type, bytes: value.bytes, expires: value.expires };
+}
+export async function validateUpload(file: File, config: UploadConfig): Promise<void> {
+  if (file.type !== 'image/png' && file.type !== 'image/jpeg') throw new Error('Choose a PNG or JPEG image');
+  if (file.size < 1 || file.size > config.maxBytes) throw new Error('Image size exceeds the configured limit');
+  const bitmap = await createImageBitmap(file);
+  try {
+    if (
+      !Number.isSafeInteger(bitmap.width) ||
+      !Number.isSafeInteger(bitmap.height) ||
+      bitmap.width < 1 ||
+      bitmap.height < 1 ||
+      bitmap.width > config.maxPixels / bitmap.height
+    )
+      throw new Error('Image dimensions exceed the configured limit');
+  } finally {
+    bitmap.close();
+  }
+}
+type Transport = (
+  file: File,
+  id: string,
+  auth: AuthStatus,
+  signal: AbortSignal,
+  progress: (percent: number) => void,
+) => Promise<unknown>;
+export const uploadImage: Transport = (file, id, auth, signal, progress) =>
+  new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/uploads/' + id);
+    xhr.timeout = 30000;
+    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.setRequestHeader('X-CSRF-Token', auth.csrf ?? '');
+    xhr.setRequestHeader('X-Account-ID', auth.userID ?? '');
+    const abort = (): void => xhr.abort();
+    const finish = (): void => signal.removeEventListener('abort', abort);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) progress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      finish();
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(
+          new Error(
+            xhr.status === 429
+              ? 'Upload service busy; retry later'
+              : xhr.status === 413
+                ? 'Image exceeds server size limit'
+                : xhr.status === 401 || xhr.status === 403
+                  ? 'Login or account changed; reopen uploads'
+                  : 'Upload rejected; check image limits or storage quota',
+          ),
+        );
+        return;
+      }
+      try {
+        resolve(JSON.parse(xhr.responseText));
+      } catch {
+        reject(new Error('Invalid upload response'));
+      }
+    };
+    xhr.onerror = () => {
+      finish();
+      reject(new Error('Upload connection failed; retry uses the same upload ID'));
+    };
+    xhr.ontimeout = () => {
+      finish();
+      reject(new Error('Upload timed out; retry uses the same upload ID'));
+    };
+    xhr.onabort = () => {
+      finish();
+      reject(new Error('Upload cancelled; it may already be hosted. Use My hosted images to check.'));
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    if (signal.aborted) {
+      finish();
+      reject(new Error('Upload cancelled'));
+      return;
+    }
+    xhr.send(file);
+  });
+type Stage = { file: File; id: string; account: string; channel: string };
 export class ImageUploads {
- readonly root=document.createElement('dialog');readonly ready:Promise<void>;
- private trigger=document.createElement('button');private file=document.createElement('input');private preview=document.createElement('img');private review=document.createElement('p');private status=document.createElement('p');private list=document.createElement('div');private upload:HTMLButtonElement;private insert:HTMLButtonElement;private cancel:HTMLButtonElement;
- private config:UploadConfig|undefined;private staged:Stage|undefined;private receipt:UploadItem|undefined;private objectURL:string|undefined;private generation=0;private controller:AbortController|undefined;private lifetime=new AbortController();private input:HTMLTextAreaElement|undefined;private stopped=false;private activeAccount:string|undefined;
- constructor(private context:()=>Context,private insertLink:(url:string)=>void,private readonlyView=false,private transport:Transport=uploadImage){
-  this.trigger.type='button';this.trigger.textContent='Upload image';this.trigger.hidden=readonlyView;this.trigger.disabled=true;document.getElementById('commands-open')?.after(this.trigger);this.trigger.addEventListener('click',this.open);
-  this.root.setAttribute('aria-label','Image upload review');const heading=document.createElement('h2');heading.textContent='Review image upload';const note=document.createElement('p');note.textContent='Images are hosted publicly by Chatty Cat. Anyone with the link can view or copy them. Expiry and deletion remove the hosted image, but cannot recall copies. Uploading does not send chat. PNG and JPEG are re-encoded to remove embedded metadata.';
-  this.file.type='file';this.file.accept='image/png,image/jpeg';this.file.setAttribute('aria-label','Choose image to review');this.file.addEventListener('change',this.chosen);this.preview.alt='Local image preview';this.preview.style.maxWidth='100%';this.preview.style.maxHeight='240px';this.status.setAttribute('role','status');this.upload=this.button('Upload reviewed image',()=>void this.send());this.insert=this.button('Insert hosted link',()=>this.insertReceipt());this.insert.dataset.action='insert';this.cancel=this.button('Cancel upload',()=>this.cancelUpload());
-  this.root.append(heading,note,this.file,this.preview,this.review,this.upload,this.cancel,this.insert,this.button('My hosted images',()=>void this.loadItems()),this.list,this.button('Close image uploads',()=>this.root.close()),this.status);document.body.append(this.root);this.root.addEventListener('close',this.closed);document.addEventListener('privacychange',this.privacy);
-  const input=document.getElementById('message');if(input instanceof HTMLTextAreaElement){this.input=input;input.addEventListener('paste',this.paste);input.addEventListener('drop',this.drop);input.addEventListener('dragover',this.dragover);}
-  this.ready=this.loadConfig();this.contextChanged();
- }
- private button(label:string,action:()=>void):HTMLButtonElement{const button=document.createElement('button');button.type='button';button.textContent=label;button.addEventListener('click',()=>{try{this.allowed();action();}catch(error){this.status.textContent=error instanceof Error?error.message:'Uploads unavailable';}});return button;}
- private async loadConfig():Promise<void>{try{const response=await fetch('/api/uploads/config',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.any([this.lifetime.signal,AbortSignal.timeout(10000)])});if(!response.ok)throw new Error();this.config=parseUploadConfig(await response.json());}catch{this.config=undefined;}if(!this.stopped){this.render();this.contextChanged();}}
- private allowed():{auth:AuthStatus;channel:string}{const c=this.context();if(this.stopped||this.readonlyView||privacyEnabled()||!this.config?.enabled)throw new Error('Image uploads are not configured or available in this view');if(!c.auth?.authenticated||!c.auth.userID||!c.auth.csrf||!c.canInsert)throw new Error('Log in before reviewing an image upload');return {auth:c.auth,channel:c.channel};}
- private matches(stage:Stage):boolean{const c=this.context();return !this.stopped&&!privacyEnabled()&&c.auth?.authenticated===true&&c.auth.userID===stage.account&&c.channel===stage.channel;}
- async stage(file:File):Promise<void>{const c=this.allowed(),config=this.config;if(!config)return;this.clear();const generation=this.generation,account=c.auth.userID;if(!account)return;await validateUpload(file,config);if(generation!==this.generation||!this.matches({file,id:'',account,channel:c.channel}))return;this.staged={file,id:crypto.randomUUID().replaceAll('-',''),account,channel:c.channel};this.objectURL=URL.createObjectURL(file);this.preview.src=this.objectURL;this.preview.hidden=false;this.review.textContent=`${file.type} · ${file.size} bytes · public hosting at ${location.origin} · expires after ${Math.round(config.retentionSeconds/86400)} days. Upload requires the button below.`;this.status.textContent='Preview only; nothing has been uploaded';this.render();if(!this.root.open)this.root.showModal();}
- private async send():Promise<void>{let c:{auth:AuthStatus;channel:string};try{c=this.allowed();}catch(error){this.status.textContent=error instanceof Error?error.message:'Upload unavailable';return;}const stage=this.staged;if(!stage||!this.matches(stage)||this.controller)return;const generation=this.generation,controller=this.controller=new AbortController();this.status.textContent='Uploading…';this.render();try{const raw=await this.transport(stage.file,stage.id,c.auth,controller.signal,percent=>{if(generation===this.generation)this.status.textContent='Uploading '+percent+'%…';});if(generation!==this.generation||!this.matches(stage))return;if(!record(raw)||raw.account!==stage.account)throw new Error('Upload account changed; receipt discarded');this.receipt=parseUploadItem(raw.item);this.status.textContent='Uploaded. Insert the hosted link explicitly, or manage/delete it in My hosted images.';}catch(error){if(generation===this.generation)this.status.textContent=error instanceof Error?error.message:'Upload failed';}finally{if(generation===this.generation){this.controller=undefined;this.render();}}}
- private insertReceipt():void{this.allowed();const stage=this.staged,item=this.receipt;if(!stage||!item||!this.matches(stage)||item.expires<=Date.now())throw new Error('Account/channel changed or image expired; reopen uploads');this.insertLink(new URL(item.url,location.origin).href);this.root.close();}
- private async loadItems():Promise<void>{try{const c=this.allowed(),account=c.auth.userID,generation=this.generation;const response=await fetch('/api/uploads',{headers:{'X-Account-ID':account??''},credentials:'same-origin',cache:'no-store',signal:AbortSignal.any([this.lifetime.signal,AbortSignal.timeout(10000)])});if(!response.ok)throw new Error('Hosted image list unavailable');const raw:unknown=await response.json();if(generation!==this.generation||this.context().auth?.userID!==account||privacyEnabled())return;if(!record(raw)||raw.account!==account||!Array.isArray(raw.items)||raw.items.length>64)throw new Error('Invalid hosted image list');const items=raw.items.map(parseUploadItem);this.list.replaceChildren();for(const item of items){const row=document.createElement('p'),link=document.createElement('a');link.textContent=item.id.slice(0,8)+' · '+item.bytes+' bytes · expires '+new Date(item.expires).toLocaleString();link.href=new URL(item.url,location.origin).href;link.target='_blank';link.rel='noopener noreferrer';row.append(link,this.button('Delete hosted image '+item.id.slice(0,8),()=>{row.append(this.button('Confirm deletion '+item.id.slice(0,8),()=>void this.deleteItem(item,account??'',row)));}));this.list.append(row);}if(!items.length)this.list.textContent='No unexpired hosted images for this account';}catch(error){this.status.textContent=error instanceof Error?error.message:'Hosted image list unavailable';}}
- private async deleteItem(item:UploadItem,account:string,row:HTMLElement):Promise<void>{try{const c=this.allowed();if(c.auth.userID!==account)throw new Error('Account changed; reopen hosted images');const generation=this.generation;const response=await fetch('/api/uploads/'+item.id,{method:'DELETE',headers:{'X-Account-ID':account,'X-CSRF-Token':c.auth.csrf??''},credentials:'same-origin',signal:AbortSignal.any([this.lifetime.signal,AbortSignal.timeout(10000)])});if(generation!==this.generation||this.context().auth?.userID!==account)return;if(!response.ok)throw new Error('Deletion failed; image may remain hosted');row.remove();if(this.receipt?.id===item.id){this.receipt=undefined;this.render();}this.status.textContent='Hosted image deleted; copies and existing chat links cannot be recalled';}catch(error){this.status.textContent=error instanceof Error?error.message:'Deletion unavailable';}}
- contextChanged():void{const c=this.context(),account=c.auth?.authenticated?c.auth.userID:undefined;if(account!==this.activeAccount||this.staged&&!this.matches(this.staged)){this.clear();this.list.replaceChildren();}this.activeAccount=account;this.trigger.disabled=!this.config?.enabled||!account||!c.canInsert||privacyEnabled();}
- private render():void{this.upload.disabled=!this.staged||!!this.controller||!!this.receipt;this.cancel.disabled=!this.controller;this.insert.disabled=!this.receipt||!!this.controller;this.file.disabled=!!this.controller;}
- private cancelUpload():void{this.controller?.abort();this.controller=undefined;this.generation++;this.status.textContent='Upload cancelled; it may already be hosted. Check My hosted images before retrying.';this.render();}
- private clear():void{this.generation++;this.controller?.abort();this.controller=undefined;this.staged=undefined;this.receipt=undefined;if(this.objectURL)URL.revokeObjectURL(this.objectURL);this.objectURL=undefined;this.preview.removeAttribute('src');this.preview.hidden=true;this.file.value='';this.review.textContent='';this.status.textContent='';this.render();}
- private closed=():void=>{this.clear();this.list.replaceChildren();};
- private open=():void=>{try{this.allowed();this.contextChanged();this.status.textContent='Choose, paste or drop one PNG/JPEG image for review';this.root.showModal();}catch(error){this.status.textContent=error instanceof Error?error.message:'Uploads unavailable';}};
- private chosen=():void=>{const file=this.file.files?.[0];if(file)void this.stage(file).catch(error=>{this.status.textContent=error instanceof Error?error.message:'Image preview unavailable';});};
- private files(files:FileList|File[]):void{if(files.length!==1){this.status.textContent='Review one image at a time';return;}const file=files[0];if(file)void this.stage(file).catch(error=>{this.status.textContent=error instanceof Error?error.message:'Image preview unavailable';if(!this.root.open&&!privacyEnabled())this.root.showModal();});}
- private paste=(event:ClipboardEvent):void=>{const files=event.clipboardData?.files;if(!files?.length||!this.config?.enabled||!this.context().canInsert||privacyEnabled()||this.readonlyView)return;event.preventDefault();this.files(files);};
- private drop=(event:DragEvent):void=>{const files=event.dataTransfer?.files;if(!files?.length||!this.config?.enabled||!this.context().canInsert||privacyEnabled()||this.readonlyView)return;event.preventDefault();this.files(files);};
- private dragover=(event:DragEvent):void=>{if(event.dataTransfer?.types.includes('Files')&&this.config?.enabled&&this.context().canInsert&&!privacyEnabled()&&!this.readonlyView)event.preventDefault();};
- private privacy=():void=>{if(privacyEnabled()){this.clear();this.list.replaceChildren();if(this.root.open)this.root.close();}this.contextChanged();};
- stop():void{this.stopped=true;this.lifetime.abort();this.clear();this.input?.removeEventListener('paste',this.paste);this.input?.removeEventListener('drop',this.drop);this.input?.removeEventListener('dragover',this.dragover);this.file.removeEventListener('change',this.chosen);this.root.removeEventListener('close',this.closed);document.removeEventListener('privacychange',this.privacy);this.trigger.removeEventListener('click',this.open);this.root.remove();this.trigger.remove();}
+  readonly root = document.createElement('dialog');
+  readonly ready: Promise<void>;
+  private trigger = document.createElement('button');
+  private file = document.createElement('input');
+  private preview = document.createElement('img');
+  private review = document.createElement('p');
+  private status = document.createElement('p');
+  private list = document.createElement('div');
+  private upload: HTMLButtonElement;
+  private insert: HTMLButtonElement;
+  private cancel: HTMLButtonElement;
+  private config: UploadConfig | undefined;
+  private staged: Stage | undefined;
+  private receipt: UploadItem | undefined;
+  private objectURL: string | undefined;
+  private generation = 0;
+  private controller: AbortController | undefined;
+  private lifetime = new AbortController();
+  private input: HTMLTextAreaElement | undefined;
+  private stopped = false;
+  private activeAccount: string | undefined;
+  constructor(
+    private context: () => Context,
+    private insertLink: (url: string) => void,
+    private readonlyView = false,
+    private transport: Transport = uploadImage,
+  ) {
+    this.trigger.type = 'button';
+    this.trigger.textContent = 'Upload image';
+    this.trigger.hidden = readonlyView;
+    this.trigger.disabled = true;
+    document.getElementById('commands-open')?.after(this.trigger);
+    this.trigger.addEventListener('click', this.open);
+    this.root.setAttribute('aria-label', 'Image upload review');
+    const heading = document.createElement('h2');
+    heading.textContent = 'Review image upload';
+    const note = document.createElement('p');
+    note.textContent =
+      'Images are hosted publicly by Chatty Cat. Anyone with the link can view or copy them. Expiry and deletion remove the hosted image, but cannot recall copies. Uploading does not send chat. PNG and JPEG are re-encoded to remove embedded metadata.';
+    this.file.type = 'file';
+    this.file.accept = 'image/png,image/jpeg';
+    this.file.setAttribute('aria-label', 'Choose image to review');
+    this.file.addEventListener('change', this.chosen);
+    this.preview.alt = 'Local image preview';
+    this.preview.style.maxWidth = '100%';
+    this.preview.style.maxHeight = '240px';
+    this.status.setAttribute('role', 'status');
+    this.upload = this.button('Upload reviewed image', () => void this.send());
+    this.insert = this.button('Insert hosted link', () => this.insertReceipt());
+    this.insert.dataset.action = 'insert';
+    this.cancel = this.button('Cancel upload', () => this.cancelUpload());
+    this.root.append(
+      heading,
+      note,
+      this.file,
+      this.preview,
+      this.review,
+      this.upload,
+      this.cancel,
+      this.insert,
+      this.button('My hosted images', () => void this.loadItems()),
+      this.list,
+      this.button('Close image uploads', () => this.root.close()),
+      this.status,
+    );
+    document.body.append(this.root);
+    this.root.addEventListener('close', this.closed);
+    document.addEventListener('privacychange', this.privacy);
+    const input = document.getElementById('message');
+    if (input instanceof HTMLTextAreaElement) {
+      this.input = input;
+      input.addEventListener('paste', this.paste);
+      input.addEventListener('drop', this.drop);
+      input.addEventListener('dragover', this.dragover);
+    }
+    this.ready = this.loadConfig();
+    this.contextChanged();
+  }
+  private button(label: string, action: () => void): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.addEventListener('click', () => {
+      try {
+        this.allowed();
+        action();
+      } catch (error) {
+        this.status.textContent = error instanceof Error ? error.message : 'Uploads unavailable';
+      }
+    });
+    return button;
+  }
+  private async loadConfig(): Promise<void> {
+    try {
+      const response = await fetch('/api/uploads/config', {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(10000)]),
+      });
+      if (!response.ok) throw new Error();
+      this.config = parseUploadConfig(await response.json());
+    } catch {
+      this.config = undefined;
+    }
+    if (!this.stopped) {
+      this.render();
+      this.contextChanged();
+    }
+  }
+  private allowed(): { auth: AuthStatus; channel: string } {
+    const c = this.context();
+    if (this.stopped || this.readonlyView || privacyEnabled() || !this.config?.enabled)
+      throw new Error('Image uploads are not configured or available in this view');
+    if (!c.auth?.authenticated || !c.auth.userID || !c.auth.csrf || !c.canInsert)
+      throw new Error('Log in before reviewing an image upload');
+    return { auth: c.auth, channel: c.channel };
+  }
+  private matches(stage: Stage): boolean {
+    const c = this.context();
+    return (
+      !this.stopped &&
+      !privacyEnabled() &&
+      c.auth?.authenticated === true &&
+      c.auth.userID === stage.account &&
+      c.channel === stage.channel
+    );
+  }
+  async stage(file: File): Promise<void> {
+    const c = this.allowed(),
+      config = this.config;
+    if (!config) return;
+    this.clear();
+    const generation = this.generation,
+      account = c.auth.userID;
+    if (!account) return;
+    await validateUpload(file, config);
+    if (generation !== this.generation || !this.matches({ file, id: '', account, channel: c.channel })) return;
+    this.staged = { file, id: crypto.randomUUID().replaceAll('-', ''), account, channel: c.channel };
+    this.objectURL = URL.createObjectURL(file);
+    this.preview.src = this.objectURL;
+    this.preview.hidden = false;
+    this.review.textContent = `${file.type} · ${file.size} bytes · public hosting at ${location.origin} · expires after ${Math.round(config.retentionSeconds / 86400)} days. Upload requires the button below.`;
+    this.status.textContent = 'Preview only; nothing has been uploaded';
+    this.render();
+    if (!this.root.open) this.root.showModal();
+  }
+  private async send(): Promise<void> {
+    let c: { auth: AuthStatus; channel: string };
+    try {
+      c = this.allowed();
+    } catch (error) {
+      this.status.textContent = error instanceof Error ? error.message : 'Upload unavailable';
+      return;
+    }
+    const stage = this.staged;
+    if (!stage || !this.matches(stage) || this.controller) return;
+    const generation = this.generation,
+      controller = (this.controller = new AbortController());
+    this.status.textContent = 'Uploading…';
+    this.render();
+    try {
+      const raw = await this.transport(stage.file, stage.id, c.auth, controller.signal, (percent) => {
+        if (generation === this.generation) this.status.textContent = 'Uploading ' + percent + '%…';
+      });
+      if (generation !== this.generation || !this.matches(stage)) return;
+      if (!record(raw) || raw.account !== stage.account) throw new Error('Upload account changed; receipt discarded');
+      this.receipt = parseUploadItem(raw.item);
+      this.status.textContent = 'Uploaded. Insert the hosted link explicitly, or manage/delete it in My hosted images.';
+    } catch (error) {
+      if (generation === this.generation)
+        this.status.textContent = error instanceof Error ? error.message : 'Upload failed';
+    } finally {
+      if (generation === this.generation) {
+        this.controller = undefined;
+        this.render();
+      }
+    }
+  }
+  private insertReceipt(): void {
+    this.allowed();
+    const stage = this.staged,
+      item = this.receipt;
+    if (!stage || !item || !this.matches(stage) || item.expires <= Date.now())
+      throw new Error('Account/channel changed or image expired; reopen uploads');
+    this.insertLink(new URL(item.url, location.origin).href);
+    this.root.close();
+  }
+  private async loadItems(): Promise<void> {
+    try {
+      const c = this.allowed(),
+        account = c.auth.userID,
+        generation = this.generation;
+      const response = await fetch('/api/uploads', {
+        headers: { 'X-Account-ID': account ?? '' },
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(10000)]),
+      });
+      if (!response.ok) throw new Error('Hosted image list unavailable');
+      const raw: unknown = await response.json();
+      if (generation !== this.generation || this.context().auth?.userID !== account || privacyEnabled()) return;
+      if (!record(raw) || raw.account !== account || !Array.isArray(raw.items) || raw.items.length > 64)
+        throw new Error('Invalid hosted image list');
+      const items = raw.items.map(parseUploadItem);
+      this.list.replaceChildren();
+      for (const item of items) {
+        const row = document.createElement('p'),
+          link = document.createElement('a');
+        link.textContent =
+          item.id.slice(0, 8) + ' · ' + item.bytes + ' bytes · expires ' + new Date(item.expires).toLocaleString();
+        link.href = new URL(item.url, location.origin).href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        row.append(
+          link,
+          this.button('Delete hosted image ' + item.id.slice(0, 8), () => {
+            row.append(
+              this.button(
+                'Confirm deletion ' + item.id.slice(0, 8),
+                () => void this.deleteItem(item, account ?? '', row),
+              ),
+            );
+          }),
+        );
+        this.list.append(row);
+      }
+      if (!items.length) this.list.textContent = 'No unexpired hosted images for this account';
+    } catch (error) {
+      this.status.textContent = error instanceof Error ? error.message : 'Hosted image list unavailable';
+    }
+  }
+  private async deleteItem(item: UploadItem, account: string, row: HTMLElement): Promise<void> {
+    try {
+      const c = this.allowed();
+      if (c.auth.userID !== account) throw new Error('Account changed; reopen hosted images');
+      const generation = this.generation;
+      const response = await fetch('/api/uploads/' + item.id, {
+        method: 'DELETE',
+        headers: { 'X-Account-ID': account, 'X-CSRF-Token': c.auth.csrf ?? '' },
+        credentials: 'same-origin',
+        signal: AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(10000)]),
+      });
+      if (generation !== this.generation || this.context().auth?.userID !== account) return;
+      if (!response.ok) throw new Error('Deletion failed; image may remain hosted');
+      row.remove();
+      if (this.receipt?.id === item.id) {
+        this.receipt = undefined;
+        this.render();
+      }
+      this.status.textContent = 'Hosted image deleted; copies and existing chat links cannot be recalled';
+    } catch (error) {
+      this.status.textContent = error instanceof Error ? error.message : 'Deletion unavailable';
+    }
+  }
+  contextChanged(): void {
+    const c = this.context(),
+      account = c.auth?.authenticated ? c.auth.userID : undefined;
+    if (account !== this.activeAccount || (this.staged && !this.matches(this.staged))) {
+      this.clear();
+      this.list.replaceChildren();
+    }
+    this.activeAccount = account;
+    this.trigger.disabled = !this.config?.enabled || !account || !c.canInsert || privacyEnabled();
+  }
+  private render(): void {
+    this.upload.disabled = !this.staged || !!this.controller || !!this.receipt;
+    this.cancel.disabled = !this.controller;
+    this.insert.disabled = !this.receipt || !!this.controller;
+    this.file.disabled = !!this.controller;
+  }
+  private cancelUpload(): void {
+    this.controller?.abort();
+    this.controller = undefined;
+    this.generation++;
+    this.status.textContent = 'Upload cancelled; it may already be hosted. Check My hosted images before retrying.';
+    this.render();
+  }
+  private clear(): void {
+    this.generation++;
+    this.controller?.abort();
+    this.controller = undefined;
+    this.staged = undefined;
+    this.receipt = undefined;
+    if (this.objectURL) URL.revokeObjectURL(this.objectURL);
+    this.objectURL = undefined;
+    this.preview.removeAttribute('src');
+    this.preview.hidden = true;
+    this.file.value = '';
+    this.review.textContent = '';
+    this.status.textContent = '';
+    this.render();
+  }
+  private closed = (): void => {
+    this.clear();
+    this.list.replaceChildren();
+  };
+  private open = (): void => {
+    try {
+      this.allowed();
+      this.contextChanged();
+      this.status.textContent = 'Choose, paste or drop one PNG/JPEG image for review';
+      this.root.showModal();
+    } catch (error) {
+      this.status.textContent = error instanceof Error ? error.message : 'Uploads unavailable';
+    }
+  };
+  private chosen = (): void => {
+    const file = this.file.files?.[0];
+    if (file)
+      void this.stage(file).catch((error) => {
+        this.status.textContent = error instanceof Error ? error.message : 'Image preview unavailable';
+      });
+  };
+  private files(files: FileList | File[]): void {
+    if (files.length !== 1) {
+      this.status.textContent = 'Review one image at a time';
+      return;
+    }
+    const file = files[0];
+    if (file)
+      void this.stage(file).catch((error) => {
+        this.status.textContent = error instanceof Error ? error.message : 'Image preview unavailable';
+        if (!this.root.open && !privacyEnabled()) this.root.showModal();
+      });
+  }
+  private paste = (event: ClipboardEvent): void => {
+    const files = event.clipboardData?.files;
+    if (!files?.length || !this.config?.enabled || !this.context().canInsert || privacyEnabled() || this.readonlyView)
+      return;
+    event.preventDefault();
+    this.files(files);
+  };
+  private drop = (event: DragEvent): void => {
+    const files = event.dataTransfer?.files;
+    if (!files?.length || !this.config?.enabled || !this.context().canInsert || privacyEnabled() || this.readonlyView)
+      return;
+    event.preventDefault();
+    this.files(files);
+  };
+  private dragover = (event: DragEvent): void => {
+    if (
+      event.dataTransfer?.types.includes('Files') &&
+      this.config?.enabled &&
+      this.context().canInsert &&
+      !privacyEnabled() &&
+      !this.readonlyView
+    )
+      event.preventDefault();
+  };
+  private privacy = (): void => {
+    if (privacyEnabled()) {
+      this.clear();
+      this.list.replaceChildren();
+      if (this.root.open) this.root.close();
+    }
+    this.contextChanged();
+  };
+  stop(): void {
+    this.stopped = true;
+    this.lifetime.abort();
+    this.clear();
+    this.input?.removeEventListener('paste', this.paste);
+    this.input?.removeEventListener('drop', this.drop);
+    this.input?.removeEventListener('dragover', this.dragover);
+    this.file.removeEventListener('change', this.chosen);
+    this.root.removeEventListener('close', this.closed);
+    document.removeEventListener('privacychange', this.privacy);
+    this.trigger.removeEventListener('click', this.open);
+    this.root.remove();
+    this.trigger.remove();
+  }
 }

@@ -1,8 +1,72 @@
-import {afterEach,expect,it,vi} from 'vitest';
-import {IRCClient,ircQuery,parseIRCSnapshot} from './irc-relay';
-import {setProfileScope} from './account-profiles';
-const auth={enabled:true,authenticated:true,loginURL:'https://chat.subcult.tv/api/auth/login',userID:'42',login:'alice',csrf:'opaque'};
-afterEach(()=>{setProfileScope('anonymous');vi.unstubAllGlobals();});
-it('keeps private IRC in its own validated schema/search and refuses Twitch-only predicates',()=>{const snapshot=parseIRCSnapshot({network:'test',epoch:'a'.repeat(32),nick:'Alice',state:'connected',detail:'connected',channels:['#room'],messages:[{id:'one',target:'Bob',nick:'Bob',text:'private note',time:Date.now(),delivery:'observed'}]},'test');expect(ircQuery('private')(snapshot.messages[0]!)).toBe(true);expect(()=>ircQuery('badge:mod')).toThrow('Twitch');expect(()=>parseIRCSnapshot({...snapshot,network:'other'},'test')).toThrow();expect(()=>parseIRCSnapshot({...snapshot,messages:[...snapshot.messages,...snapshot.messages]},'test')).toThrow('Duplicate');});
-it('is idle until explicit operation, requires selected account/CSRF and never retries a write',async()=>{setProfileScope('42');const fetcher=vi.fn().mockRejectedValue(new Error('offline'));vi.stubGlobal('fetch',fetcher);const client=new IRCClient(()=>auth);expect(fetcher).not.toHaveBeenCalled();await expect(client.action({kind:'send',network:'test',epoch:'a'.repeat(32),target:'Bob',text:'private',requestID:'one'})).rejects.toThrow('offline');expect(fetcher).toHaveBeenCalledTimes(1);const [,options]=fetcher.mock.calls[0]!;expect(options.headers['X-Account-ID']).toBe('42');expect(options.headers['X-CSRF-Token']).toBe('opaque');setProfileScope('43');await expect(client.read('test')).rejects.toThrow('account');client.disconnect();});
-it('uses the shared query engine with IRC identity rules rather than Twitch logins',()=>{const message={id:'one',target:'#Room[]',nick:'Bob[]',text:'hello',time:Date.now(),delivery:'observed' as const};expect(ircQuery('channel:room{} sender:bob{}')(message)).toBe(true);});
+import { afterEach, expect, it, vi } from 'vitest';
+import { IRCClient, ircQuery, parseIRCSnapshot } from './irc-relay';
+import { setProfileScope } from './account-profiles';
+const auth = {
+  enabled: true,
+  authenticated: true,
+  loginURL: 'https://chat.subcult.tv/api/auth/login',
+  userID: '42',
+  login: 'alice',
+  csrf: 'opaque',
+};
+afterEach(() => {
+  setProfileScope('anonymous');
+  vi.unstubAllGlobals();
+});
+it('keeps private IRC in its own validated schema/search and refuses Twitch-only predicates', () => {
+  const snapshot = parseIRCSnapshot(
+    {
+      network: 'test',
+      epoch: 'a'.repeat(32),
+      nick: 'Alice',
+      state: 'connected',
+      detail: 'connected',
+      channels: ['#room'],
+      messages: [
+        { id: 'one', target: 'Bob', nick: 'Bob', text: 'private note', time: Date.now(), delivery: 'observed' },
+      ],
+    },
+    'test',
+  );
+  expect(ircQuery('private')(snapshot.messages[0]!)).toBe(true);
+  expect(() => ircQuery('badge:mod')).toThrow('Twitch');
+  expect(() => parseIRCSnapshot({ ...snapshot, network: 'other' }, 'test')).toThrow();
+  expect(() =>
+    parseIRCSnapshot({ ...snapshot, messages: [...snapshot.messages, ...snapshot.messages] }, 'test'),
+  ).toThrow('Duplicate');
+});
+it('is idle until explicit operation, requires selected account/CSRF and never retries a write', async () => {
+  setProfileScope('42');
+  const fetcher = vi.fn().mockRejectedValue(new Error('offline'));
+  vi.stubGlobal('fetch', fetcher);
+  const client = new IRCClient(() => auth);
+  expect(fetcher).not.toHaveBeenCalled();
+  await expect(
+    client.action({
+      kind: 'send',
+      network: 'test',
+      epoch: 'a'.repeat(32),
+      target: 'Bob',
+      text: 'private',
+      requestID: 'one',
+    }),
+  ).rejects.toThrow('offline');
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  const [, options] = fetcher.mock.calls[0]!;
+  expect(options.headers['X-Account-ID']).toBe('42');
+  expect(options.headers['X-CSRF-Token']).toBe('opaque');
+  setProfileScope('43');
+  await expect(client.read('test')).rejects.toThrow('account');
+  client.disconnect();
+});
+it('uses the shared query engine with IRC identity rules rather than Twitch logins', () => {
+  const message = {
+    id: 'one',
+    target: '#Room[]',
+    nick: 'Bob[]',
+    text: 'hello',
+    time: Date.now(),
+    delivery: 'observed' as const,
+  };
+  expect(ircQuery('channel:room{} sender:bob{}')(message)).toBe(true);
+});

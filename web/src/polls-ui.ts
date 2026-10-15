@@ -1,18 +1,419 @@
-import type {AuthStatus} from './auth';
-import {ModerationJournal} from './moderation-journal';
-import {privacyEnabled} from './privacy';
-import {parsePoll,parsePollSnapshot,pollDefinition,type Poll,type PollDefinition,type PollSnapshot} from './polls';
+import type { AuthStatus } from './auth';
+import { ModerationJournal } from './moderation-journal';
+import { privacyEnabled } from './privacy';
+import {
+  parsePoll,
+  parsePollSnapshot,
+  pollDefinition,
+  type Poll,
+  type PollDefinition,
+  type PollSnapshot,
+} from './polls';
 export class PollPanel {
- readonly root=document.createElement('fieldset');private title=document.createElement('input');private choices=document.createElement('textarea');private duration=document.createElement('input');private pointsEnabled=document.createElement('input');private points=document.createElement('input');private list=document.createElement('div');private preview=document.createElement('pre');private status=document.createElement('p');private confirm:HTMLButtonElement;private auth:AuthStatus|undefined;private channel='';private snapshot:PollSnapshot|undefined;private review:{action:'CREATE'|'TERMINATED'|'ARCHIVED';id:string;definition?:PollDefinition}|undefined;private rendered='';private generation=0;private controller:AbortController|undefined;private writeAbort:AbortController|undefined;private timer:ReturnType<typeof setTimeout>|undefined;private outcomeUncertain=false;busy=false;
- constructor(private journal:ModerationJournal,private guarded:()=>boolean,private changed:()=>Promise<void>){this.root.dataset.privatePolls='true';const legend=document.createElement('legend');legend.textContent='Broadcaster polls';const help=document.createElement('p');help.textContent='Use your own broadcaster channel and explicit poll consent. Read latest 20 polls; reconnect refresh restores provider state. Active reads refresh every 15 seconds. Preview creates no poll. Separate confirmation starts a poll immediately, or ends it publicly / ends and archives it. Poll eligibility is decided by Twitch. Channel Points permit additional paid votes; Bits voting is unavailable. Uncertain writes are never retried automatically.';this.title.setAttribute('aria-label','Poll title');this.title.maxLength=120;this.choices.setAttribute('aria-label','Poll choices, one per line');this.duration.setAttribute('aria-label','Poll duration seconds');this.duration.type='number';this.duration.min='15';this.duration.max='1800';this.duration.value='30';this.pointsEnabled.type='checkbox';this.pointsEnabled.setAttribute('aria-label','Enable Channel Points additional votes');this.points.setAttribute('aria-label','Channel Points per additional vote');this.points.type='number';this.points.min='1';this.points.max='1000000';this.points.value='100';this.confirm=this.button('Confirm reviewed poll action',()=>void this.send());this.confirm.disabled=true;this.status.setAttribute('role','status');this.list.className='automod-list';this.root.append(legend,help,this.button('Grant broadcaster poll consent',()=>{if(!this.auth?.authenticated)throw new Error('Log in as broadcaster');const u=new URL(this.auth.loginURL);u.searchParams.set('polls','manage');u.searchParams.set('account',this.auth.userID??'');u.searchParams.set('channel',this.channel);location.assign(u.href);}),this.button('Refresh/reconnect broadcaster polls',()=>void this.refresh()),this.list,this.title,this.choices,this.duration,this.pointsEnabled,this.points,this.button('Preview new poll',()=>this.stageCreate()),this.preview,this.confirm,this.status);for(const input of [this.title,this.choices,this.duration,this.pointsEnabled,this.points])input.addEventListener('input',()=>this.clearReview());}
- private button(text:string,action:()=>void):HTMLButtonElement{const b=document.createElement('button');b.type='button';b.textContent=text;b.onclick=()=>{try{if(!this.guarded()||this.busy||privacyEnabled())throw new Error('Wait for the current action or exit privacy mode');action();}catch(e){this.status.textContent=e instanceof Error?e.message:'Polls unavailable';}};return b;}
- setScope(auth:AuthStatus|undefined,channel:string):void{if(this.auth?.userID!==auth?.userID||this.auth?.csrf!==auth?.csrf||channel!==this.channel||!auth?.authenticated||!auth.pollsEnabled){this.stop();this.title.value='';this.choices.value='';}this.auth=auth;this.channel=channel;if(!auth?.pollsManageEnabled){this.clearReview();if(this.snapshot)this.paint();this.status.textContent='Read-only poll view; manage-poll consent required for writes';}}
- private clearReview():void{this.review=undefined;this.preview.textContent='';this.confirm.disabled=true;}
- private async refresh():Promise<void>{const auth=this.auth;if(!auth?.authenticated||!auth.userID||!auth.pollsEnabled){this.status.textContent='Grant broadcaster poll consent first';return;}clearTimeout(this.timer);this.controller?.abort();const generation=this.generation,controller=this.controller=new AbortController();try{const res=await fetch('/api/auth/polls?'+new URLSearchParams({channel:this.channel}),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(25000)])});if(!res.ok)throw new Error('Poll read unavailable (HTTP '+res.status+'); select your broadcaster channel and check consent/eligibility');const value=parsePollSnapshot(await res.json(),auth.userID,this.channel);if(generation!==this.generation||privacyEnabled())return;this.outcomeUncertain=false;this.snapshot=value;this.paint();this.status.textContent='Read broadcaster '+value.account+' / #'+value.channel+' at '+new Date(value.at).toISOString()+'. Latest '+value.polls.length+' polls; older polls unavailable.';this.timer=setTimeout(()=>{if(!this.busy)void this.refresh();},15000);}catch(e){if(generation!==this.generation||controller.signal.aborted)return;this.snapshot=undefined;this.rendered='';this.list.replaceChildren();this.clearReview();this.status.textContent=e instanceof Error?e.message:'Poll state unavailable; reconnect explicitly';}}
- private paint():void{const rendered=JSON.stringify([this.snapshot?.polls,this.auth?.pollsManageEnabled]);if(rendered===this.rendered)return;this.rendered=rendered;this.list.replaceChildren();for(const poll of this.snapshot?.polls??[]){const row=document.createElement('p');row.append(document.createTextNode(poll.title+' · '+poll.id+' · '+poll.status+' · '+poll.choices.map(c=>c.title+': '+c.votes+' votes ('+c.channel_points_votes+' Channel Points votes)').join(' / ')));if(poll.status==='ACTIVE')for(const action of ['TERMINATED','ARCHIVED'] as const){const b=this.button(action==='TERMINATED'?'Preview end poll '+poll.id:'Preview end and archive poll '+poll.id,()=>this.stageEnd(poll,action));b.disabled=!this.auth?.pollsManageEnabled;row.append(b);}this.list.append(row);}if(this.review&&this.review.action!=='CREATE'&&!this.snapshot?.polls.some(p=>p.id===this.review?.id&&p.status==='ACTIVE'))this.clearReview();if(this.review?.action==='CREATE'&&this.snapshot?.polls.some(p=>p.status==='ACTIVE'))this.clearReview();}
- private permitted():void{if(this.outcomeUncertain)throw new Error('Refresh provider state before another action; the last outcome is uncertain');if(!this.auth?.authenticated||!this.auth.userID||!this.auth.pollsManageEnabled||this.snapshot?.account!==this.auth.userID||this.snapshot.channel!==this.channel)throw new Error('Refresh your own broadcaster channel with manage-poll consent');}
- private stageCreate():void{this.permitted();if(this.snapshot?.polls.some(p=>p.status==='ACTIVE'))throw new Error('End the current active poll first');const definition=pollDefinition({title:this.title.value.trim(),choices:this.choices.value.split('\n').map(x=>x.trim()).filter(Boolean),duration:Number(this.duration.value),pointsEnabled:this.pointsEnabled.checked,points:this.pointsEnabled.checked?Number(this.points.value):0});this.review={action:'CREATE',id:'',definition};this.preview.textContent='Review CREATE for #'+this.channel+' / broadcaster '+this.auth!.userID+'\n'+JSON.stringify(definition,null,2)+'\nConfirmation starts the poll immediately. Scope channel:manage:polls. No automatic retry.';this.confirm.disabled=false;}
- private stageEnd(poll:Poll,action:'TERMINATED'|'ARCHIVED'):void{this.permitted();if(!this.snapshot?.polls.some(p=>p.id===poll.id&&p.status==='ACTIVE'))throw new Error('Active poll changed');this.review={action,id:poll.id};this.preview.textContent='Review '+action+' for #'+this.channel+' / broadcaster '+this.auth!.userID+'\nPoll '+poll.id+': '+poll.title+'\n'+(action==='ARCHIVED'?'Ends and archives the poll; it is no longer publicly visible.':'Ends the poll early; results remain publicly visible.')+'\nScope channel:manage:polls. Confirmation sends once; no automatic retry.';this.confirm.disabled=false;}
- private async send():Promise<void>{const review=this.review,auth=this.auth;if(!review||!auth?.userID||!auth.csrf)return;const generation=this.generation,account=auth.userID,channel=this.channel,id=crypto.randomUUID(),abort=this.writeAbort=new AbortController();this.busy=true;this.controller?.abort();clearTimeout(this.timer);this.confirm.disabled=true;let saved=false,started=false;try{this.permitted();await this.journal.begin(account,{id,at:Date.now(),channel,target:review.id||'new-poll',broadcasterID:account,command:review.action==='CREATE'?'/pollcreate':'/poll'+(review.action==='ARCHIVED'?'archive':'end')+' '+review.id,outcome:'pending',detail:''});saved=true;if(generation!==this.generation||privacyEnabled())throw new Error('Account or private view changed');started=true;const res=await fetch('/api/auth/polls',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':auth.csrf},body:JSON.stringify({account,channel,broadcasterID:account,requestID:id,action:review.action,id:review.id,title:review.definition?.title??'',choices:review.definition?.choices??[],duration:review.definition?.duration??0,pointsEnabled:review.definition?.pointsEnabled??false,points:review.definition?.points??0}),signal:AbortSignal.any([abort.signal,AbortSignal.timeout(30000)])});const raw:unknown=await res.json();if(!raw||typeof raw!=='object')throw new Error('Poll result unavailable');const v=raw as Record<string,unknown>;if(typeof v.sent!=='boolean'||v.uncertain!==undefined&&typeof v.uncertain!=='boolean'||v.error!==undefined&&(typeof v.error!=='string'||v.error.length>300))throw new Error('Poll result unavailable');const poll=v.sent&&res.ok?parsePoll(v.poll,account):undefined;const confirmed=!!poll&&(review.action==='CREATE'?poll.status==='ACTIVE'&&poll.title===review.definition?.title:poll.id===review.id&&poll.status===review.action);const outcome=confirmed?'confirmed':v.sent||v.uncertain?'uncertain':'rejected';await this.journal.finish(account,id,outcome,confirmed?'Provider confirmed poll '+poll!.id:typeof v.error==='string'?v.error:'Poll outcome unavailable; check Twitch');if(generation===this.generation&&!privacyEnabled()){this.outcomeUncertain=outcome==='uncertain';this.clearReview();this.status.textContent=outcome==='confirmed'?'Provider confirmed poll '+poll!.id:outcome==='uncertain'?'Poll outcome uncertain; check Twitch and refresh before another action. No automatic retry':typeof v.error==='string'?v.error:'Poll action rejected';if(confirmed){this.snapshot={account,channel,broadcasterID:account,at:Date.now(),polls:[poll!,...(this.snapshot?.polls??[]).filter(p=>p.id!==poll!.id)].slice(0,20)};this.paint();}await this.changed();}}catch(e){if(saved)try{await this.journal.finish(account,id,started?'uncertain':'rejected',started?'Poll request outcome unavailable; check Twitch':'No poll request was sent');}catch{/* Saved pending receipt remains unconfirmed. */}if(generation===this.generation&&!privacyEnabled()){this.outcomeUncertain=started;this.clearReview();this.status.textContent=(started?'Poll outcome uncertain; check Twitch. No automatic retry. ':'No poll request was sent. ')+(e instanceof Error?e.message:'Poll unavailable');}}finally{if(generation===this.generation){this.busy=false;if(this.snapshot&&!this.outcomeUncertain)this.timer=setTimeout(()=>void this.refresh(),15000);}}}
- stop():void{this.title.value='';this.choices.value='';this.generation++;clearTimeout(this.timer);this.controller?.abort();this.writeAbort?.abort();this.busy=false;this.outcomeUncertain=false;this.snapshot=undefined;this.rendered='';this.list.replaceChildren();this.clearReview();this.status.textContent='';}
+  readonly root = document.createElement('fieldset');
+  private title = document.createElement('input');
+  private choices = document.createElement('textarea');
+  private duration = document.createElement('input');
+  private pointsEnabled = document.createElement('input');
+  private points = document.createElement('input');
+  private list = document.createElement('div');
+  private preview = document.createElement('pre');
+  private status = document.createElement('p');
+  private confirm: HTMLButtonElement;
+  private auth: AuthStatus | undefined;
+  private channel = '';
+  private snapshot: PollSnapshot | undefined;
+  private review: { action: 'CREATE' | 'TERMINATED' | 'ARCHIVED'; id: string; definition?: PollDefinition } | undefined;
+  private rendered = '';
+  private generation = 0;
+  private controller: AbortController | undefined;
+  private writeAbort: AbortController | undefined;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private outcomeUncertain = false;
+  busy = false;
+  constructor(
+    private journal: ModerationJournal,
+    private guarded: () => boolean,
+    private changed: () => Promise<void>,
+  ) {
+    this.root.dataset.privatePolls = 'true';
+    const legend = document.createElement('legend');
+    legend.textContent = 'Broadcaster polls';
+    const help = document.createElement('p');
+    help.textContent =
+      'Use your own broadcaster channel and explicit poll consent. Read latest 20 polls; reconnect refresh restores provider state. Active reads refresh every 15 seconds. Preview creates no poll. Separate confirmation starts a poll immediately, or ends it publicly / ends and archives it. Poll eligibility is decided by Twitch. Channel Points permit additional paid votes; Bits voting is unavailable. Uncertain writes are never retried automatically.';
+    this.title.setAttribute('aria-label', 'Poll title');
+    this.title.maxLength = 120;
+    this.choices.setAttribute('aria-label', 'Poll choices, one per line');
+    this.duration.setAttribute('aria-label', 'Poll duration seconds');
+    this.duration.type = 'number';
+    this.duration.min = '15';
+    this.duration.max = '1800';
+    this.duration.value = '30';
+    this.pointsEnabled.type = 'checkbox';
+    this.pointsEnabled.setAttribute('aria-label', 'Enable Channel Points additional votes');
+    this.points.setAttribute('aria-label', 'Channel Points per additional vote');
+    this.points.type = 'number';
+    this.points.min = '1';
+    this.points.max = '1000000';
+    this.points.value = '100';
+    this.confirm = this.button('Confirm reviewed poll action', () => void this.send());
+    this.confirm.disabled = true;
+    this.status.setAttribute('role', 'status');
+    this.list.className = 'automod-list';
+    this.root.append(
+      legend,
+      help,
+      this.button('Grant broadcaster poll consent', () => {
+        if (!this.auth?.authenticated) throw new Error('Log in as broadcaster');
+        const u = new URL(this.auth.loginURL);
+        u.searchParams.set('polls', 'manage');
+        u.searchParams.set('account', this.auth.userID ?? '');
+        u.searchParams.set('channel', this.channel);
+        location.assign(u.href);
+      }),
+      this.button('Refresh/reconnect broadcaster polls', () => void this.refresh()),
+      this.list,
+      this.title,
+      this.choices,
+      this.duration,
+      this.pointsEnabled,
+      this.points,
+      this.button('Preview new poll', () => this.stageCreate()),
+      this.preview,
+      this.confirm,
+      this.status,
+    );
+    for (const input of [this.title, this.choices, this.duration, this.pointsEnabled, this.points])
+      input.addEventListener('input', () => this.clearReview());
+  }
+  private button(text: string, action: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = text;
+    b.onclick = () => {
+      try {
+        if (!this.guarded() || this.busy || privacyEnabled())
+          throw new Error('Wait for the current action or exit privacy mode');
+        action();
+      } catch (e) {
+        this.status.textContent = e instanceof Error ? e.message : 'Polls unavailable';
+      }
+    };
+    return b;
+  }
+  setScope(auth: AuthStatus | undefined, channel: string): void {
+    if (
+      this.auth?.userID !== auth?.userID ||
+      this.auth?.csrf !== auth?.csrf ||
+      channel !== this.channel ||
+      !auth?.authenticated ||
+      !auth.pollsEnabled
+    ) {
+      this.stop();
+      this.title.value = '';
+      this.choices.value = '';
+    }
+    this.auth = auth;
+    this.channel = channel;
+    if (!auth?.pollsManageEnabled) {
+      this.clearReview();
+      if (this.snapshot) this.paint();
+      this.status.textContent = 'Read-only poll view; manage-poll consent required for writes';
+    }
+  }
+  private clearReview(): void {
+    this.review = undefined;
+    this.preview.textContent = '';
+    this.confirm.disabled = true;
+  }
+  private async refresh(): Promise<void> {
+    const auth = this.auth;
+    if (!auth?.authenticated || !auth.userID || !auth.pollsEnabled) {
+      this.status.textContent = 'Grant broadcaster poll consent first';
+      return;
+    }
+    clearTimeout(this.timer);
+    this.controller?.abort();
+    const generation = this.generation,
+      controller = (this.controller = new AbortController());
+    try {
+      const res = await fetch('/api/auth/polls?' + new URLSearchParams({ channel: this.channel }), {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(25000)]),
+      });
+      if (!res.ok)
+        throw new Error(
+          'Poll read unavailable (HTTP ' +
+            res.status +
+            '); select your broadcaster channel and check consent/eligibility',
+        );
+      const value = parsePollSnapshot(await res.json(), auth.userID, this.channel);
+      if (generation !== this.generation || privacyEnabled()) return;
+      this.outcomeUncertain = false;
+      this.snapshot = value;
+      this.paint();
+      this.status.textContent =
+        'Read broadcaster ' +
+        value.account +
+        ' / #' +
+        value.channel +
+        ' at ' +
+        new Date(value.at).toISOString() +
+        '. Latest ' +
+        value.polls.length +
+        ' polls; older polls unavailable.';
+      this.timer = setTimeout(() => {
+        if (!this.busy) void this.refresh();
+      }, 15000);
+    } catch (e) {
+      if (generation !== this.generation || controller.signal.aborted) return;
+      this.snapshot = undefined;
+      this.rendered = '';
+      this.list.replaceChildren();
+      this.clearReview();
+      this.status.textContent = e instanceof Error ? e.message : 'Poll state unavailable; reconnect explicitly';
+    }
+  }
+  private paint(): void {
+    const rendered = JSON.stringify([this.snapshot?.polls, this.auth?.pollsManageEnabled]);
+    if (rendered === this.rendered) return;
+    this.rendered = rendered;
+    this.list.replaceChildren();
+    for (const poll of this.snapshot?.polls ?? []) {
+      const row = document.createElement('p');
+      row.append(
+        document.createTextNode(
+          poll.title +
+            ' · ' +
+            poll.id +
+            ' · ' +
+            poll.status +
+            ' · ' +
+            poll.choices
+              .map((c) => c.title + ': ' + c.votes + ' votes (' + c.channel_points_votes + ' Channel Points votes)')
+              .join(' / '),
+        ),
+      );
+      if (poll.status === 'ACTIVE')
+        for (const action of ['TERMINATED', 'ARCHIVED'] as const) {
+          const b = this.button(
+            action === 'TERMINATED' ? 'Preview end poll ' + poll.id : 'Preview end and archive poll ' + poll.id,
+            () => this.stageEnd(poll, action),
+          );
+          b.disabled = !this.auth?.pollsManageEnabled;
+          row.append(b);
+        }
+      this.list.append(row);
+    }
+    if (
+      this.review &&
+      this.review.action !== 'CREATE' &&
+      !this.snapshot?.polls.some((p) => p.id === this.review?.id && p.status === 'ACTIVE')
+    )
+      this.clearReview();
+    if (this.review?.action === 'CREATE' && this.snapshot?.polls.some((p) => p.status === 'ACTIVE')) this.clearReview();
+  }
+  private permitted(): void {
+    if (this.outcomeUncertain)
+      throw new Error('Refresh provider state before another action; the last outcome is uncertain');
+    if (
+      !this.auth?.authenticated ||
+      !this.auth.userID ||
+      !this.auth.pollsManageEnabled ||
+      this.snapshot?.account !== this.auth.userID ||
+      this.snapshot.channel !== this.channel
+    )
+      throw new Error('Refresh your own broadcaster channel with manage-poll consent');
+  }
+  private stageCreate(): void {
+    this.permitted();
+    if (this.snapshot?.polls.some((p) => p.status === 'ACTIVE')) throw new Error('End the current active poll first');
+    const definition = pollDefinition({
+      title: this.title.value.trim(),
+      choices: this.choices.value
+        .split('\n')
+        .map((x) => x.trim())
+        .filter(Boolean),
+      duration: Number(this.duration.value),
+      pointsEnabled: this.pointsEnabled.checked,
+      points: this.pointsEnabled.checked ? Number(this.points.value) : 0,
+    });
+    this.review = { action: 'CREATE', id: '', definition };
+    this.preview.textContent =
+      'Review CREATE for #' +
+      this.channel +
+      ' / broadcaster ' +
+      this.auth!.userID +
+      '\n' +
+      JSON.stringify(definition, null, 2) +
+      '\nConfirmation starts the poll immediately. Scope channel:manage:polls. No automatic retry.';
+    this.confirm.disabled = false;
+  }
+  private stageEnd(poll: Poll, action: 'TERMINATED' | 'ARCHIVED'): void {
+    this.permitted();
+    if (!this.snapshot?.polls.some((p) => p.id === poll.id && p.status === 'ACTIVE'))
+      throw new Error('Active poll changed');
+    this.review = { action, id: poll.id };
+    this.preview.textContent =
+      'Review ' +
+      action +
+      ' for #' +
+      this.channel +
+      ' / broadcaster ' +
+      this.auth!.userID +
+      '\nPoll ' +
+      poll.id +
+      ': ' +
+      poll.title +
+      '\n' +
+      (action === 'ARCHIVED'
+        ? 'Ends and archives the poll; it is no longer publicly visible.'
+        : 'Ends the poll early; results remain publicly visible.') +
+      '\nScope channel:manage:polls. Confirmation sends once; no automatic retry.';
+    this.confirm.disabled = false;
+  }
+  private async send(): Promise<void> {
+    const review = this.review,
+      auth = this.auth;
+    if (!review || !auth?.userID || !auth.csrf) return;
+    const generation = this.generation,
+      account = auth.userID,
+      channel = this.channel,
+      id = crypto.randomUUID(),
+      abort = (this.writeAbort = new AbortController());
+    this.busy = true;
+    this.controller?.abort();
+    clearTimeout(this.timer);
+    this.confirm.disabled = true;
+    let saved = false,
+      started = false;
+    try {
+      this.permitted();
+      await this.journal.begin(account, {
+        id,
+        at: Date.now(),
+        channel,
+        target: review.id || 'new-poll',
+        broadcasterID: account,
+        command:
+          review.action === 'CREATE'
+            ? '/pollcreate'
+            : '/poll' + (review.action === 'ARCHIVED' ? 'archive' : 'end') + ' ' + review.id,
+        outcome: 'pending',
+        detail: '',
+      });
+      saved = true;
+      if (generation !== this.generation || privacyEnabled()) throw new Error('Account or private view changed');
+      started = true;
+      const res = await fetch('/api/auth/polls', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': auth.csrf },
+        body: JSON.stringify({
+          account,
+          channel,
+          broadcasterID: account,
+          requestID: id,
+          action: review.action,
+          id: review.id,
+          title: review.definition?.title ?? '',
+          choices: review.definition?.choices ?? [],
+          duration: review.definition?.duration ?? 0,
+          pointsEnabled: review.definition?.pointsEnabled ?? false,
+          points: review.definition?.points ?? 0,
+        }),
+        signal: AbortSignal.any([abort.signal, AbortSignal.timeout(30000)]),
+      });
+      const raw: unknown = await res.json();
+      if (!raw || typeof raw !== 'object') throw new Error('Poll result unavailable');
+      const v = raw as Record<string, unknown>;
+      if (
+        typeof v.sent !== 'boolean' ||
+        (v.uncertain !== undefined && typeof v.uncertain !== 'boolean') ||
+        (v.error !== undefined && (typeof v.error !== 'string' || v.error.length > 300))
+      )
+        throw new Error('Poll result unavailable');
+      const poll = v.sent && res.ok ? parsePoll(v.poll, account) : undefined;
+      const confirmed =
+        !!poll &&
+        (review.action === 'CREATE'
+          ? poll.status === 'ACTIVE' && poll.title === review.definition?.title
+          : poll.id === review.id && poll.status === review.action);
+      const outcome = confirmed ? 'confirmed' : v.sent || v.uncertain ? 'uncertain' : 'rejected';
+      await this.journal.finish(
+        account,
+        id,
+        outcome,
+        confirmed
+          ? 'Provider confirmed poll ' + poll!.id
+          : typeof v.error === 'string'
+            ? v.error
+            : 'Poll outcome unavailable; check Twitch',
+      );
+      if (generation === this.generation && !privacyEnabled()) {
+        this.outcomeUncertain = outcome === 'uncertain';
+        this.clearReview();
+        this.status.textContent =
+          outcome === 'confirmed'
+            ? 'Provider confirmed poll ' + poll!.id
+            : outcome === 'uncertain'
+              ? 'Poll outcome uncertain; check Twitch and refresh before another action. No automatic retry'
+              : typeof v.error === 'string'
+                ? v.error
+                : 'Poll action rejected';
+        if (confirmed) {
+          this.snapshot = {
+            account,
+            channel,
+            broadcasterID: account,
+            at: Date.now(),
+            polls: [poll!, ...(this.snapshot?.polls ?? []).filter((p) => p.id !== poll!.id)].slice(0, 20),
+          };
+          this.paint();
+        }
+        await this.changed();
+      }
+    } catch (e) {
+      if (saved)
+        try {
+          await this.journal.finish(
+            account,
+            id,
+            started ? 'uncertain' : 'rejected',
+            started ? 'Poll request outcome unavailable; check Twitch' : 'No poll request was sent',
+          );
+        } catch {
+          /* Saved pending receipt remains unconfirmed. */
+        }
+      if (generation === this.generation && !privacyEnabled()) {
+        this.outcomeUncertain = started;
+        this.clearReview();
+        this.status.textContent =
+          (started ? 'Poll outcome uncertain; check Twitch. No automatic retry. ' : 'No poll request was sent. ') +
+          (e instanceof Error ? e.message : 'Poll unavailable');
+      }
+    } finally {
+      if (generation === this.generation) {
+        this.busy = false;
+        if (this.snapshot && !this.outcomeUncertain) this.timer = setTimeout(() => void this.refresh(), 15000);
+      }
+    }
+  }
+  stop(): void {
+    this.title.value = '';
+    this.choices.value = '';
+    this.generation++;
+    clearTimeout(this.timer);
+    this.controller?.abort();
+    this.writeAbort?.abort();
+    this.busy = false;
+    this.outcomeUncertain = false;
+    this.snapshot = undefined;
+    this.rendered = '';
+    this.list.replaceChildren();
+    this.clearReview();
+    this.status.textContent = '';
+  }
 }

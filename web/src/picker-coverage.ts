@@ -10,13 +10,25 @@ function stamp(value: unknown, now: number): value is number {
 export class PickerCoverage {
   private gaps: Gap[] = [];
   private state: State;
-  constructor(saved: unknown, private readonly started = Date.now()) {
+  constructor(
+    saved: unknown,
+    private readonly started = Date.now(),
+  ) {
     this.state = { kind: 'interrupted', since: started };
     if (!saved || typeof saved !== 'object') return;
-    if ('gaps' in saved && Array.isArray(saved.gaps)) for (const gap of saved.gaps.slice(-50)) {
-      if (Array.isArray(gap) && gap.length === 2 && stamp(gap[0], started) && stamp(gap[1], started) && gap[0] < gap[1]) this.gaps.push([gap[0], gap[1]]);
-    }
-    if ('savedAt' in saved && stamp(saved.savedAt, started) && saved.savedAt < started) this.gaps.push([saved.savedAt, started]);
+    if ('gaps' in saved && Array.isArray(saved.gaps))
+      for (const gap of saved.gaps.slice(-50)) {
+        if (
+          Array.isArray(gap) &&
+          gap.length === 2 &&
+          stamp(gap[0], started) &&
+          stamp(gap[1], started) &&
+          gap[0] < gap[1]
+        )
+          this.gaps.push([gap[0], gap[1]]);
+      }
+    if ('savedAt' in saved && stamp(saved.savedAt, started) && saved.savedAt < started)
+      this.gaps.push([saved.savedAt, started]);
     this.compact(started);
   }
   connected(on: boolean, now = Date.now()): void {
@@ -32,7 +44,11 @@ export class PickerCoverage {
     return this.windows(now).some(([start, end]) => Math.min(end, now) - Math.max(start, now - window) > floor);
   }
   observed(timestamp: number, now = Date.now()): boolean {
-    return timestamp >= this.started && timestamp <= now && !this.windows(now).some(([start, end]) => timestamp >= start && timestamp <= end);
+    return (
+      timestamp >= this.started &&
+      timestamp <= now &&
+      !this.windows(now).some(([start, end]) => timestamp >= start && timestamp <= end)
+    );
   }
   snapshot(now = Date.now()): { savedAt: number; gaps: Gap[] } {
     return { savedAt: now, gaps: this.windows(now).map(([start, end]) => [start, end]) };
@@ -52,7 +68,11 @@ export class PickerCoverage {
       else merged.push([...gap]);
     }
     // Keep bounded coverage conservatively rather than forget old interruptions.
-    while (merged.length > 49) { const first = merged.shift(), second = merged[0]; if (first && second) second[0] = first[0]; }
+    while (merged.length > 49) {
+      const first = merged.shift(),
+        second = merged[0];
+      if (first && second) second[0] = first[0];
+    }
     this.gaps = merged;
   }
 }

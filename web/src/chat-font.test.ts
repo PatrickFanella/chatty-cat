@@ -8,7 +8,7 @@ let settings: DisplaySettings | undefined;
 afterEach(() => {
   settings?.stop();
   settings = undefined;
-  document.querySelectorAll('link[data-chat-font]').forEach(link => link.remove());
+  document.querySelectorAll('link[data-chat-font]').forEach((link) => link.remove());
   document.body.replaceChildren();
   localStorage.clear();
   vi.unstubAllGlobals();
@@ -43,12 +43,16 @@ it('loads the selected family synchronously, replaces it and restores it from sa
   font.value = 'atkinsonmono';
   font.dispatchEvent(new Event('change', { bubbles: true }));
   expect(document.querySelectorAll('link[data-chat-font]')).toHaveLength(1);
-  expect(document.querySelector<HTMLLinkElement>('link[data-chat-font]')!.href).toContain('family=Atkinson+Hyperlegible+Mono:wght@400;600&display=swap');
+  expect(document.querySelector<HTMLLinkElement>('link[data-chat-font]')!.href).toContain(
+    'family=Atkinson+Hyperlegible+Mono:wght@400;600&display=swap',
+  );
   settings!.stop();
   document.body.replaceChildren();
   document.querySelector('link[data-chat-font]')!.remove();
   expect(mount().value).toBe('atkinsonmono');
-  expect(document.querySelector<HTMLLinkElement>('link[data-chat-font]')!.href).toContain('family=Atkinson+Hyperlegible+Mono:');
+  expect(document.querySelector<HTMLLinkElement>('link[data-chat-font]')!.href).toContain(
+    'family=Atkinson+Hyperlegible+Mono:',
+  );
   settings!.setOptions({ font: 'roobert' });
   expect(document.querySelector('link[data-chat-font]')).toBeNull();
 });

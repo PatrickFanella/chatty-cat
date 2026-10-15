@@ -1,23 +1,179 @@
-import {validAccount} from './account-profiles';
-export const MOD_ACTIONS={timeout:'moderator:manage:banned_users',ban:'moderator:manage:banned_users',unban:'moderator:manage:banned_users',delete:'moderator:manage:chat_messages',clear:'moderator:manage:chat_messages',slow:'moderator:manage:chat_settings',slowoff:'moderator:manage:chat_settings',followers:'moderator:manage:chat_settings',followersoff:'moderator:manage:chat_settings',subscribers:'moderator:manage:chat_settings',subscribersoff:'moderator:manage:chat_settings',emoteonly:'moderator:manage:chat_settings',emoteonlyoff:'moderator:manage:chat_settings',uniquechat:'moderator:manage:chat_settings',uniquechatoff:'moderator:manage:chat_settings',warn:'moderator:manage:warnings',shield:'moderator:manage:shield_mode',shieldoff:'moderator:manage:shield_mode',banid:'moderator:manage:banned_users',untimeout:'moderator:manage:banned_users',monitor:'moderator:manage:suspicious_users',unmonitor:'moderator:manage:suspicious_users',restrict:'moderator:manage:suspicious_users',unrestrict:'moderator:manage:suspicious_users',} as const;
-export type ModerationAction=keyof typeof MOD_ACTIONS;
-export function moderationCommand(action:ModerationAction,user:string,messageID:string,amount:number,reason:string):string{
- if(!Object.hasOwn(MOD_ACTIONS,action)||reason.length>200||/[\x00-\x1f\x7f-\x9f]/.test(reason))throw new Error('Choose a supported moderation action and a plain reason of at most 200 characters');
- reason=reason.trim().replace(/\s+/g,' ');
- if(action==='banid'){if(!/^[1-9][0-9]{0,29}$/.test(user))throw new Error('Review a positive numeric user ID');return '/banid '+user+(reason?' '+reason:'');}
- if(['monitor','unmonitor','restrict','unrestrict'].includes(action)){if(!/^[a-z0-9_]{1,25}$/.test(user)||reason)throw new Error('Choose one user with no reason for treatment actions');return '/'+action+' '+user;}
- if(['warn','ban','timeout','unban','untimeout'].includes(action)){if(!/^[a-z0-9_]{1,25}$/.test(user))throw new Error('Choose a valid user');if(action==='timeout'&&(!Number.isInteger(amount)||amount<1||amount>1209600))throw new Error('Timeout must be 1–1209600 seconds');if(action==='warn'&&!reason)throw new Error('A warning requires a reason');return '/'+action+' '+user+(action==='timeout'?' '+amount:'')+(!['unban','untimeout'].includes(action)&&reason.trim()?' '+reason.trim():'');}
- if(action==='delete'){if(!/^[A-Za-z0-9_-]{1,128}$/.test(messageID))throw new Error('Select a retained message ID to delete');return '/delete '+messageID;}
- if(action==='slow'||action==='followers'){const min=action==='slow'?3:0,max=action==='slow'?120:129600;if(!Number.isInteger(amount)||amount<min||amount>max)throw new Error('Room-mode value is outside the supported range');return '/'+action+' '+amount;}return '/'+action;
+import { validAccount } from './account-profiles';
+export const MOD_ACTIONS = {
+  timeout: 'moderator:manage:banned_users',
+  ban: 'moderator:manage:banned_users',
+  unban: 'moderator:manage:banned_users',
+  delete: 'moderator:manage:chat_messages',
+  clear: 'moderator:manage:chat_messages',
+  slow: 'moderator:manage:chat_settings',
+  slowoff: 'moderator:manage:chat_settings',
+  followers: 'moderator:manage:chat_settings',
+  followersoff: 'moderator:manage:chat_settings',
+  subscribers: 'moderator:manage:chat_settings',
+  subscribersoff: 'moderator:manage:chat_settings',
+  emoteonly: 'moderator:manage:chat_settings',
+  emoteonlyoff: 'moderator:manage:chat_settings',
+  uniquechat: 'moderator:manage:chat_settings',
+  uniquechatoff: 'moderator:manage:chat_settings',
+  warn: 'moderator:manage:warnings',
+  shield: 'moderator:manage:shield_mode',
+  shieldoff: 'moderator:manage:shield_mode',
+  banid: 'moderator:manage:banned_users',
+  untimeout: 'moderator:manage:banned_users',
+  monitor: 'moderator:manage:suspicious_users',
+  unmonitor: 'moderator:manage:suspicious_users',
+  restrict: 'moderator:manage:suspicious_users',
+  unrestrict: 'moderator:manage:suspicious_users',
+} as const;
+export type ModerationAction = keyof typeof MOD_ACTIONS;
+export function moderationCommand(
+  action: ModerationAction,
+  user: string,
+  messageID: string,
+  amount: number,
+  reason: string,
+): string {
+  if (!Object.hasOwn(MOD_ACTIONS, action) || reason.length > 200 || /[\x00-\x1f\x7f-\x9f]/.test(reason))
+    throw new Error('Choose a supported moderation action and a plain reason of at most 200 characters');
+  reason = reason.trim().replace(/\s+/g, ' ');
+  if (action === 'banid') {
+    if (!/^[1-9][0-9]{0,29}$/.test(user)) throw new Error('Review a positive numeric user ID');
+    return '/banid ' + user + (reason ? ' ' + reason : '');
+  }
+  if (['monitor', 'unmonitor', 'restrict', 'unrestrict'].includes(action)) {
+    if (!/^[a-z0-9_]{1,25}$/.test(user) || reason)
+      throw new Error('Choose one user with no reason for treatment actions');
+    return '/' + action + ' ' + user;
+  }
+  if (['warn', 'ban', 'timeout', 'unban', 'untimeout'].includes(action)) {
+    if (!/^[a-z0-9_]{1,25}$/.test(user)) throw new Error('Choose a valid user');
+    if (action === 'timeout' && (!Number.isInteger(amount) || amount < 1 || amount > 1209600))
+      throw new Error('Timeout must be 1–1209600 seconds');
+    if (action === 'warn' && !reason) throw new Error('A warning requires a reason');
+    return (
+      '/' +
+      action +
+      ' ' +
+      user +
+      (action === 'timeout' ? ' ' + amount : '') +
+      (!['unban', 'untimeout'].includes(action) && reason.trim() ? ' ' + reason.trim() : '')
+    );
+  }
+  if (action === 'delete') {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(messageID)) throw new Error('Select a retained message ID to delete');
+    return '/delete ' + messageID;
+  }
+  if (action === 'slow' || action === 'followers') {
+    const min = action === 'slow' ? 3 : 0,
+      max = action === 'slow' ? 120 : 129600;
+    if (!Number.isInteger(amount) || amount < min || amount > max)
+      throw new Error('Room-mode value is outside the supported range');
+    return '/' + action + ' ' + amount;
+  }
+  return '/' + action;
 }
-export function validModerationCommand(command:string):boolean{if(command.length>500||/[\x00-\x1f\x7f-\x9f]/.test(command))return false;const [verb,user,value,...reason]=command.trim().split(/\s+/),action=verb?.slice(1) as ModerationAction;if(!Object.hasOwn(MOD_ACTIONS,action))return false;try{const expected=moderationCommand(action,user??'',user??'',Number(action==='timeout'?value:user),action==='timeout'?reason.join(' '):[value,...reason].filter(Boolean).join(' '));return expected===command;}catch{return false;}}
-export interface ModerationContext {account:string;channel:string;broadcasterID:string;target:string;targetID:string;role:'broadcaster'|'moderator'|'viewer'|'unknown';roleDetail:string;at:number;targetKind:'login'|'id';shieldState:string;settings:Record<string,boolean|number>;targetState:string}
-export function parseModerationContext(raw:unknown):ModerationContext{
- if(!raw||typeof raw!=='object')throw new Error('Invalid moderation context');const v=raw as Record<string,unknown>;
- for(const key of ['account','broadcasterID','targetID'])if(typeof v[key]!=='string'||!validAccount(v[key]))throw new Error('Invalid moderation identity');if(v.targetKind!==undefined&&(typeof v.targetKind!=='string'||!['login','id'].includes(v.targetKind)))throw new Error('Invalid target kind');const targetKind=v.targetKind==='id'?'id':'login';for(const key of ['channel','target'])if(typeof v[key]!=='string'||!(key==='target'&&targetKind==='id'?/^[1-9][0-9]{0,29}$/:/^[a-z0-9_]{1,25}$/).test(v[key]))throw new Error('Invalid moderation target');if(typeof v.role!=='string'||!['broadcaster','moderator','viewer','unknown'].includes(v.role)||typeof v.roleDetail!=='string'||v.roleDetail.length>300||typeof v.targetState!=='string'||v.targetState.length>300||!Number.isSafeInteger(v.at)||Number(v.at)<0||Number(v.at)>Date.now()+300000)throw new Error('Invalid moderation state');
- if(v.shieldState!==undefined&&(typeof v.shieldState!=='string'||v.shieldState.length>300))throw new Error('Invalid Shield Mode state');
- const settings:Record<string,boolean|number>={};if(v.settings&&typeof v.settings==='object')for(const [key,value] of Object.entries(v.settings)){if(['slow_mode','follower_mode','subscriber_mode','emote_mode','unique_chat_mode'].includes(key)&&typeof value==='boolean')settings[key]=value;if(['slow_mode_wait_time','follower_mode_duration'].includes(key)&&typeof value==='number'&&Number.isSafeInteger(value)&&value>=0&&value<=129600)settings[key]=value;}
- return {account:String(v.account),channel:String(v.channel),broadcasterID:String(v.broadcasterID),target:String(v.target),targetID:String(v.targetID),role:v.role as ModerationContext['role'],roleDetail:v.roleDetail,at:Number(v.at),targetKind,shieldState:typeof v.shieldState==='string'?v.shieldState:'Unavailable',settings,targetState:v.targetState};
+export function validModerationCommand(command: string): boolean {
+  if (command.length > 500 || /[\x00-\x1f\x7f-\x9f]/.test(command)) return false;
+  const [verb, user, value, ...reason] = command.trim().split(/\s+/),
+    action = verb?.slice(1) as ModerationAction;
+  if (!Object.hasOwn(MOD_ACTIONS, action)) return false;
+  try {
+    const expected = moderationCommand(
+      action,
+      user ?? '',
+      user ?? '',
+      Number(action === 'timeout' ? value : user),
+      action === 'timeout' ? reason.join(' ') : [value, ...reason].filter(Boolean).join(' '),
+    );
+    return expected === command;
+  } catch {
+    return false;
+  }
+}
+export interface ModerationContext {
+  account: string;
+  channel: string;
+  broadcasterID: string;
+  target: string;
+  targetID: string;
+  role: 'broadcaster' | 'moderator' | 'viewer' | 'unknown';
+  roleDetail: string;
+  at: number;
+  targetKind: 'login' | 'id';
+  shieldState: string;
+  settings: Record<string, boolean | number>;
+  targetState: string;
+}
+export function parseModerationContext(raw: unknown): ModerationContext {
+  if (!raw || typeof raw !== 'object') throw new Error('Invalid moderation context');
+  const v = raw as Record<string, unknown>;
+  for (const key of ['account', 'broadcasterID', 'targetID'])
+    if (typeof v[key] !== 'string' || !validAccount(v[key])) throw new Error('Invalid moderation identity');
+  if (v.targetKind !== undefined && (typeof v.targetKind !== 'string' || !['login', 'id'].includes(v.targetKind)))
+    throw new Error('Invalid target kind');
+  const targetKind = v.targetKind === 'id' ? 'id' : 'login';
+  for (const key of ['channel', 'target'])
+    if (
+      typeof v[key] !== 'string' ||
+      !(key === 'target' && targetKind === 'id' ? /^[1-9][0-9]{0,29}$/ : /^[a-z0-9_]{1,25}$/).test(v[key])
+    )
+      throw new Error('Invalid moderation target');
+  if (
+    typeof v.role !== 'string' ||
+    !['broadcaster', 'moderator', 'viewer', 'unknown'].includes(v.role) ||
+    typeof v.roleDetail !== 'string' ||
+    v.roleDetail.length > 300 ||
+    typeof v.targetState !== 'string' ||
+    v.targetState.length > 300 ||
+    !Number.isSafeInteger(v.at) ||
+    Number(v.at) < 0 ||
+    Number(v.at) > Date.now() + 300000
+  )
+    throw new Error('Invalid moderation state');
+  if (v.shieldState !== undefined && (typeof v.shieldState !== 'string' || v.shieldState.length > 300))
+    throw new Error('Invalid Shield Mode state');
+  const settings: Record<string, boolean | number> = {};
+  if (v.settings && typeof v.settings === 'object')
+    for (const [key, value] of Object.entries(v.settings)) {
+      if (
+        ['slow_mode', 'follower_mode', 'subscriber_mode', 'emote_mode', 'unique_chat_mode'].includes(key) &&
+        typeof value === 'boolean'
+      )
+        settings[key] = value;
+      if (
+        ['slow_mode_wait_time', 'follower_mode_duration'].includes(key) &&
+        typeof value === 'number' &&
+        Number.isSafeInteger(value) &&
+        value >= 0 &&
+        value <= 129600
+      )
+        settings[key] = value;
+    }
+  return {
+    account: String(v.account),
+    channel: String(v.channel),
+    broadcasterID: String(v.broadcasterID),
+    target: String(v.target),
+    targetID: String(v.targetID),
+    role: v.role as ModerationContext['role'],
+    roleDetail: v.roleDetail,
+    at: Number(v.at),
+    targetKind,
+    shieldState: typeof v.shieldState === 'string' ? v.shieldState : 'Unavailable',
+    settings,
+    targetState: v.targetState,
+  };
 }
 
-export const USER_MODERATION_ACTIONS:readonly ModerationAction[]=['monitor','unmonitor','restrict','unrestrict','warn','ban','timeout','unban','untimeout','banid'];
+export const USER_MODERATION_ACTIONS: readonly ModerationAction[] = [
+  'monitor',
+  'unmonitor',
+  'restrict',
+  'unrestrict',
+  'warn',
+  'ban',
+  'timeout',
+  'unban',
+  'untimeout',
+  'banid',
+];

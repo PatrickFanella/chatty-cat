@@ -1,10 +1,90 @@
 // @vitest-environment happy-dom
-import {expect,it} from 'vitest';
-import {portableMessage,LogModeration,logGroups,logOutput,type LogCoverage} from './portable-logs';
-import {parseHistoryImport} from './history-import';
-const message={id:'id',channel:'one',command:'PRIVMSG',login:'alice',text:'public text',timestamp:100000,tags:{access_token:'secret','reply-parent-msg-id':'parent','reply-parent-msg-body':'do not leak quoted deletion'}};
-const empty={archives:()=>[],samples:()=>[]};
-it('whitelists public commands and tags, excludes whispers and private fields, and marks clipping explicitly',()=>{const result=portableMessage(message)!;expect(JSON.stringify(result)).not.toContain('secret');expect(JSON.stringify(result)).not.toContain('do not leak');expect(result.tags['reply-parent-msg-id']).toBe('parent');expect(portableMessage({...message,command:'WHISPER'})).toBeUndefined();expect(portableMessage({...message,channel:'bad!'})).toBeUndefined();expect(portableMessage({...message,text:'a'.repeat(10001)})?.tags['log-truncated']).toBe('1');expect(portableMessage({...message,command:'CLEARMSG'})?.text).toBe('[removed message]');});
-it('redacts selected rows with later retained deletion/timeout notices while keeping moderation channel-scoped',()=>{const rows=[portableMessage(message)!],mod=new LogModeration(rows);mod.observe({...message,channel:'two',command:'CLEARCHAT',text:'alice',timestamp:200000});expect(mod.redact(rows[0]!).text).toBe('public text');mod.observe({...message,command:'CLEARMSG',tags:{'target-msg-id':'id'},timestamp:200000});expect(mod.redact(rows[0]!).text).toBe('[removed message]');const next=new LogModeration(rows);next.observe({...message,command:'CLEARCHAT',text:'alice',timestamp:200000});expect(next.redact(rows[0]!).tags.deleted).toBe('1');});
-it('groups known archive ranges and actual live poll intervals without filling gaps or inventing a session',()=>{const streams={archives:()=>[],samples:()=>[{at:100000,live:true,viewers:1,title:'public'},{at:160000,live:true,viewers:2,title:'public'},{at:200000,live:false,viewers:0,title:''},{at:400000,live:true,viewers:2,title:'other'}]};const rows=[{...message,timestamp:120000},{...message,id:'gap',timestamp:300000}],groups=logGroups(rows,streams);expect(groups.find(g=>g.kind==='observed live polls')).toMatchObject({start:100000,end:160000,records:[0]});expect(groups.find(g=>g.kind==='unassigned')?.records).toEqual([1]);const vod={start:'1970-01-01T00:01:00Z',end:'1970-01-01T00:03:00Z',url:'https://www.twitch.tv/videos/123',title:'public'};expect(logGroups([message],{...streams,archives:()=>[vod]})[0]?.kind).toBe('known archive range');});
-it('produces import-compatible safe records and readable moderation with configurable timestamps and coverage',()=>{const rows=[portableMessage(message)!,portableMessage({...message,id:'ban',command:'CLEARCHAT',text:'alice',tags:{'ban-duration':'600'}})!];const coverage:LogCoverage={requested:{from:0,to:200000,channels:['one']},retained:{rows:2,oldest:100000,newest:100000},part:1,more:false,truncated:0,groups:logGroups(rows,empty),notice:'Retained only; no continuous coverage is claimed'};const json=logOutput(rows,coverage,'json','utc');expect(parseHistoryImport(json,'one').messages).toHaveLength(2);const text=logOutput(rows,coverage,'text','epoch');expect(text).toContain('[100000]');expect(text).toContain('Timeout alice for 600 seconds');expect(text).toContain('no continuous coverage');expect(logOutput(rows,coverage,'text','local')).toContain('UTC');});
+import { expect, it } from 'vitest';
+import { portableMessage, LogModeration, logGroups, logOutput, type LogCoverage } from './portable-logs';
+import { parseHistoryImport } from './history-import';
+const message = {
+  id: 'id',
+  channel: 'one',
+  command: 'PRIVMSG',
+  login: 'alice',
+  text: 'public text',
+  timestamp: 100000,
+  tags: {
+    access_token: 'secret',
+    'reply-parent-msg-id': 'parent',
+    'reply-parent-msg-body': 'do not leak quoted deletion',
+  },
+};
+const empty = { archives: () => [], samples: () => [] };
+it('whitelists public commands and tags, excludes whispers and private fields, and marks clipping explicitly', () => {
+  const result = portableMessage(message)!;
+  expect(JSON.stringify(result)).not.toContain('secret');
+  expect(JSON.stringify(result)).not.toContain('do not leak');
+  expect(result.tags['reply-parent-msg-id']).toBe('parent');
+  expect(portableMessage({ ...message, command: 'WHISPER' })).toBeUndefined();
+  expect(portableMessage({ ...message, channel: 'bad!' })).toBeUndefined();
+  expect(portableMessage({ ...message, text: 'a'.repeat(10001) })?.tags['log-truncated']).toBe('1');
+  expect(portableMessage({ ...message, command: 'CLEARMSG' })?.text).toBe('[removed message]');
+});
+it('redacts selected rows with later retained deletion/timeout notices while keeping moderation channel-scoped', () => {
+  const rows = [portableMessage(message)!],
+    mod = new LogModeration(rows);
+  mod.observe({ ...message, channel: 'two', command: 'CLEARCHAT', text: 'alice', timestamp: 200000 });
+  expect(mod.redact(rows[0]!).text).toBe('public text');
+  mod.observe({ ...message, command: 'CLEARMSG', tags: { 'target-msg-id': 'id' }, timestamp: 200000 });
+  expect(mod.redact(rows[0]!).text).toBe('[removed message]');
+  const next = new LogModeration(rows);
+  next.observe({ ...message, command: 'CLEARCHAT', text: 'alice', timestamp: 200000 });
+  expect(next.redact(rows[0]!).tags.deleted).toBe('1');
+});
+it('groups known archive ranges and actual live poll intervals without filling gaps or inventing a session', () => {
+  const streams = {
+    archives: () => [],
+    samples: () => [
+      { at: 100000, live: true, viewers: 1, title: 'public' },
+      { at: 160000, live: true, viewers: 2, title: 'public' },
+      { at: 200000, live: false, viewers: 0, title: '' },
+      { at: 400000, live: true, viewers: 2, title: 'other' },
+    ],
+  };
+  const rows = [
+      { ...message, timestamp: 120000 },
+      { ...message, id: 'gap', timestamp: 300000 },
+    ],
+    groups = logGroups(rows, streams);
+  expect(groups.find((g) => g.kind === 'observed live polls')).toMatchObject({
+    start: 100000,
+    end: 160000,
+    records: [0],
+  });
+  expect(groups.find((g) => g.kind === 'unassigned')?.records).toEqual([1]);
+  const vod = {
+    start: '1970-01-01T00:01:00Z',
+    end: '1970-01-01T00:03:00Z',
+    url: 'https://www.twitch.tv/videos/123',
+    title: 'public',
+  };
+  expect(logGroups([message], { ...streams, archives: () => [vod] })[0]?.kind).toBe('known archive range');
+});
+it('produces import-compatible safe records and readable moderation with configurable timestamps and coverage', () => {
+  const rows = [
+    portableMessage(message)!,
+    portableMessage({ ...message, id: 'ban', command: 'CLEARCHAT', text: 'alice', tags: { 'ban-duration': '600' } })!,
+  ];
+  const coverage: LogCoverage = {
+    requested: { from: 0, to: 200000, channels: ['one'] },
+    retained: { rows: 2, oldest: 100000, newest: 100000 },
+    part: 1,
+    more: false,
+    truncated: 0,
+    groups: logGroups(rows, empty),
+    notice: 'Retained only; no continuous coverage is claimed',
+  };
+  const json = logOutput(rows, coverage, 'json', 'utc');
+  expect(parseHistoryImport(json, 'one').messages).toHaveLength(2);
+  const text = logOutput(rows, coverage, 'text', 'epoch');
+  expect(text).toContain('[100000]');
+  expect(text).toContain('Timeout alice for 600 seconds');
+  expect(text).toContain('no continuous coverage');
+  expect(logOutput(rows, coverage, 'text', 'local')).toContain('UTC');
+});
