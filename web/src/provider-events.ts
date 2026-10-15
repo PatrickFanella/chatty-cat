@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import type { AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { getProviderPreferences } from './provider-preferences';
@@ -216,7 +217,7 @@ export class ProviderEventClient {
         plan.sevenTV.slice(i, i + 80).map((s: Subscription) => JSON.stringify({ op: 35, d: s })),
       );
     if (this.connections.length) {
-      this.tick = setInterval(this.pump, 50);
+      this.tick = ownedInterval('provider.pump', this.pump, 50);
       this.status(
         'Optional provider read connections opening. Joined channel IDs are sent directly to configured providers; activity sharing requires a separate reviewed session.',
       );
@@ -389,7 +390,7 @@ export class ProviderEventClient {
     this.status('Optional provider connection ended or exceeded its limits. Chat continues; use Reconnect to retry.');
   }
   private disconnect(): void {
-    clearInterval(this.tick);
+    clearOwnedInterval(this.tick);
     this.tick = undefined;
     clearTimeout(this.paint);
     this.paint = undefined;

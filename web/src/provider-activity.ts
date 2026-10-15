@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { loadAuth, type AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -178,7 +179,7 @@ export class ProviderActivity {
     this.pending = undefined;
     this.active = row;
     this.busy = true;
-    this.timer = setInterval(this.tick, 1000);
+    this.timer = ownedInterval('provider.activity', this.tick, 1000);
     try {
       await this.send(row, generation);
       this.check(row, generation);
@@ -260,7 +261,7 @@ export class ProviderActivity {
     this.generation++;
     this.abort.abort();
     this.abort = new AbortController();
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     this.timer = undefined;
     this.pending = undefined;
     this.active = undefined;

@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { IRCRelayPanel } from './irc-relay-ui';
 import { ExtensionsPanel } from './extensions-ui';
 import { watchedWorkspace } from './watched-workspace';
@@ -455,7 +456,7 @@ export async function startMain(): Promise<void> {
       renderRoom();
     },
   );
-  const personalTimer = setInterval(renderRoom, 1000);
+  const personalTimer = ownedInterval('room.paint', renderRoom, 1000);
   const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => {
     providerEvents?.authChanged(auth);
     if (auth && getProfileScope() !== (auth.authenticated ? auth.userID : 'anonymous')) {
@@ -785,6 +786,9 @@ export async function startMain(): Promise<void> {
     );
   }
   let shell: Shell | undefined;
+  let resourceReadout: import('./resource-readout').ResourceReadout | undefined;
+  let resourceReadoutLoading: Promise<void> | undefined;
+  let pageStopped = false;
   function render(): void {
     renderQueued = false;
     if (shell) shell.workbench.setRail(overlay ? 1 : display.options.split, railPanels);
@@ -1879,7 +1883,7 @@ export async function startMain(): Promise<void> {
     visualRevision++;
     scheduleRender();
   });
-  setInterval(() => store.save(), 15000);
+  const storeTimer = ownedInterval('storage.messages', () => store.save(), 15000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       store.save();
@@ -1916,7 +1920,8 @@ export async function startMain(): Promise<void> {
     stopAuth();
     personalChat.stop();
     whispers.stop();
-    clearInterval(personalTimer);
+    clearOwnedInterval(personalTimer);
+    clearOwnedInterval(storeTimer);
     accountEmotes.stop();
     composer.stop();
     navigation.stop();
@@ -1958,6 +1963,40 @@ export async function startMain(): Promise<void> {
         })),
     });
     shell.workbench.setRail(display.options.split, railPanels);
+    shell.registry.register({
+      id: 'debug:resources',
+      label: 'Resource readout',
+      group: 'help',
+      keywords: 'debug performance timers heap long tasks',
+      available: () => !privacyEnabled(),
+      run: () => {
+        if (privacyEnabled() || pageStopped) return;
+        if (resourceReadout) {
+          resourceReadout.open();
+          return;
+        }
+        resourceReadoutLoading ??= import('./resource-readout')
+          .then(({ ResourceReadout }) => {
+            if (privacyEnabled() || pageStopped) return;
+            resourceReadout = new ResourceReadout(() => ({
+              mountedRows: log.querySelectorAll('[data-virtual-key]').length,
+              rowCache: rowsByMessage.size,
+              retainedMessages: store.messages.length,
+            }));
+            resourceReadout.open();
+          })
+          .catch(() => {
+            announcer.textContent = 'Resource readout could not load. Try again.';
+          })
+          .finally(() => {
+            resourceReadoutLoading = undefined;
+          });
+      },
+    });
   }
-  window.addEventListener('pagehide', () => shell?.stop());
+  window.addEventListener('pagehide', () => {
+    pageStopped = true;
+    resourceReadout?.stop();
+    shell?.stop();
+  });
 }

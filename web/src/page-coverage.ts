@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import type { ChatMessage } from './protocol';
 
 // Observation timestamps are separate from message timestamps: quiet chat does
@@ -12,7 +13,7 @@ export class PageCoverage {
     const initial = [...channels];
     this.channels = [];
     this.setChannels(initial, now);
-    this.timer = setInterval(() => this.save(), 10000);
+    this.timer = ownedInterval('storage.coverage', () => this.save(), 10000);
   }
   setChannels(channels: readonly string[], now = Date.now()): void {
     this.save(now);
@@ -59,7 +60,7 @@ export class PageCoverage {
     }
   }
   stop(): void {
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     this.save();
   }
 }

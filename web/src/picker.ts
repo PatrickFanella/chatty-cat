@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { EMOJI_GROUPS, EMOJI_VERSION, emojiNode } from './emoji';
 import { profileKey } from './account-profiles';
 import { registerSettings } from './settings-bundle';
@@ -143,12 +144,16 @@ export class EmotePicker {
     this.search.addEventListener('input', this.searchChange);
     this.search.addEventListener('keydown', this.searchKey);
     this.more.addEventListener('click', this.showMore);
-    this.timer = setInterval(() => {
-      if (!this.root.hidden) this.paintAgeCoverage();
-      if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold))
-        this.refresh(true);
-    }, 1000);
-    this.saveTimer = setInterval(() => this.model.saveAll(), 15000);
+    this.timer = ownedInterval(
+      'picker.refresh',
+      () => {
+        if (!this.root.hidden) this.paintAgeCoverage();
+        if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold))
+          this.refresh(true);
+      },
+      1000,
+    );
+    this.saveTimer = ownedInterval('storage.picker', () => this.model.saveAll(), 15000);
     this.floating = new FloatingPanel(
       root,
       get(root, 'picker-handle', HTMLElement),
@@ -551,8 +556,8 @@ export class EmotePicker {
     this.gridLeave();
     this.grid.removeEventListener('pointerenter', this.gridEnter);
     this.grid.removeEventListener('pointerleave', this.gridLeave);
-    clearInterval(this.timer);
-    clearInterval(this.saveTimer);
+    clearOwnedInterval(this.timer);
+    clearOwnedInterval(this.saveTimer);
     this.floating.stop();
     this.model.saveAll();
     this.trigger.removeEventListener('click', this.toggle);

@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { AccountControls } from './account-profiles-ui';
 export type AuthStatus = {
   enabled: boolean;
@@ -241,14 +242,18 @@ export function mountAuth(
     history.replaceState(null, '', url);
   }
   void update();
-  const timer = setInterval(() => {
-    if (!changing) void update();
-  }, 60000);
+  const timer = ownedInterval(
+    'auth.refresh',
+    () => {
+      if (!changing) void update();
+    },
+    60000,
+  );
   return () => {
     disposed = true;
     accounts.stop();
     controller.abort();
-    clearInterval(timer);
+    clearOwnedInterval(timer);
     sync?.removeEventListener('message', reload);
     sync?.close();
     button.removeEventListener('click', click);
