@@ -21,8 +21,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 const flush = () => new Promise((r) => setTimeout(r, 0));
-function setup() {
-  document.body.innerHTML = '<button id="archive-open"></button>';
+function setup(open = true) {
+  document.body.replaceChildren();
   const plan: RetentionPlan = {
       policy: { rows: 100000, days: 0 },
       at: Date.now(),
@@ -47,7 +47,7 @@ function setup() {
     };
   panel = new PortableLogsPanel(['one'], archive, { archives: () => [], samples: () => [] });
   panel.setAccount('42');
-  panel.show();
+  if (open) panel.open();
   const button = (name: string) => [...panel!.root.querySelectorAll('button')].find((b) => b.textContent === name)!;
   return { archive, button };
 }
@@ -121,4 +121,32 @@ it('aborts stale export preparation on privacy activation and never restores the
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.querySelector('pre')?.textContent).toBe('');
   expect(ui.button('Download reviewed log part').disabled).toBe(true);
+});
+
+it('defers archive reads until open or review and drops a pending export after close', async () => {
+  const ui = setup(false);
+  expect(ui.archive.retentionPreview).not.toHaveBeenCalled();
+  expect(ui.archive.searchPage).not.toHaveBeenCalled();
+  expect(ui.archive.applyRetention).not.toHaveBeenCalled();
+  panel!.open();
+  await flush();
+  expect(ui.archive.retentionPreview).toHaveBeenCalledTimes(1);
+  expect(ui.archive.searchPage).not.toHaveBeenCalled();
+  expect(ui.archive.applyRetention).not.toHaveBeenCalled();
+  let finish: (() => void) | undefined;
+  ui.archive.scanChannel.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  ui.button('Preview selected public logs').click();
+  await flush();
+  panel!.close();
+  finish?.();
+  await flush();
+  expect(panel!.root.open).toBe(false);
+  expect(panel!.root.querySelector('pre')?.textContent).toBe('');
+  expect(ui.button('Download reviewed log part').disabled).toBe(true);
+  expect(ui.button('Apply reviewed retention').disabled).toBe(true);
 });

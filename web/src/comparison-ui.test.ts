@@ -12,8 +12,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 const flush = () => new Promise((r) => setTimeout(r, 0));
-function setup() {
-  document.body.innerHTML = '<button id="stats-open"></button>';
+function setup(open = true) {
+  document.body.replaceChildren();
   const now = Math.floor(Date.now() / 1000) * 1000,
     rates = new RateSeries(['one', 'two'], now - 60000);
   rates.status({ type: 'status', state: 'connected', detail: '' }, now - 60000);
@@ -45,8 +45,7 @@ function setup() {
   );
   panel.setAccount('42');
   const button = (text: string) => [...panel!.root.querySelectorAll('button')].find((b) => b.textContent === text)!;
-  const trigger = [...document.body.querySelectorAll('button')].find((b) => b.textContent === 'Compare activity')!;
-  trigger.click();
+  if (open) panel.open();
   return { archive, chat, vod, button };
 }
 it('builds aligned graphs and source marks, previews a whitelisted export and clears it after filter changes', async () => {
@@ -109,9 +108,32 @@ it('rejects invalid windows before scanning the archive', async () => {
 it('keeps public retained comparisons available when account status is unknown or offline', async () => {
   const ui = setup();
   panel!.setAccount(undefined);
-  [...document.body.querySelectorAll('button')].find((b) => b.textContent === 'Compare activity')!.click();
+  panel!.open();
   ui.button('Compare selected channels').click();
   await flush();
   expect(panel!.root.querySelectorAll('svg')).toHaveLength(2);
   expect(ui.archive.scanChannel).toHaveBeenCalled();
+});
+
+it('does not read retained data on construction or opening, and cancels a pending scan on close', async () => {
+  const ui = setup(false);
+  expect(ui.archive.scanChannel).not.toHaveBeenCalled();
+  expect(ui.archive.search).not.toHaveBeenCalled();
+  panel!.open();
+  expect(ui.archive.scanChannel).not.toHaveBeenCalled();
+  let finish: (() => void) | undefined;
+  ui.archive.scanChannel.mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  ui.button('Compare selected channels').click();
+  await flush();
+  panel!.close();
+  finish?.();
+  await flush();
+  expect(panel!.root.open).toBe(false);
+  expect(panel!.root.querySelectorAll('svg')).toHaveLength(0);
+  expect(ui.button('Download reviewed comparison').disabled).toBe(true);
 });
