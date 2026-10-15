@@ -1,5 +1,6 @@
 import {profileKey} from './account-profiles';
 import { privacyEnabled } from './privacy';
+import { loadChatFont } from './chat-font';
 import {captureBundle,parseBundle,restoreBundle,type SettingsBundle} from './settings-bundle';
 import './palettes.css';
 import './fonts.css';
@@ -70,6 +71,7 @@ export class DisplaySettings {
     document.dispatchEvent(new Event('presentation-before-change'));
     if(this.options.autoShade)this.options.shade=this.systemTone.matches?7:1;
     const o = this.options; const root = document.documentElement; root.dataset.colour = o.colour; root.dataset.variant = o.variant; root.dataset.shade = String(o.shade); root.dataset.theme = o.shade <= 3 ? 'light' : 'dark';
+    loadChatFont(o.font);
     root.style.setProperty('--chat-family', FONT_STACKS[o.font] ?? 'sans-serif'); root.style.setProperty('--chat-size', o.size + 'px'); root.style.setProperty('--chat-height', String(o.lh)); root.style.setProperty('--chat-weight', String(o.weight)); root.style.setProperty('--chat-spacing', o.spacing + 'em'); root.style.setProperty('--chat-line', o.lines ? `color-mix(in srgb, var(--line) ${o.lines * 25}%, transparent)` : 'transparent'); root.style.setProperty('--chat-zebra', o.zebra ? `color-mix(in srgb, var(--panel) ${o.zebra * 20}%, var(--bg))` : 'transparent'); root.dataset.times = String(o.times); root.dataset.eonly = String(o.eonly); root.dataset.min=String(o.min);root.style.setProperty('--header-size',(o.hfs||o.size)+'px');root.style.setProperty('--help-size',(o.hpfs>0?o.hpfs:o.hpfs===0?o.size:FONT_SIZES[Math.max(0,FONT_SIZES.indexOf(o.size)+o.hpfs)]??o.size)+'px');root.style.setProperty('--resource-link-weight',String(o.lw));root.dataset.stitle=String(o.stitle);root.dataset.lbls=String(o.lbls);root.dataset.bauto=String(o.bauto);root.dataset.peek=String(o.peek);root.dataset.yt=String(o.yt);root.dataset.gifsafe=String(o.gifsafe);root.dataset.lkico=String(o.lkico);document.dispatchEvent(new Event('previewsettings'));root.dataset.bartop=String(o.bartop); root.dataset.cmodes=String(o.cmodes); root.dataset.anim=String(o.anim); root.dataset.rbw=String(o.rbw); root.dataset.sub=o.sub; root.dataset.clean=String(o.clean); root.style.setProperty('--shim-t',[0,12,6,3][o.anim]+'s'); root.style.setProperty('--rbw-t',[0,24,12,6][o.anim]+'s');
     root.style.setProperty('--chat-shadow', ['none', '0 1px 2px color-mix(in srgb, var(--fg) 35%, transparent)', '0 1px 3px color-mix(in srgb, var(--fg) 55%, transparent)', '0 2px 5px color-mix(in srgb, var(--fg) 75%, transparent)', '0 1px 3px rgba(0,0,0,.85)', '0 0 3px rgba(0,0,0,.9), 0 2px 7px rgba(0,0,0,.95)'][o.shadow] ?? 'none');
   }
