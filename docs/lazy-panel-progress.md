@@ -1,8 +1,9 @@
 # Lazy panel conversion
 
 Issue [#130](https://git.subcult.tv/subculture-collective/chatty-cat/issues/130)
-remains open. Five editors now use the lifecycle: **IRC conversations**,
-**Chatterino import**, **Completion**, **Link preferences** and **Custom themes**. Other panels still
+remains open. Seven panels now use the lifecycle: **IRC conversations**,
+**Chatterino import**, **Completion**, **Link preferences**, **Custom themes**,
+**Compare activity** and **Export logs**. Other panels still
 construct eagerly. The application has not reached the issue's startup-DOM or
 closed-panel timer acceptance gates. The sections below retain each slice's
 local evidence rather than treating it as a new full resource qualification.
@@ -190,6 +191,55 @@ custom-theme editor chunk is 2.17 kB gzip. The runtime/parser remains available
 at startup and the editor is precached. These figures do not establish total
 download, CPU or heap savings. The large main-chunk warning remains. No production
 deployment or full #130 resource acceptance is claimed.
+
+## Fourth slice — retained-data tools
+
+Compare activity and Export logs now register through the shared lifecycle with
+their existing `comparison-panel` and `portable-logs` IDs and Chat command group.
+Their constructors no longer insert header triggers. Existing named placements
+remain usable. The archive's Export retained history action opens the same lazy
+portable-log registration, including when it has never been constructed.
+
+Rate timelines, stream history, archive collection and archive retention enforcement
+remain owned by their existing application services. The factories pass these
+live owners and the current account to each new panel; later account changes
+still invalidate constructed panels. The lifecycle now owns disposal. Neither
+panel owns an interval or settings-bundle registration.
+
+Comparison opening resets its local controls without scanning retained data;
+explicit Compare starts the scan. Export logs opening retains its existing
+read-only retention/capacity preview. It does not prepare a log or apply retention.
+Log preparation, recovery pagination, redaction, export review and retention apply
+retain their existing explicit actions. Close/privacy/account changes invalidate
+pending work and clear graphs, prepared output and downloadable previews.
+
+All 821 frontend tests across 178 files, strict production build, formatter and
+diff checks passed locally. New checks verify no constructor reads, no comparison
+scan on open, retention-preview-only opening and late scan suppression after close.
+Existing aggregate export, public-log redaction, quota/window/review and
+account/privacy cases remain. Happy-dom stylesheet-fetch teardown warnings remain.
+
+Isolated anonymous Chromium 154 browser checks cover:
+
+- Fresh startup has neither root or feature chunk request. Opening Compare loads
+  only its chunk, with one workbench chrome bar. Explicit comparison renders its
+  two graphs; this is a smoke check, not numerical/provider qualification.
+- Right-docked comparison restores after reload while Export logs stays unloaded.
+- The archive's Export retained history shortcut loads Export logs on first use,
+  closes archive search and shows capacity metadata with empty output and disabled
+  download. No retention apply or file download is performed.
+- Closing/reloading leaves both roots and chunk requests absent. Overlay mode
+  also constructs/requests neither panel.
+- Both unopened chunks are present in the installed worker cache. With the local
+  app service stopped, the cached shell reloads and both panels open separately
+  from the palette, including the local capacity preview. Status reports the
+  service disconnected. This checks app-origin unavailability, not every external
+  network offline or a full exported recovery operation.
+
+Main entry is 338.04 kB gzip versus 345.33 kB before this slice. Comparison and
+portable-log chunks are 5.60 and 4.03 kB gzip. All remain precached; no total
+installed-download, CPU or heap reduction is established. The large main-chunk
+warning remains. #130 stays open for remaining panels and its full acceptance.
 
 ## Continue the conversion
 

@@ -1,3 +1,4 @@
+import type { Panel } from './shell/panels';
 import { archiveKey, type MessageArchive, type ArchiveCursor } from './archive';
 import { readRetention, RETENTION_KEY, type RetentionPlan } from './archive-retention';
 import {
@@ -14,9 +15,11 @@ import {
 import { PRIVACY_KEY, privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
 import type { StreamHistory } from './stream-history';
-export class PortableLogsPanel {
+export class PortableLogsPanel implements Panel {
+  readonly id = 'portable-logs';
+  readonly title = 'Export logs';
+  readonly group = 'chat';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private selected: HTMLInputElement[] = [];
   private from = document.createElement('input');
   private to = document.createElement('input');
@@ -46,12 +49,8 @@ export class PortableLogsPanel {
     private archive: Pick<MessageArchive, 'searchPage' | 'scanChannel' | 'retentionPreview' | 'applyRetention'>,
     private streams: Pick<StreamHistory, 'archives' | 'samples'>,
   ) {
-    this.root.id = 'portable-logs';
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Portable public logs');
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Export logs';
-    document.getElementById('archive-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.show);
     const title = document.createElement('h2');
     title.textContent = 'Retained public logs';
     const help = document.createElement('p');
@@ -194,7 +193,7 @@ export class PortableLogsPanel {
     });
     if (this.root.open) this.root.close();
   }
-  show = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.closed();
     this.defaultControls();
@@ -401,13 +400,14 @@ export class PortableLogsPanel {
       this.defaultControls();
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.closed();
-    this.trigger.removeEventListener('click', this.show);
     this.root.removeEventListener('close', this.closed);
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.storage);
     this.root.remove();
-    this.trigger.remove();
   }
 }

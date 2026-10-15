@@ -23,8 +23,8 @@ import {
 import { ModerationWorkspace } from './moderation-ui';
 import { UserNotesPanel } from './user-notes-ui';
 import { getProfileScope, profileKey } from './account-profiles';
-import { PortableLogsPanel } from './portable-logs-ui';
-import { ComparisonPanel } from './comparison-ui';
+import type { PortableLogsPanel } from './portable-logs-ui';
+import type { ComparisonPanel } from './comparison-ui';
 import { VodContextPanel } from './vod-context-ui';
 import { ThreadsPanel } from './threads-ui';
 import { loadRowPronouns } from './row-pronouns';
@@ -619,23 +619,6 @@ export async function startMain(): Promise<void> {
   vodContext.setAccount(
     accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
   );
-  comparisonPanel = new ComparisonPanel(
-    channels,
-    rateTimeline,
-    streamHistory,
-    archive,
-    (message) => {
-      void showArchived(message);
-    },
-    (message) => vodContext?.show(message),
-  );
-  comparisonPanel.setAccount(
-    accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
-  );
-  portableLogs = new PortableLogsPanel(channels, archive, streamHistory);
-  portableLogs.setAccount(
-    accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
-  );
   bookmarksPanel = new BookmarksPanel(
     log,
     viewMessages,
@@ -684,7 +667,7 @@ export async function startMain(): Promise<void> {
     },
     () => {
       element('archive-search', HTMLDialogElement).close();
-      portableLogs?.show();
+      void lazyPanels?.open('portable-logs');
     },
   );
   window.addEventListener('pagehide', () => historyFiles.stop());
@@ -1896,8 +1879,6 @@ export async function startMain(): Promise<void> {
     userNotesPanel?.stop();
     moderationPanel?.stop();
     pronouns.stop();
-    portableLogs?.stop();
-    comparisonPanel?.stop();
     vodContext?.stop();
     threadsPanel?.stop();
     rail?.stop();
@@ -2016,6 +1997,43 @@ export async function startMain(): Promise<void> {
             () =>
               new LinkPreferencesPanel(),
         ),
+    });
+    lazyPanels.register({
+      id: 'comparison-panel',
+      title: 'Compare activity',
+      group: 'chat',
+      keywords: 'observed rates viewers archive',
+      load: () =>
+        import('./comparison-ui').then(({ ComparisonPanel }) => () => {
+          comparisonPanel = new ComparisonPanel(
+            channels,
+            rateTimeline,
+            streamHistory,
+            archive,
+            (message) => {
+              void showArchived(message);
+            },
+            (message) => vodContext?.show(message),
+          );
+          comparisonPanel.setAccount(
+            accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+          );
+          return comparisonPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'portable-logs',
+      title: 'Export logs',
+      group: 'chat',
+      keywords: 'retained public archive recovery retention',
+      load: () =>
+        import('./portable-logs-ui').then(({ PortableLogsPanel }) => () => {
+          portableLogs = new PortableLogsPanel(channels, archive, streamHistory);
+          portableLogs.setAccount(
+            accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+          );
+          return portableLogs;
+        }),
     });
     lazyPanels.register({
       id: 'custom-theme-panel',

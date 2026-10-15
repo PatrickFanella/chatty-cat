@@ -1,3 +1,4 @@
+import type { Panel } from './shell/panels';
 import { buildComparison, comparisonExport, raidMark, type Comparison, type ComparisonMark } from './comparison';
 import type { RateTimeline } from './rate-timeline';
 import type { StreamHistory } from './stream-history';
@@ -5,9 +6,11 @@ import type { MessageArchive } from './archive';
 import type { ChatMessage } from './protocol';
 import { PRIVACY_KEY, privacyEnabled } from './privacy';
 const COLORS = ['#57a7d5', '#e58561', '#88b768', '#bd8eda', '#d6b64c', '#66c4ba'];
-export class ComparisonPanel {
+export class ComparisonPanel implements Panel {
+  readonly id = 'comparison-panel';
+  readonly title = 'Compare activity';
+  readonly group = 'chat';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private choices: HTMLInputElement[] = [];
   private from = document.createElement('input');
   private to = document.createElement('input');
@@ -29,12 +32,8 @@ export class ComparisonPanel {
     private chat: (message: ChatMessage) => void,
     private vod: (message: Pick<ChatMessage, 'channel' | 'timestamp'>) => void,
   ) {
-    this.root.id = 'comparison-panel';
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Observed stream comparison');
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Compare activity';
-    document.getElementById('stats-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.open);
     const title = document.createElement('h2');
     title.textContent = 'Compare observed activity';
     const note = document.createElement('p');
@@ -174,7 +173,7 @@ export class ComparisonPanel {
     this.events.replaceChildren();
     this.status.textContent = '';
   };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.window(15);
     this.invalidate();
@@ -357,13 +356,14 @@ export class ComparisonPanel {
   private storage = (event: StorageEvent): void => {
     if (event.key === PRIVACY_KEY || event.key === null) this.privacy();
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.invalidate();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('close', this.closed);
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.storage);
     this.root.remove();
-    this.trigger.remove();
   }
 }
