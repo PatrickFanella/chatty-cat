@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
+    manifest: 'asset-manifest.json',
     rollupOptions: {
       input: { main: 'index.html', sw: 'src/service-worker.ts' },
       output: { entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },

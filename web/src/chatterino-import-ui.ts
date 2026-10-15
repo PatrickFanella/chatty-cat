@@ -1,11 +1,14 @@
+import type { Panel } from './shell/panels';
 import { getProfileScope } from './account-profiles';
 import { planChatterinoImport, type ChatterinoSources, type ChatterinoImport } from './chatterino-import';
 import { privacyEnabled } from './privacy';
 import { WorkspaceStore, parseSnapshot, workspaceFile, type WorkspaceSnapshot } from './workspaces';
 
-export class ChatterinoImportPanel {
+export class ChatterinoImportPanel implements Panel {
+  readonly id = 'chatterino-import-panel';
+  readonly title = 'Import Chatterino';
+  readonly group = 'tools';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private account = getProfileScope();
   private generation = 0;
   private pending: { plan: ChatterinoImport; current: string; saved: string; recovery: string } | undefined;
@@ -19,10 +22,7 @@ export class ChatterinoImportPanel {
     private capture: () => WorkspaceSnapshot,
     private readonlyView = false,
   ) {
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Import Chatterino';
-    this.trigger.hidden = readonlyView;
-    document.getElementById('workspace-open')?.after(this.trigger);
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Import Chatterino settings');
     this.root.innerHTML =
       '<h2>Import Chatterino settings</h2><p>Choose local Chatterino 2.5.6 JSON files or paste their contents. Review supported settings, commands and Twitch layouts before saving new workspace copies. Files stay in this browser. Credentials, private channel panes and native scripts are excluded. Current settings stay active until you switch workspaces.</p><label>Imported workspace name<input aria-label="Imported workspace name" maxlength="55" value="Chatterino"></label>';
@@ -89,7 +89,6 @@ export class ChatterinoImportPanel {
     document.body.append(this.root);
     this.root.addEventListener('input', this.invalidate);
     this.root.addEventListener('close', this.closed);
-    this.trigger.addEventListener('click', this.open);
     document.addEventListener('privacychange', this.privacy);
   }
   private button(text: string, action: () => void): HTMLButtonElement {
@@ -179,7 +178,7 @@ export class ChatterinoImportPanel {
     a.click();
     this.status.textContent = 'Recovery export prepared; verify the download before changing workspaces';
   }
-  private open = (): void => {
+  open = (): void => {
     if (this.readonlyView || privacyEnabled()) return;
     try {
       this.scope();
@@ -194,7 +193,7 @@ export class ChatterinoImportPanel {
       input.value = '';
     if (this.url) URL.revokeObjectURL(this.url);
     this.url = undefined;
-    this.trigger.focus();
+    document.getElementById('topbar')?.querySelector<HTMLButtonElement>('button')?.focus();
   };
   private privacy = (): void => {
     if (privacyEnabled()) {
@@ -202,13 +201,14 @@ export class ChatterinoImportPanel {
       if (this.root.open) this.root.close();
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.closed();
     this.root.removeEventListener('input', this.invalidate);
     this.root.removeEventListener('close', this.closed);
-    this.trigger.removeEventListener('click', this.open);
     document.removeEventListener('privacychange', this.privacy);
     this.root.remove();
-    this.trigger.remove();
   }
 }

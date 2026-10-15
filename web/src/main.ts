@@ -1,5 +1,5 @@
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
-import { IRCRelayPanel } from './irc-relay-ui';
+import type { IRCRelayPanel } from './irc-relay-ui';
 import { ExtensionsPanel } from './extensions-ui';
 import { watchedWorkspace } from './watched-workspace';
 import { BrowserCompanionPanel } from './browser-companion-ui';
@@ -49,7 +49,6 @@ import { CommandPanel } from './commands-ui';
 import { PrivacyControls } from './privacy-ui';
 import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
 import { WorkspacePanel } from './workspaces-ui';
-import { ChatterinoImportPanel } from './chatterino-import-ui';
 import { CompletionPreferencesPanel } from './completion-preferences-ui';
 import { CompletionChatters } from './completion-chatters';
 import { ImageUploads } from './image-uploads';
@@ -93,6 +92,7 @@ import { RoomStates } from './room';
 import './style.css';
 import './shell/shell.css';
 import { startShell, type Shell } from './shell';
+import { LazyPanels } from './shell/panels';
 import { mountAuth } from './auth';
 import { Composer } from './composer';
 import { PickerModel } from './picker-model';
@@ -786,6 +786,7 @@ export async function startMain(): Promise<void> {
     );
   }
   let shell: Shell | undefined;
+  let lazyPanels: LazyPanels | undefined;
   let resourceReadout: import('./resource-readout').ResourceReadout | undefined;
   let resourceReadoutLoading: Promise<void> | undefined;
   let pageStopped = false;
@@ -1337,11 +1338,6 @@ export async function startMain(): Promise<void> {
     element('user-inspector', HTMLDialogElement),
     bootWorkspace?.settings.extras.commands,
   );
-  const chatterinoImport = new ChatterinoImportPanel(
-    workspaceStore,
-    captureWorkspace,
-    !!panePopout || ephemeralPopout || overlay,
-  );
   completionChatters = new CompletionChatters(() => {
     const raw = metadata.get(composer.target)?.stream.viewers ?? '',
       viewers = /^(?:\d+|[1-9]\d{0,2}(?:,\d{3})+)$/.test(raw) ? Number(raw.replaceAll(',', '')) : undefined;
@@ -1388,7 +1384,6 @@ export async function startMain(): Promise<void> {
     }
     hotkeys.stop();
     workspacePanel.stop();
-    chatterinoImport.stop();
     completionPreferences.stop();
     completionChatters?.stop();
     imageUploads?.stop();
@@ -1479,7 +1474,6 @@ export async function startMain(): Promise<void> {
     },
     (_providers, detail) => providerPanel.cosmeticsStatus(detail),
   );
-  ircRelayPanel = new IRCRelayPanel(() => accountAuth, !!panePopout || ephemeralPopout || overlay);
   extensionsPanel = new ExtensionsPanel(
     () => accountAuth,
     () => composer.target,
@@ -1915,7 +1909,6 @@ export async function startMain(): Promise<void> {
     desktopPlayback?.stop();
     browserCompanion?.stop();
     extensionsPanel?.stop();
-    ircRelayPanel?.stop();
     cosmeticClient.stop();
     stopAuth();
     personalChat.stop();
@@ -1963,6 +1956,38 @@ export async function startMain(): Promise<void> {
         })),
     });
     shell.workbench.setRail(display.options.split, railPanels);
+    lazyPanels = new LazyPanels(
+      shell.registry,
+      shell.workbench,
+      () => getProfileScope(),
+      () => !panePopout && !ephemeralPopout && !privacyEnabled(),
+      (title) => {
+        announcer.textContent = title + ' could not load. Try again.';
+      },
+    );
+    lazyPanels.register({
+      id: 'irc-relay-panel',
+      title: 'IRC conversations',
+      group: 'tools',
+      keywords: 'network private relay',
+      load: () =>
+        import('./irc-relay-ui').then(({ IRCRelayPanel }) => () => {
+          ircRelayPanel = new IRCRelayPanel(() => accountAuth);
+          return ircRelayPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'chatterino-import-panel',
+      title: 'Import Chatterino',
+      group: 'tools',
+      keywords: 'settings layout workspace',
+      load: () =>
+        import('./chatterino-import-ui').then(
+          ({ ChatterinoImportPanel }) =>
+            () =>
+              new ChatterinoImportPanel(workspaceStore, captureWorkspace),
+        ),
+    });
     shell.registry.register({
       id: 'debug:resources',
       label: 'Resource readout',
@@ -1997,6 +2022,7 @@ export async function startMain(): Promise<void> {
   window.addEventListener('pagehide', () => {
     pageStopped = true;
     resourceReadout?.stop();
+    lazyPanels?.stop();
     shell?.stop();
   });
 }

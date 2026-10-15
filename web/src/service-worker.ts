@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+import { precacheAssets } from './precache-assets';
 export {};
 const worker = self as unknown as ServiceWorkerGlobalScope;
 const SHELL = 'chatthing-shell-v1';
@@ -24,14 +25,17 @@ worker.addEventListener('install', (event) => {
       const cache = await caches.open(SHELL);
       const response = await fetch('/', { cache: 'reload' });
       if (!response.ok) throw new Error('Shell unavailable');
+      const manifest = await fetch('/asset-manifest.json', { cache: 'reload' });
+      if (!manifest.ok) throw new Error('Build manifest unavailable');
+      const chunks = precacheAssets(await manifest.json());
       const html = await response.clone().text();
-      await cache.put('/', response);
       const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"\s]+)"/g)].flatMap((match) =>
         match[1] ? [match[1]] : [],
       );
       await cache.addAll([
         ...new Set([
           ...assets,
+          ...chunks,
           '/manifest.webmanifest',
           '/icon-192.png',
           '/icon-512.png',
@@ -42,6 +46,8 @@ worker.addEventListener('install', (event) => {
           '/mark-themed.svg',
         ]),
       ]);
+      // Keep the previous offline shell if any new build chunk is unavailable.
+      await cache.put('/', response);
     })(),
   );
 });

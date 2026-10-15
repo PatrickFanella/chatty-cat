@@ -103,7 +103,9 @@ export function openMenu(
             : (at - 1 + enabled.length) % enabled.length;
     enabled[next]!.focus();
   };
-  document.body.append(root);
+  // A menu anchored in a modal must stay inside that dialog's active subtree.
+  // Body siblings are inert while showModal() owns the browser's top layer.
+  (anchor.closest('dialog[open]') ?? document.body).append(root);
   current = { root, close };
   anchor.setAttribute('aria-expanded', 'true');
   const rect = anchor.getBoundingClientRect();
