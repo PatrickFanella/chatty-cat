@@ -1,4 +1,8 @@
-export function mountLifecycle(offline: HTMLElement, update: HTMLButtonElement): () => void {
+export function mountLifecycle(
+  offline: HTMLElement,
+  update: HTMLButtonElement,
+  build = new URL(import.meta.url).pathname,
+): () => void {
   let disposed = false;
   let registration: ServiceWorkerRegistration | undefined;
   let reloading = false;
@@ -28,7 +32,9 @@ export function mountLifecycle(offline: HTMLElement, update: HTMLButtonElement):
   if ('serviceWorker' in navigator && window.isSecureContext) {
     navigator.serviceWorker.addEventListener('controllerchange', controller);
     void navigator.serviceWorker
-      .register('/sw.js', { updateViaCache: 'none' })
+      // Lazy chunk manifests change even when the worker source does not. Tie
+      // registration to the loaded app build so its new chunks are installed.
+      .register('/sw.js?build=' + encodeURIComponent(build), { scope: '/', updateViaCache: 'none' })
       .then((value) => {
         if (disposed) return;
         registration = value;

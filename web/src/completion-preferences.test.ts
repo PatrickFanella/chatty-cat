@@ -7,6 +7,8 @@ import {
   CompletionPreferenceStore,
   setCompletionPreferences,
   getLocalNickname,
+  getCompletionPreferences,
+  restoreCompletionPreferences,
 } from './completion-preferences';
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -61,4 +63,22 @@ it('keeps local annotations separate from login identity', () => {
   setCompletionPreferences({ ...completionDefaults, aliases: [{ login: 'alice', alias: 'Friend' }] });
   expect(getLocalNickname('ALICE')).toBe('Friend');
   expect(getLocalNickname('unknown')).toBeUndefined();
+});
+it('restores saved completion behavior before any editor exists and clears stale account state on invalid storage', () => {
+  setProfileScope('42');
+  new CompletionPreferenceStore().save({
+    ...completionDefaults,
+    spellcheck: true,
+    aliases: [{ login: 'alice', alias: 'Friend' }],
+  });
+  restoreCompletionPreferences();
+  expect(getLocalNickname('alice')).toBe('Friend');
+  expect(getCompletionPreferences().spellcheck).toBe(true);
+  expect(document.querySelector('#completion-preferences-panel')).toBeNull();
+  setProfileScope('43');
+  localStorage.setItem('chatthing:v1:profile:43:completion-preferences', '{broken');
+  expect(() => restoreCompletionPreferences()).toThrow();
+  expect(getLocalNickname('alice')).toBeUndefined();
+  expect(getCompletionPreferences().spellcheck).toBe(false);
+  expect(localStorage.getItem('chatthing:v1:profile:43:completion-preferences')).toBe('{broken');
 });

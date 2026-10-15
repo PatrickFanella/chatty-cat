@@ -150,8 +150,9 @@ local, hosted, merged and deployed results distinguishable.
 
 ## Current lifecycle progress
 
-The first #130 slice introduces explicit lazy registration for IRC conversations
-and Chatterino import. See [lifecycle progress and compatibility](lazy-panel-progress.md)
+The #130 slices introduce explicit lazy registration for IRC conversations,
+Chatterino import, Completion and Link preferences. Completion and link startup
+policy remains active independently of their editors. See [lifecycle progress and compatibility](lazy-panel-progress.md)
 for local checks, stable placement IDs and the next batch. #130 remains open;
 other panels still construct eagerly and the legacy shell adapters remain.
 #142's formatter and #134's resource readout/first local baseline are merged.

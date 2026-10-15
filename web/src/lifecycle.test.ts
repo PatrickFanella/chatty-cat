@@ -33,11 +33,21 @@ it('offers a waiting update and activates only after explicit selection', async 
   Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: serviceWorker });
   const update = document.createElement('button');
   update.hidden = true;
-  stop = mountLifecycle(document.createElement('div'), update);
+  stop = mountLifecycle(document.createElement('div'), update, '/assets/app-one.js');
   await Promise.resolve();
   expect(update.hidden).toBe(false);
   expect(postMessage).not.toHaveBeenCalled();
   update.click();
   expect(postMessage).toHaveBeenCalledWith('activate-update');
-  expect(serviceWorker.register).toHaveBeenCalledWith('/sw.js', { updateViaCache: 'none' });
+  expect(serviceWorker.register).toHaveBeenCalledWith('/sw.js?build=%2Fassets%2Fapp-one.js', {
+    scope: '/',
+    updateViaCache: 'none',
+  });
+  stop();
+  stop = mountLifecycle(document.createElement('div'), update, '/assets/app-two.js');
+  await Promise.resolve();
+  expect(serviceWorker.register).toHaveBeenLastCalledWith('/sw.js?build=%2Fassets%2Fapp-two.js', {
+    scope: '/',
+    updateViaCache: 'none',
+  });
 });

@@ -6,11 +6,16 @@ import {
   setLinkPreferences,
   LinkPreferenceStore,
   searchURL,
-  LinkTools,
+  getLinkPreferences,
 } from './link-preferences';
+import { LinkTools } from './link-tools';
+import { LinkPreferencesPanel } from './link-preferences-ui';
 import { setProfileScope } from './account-profiles';
 let tools: LinkTools | undefined;
+let panel: LinkPreferencesPanel | undefined;
 afterEach(() => {
+  panel?.stop();
+  panel = undefined;
   tools?.stop();
   tools = undefined;
   setLinkPreferences(linkDefaults);
@@ -43,9 +48,11 @@ it('keeps local-only policy isolated and refuses stale writes', () => {
   expect(localStorage.getItem('chatthing:v1:profile:43:link-preferences')).toBeNull();
 });
 it('reviews settings before enabling remote fetches and never persists selected text', () => {
-  document.body.innerHTML = '<button id="commands-open"></button><main id="test-log">public</main>';
+  document.body.innerHTML = '<main id="test-log">public</main>';
   tools = new LinkTools(document.getElementById('test-log')!);
-  const d = tools.root;
+  panel = new LinkPreferencesPanel();
+  panel.open();
+  const d = panel.root;
   d.querySelector<HTMLInputElement>('[name=enabled]')!.checked = true;
   d.querySelector<HTMLInputElement>('[name=thumbnails]')!.checked = true;
   const click = (name: string) => [...d.querySelectorAll('button')].find((x) => x.textContent === name)!.click();
@@ -54,10 +61,33 @@ it('reviews settings before enabling remote fetches and never persists selected 
   click('Apply link preferences');
   expect(d.textContent).toContain('Saved');
 });
-it('suppresses link/search tools and clears input in privacy mode', () => {
-  document.body.innerHTML = '<button id="commands-open"></button><main id="test-log">public</main>';
+it('applies saved click/search policy before either editor or selection-review DOM exists', () => {
+  document.body.innerHTML = '<main id="test-log"><a class="chat-link" href="https://example.com/">public</a></main>';
+  new LinkPreferenceStore().save({ ...linkDefaults, doubleClick: true, searchEnabled: true });
   tools = new LinkTools(document.getElementById('test-log')!);
-  const field = tools.root.querySelector<HTMLInputElement>('[name=engineURL]')!;
+  expect(document.querySelector('#link-preferences-panel')).toBeNull();
+  expect(document.querySelector('[aria-label="Review selection search"]')).toBeNull();
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 });
+  document.querySelector('a')!.dispatchEvent(click);
+  expect(click.defaultPrevented).toBe(true);
+  expect(
+    [...document.querySelectorAll('button')].find((b) => b.textContent === 'Search selected chat text')?.disabled,
+  ).toBe(false);
+  panel = new LinkPreferencesPanel();
+  panel.open();
+  panel.close();
+  panel.stop();
+  panel = undefined;
+  expect(getLinkPreferences().doubleClick).toBe(true);
+  expect(getLinkPreferences().searchEnabled).toBe(true);
+  expect(document.querySelector('[aria-label="Review selection search"]')).toBeNull();
+});
+it('suppresses link/search tools and clears input in privacy mode', () => {
+  document.body.innerHTML = '<main id="test-log">public</main>';
+  tools = new LinkTools(document.getElementById('test-log')!);
+  panel = new LinkPreferencesPanel();
+  panel.open();
+  const field = panel.root.querySelector<HTMLInputElement>('[name=engineURL]')!;
   field.value = 'https://example.com/?q={query}';
   localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
   document.dispatchEvent(new Event('privacychange'));
@@ -65,8 +95,7 @@ it('suppresses link/search tools and clears input in privacy mode', () => {
 });
 
 it('reviews only selection contained in public chat and exposes a safe encoded search link', () => {
-  document.body.innerHTML =
-    '<button id="commands-open"></button><main id="test-log"><p>Alice & 😀</p></main><p id="outside">private note</p>';
+  document.body.innerHTML = '<main id="test-log"><p>Alice & 😀</p></main><p id="outside">private note</p>';
   tools = new LinkTools(document.getElementById('test-log')!);
   setLinkPreferences({ ...linkDefaults, searchEnabled: true });
   document.dispatchEvent(new Event('privacychange'));
@@ -88,8 +117,7 @@ it('reviews only selection contained in public chat and exposes a safe encoded s
   expect(review.open).toBe(false);
 });
 it('requires double-click for pointer opening while preserving Enter and handles a blocked new tab', () => {
-  document.body.innerHTML =
-    '<button id="commands-open"></button><main id="test-log"><a class="chat-link" href="https://example.com/">public</a></main>';
+  document.body.innerHTML = '<main id="test-log"><a class="chat-link" href="https://example.com/">public</a></main>';
   tools = new LinkTools(document.getElementById('test-log')!);
   setLinkPreferences({ ...linkDefaults, doubleClick: true });
   const link = document.querySelector('a')!,
@@ -102,12 +130,12 @@ it('requires double-click for pointer opening while preserving Enter and handles
   const opener = vi.spyOn(window, 'open').mockReturnValue(null);
   link.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, detail: 2 }));
   expect(opener).toHaveBeenCalledWith('https://example.com/', '_blank', 'noopener,noreferrer');
-  expect(tools.root.textContent).toContain('blocked');
+  expect(document.body.textContent).toContain('blocked');
 });
 
 it('resolves a link only after review and drops a late response on privacy', async () => {
   document.body.innerHTML =
-    '<button id="commands-open"></button><main id="test-log"><button data-resolve-link="https://example.com/short">Resolve link</button></main>';
+    '<main id="test-log"><button data-resolve-link="https://example.com/short">Resolve link</button></main>';
   tools = new LinkTools(document.getElementById('test-log')!);
   setLinkPreferences({ ...linkDefaults, unshorten: true });
   let finish: (value: Response) => void = () => {};

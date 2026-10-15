@@ -32,6 +32,10 @@ it('reviews locally before saving validated account preferences and preserves ed
   click('Apply completion preferences');
   expect(getCompletionPreferences().aliases).toEqual([{ login: 'alice', alias: 'Friend' }]);
   expect(localStorage.getItem('chatthing:v1:profile:42:completion-preferences')).toContain('alice');
+  panel!.close();
+  panel!.stop();
+  panel = undefined;
+  expect(getCompletionPreferences().aliases).toEqual([{ login: 'alice', alias: 'Friend' }]);
 });
 it('invalidates edited reviews and rejects a changed account without modifying another account', () => {
   const { aliases, click } = setup();
