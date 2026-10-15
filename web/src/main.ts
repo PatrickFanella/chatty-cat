@@ -5,7 +5,7 @@ import { watchedWorkspace } from './watched-workspace';
 import { BrowserCompanionPanel } from './browser-companion-ui';
 import { DesktopPlaybackPanel } from './desktop-companion-ui';
 import { ChatContextPanel } from './chat-context-ui';
-import { DeviceSyncPanel } from './device-sync-ui';
+import type { DeviceSyncPanel } from './device-sync-ui';
 import { recoverDeviceApply } from './device-sync';
 import { BookmarkStore } from './bookmarks';
 import { getLinkPreferences } from './link-preferences';
@@ -1509,40 +1509,6 @@ export async function startMain(): Promise<void> {
     () => composer.target,
     !!panePopout || ephemeralPopout || overlay,
   );
-  deviceSyncPanel = new DeviceSyncPanel(
-    () => accountAuth,
-    () => {
-      const bookmarks = new BookmarkStore();
-      bookmarks.setAccount(accountAuth?.userID);
-      return {
-        activeWorkspace: currentWorkspaceID,
-        workspaces: workspaceStore
-          .all()
-          .map((w) => (w.id === currentWorkspaceID ? { ...w, ...captureWorkspace() } : w)),
-        preferences: {
-          display: display.options,
-          presentation: getPresentation(),
-          picker: pickerModel.options,
-          provider: getProviderPreferences(),
-          links: getLinkPreferences(),
-        },
-        bookmarks: bookmarks.list(),
-      };
-    },
-    () => !composer.sending,
-    () => {
-      suppressWorkspaceSave = true;
-      const next = new WorkspaceStore().active;
-      const url = new URL(location.href);
-      if (next) {
-        url.searchParams.set('workspace', next.id);
-        url.searchParams.delete('channel');
-      }
-      location.assign(url.href);
-    },
-    !!panePopout || ephemeralPopout || overlay,
-    syncRecovery,
-  );
   chatContextPanel = new ChatContextPanel(
     () => accountAuth,
     () => channels,
@@ -1891,7 +1857,6 @@ export async function startMain(): Promise<void> {
     providerPanel.stop();
     userHoldPanel?.stop();
     chatContextPanel?.stop();
-    deviceSyncPanel?.stop();
     desktopPlayback?.stop();
     browserCompanion?.stop();
     extensionsPanel?.stop();
@@ -2033,6 +1998,50 @@ export async function startMain(): Promise<void> {
             accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
           );
           return portableLogs;
+        }),
+    });
+    lazyPanels.register({
+      id: 'device-sync-panel',
+      title: 'Device sync',
+      group: 'tools',
+      keywords: 'manual public snapshot recovery backup',
+      load: () =>
+        import('./device-sync-ui').then(({ DeviceSyncPanel }) => () => {
+          deviceSyncPanel = new DeviceSyncPanel(
+            () => accountAuth,
+            () => {
+              const bookmarks = new BookmarkStore();
+              bookmarks.setAccount(accountAuth?.userID);
+              return {
+                activeWorkspace: currentWorkspaceID,
+                workspaces: workspaceStore
+                  .all()
+                  .map((w) => (w.id === currentWorkspaceID ? { ...w, ...captureWorkspace() } : w)),
+                preferences: {
+                  display: display.options,
+                  presentation: getPresentation(),
+                  picker: pickerModel.options,
+                  provider: getProviderPreferences(),
+                  links: getLinkPreferences(),
+                },
+                bookmarks: bookmarks.list(),
+              };
+            },
+            () => !composer.sending,
+            () => {
+              suppressWorkspaceSave = true;
+              const next = new WorkspaceStore().active;
+              const url = new URL(location.href);
+              if (next) {
+                url.searchParams.set('workspace', next.id);
+                url.searchParams.delete('channel');
+              }
+              location.assign(url.href);
+            },
+            false,
+            syncRecovery,
+          );
+          return deviceSyncPanel;
         }),
     });
     lazyPanels.register({

@@ -1,3 +1,4 @@
+import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import { getProfileScope, profileKey } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -22,9 +23,11 @@ type Pending =
       raw: string;
       suffix: 'sync-local-recovery' | 'sync-annotation-backup';
     };
-export class DeviceSyncPanel {
+export class DeviceSyncPanel implements Panel {
+  readonly id = 'device-sync-panel';
+  readonly title = 'Device sync';
+  readonly group = 'tools';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private status = document.createElement('p');
   private report = document.createElement('pre');
   private exact = document.createElement('textarea');
@@ -42,10 +45,11 @@ export class DeviceSyncPanel {
     private local: () => DeviceData,
     private canAct: () => boolean,
     private applied: () => void,
-    readonlyView = false,
+    private readonlyView = false,
     recovery = '',
   ) {
     this.client = new DeviceSyncClient(auth);
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Device sync');
     const h = document.createElement('h2');
     h.textContent = 'Optional self-hosted device sync';
@@ -99,11 +103,6 @@ export class DeviceSyncPanel {
       this.button('Close device sync', () => this.root.close(), false),
       this.status,
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Device sync';
-    this.trigger.hidden = readonlyView;
-    document.getElementById('commands-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('change', this.edit);
     this.root.addEventListener('close', this.closed);
     document.addEventListener('privacychange', this.privacy);
@@ -393,8 +392,8 @@ export class DeviceSyncPanel {
     this.clearReview();
     this.status.textContent = 'Disconnected. All sync data remains local unless you explicitly published it.';
   }
-  private open = (): void => {
-    if (privacyEnabled()) return;
+  open = (): void => {
+    if (this.readonlyView || privacyEnabled()) return;
     this.disconnect();
     if (this.recoveryNotice) this.status.textContent = this.recoveryNotice;
     this.root.showModal();
@@ -413,13 +412,14 @@ export class DeviceSyncPanel {
     if (!auth?.authenticated || auth.userID !== this.snapshotScope.account || auth.csrf !== this.snapshotScope.csrf)
       this.disconnect();
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.disconnect();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('change', this.edit);
     this.root.removeEventListener('close', this.closed);
     document.removeEventListener('privacychange', this.privacy);
     this.root.remove();
-    this.trigger.remove();
   }
 }

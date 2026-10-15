@@ -1,9 +1,9 @@
 # Lazy panel conversion
 
 Issue [#130](https://git.subcult.tv/subculture-collective/chatty-cat/issues/130)
-remains open. Seven panels now use the lifecycle: **IRC conversations**,
+remains open. Eight panels now use the lifecycle: **IRC conversations**,
 **Chatterino import**, **Completion**, **Link preferences**, **Custom themes**,
-**Compare activity** and **Export logs**. Other panels still
+**Compare activity**, **Export logs** and **Device sync**. Other panels still
 construct eagerly. The application has not reached the issue's startup-DOM or
 closed-panel timer acceptance gates. The sections below retain each slice's
 local evidence rather than treating it as a new full resource qualification.
@@ -240,6 +240,48 @@ Main entry is 338.04 kB gzip versus 345.33 kB before this slice. Comparison and
 portable-log chunks are 5.60 and 4.03 kB gzip. All remain precached; no total
 installed-download, CPU or heap reduction is established. The large main-chunk
 warning remains. #130 stays open for remaining panels and its full acceptance.
+
+## Fifth slice — device-sync editor
+
+Device sync now loads through the shared lifecycle with stable ID
+`device-sync-panel`. Its factory retains live account, workspace, preferences,
+bookmark and composer callbacks; taking a public snapshot still requires the
+existing explicit selection/review path. Auth changes still invalidate a loaded
+editor and the lifecycle owns disposal. Neither construction, opening nor docked
+restoration fetches, publishes, applies or deletes sync records.
+
+`recoverDeviceApply()` remains awaited at application startup, independently of
+the lazy editor. Its recovery result is retained and passed to the editor on
+construction, and reopening still shows that notice. No recovery behavior is
+moved into an optional dialog. Existing review/confirmation, revision conflicts,
+account/session guards, private annotation exclusion and backup actions remain.
+A new test verifies that closing aborts an explicit pending connection and that
+reopening does not reconnect or restore its review.
+
+The previously anonymous root receives a stable ID. Old runtime-order layout
+entries remain intact but cannot be mapped reliably; reopen/redock Device sync
+once to save its named placement.
+
+All 823 frontend tests across 178 files, strict production build, formatter and
+diff checks passed locally. Tests include the recovery-notice/no-read opening
+check, pending-connect cancellation and existing device apply/recovery, client,
+private-backup review, stale review and privacy cases. Happy-dom stylesheet-fetch
+teardown warnings remain.
+
+Isolated anonymous Chromium 154 checks show no editor root/chunk request at
+startup; palette opening creates one chrome bar with empty review and disabled
+confirmation; dock-left reload restores it without a sync API request; closed
+reload and overlay mode defer its root and chunk. The installed worker cache
+contains the unopened chunk. With the local app server stopped, the cached shell
+reloads and Device sync opens from the palette with no sync request, empty review
+and disabled confirmation. This proves app-origin-unavailable opening, not a
+successful authenticated sync operation or all-network offline behavior.
+
+Main entry is 334.22 kB gzip versus 338.04 kB before; the device-sync editor chunk
+is 5.15 kB gzip. Recovery/model code remains available at startup and the editor
+is precached. Total download, CPU/heap savings and full #130 acceptance remain
+unqualified. No browser sync connection, server mutation, download or deployment
+was performed. The large main-chunk warning remains.
 
 ## Continue the conversion
 
