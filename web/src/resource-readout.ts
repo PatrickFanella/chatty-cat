@@ -25,6 +25,7 @@ export class ResourceReadout {
     this.root.querySelector('[data-refresh]')!.addEventListener('click', this.refresh);
     this.root.querySelector('[data-reset]')!.addEventListener('click', this.reset);
     this.root.querySelector('[data-close]')!.addEventListener('click', () => this.root.close());
+    window.addEventListener('keydown', this.key, true);
     this.root.addEventListener('close', this.pause);
     document.addEventListener('visibilitychange', this.visibility);
     document.body.append(this.root);
@@ -57,6 +58,15 @@ export class ResourceReadout {
   }
   private visibility = (): void => {
     if (this.recording) this.visibilityChanges++;
+  };
+  // The docked picker's document capture handler also consumes Escape. An open
+  // diagnostic modal takes priority without changing the picker's own handler.
+  private key = (event: KeyboardEvent): void => {
+    if (this.root.open && event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.root.close();
+    }
   };
   private pause = (): void => {
     if (!this.recording) return;
@@ -106,6 +116,7 @@ export class ResourceReadout {
   stop(): void {
     this.pause();
     document.removeEventListener('visibilitychange', this.visibility);
+    window.removeEventListener('keydown', this.key, true);
     this.root.remove();
   }
 }

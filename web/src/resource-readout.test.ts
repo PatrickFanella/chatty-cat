@@ -24,7 +24,12 @@ it('reports unsupported metrics honestly and adds no refresh timer', () => {
   expect(vi.getTimerCount()).toBe(0);
   const timer = ownedInterval('fixture.ui', () => {}, 1000);
   vi.advanceTimersByTime(2000);
-  readout.root.close();
+  const pickerEscape = vi.fn((event: Event) => event.stopPropagation());
+  document.addEventListener('keydown', pickerEscape, true);
+  readout.root.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  expect(readout.root.open).toBe(false);
+  expect(pickerEscape).not.toHaveBeenCalled();
+  document.removeEventListener('keydown', pickerEscape, true);
   expect(readout.snapshot()).toMatchObject({ recording: false, timers: [expect.objectContaining({ fires: 2 })] });
   vi.advanceTimersByTime(2000);
   expect(readout.snapshot()).toMatchObject({ timers: [expect.objectContaining({ fires: 2 })] });

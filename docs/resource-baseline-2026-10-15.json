@@ -1,0 +1,234 @@
+{
+  "source": "2506fe5ac76163f9565c5121cb321a553cfbbbb9",
+  "environment": {
+    "scope": "local",
+    "browser": "Chromium 154.0.0.0 Linux",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "os": "Linux 7.2.5-4-omarchy",
+    "cpu": "AMD Ryzen 9 9900X",
+    "logicalCPUs": 24
+  },
+  "busy": {
+    "sample": {
+      "sampledMs": 65020.69999998808,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 0,
+      "mountedRows": 38,
+      "rowCache": 609,
+      "retainedMessages": 1101,
+      "repeatingTimers": 11,
+      "timers": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.30000001192092896
+        },
+        {
+          "owner": "discovery.paint",
+          "intervalMs": 1000,
+          "fires": 65,
+          "hiddenFires": 0,
+          "callbackMs": 2.8000003695487976
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        },
+        {
+          "owner": "picker.refresh",
+          "intervalMs": 1000,
+          "fires": 65,
+          "hiddenFires": 0,
+          "callbackMs": 7747.3000010252
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 65,
+          "hiddenFires": 0,
+          "callbackMs": 66.3999993801117
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 65,
+          "hiddenFires": 0,
+          "callbackMs": 2.4000001549720764
+        },
+        {
+          "owner": "stats.paint",
+          "intervalMs": 5000,
+          "fires": 13,
+          "hiddenFires": 0,
+          "callbackMs": 414.10000026226044
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 21,
+          "hiddenFires": 0,
+          "callbackMs": 0.09999996423721313
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 6,
+          "hiddenFires": 0,
+          "callbackMs": 0.19999992847442627
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 4,
+          "hiddenFires": 0,
+          "callbackMs": 10
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 4,
+          "hiddenFires": 0,
+          "callbackMs": 0.8999999761581421
+        }
+      ],
+      "longTasks": {
+        "count": 65,
+        "totalMs": 7732,
+        "maxMs": 139
+      },
+      "heap": {
+        "usedBytes": 60300000,
+        "allocatedBytes": 131000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "rateRange": [
+      5.8,
+      16
+    ],
+    "status": "connected",
+    "settings": {
+      "font": "roobert",
+      "pickerHidden": false
+    },
+    "build": [
+      "http://localhost:4181/assets/main-CN2cx7Io.js"
+    ]
+  },
+  "quiet": {
+    "sample": {
+      "sampledMs": 75504.40000003576,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 0,
+      "mountedRows": 0,
+      "rowCache": 0,
+      "retainedMessages": 1,
+      "repeatingTimers": 11,
+      "timers": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.2999999523162842
+        },
+        {
+          "owner": "discovery.paint",
+          "intervalMs": 1000,
+          "fires": 75,
+          "hiddenFires": 0,
+          "callbackMs": 5.399999380111694
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        },
+        {
+          "owner": "picker.refresh",
+          "intervalMs": 1000,
+          "fires": 75,
+          "hiddenFires": 0,
+          "callbackMs": 209.79999893903732
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 75,
+          "hiddenFires": 0,
+          "callbackMs": 65.10000091791153
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 75,
+          "hiddenFires": 0,
+          "callbackMs": 2.89999920129776
+        },
+        {
+          "owner": "stats.paint",
+          "intervalMs": 5000,
+          "fires": 15,
+          "hiddenFires": 0,
+          "callbackMs": 241.69999986886978
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 25,
+          "hiddenFires": 0,
+          "callbackMs": 0.20000004768371582
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 8,
+          "hiddenFires": 0,
+          "callbackMs": 0.30000001192092896
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 5,
+          "hiddenFires": 0,
+          "callbackMs": 0.40000009536743164
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 5,
+          "hiddenFires": 0,
+          "callbackMs": 0.40000009536743164
+        }
+      ],
+      "longTasks": {
+        "count": 2,
+        "totalMs": 199,
+        "maxMs": 103
+      },
+      "heap": {
+        "usedBytes": 60300000,
+        "allocatedBytes": 103000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "rate": "0.0 msgs/sec · last 240s",
+    "status": "connected"
+  }
+}
