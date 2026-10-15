@@ -1,129 +1,196 @@
-# Feature roadmap
+# Remaining-work roadmap
 
-Delivery is tracked in the [Gitea roadmap](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3) and [project board](https://git.subcult.tv/subculture-collective/chatty-cat/projects/2). The parity implementation was merged in [PR #2](https://git.subcult.tv/subculture-collective/chatty-cat/pulls/2).
+Updated October 15, 2026 against main `db8b36f` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 17 open
+issues: 15 delivery issues and the two planning issues, #3 and #143. Dates are
+checkpoints, not delivery promises.
 
-The adoption reference is [Chatterino 2.5.6](https://github.com/Chatterino/chatterino2/tree/v2.5.6), reviewed on 2026-10-11 against the [official wiki](https://wiki.chatterino.com/) and [release notes](https://chatterino.com/changelog). This is a delivery plan, not a claim that Chatty Cat already implements every Chatterino feature. The [completed coverage audit](chatterino-coverage.md) maps exact settings, commands and hotkeys to implementation evidence, platform limits and delivery issues.
+[Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
+tracks the whole plan; [M6 planning #143](https://git.subcult.tv/subculture-collective/chatty-cat/issues/143)
+tracks shell, performance and footprint delivery. Existing milestones and issue
+acceptance criteria remain authoritative. The waves below sequence work within
+M6; they do not create new milestones.
 
-## Delivery stages
+## Direction and completed baseline
 
-| Milestone | Outcome |
-| --- | --- |
-| M0 — Parity release acceptance | Review PR #2, preserve deployed acceptance evidence and resolve or explicitly accept the external GIPHY cache/proxy gap. |
-| M1 — Workspaces and daily chat workflow | Named workspaces and conversation inbox first, followed by independent splits, bounded channel capacity, rules, hotkeys, commands, discovery and streamer privacy. |
-| M2 — Conversation history and insights | Structured archive search, bookmarks, threads, VOD context, stream comparison and portable logs. |
-| M3 — Moderation and broadcaster operations | A permission-aware moderation workspace, custom actions, AutoMod and suspicious-user workflows, polls and predictions. |
-| M4 — Portability, emotes and media | Account profiles, safe imports, optional device sync, custom themes, media uploads, provider updates and composer refinements. |
-| M5 — Companion and ecosystem | Opt-in external playback, browser companion, sandboxed extensions and owner-configured IRC support. No automatic native execution from web content. |
+Keep the chat shell minimal, with movable, resizable docked and floating panels.
+Prioritize low runtime resource use, then startup/package footprint, while
+preserving chat rendering, account isolation, public history and recovery.
 
-## Live acceptance checkpoint — October 13, 2026
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has twelve open
+delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
+Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
+choices no longer request the twelve-family Google stylesheet. Merge does not
+prove that the change is deployed.
 
-The owner completed these checks at `chat.subcult.tv` as `patrick__eff` in regular browsers:
+The last local production build measured the main JavaScript at 355.36 kB gzip.
+The October 14 survey counted fourteen intervals and eager construction of 43
+panels. These are starting observations, not current production CPU, heap or GPU
+measurements. Wave 1 must establish a comparable baseline before claiming savings.
 
-- **Image hosting (#30):** reviewed upload, public image display, receipt persistence after reload, owner deletion and public-link 404 passed.
-- **Device sync (#29):** published saved workspaces, fetched the same revision after reload and in a second isolated browser, applied the snapshot with the expected channels/layout, then deleted it. A subsequent fetch showed no active snapshot; both browsers retained their local workspaces. The agent also verified the published revision in the production store before deletion.
-- **Provider activity (#31):** reviewed `patrick__eff` in `#hasanabi` with BTTV and 7TV, started the session and observed Live, then stopped it. The owner confirmed the session ended and the active toolbar indicator disappeared. This proves the observed browser flow; BTTV sends are not delivery receipts, and independent provider-side presence readback was not captured.
+## Execution order
 
-M4 remains open. Controlled live emote changes and cosmetic badge events, supplemental public/own-message EventSub cases with consent and suitable external conditions, remain outstanding. The earlier source-cache mismatch has cleared on public-browser recheck; both source URLs now match the deployed release hash. Sync conflict/lost-receipt/recovery cases retain fixture evidence; they were not repeated in production. Upload persistence across a server restart or reboot was not exercised. Native feature limitations and earlier M3 private-event/journal and eligible broadcaster gates remain separate.
+Default queue: **#142 → #134 → #130 → #139 → #135 → #136 → #131 → #132 → #133
+→ #137 → #138 → #141**. Take one reviewable slice at a time. Independent work may
+move earlier when it avoids shared-file conflicts and retains its verification
+prerequisites. The acceptance track below can proceed whenever its external
+conditions are available.
 
-## M5 implementation started
+### Wave 1 — Make changes reviewable and measurable
 
-Work proceeds in independently reviewed slices: paired desktop playback (#35), watched-channel browser companion (#36), sandboxed extensions (#37), owner-configured IRC (#38) and paired desktop overlay (#47). See [current M5 evidence and remaining acceptance](milestone-5-progress.md). M4's live-event gate remains separate.
+1. [#142 — Format the frontend](https://git.subcult.tv/subculture-collective/chatty-cat/issues/142).
+   Adopt one formatter and its check command. Keep the mass formatting commit
+   separate from behavior changes; record it in the blame ignore file and explain
+   its use in [continuous verification](continuous-verification.md). Existing
+   tests and build must pass. Land before the broad panel conversion.
+2. [#134 — Resource readout and baseline](https://git.subcult.tv/subculture-collective/chatty-cat/issues/134).
+   Add the hidden resource command with timer owners, mounted rows, cache size,
+   long tasks, visibility and heap where supported. Record quiet/busy channels,
+   visible/hidden tabs and the exact build, browser, hardware and observation
+   duration in a dated report. Document external CPU/memory measurements and GPU
+   measurements where available; mark unsupported metrics unavailable. Keep the
+   readout out of the future overlay entry.
 
-## Implementation issues
+Exit: readable source, a working readout and a dated baseline. Define repeatable
+sampling and numeric comparisons here; do not invent CPU or heap limits without
+measurements. Retain the existing goals of near-zero idle/hidden main-thread work
+and no task over 50 ms during normal scrolling.
 
-| Issue | Deliverable | Blocking issues |
-| --- | --- | --- |
-| [#5](https://git.subcult.tv/subculture-collective/chatty-cat/issues/5) | Audit Chatterino 2.5.6 feature coverage and web adaptations | None |
-| [#6](https://git.subcult.tv/subculture-collective/chatty-cat/issues/6) | Save and switch named channel workspaces | #2 |
-| [#7](https://git.subcult.tv/subculture-collective/chatty-cat/issues/7) | Add independent channel splits and tabbed layouts | #6 |
-| [#8](https://git.subcult.tv/subculture-collective/chatty-cat/issues/8) | Support larger workspaces with channel admission limits | #7 |
-| [#9](https://git.subcult.tv/subculture-collective/chatty-cat/issues/9) | Build a unified mentions, replies and whispers inbox | #2 |
-| [#10](https://git.subcult.tv/subculture-collective/chatty-cat/issues/10) | Add reusable message filters and highlight rules | #2 |
-| [#11](https://git.subcult.tv/subculture-collective/chatty-cat/issues/11) | Add customizable hotkeys and a quick switcher | #6 |
-| [#12](https://git.subcult.tv/subculture-collective/chatty-cat/issues/12) | Add custom commands and reusable message actions | #2 |
-| [#13](https://git.subcult.tv/subculture-collective/chatty-cat/issues/13) | Add streamer privacy mode for capture and sharing | #2 |
-| [#14](https://git.subcult.tv/subculture-collective/chatty-cat/issues/14) | Add followed/live channel discovery and a viewers panel | #6 |
-| [#15](https://git.subcult.tv/subculture-collective/chatty-cat/issues/15) | Add structured archive queries and saved searches | #2 |
-| [#16](https://git.subcult.tv/subculture-collective/chatty-cat/issues/16) | Bookmark messages and conversations with personal notes | #2 |
-| [#17](https://git.subcult.tv/subculture-collective/chatty-cat/issues/17) | Add a persistent public reply-thread viewer | #9 |
-| [#18](https://git.subcult.tv/subculture-collective/chatty-cat/issues/18) | Jump from archive and bookmarks to matching VOD time | #15, #16 |
-| [#19](https://git.subcult.tv/subculture-collective/chatty-cat/issues/19) | Compare observed stream activity on a shared timeline | #2 |
-| [#20](https://git.subcult.tv/subculture-collective/chatty-cat/issues/20) | Export channel logs with retention and recovery controls | #2 |
-| [#21](https://git.subcult.tv/subculture-collective/chatty-cat/issues/21) | Build a permission-aware moderation workspace | #15 |
-| [#22](https://git.subcult.tv/subculture-collective/chatty-cat/issues/22) | Customize moderation buttons and timeout presets | #21, #12 |
-| [#23](https://git.subcult.tv/subculture-collective/chatty-cat/issues/23) | Add an AutoMod held-message review queue | #21 |
-| [#24](https://git.subcult.tv/subculture-collective/chatty-cat/issues/24) | Add suspicious-user monitoring and restriction controls | #21 |
-| [#25](https://git.subcult.tv/subculture-collective/chatty-cat/issues/25) | Create and manage broadcaster polls | #2 |
-| [#26](https://git.subcult.tv/subculture-collective/chatty-cat/issues/26) | Create and resolve broadcaster predictions | #2 |
-| [#27](https://git.subcult.tv/subculture-collective/chatty-cat/issues/27) | Support isolated signed-in account profiles | #2 |
-| [#28](https://git.subcult.tv/subculture-collective/chatty-cat/issues/28) | Import Chatterino layouts and settings without credentials | #6, #27, #12 |
-| [#29](https://git.subcult.tv/subculture-collective/chatty-cat/issues/29) | Add optional self-hosted cross-device sync | #6, #16, #27 |
-| [#30](https://git.subcult.tv/subculture-collective/chatty-cat/issues/30) | Add opt-in image paste and drag-and-drop uploads | #2 |
-| [#31](https://git.subcult.tv/subculture-collective/chatty-cat/issues/31) | Add live provider updates and cosmetic badge controls | #2 |
-| [#32](https://git.subcult.tv/subculture-collective/chatty-cat/issues/32) | Render shared-chat, reward and watch-streak context | #10, #15 |
-| [#33](https://git.subcult.tv/subculture-collective/chatty-cat/issues/33) | Add smarter completion, local nicknames and optional spellcheck | #2 |
-| [#34](https://git.subcult.tv/subculture-collective/chatty-cat/issues/34) | Add validated custom theme import and live preview | #2 |
-| [#35](https://git.subcult.tv/subculture-collective/chatty-cat/issues/35) | Add an opt-in desktop playback companion | #6 |
-| [#36](https://git.subcult.tv/subculture-collective/chatty-cat/issues/36) | Add a browser companion for the currently watched channel | #6 |
-| [#37](https://git.subcult.tv/subculture-collective/chatty-cat/issues/37) | Add a capability-limited extension framework | #12 |
-| [#38](https://git.subcult.tv/subculture-collective/chatty-cat/issues/38) | Add owner-configured IRC networks and private conversations | #7 |
+### Wave 2 — Reduce startup work and payload
 
-## Audit follow-ups
+3. [#130 — Lazy panel registration](https://git.subcult.tv/subculture-collective/chatty-cat/issues/130).
+   Introduce the explicit panel lifecycle, then migrate simple panels in bounded
+   batches before the remaining panels. Preserve commands, keyboard access,
+   account teardown and restored docked layouts. Remove the legacy header mirror,
+   `showModal` patch and body observer only after all panels register explicitly.
+   Startup constructs only the shell, log, composer and restored docked panels;
+   unopened panels allocate no DOM or running timers. Converted modules have
+   separate chunks.
+4. [#139 — Load emoji and resources on demand](https://git.subcult.tv/subculture-collective/chatty-cat/issues/139).
+   Extract the generated data, preserve provenance and cache it on first use.
+   Verify picker/help operation offline after first load and service-worker
+   upgrade behavior. Measure total startup transfer and parsing as well as the
+   main chunk, so moving bytes into a precache does not masquerade as savings.
+   The issue's main-chunk target remains below 180 kB gzip.
 
-The [Chatterino inventory](chatterino-coverage.csv) and [report](chatterino-coverage.md) identified additional slices:
+Exit: record before/after DOM, timers, startup and chunk measurements. Panel
+restoration, picker/help and offline behavior pass. #130 follows #142; #134 supplies
+its measurement evidence. #139 can be developed independently after formatting,
+then assessed alongside the lazy chunks.
 
-- [#40](https://git.subcult.tv/subculture-collective/chatty-cat/issues/40) — Dispatch local Chatterino commands without sending them to Twitch.
-- [#41](https://git.subcult.tv/subculture-collective/chatty-cat/issues/41) — Add permission-aware clip, marker and broadcaster management actions.
-- [#42](https://git.subcult.tv/subculture-collective/chatty-cat/issues/42) — Add warnings, Shield Mode and ID-based moderation commands.
-- [#43](https://git.subcult.tv/subculture-collective/chatty-cat/issues/43) — Add Chatterino message and interface presentation controls.
-- [#44](https://git.subcult.tv/subculture-collective/chatty-cat/issues/44) — Add configurable safe link previews and selection search.
-- [#45](https://git.subcult.tv/subculture-collective/chatty-cat/issues/45) — Add a versioned Unicode emoji catalog, categories and style controls.
-- [#46](https://git.subcult.tv/subculture-collective/chatty-cat/issues/46) — Add bounded similar-message filtering with explicit highlight behavior.
-- [#47](https://git.subcult.tv/subculture-collective/chatty-cat/issues/47) — Add an optional paired desktop overlay with click-through controls.
-- [#48](https://git.subcult.tv/subculture-collective/chatty-cat/issues/48) — Private per-user notes in account-isolated user cards.
+### Wave 3 — Stop unnecessary idle and hidden activity
 
-## Current issue review — October 15, 2026
+5. [#135 — Visibility-aware scheduling](https://git.subcult.tv/subculture-collective/chatty-cat/issues/135).
+   Replace the UI polling intervals with the shared scheduler and panel activity
+   predicates. Batch provider events from socket messages. Preserve final storage
+   flushes and recovery behavior. Verify the issue's target of at most two active
+   timers while idle and none while hidden with explicit timer ownership; account
+   for transport/retry activity separately rather than hiding it from the readout.
+6. [#136 — Pause invisible animated emotes](https://git.subcult.tv/subculture-collective/chatty-cat/issues/136).
+   Freeze offscreen/hidden rows, restore on re-entry and preserve manual freeze
+   and picker hold behavior. Use measured row heights for containment. Compare
+   busy-channel visible/hidden and live/history CPU/GPU observations, with no
+   layout shift or lost reader position.
 
-Main is `30aaea2`, including the shell in merged PR #144 and crawler metadata in
-PR #145. All 18 open issues were reviewed against the implementation and retained
-acceptance records. No additional issue is complete enough to close.
+Exit: repeat Wave 1's scenarios against the same environment. Demonstrate the
+change in work performed; preserve sparkline, picker, transport and persistence
+behavior. #130 supplies panel lifecycle; #134 supplies the baseline.
 
-- M0–M3 are closed. The owner accepted direct, uncached GIPHY lookup under #4.
-- M4 has one open issue, #32: positive shared-chat, reward, streak, effect and
-  private hold/update events still need controlled live acceptance.
-- M5 has two open issues: #36 needs the installed browser companion's watched
-  channel, workspace/focus and removal round trip; #38 needs an approved IRC
-  endpoint, identity and live network acceptance. Both implementations are merged.
-- M6 has fourteen open issues, #130–#143. Shell #129 is closed through PR #144.
-  Lazy panels, readable option labels, dense/narrow layouts, resource measurement,
-  scheduling, animation, workers, overlay entry, data extraction, fonts, bundle
-  budgets and formatting remain unfinished.
+### Wave 4 — Finish panel usability
 
-The next change implements #140's selected-font loading: remove the twelve-family
-startup stylesheet, request one selected family with `display=swap`, and restore
-it through the existing saved-settings path. The local production build passed
-797 frontend tests. A fresh isolated Chromium preview made zero Google Fonts
-requests; selecting Fira Code loaded its stylesheet and font, reload restored it,
-and selecting the system font removed the stylesheet. This is local verification;
-merge and deployment remain separate.
+7. [#131 — Human-readable settings](https://git.subcult.tv/subculture-collective/chatty-cat/issues/131).
+   Map option values to clear labels and document them in the design system.
+   Preserve stored values, preset definitions and share URLs byte for byte.
+8. [#132 — Dense panel layouts](https://git.subcult.tv/subculture-collective/chatty-cat/issues/132).
+   Group moderation, presentation, provider/badge, chat-context, sync and archive
+   controls into labelled sections. Shorten direct explanatory paragraphs to
+   about 300 characters or put detail behind disclosure controls. At 1280×800,
+   expose a usable first section and keep all controls reachable.
+9. [#133 — Narrow and portrait panels](https://git.subcult.tv/subculture-collective/chatty-cat/issues/133).
+   Use a consistent sheet/tab treatment for docked and floating panels, including
+   picker, video and whispers. Verify touch dragging, keyboard access, readable
+   chat and on-screen placement at 600×800 and 390×844.
 
-After #140, continue with #142 before #130 as recorded in planning issue #143.
-Closure still requires the relevant acceptance; a new PR does not establish
-deployment or live acceptance.
+Exit: demonstrate opening, docking, resizing, closing and restoring the affected
+panels. Work after the lifecycle migration to avoid rewriting the same markup
+and geometry twice; #131 can move earlier as a small independent correction.
 
-## Operating the board
+### Wave 5 — Isolate heavy storage and OBS workloads
 
-- PR #2 and the coverage audit are complete. Use the current issue review above
-  for continuation; the earlier stage descriptions retain their historical context.
-- Internal dependencies remain Backlog until their blockers are satisfied. Move the next available tickets to Ready and apply `ready-for-agent`; a closed but unmerged PR does not satisfy the baseline.
-- Use In Progress for owned work, Review for an attached PR, Blocked for external impediments, and Done after acceptance evidence is recorded.
-- Each issue has a demoable outcome, acceptance criteria and native dependency links. Delivery issues remain unassigned until work is owned; milestone dates are unset until an owner commits to delivery.
-- Keep web features usable without native integrations. Streamlink/player launch, watched-channel bridging and process-aware privacy require explicit companion pairing.
-- Chatterino import must exclude its stored credentials. Provider-specific unavailable features are disclosed rather than invented.
+10. [#137 — Storage/search worker](https://git.subcult.tv/subculture-collective/chatty-cat/issues/137).
+    Move archive, stats, history search, rate timeline and moderation-journal
+    persistence behind the worker protocol in bounded migrations. Preserve
+    account boundaries, receipt outcomes, quota recovery from PR #128 and
+    existing retained data. Run the archive/stats/storage fixtures through the
+    worker shim and a 15-minute busy-channel session with no storage-attributed
+    main-thread long task. Use the readout to attribute work before and after.
+11. [#138 — Dedicated OBS overlay entry](https://git.subcult.tv/subculture-collective/chatty-cat/issues/138).
+    Build the renderer/connection entry without shell, panels or storage timers.
+    Preserve the old `?overlay=1` parameters through redirection. Verify the
+    [overlay appearance checks](overlay-appearance-demo.md), real OBS idle work,
+    and a gzip payload well below one quarter of the main entry. Count shared
+    chunks in the overlay's loaded payload, not just its named entry file.
 
-## Accepted legacy parity adaptation
+Exit: durable history/recovery passes, storage no longer stalls the measured
+session, and OBS has its own verified entry. #137 and #138 are independent after
+the earlier architecture changes; one does not block the other.
 
-The owner accepted direct, uncached GIPHY lookup on October 14, 2026. [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4) and M0 are closed for that documented adaptation; provider cache/proxy approval is not claimed.
+### Wave 6 — Enforce regression budgets
 
+12. [#141 — Bundle budgets in CI](https://git.subcult.tv/subculture-collective/chatty-cat/issues/141).
+    Commit gzip limits based on the resulting main, lazy-panel and overlay
+    payloads. Report measurements in CI and prove a deliberate 20 kB regression
+    fails the check. Set final limits after #130, #139 and #138 establish the
+    chunk graph; account for shared chunks and required data requests.
 
-Public-context connection acceptance: on October 13, the owner granted the required access and connected from the signed-in browser. The panel reported “Live public context (latest 100 relevant messages / 15 minutes, snapshots every two seconds); bodies excluded”. This passes consent/connection and does not establish a positive shared-chat, reward, streak, effect or private hold/update event. Those controlled-event checks remain open under #32.
+Exit: hosted checks enforce the measured budgets, and the final resource report
+repeats Wave 1's scenarios. Close #143 only after its twelve delivery issues have
+passed their gates and the resulting behavior has been verified. Keep individual
+local, hosted, merged and deployed results distinguishable.
+
+## Live acceptance track — independent of M6
+
+- [#32 — Twitch message context](https://git.subcult.tv/subculture-collective/chatty-cat/issues/32)
+  remains in M4. Consent/connection passed; arrange controlled positive
+  shared-chat, reward, streak, effect and account-private hold/update events.
+  Verify rendering, predicates, deduplication and private-body exclusion from
+  public history. Prerequisite: suitable consenting accounts/channels and events.
+  [Public context](eventsub-public-context-demo.md) and
+  [private feedback](user-message-feedback-demo.md) retain fixture boundaries.
+- [#36 — Installed browser companion](https://git.subcult.tv/subculture-collective/chatty-cat/issues/36)
+  remains in M5. Complete watched-channel delivery, reviewed workspace/focus
+  choices and revocation/removal in the installed Chromium extension. Pairing
+  alone is insufficient. Verify origin/account boundaries and no cookie/token
+  forwarding. Prerequisite: the owner's installed extension and manual popup
+  actions where automation cannot reach them. [Companion evidence](browser-companion-demo.md).
+- [#38 — Approved IRC network](https://git.subcult.tv/subculture-collective/chatty-cat/issues/38)
+  remains in M5. Obtain an approved TLS endpoint, identity, channels and
+  server-held credentials through the existing private configuration process.
+  Then verify join, send, private conversations, reconnect/echo and isolated
+  history. Do not choose a network or expose an arbitrary-host proxy to satisfy
+  the gate. [Relay evidence](irc-relay-demo.md).
+
+Close each issue only when its recorded gate passes or the owner explicitly
+accepts a documented scope change. M4/M5 closure must also review their retained
+provider/native limitations; closing the last open issue does not erase them.
+
+## Delivery and evidence
+
+Keep #3 as the roadmap index and #143 as the M6 coordinator; neither adds a
+separate implementation deliverable. Use existing issues and milestones rather
+than duplicate tickets. Move work to In Progress when owned, Review when a PR is
+attached, and Done after the relevant acceptance is recorded. Keep externally
+blocked acceptance work visible without treating it as an M6 prerequisite.
+
+Each PR states its issue, changed behavior, measurements/tests and remaining
+limits. Use the [repository verification commands](../README.md#verify) and
+[hosted workflow](continuous-verification.md) appropriate to its scope. Record
+local checks, exact-head hosted CI, merge, deployment and live/provider results
+as separate evidence. Recheck issue state before starting the next slice.
+
+Historical acceptance remains in [parity](parity.md), [M3](milestone-3-progress.md),
+[M4](m4-deployment-2026-10-13.md), [M5](milestone-5-progress.md) and the
+[October 14 closeout](remaining-acceptance-2026-10-14.md). These dated reports are
+not claims of today's deployed release. The pinned Chatterino 2.5.6
+[coverage audit](chatterino-coverage.md) remains the adoption reference; this
+roadmap does not promise full native parity.
