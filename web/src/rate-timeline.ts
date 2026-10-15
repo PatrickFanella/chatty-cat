@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { ObservationCoverage, type ObservationSpan } from './observation-coverage';
 import type { ChatMessage, ServerEvent } from './protocol';
 export type GapCause = 'not observed' | 'connecting' | 'socket dropped' | 'page closed' | 'timer paused';
@@ -376,11 +377,15 @@ export class RateTimeline {
       })
       .catch(() => {});
     let ticks = 0;
-    this.timer = setInterval(() => {
-      this.series.tick();
-      this.paint();
-      if (++ticks % 30 === 0) void this.save(channels.join(','));
-    }, 1000);
+    this.timer = ownedInterval(
+      'rate.timeline',
+      () => {
+        this.series.tick();
+        this.paint();
+        if (++ticks % 30 === 0) void this.save(channels.join(','));
+      },
+      1000,
+    );
     this.key = channels.join(',');
     this.paint();
   }
@@ -420,7 +425,7 @@ export class RateTimeline {
   }
   stop(): void {
     this.stopped = true;
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     void this.save(this.key).finally(() => void this.database.then((db) => db?.close()));
   }
 }

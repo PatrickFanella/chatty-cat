@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import type { AuthStatus } from './auth';
 import { privacyEnabled } from './privacy';
 export type DiscoveryKind = 'followed' | 'live' | 'chatters';
@@ -165,7 +166,7 @@ export class DiscoveryPanel {
     document.addEventListener('privacychange', this.privacy);
     window.addEventListener('storage', this.privacy);
     document.body.append(this.root);
-    this.timer = setInterval(() => this.paintState(), 1000);
+    this.timer = ownedInterval('discovery.paint', () => this.paintState(), 1000);
     this.paintState();
   }
   setAuth(auth: AuthStatus | undefined): void {
@@ -343,7 +344,7 @@ export class DiscoveryPanel {
   stop(): void {
     this.stopped = true;
     this.reset();
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.privacy);
     this.root.remove();

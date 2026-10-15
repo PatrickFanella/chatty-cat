@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 interface TwitchPlayer {
   pause(): void;
   setVolume(volume: number): void;
@@ -90,17 +91,21 @@ export class TwitchVolume {
         player.setMuted(false);
         player.setVolume(volume);
         player.setMuted(muted);
-        this.timer = setInterval(() => {
-          if (generation !== this.generation) return;
-          try {
-            const current = player.getVolume(),
-              mute = player.getMuted();
-            if (Number.isFinite(current) && current >= 0 && current <= 1 && typeof mute === 'boolean')
-              save(current, mute);
-          } catch {
-            /* A temporarily unavailable player does not interrupt chat. */
-          }
-        }, 2000);
+        this.timer = ownedInterval(
+          'player.volume',
+          () => {
+            if (generation !== this.generation) return;
+            try {
+              const current = player.getVolume(),
+                mute = player.getMuted();
+              if (Number.isFinite(current) && current >= 0 && current <= 1 && typeof mute === 'boolean')
+                save(current, mute);
+            } catch {
+              /* A temporarily unavailable player does not interrupt chat. */
+            }
+          },
+          2000,
+        );
       });
       return true;
     } catch {
@@ -111,7 +116,7 @@ export class TwitchVolume {
   stop(): void {
     this.generation++;
     if (this.timer !== undefined) {
-      clearInterval(this.timer);
+      clearOwnedInterval(this.timer);
       this.timer = undefined;
     }
   }

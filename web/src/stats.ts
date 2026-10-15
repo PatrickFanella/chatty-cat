@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { StatisticsStorageControls } from './stats-storage-ui';
 import { profileKey } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -271,10 +272,14 @@ export class StatsPanel {
       },
     );
     let ticks = 0;
-    this.timer = setInterval(() => {
-      this.paint();
-      if (++ticks % 6 === 0) this.ledger?.save();
-    }, 5000);
+    this.timer = ownedInterval(
+      'stats.paint',
+      () => {
+        this.paint();
+        if (++ticks % 6 === 0) this.ledger?.save();
+      },
+      5000,
+    );
     this.paint();
   }
   float(): void {
@@ -579,7 +584,7 @@ export class StatsPanel {
   stop(): void {
     this.storageControls?.stop();
     this.bundleDispose();
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     this.trigger.removeEventListener('click', this.open);
     this.dialog.querySelector('#stats-close')?.removeEventListener('click', this.close);
     this.dialog.removeEventListener('close', this.closed);

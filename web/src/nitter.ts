@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 export function mirrorHost(value: unknown): string {
   if (
     typeof value !== 'string' ||
@@ -42,9 +43,13 @@ export class NitterLinks {
   private started = false;
   constructor(private log: HTMLElement) {
     log.addEventListener('virtualpaint', this.scan);
-    this.timer = setInterval(() => {
-      if (this.started && !document.hidden) void this.poll();
-    }, 900000);
+    this.timer = ownedInterval(
+      'links.mirror',
+      () => {
+        if (this.started && !document.hidden) void this.poll();
+      },
+      900000,
+    );
     this.scan();
   }
   private scan = (): void => {
@@ -85,7 +90,7 @@ export class NitterLinks {
   }
   stop(): void {
     this.abort.abort();
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     this.log.removeEventListener('virtualpaint', this.scan);
   }
 }

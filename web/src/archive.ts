@@ -1,3 +1,4 @@
+import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import {
   readRetention,
   parseRetention,
@@ -110,9 +111,13 @@ export class MessageArchive {
       open.onblocked = () => failure('Archive upgrade is blocked by another tab; close it and reload');
     });
     void this.db.catch(() => failure('Local archive unavailable; live chat continues'));
-    this.timer = setInterval(() => {
-      void this.flush().catch(() => failure('Archive could not save messages; live chat continues'));
-    }, 3000);
+    this.timer = ownedInterval(
+      'storage.archive',
+      () => {
+        void this.flush().catch(() => failure('Archive could not save messages; live chat continues'));
+      },
+      3000,
+    );
   }
   add(message: ChatMessage): void {
     if (this.stopped || !PUBLIC_ARCHIVE_COMMANDS.includes(message.command)) return;
@@ -516,7 +521,7 @@ export class MessageArchive {
   }
   stop(): void {
     this.stopped = true;
-    clearInterval(this.timer);
+    clearOwnedInterval(this.timer);
     void this.flush()
       .then(async () => (await this.db).close())
       .catch(() => {});
