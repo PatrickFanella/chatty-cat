@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 16, 2026 against main `2c9c5d5` and the live Gitea issue inventory.
+Updated October 16, 2026 against main `40afd42` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -194,16 +194,16 @@ viewport round trip; synthetic whispers/moderation and touch-event checks retain
 their provider/device qualification limits. See [compact panel evidence](compact-panels.md).
 All four PR-head hosted checks passed. These panel changes are not deployed.
 
-The first #137 migration merged in PR #162, moving private journal transactions
-and capacity checks to a dedicated storage worker. The archive-query stage merged
-in PR #163, adding cloneable filters, cancellation and bounded scans. Both had all
-four PR-head hosted checks pass. The third stage moves archive appends and bounded
-public-excerpt recovery to the worker. Local validation passed 883 tests; native
-Chromium verified deduplication, atomic capacity rollback and retained moderation
-flags across worker recreation, with zero guarded main-thread inserts. See the
-[staged worker plan and evidence](storage-worker-migration.md). The write stage is
-pending review. #137 remains open: pruning/retention ownership is next, followed
-by statistics/rates and the 15-minute busy-channel qualification.
+The first three #137 migrations merged in PRs #162–#164: private journal,
+archive queries, appends and bounded public-excerpt recovery. Each final PR head
+passed all four hosted checks. The fourth stage moves read-only retention preview
+to a streaming worker scan while retaining the exact review signature. All 885
+frontend tests passed locally. In native Chromium, the actual panel previewed
+10,000 synthetic rows with no main-thread scan; the existing apply path then
+accepted the worker plan and removed exactly the reviewed 5,000 records. See the
+[staged worker plan and evidence](storage-worker-migration.md). The preview stage
+is pending review. #137 remains open: pruning and retention apply ownership are
+next, followed by statistics/rates and the 15-minute busy-channel qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

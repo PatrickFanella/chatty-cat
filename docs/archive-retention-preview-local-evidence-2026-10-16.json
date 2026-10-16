@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-16",
+  "issue": 137,
+  "baseCommit": "40afd4242f0275a19f2262d694f002ff90cb6f76",
+  "scope": "Read-only retention preview scan and streaming plan calculation",
+  "localChecks": {
+    "frontendTestsPassed": 885,
+    "frontendFilesPassed": 186,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "native": {
+    "nativeWorker": {
+      "worker": "assets/storage-worker-BhHWvXtF.js",
+      "fixtureRows": 10000,
+      "plan": {
+        "policy": {
+          "rows": 5000,
+          "days": 7
+        },
+        "at": 1792178599876,
+        "rows": 10000,
+        "remove": 5000,
+        "oldest": 1791314599876,
+        "newest": 1792092199876,
+        "signature": "10000:3499488925"
+      },
+      "expectedSignature": "10000:3499488925",
+      "signatureMatches": true,
+      "expectedRemove": 5000,
+      "rowsAfterPreview": 10000,
+      "policyUnchanged": true,
+      "mainScanAttempts": 0,
+      "elapsedMs": 33.299999952316284,
+      "workerCached": true
+    },
+    "nativePanel": {
+      "text": "Local archive retentionMaximum retained archive rows Archive age limit No age limit7 days30 days90 daysPreview retention and capacityCurrent archive: 10,000 rows. Proposed limit: 5,000 rows / 7 days. Applying removes 5,000 eligible oldest records now; later saves enforce this policy. Capacity warning: at least 90% of the proposed row limit is used. Preview and download all recovery parts before applying a reduction. This controls the local public archive.Apply reviewed retention",
+      "scanAttempts": 0,
+      "applyEnabled": true,
+      "policy": null
+    },
+    "nativeApply": {
+      "rowsAfterApply": 5000,
+      "policy": {
+        "rows": 5000,
+        "days": 7
+      },
+      "mainApplyScans": 1,
+      "status": true
+    }
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-DzxcvIpw.js",
+        "rawBytes": 525365,
+        "gzipBytes": 152890
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-BhHWvXtF.js",
+        "rawBytes": 87454,
+        "gzipBytes": 23368
+      }
+    }
+  },
+  "limits": [
+    "Pruning and retention apply remain on main thread",
+    "Native local synthetic fixture only; no live provider qualification",
+    "Preview duration is one local observation, not a performance budget or comparative benchmark",
+    "No production deployment, disconnected offline test or 15-minute busy-channel qualification",
+    "Issue #137 remains open"
+  ]
+}

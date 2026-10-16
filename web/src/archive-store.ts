@@ -1,9 +1,42 @@
 import { ArchiveReader } from './archive-reader';
 import { MAX_ROWS, PUBLIC_ARCHIVE_COMMANDS, archiveKey, validMessage, type Archived } from './archive-records';
 import type { ChatMessage } from './protocol';
-import type { ArchiveRetention } from './archive-retention';
+import { parseRetention, type ArchiveRetention, type RetentionPlan } from './archive-retention';
 
 export class ArchiveStore extends ArchiveReader {
+  async retentionPreview(policy: ArchiveRetention, at: number, capacity: number): Promise<RetentionPlan> {
+    policy = parseRetention(policy);
+    const db = await this.db;
+    const tx = db.transaction('messages', 'readonly');
+    const plan: RetentionPlan = { policy, at, rows: 0, remove: 0, oldest: null, newest: null, signature: '' };
+    const cutoff = policy.days ? at - policy.days * 86400000 : 0;
+    const cap = Math.min(capacity, policy.rows);
+    let age = 0,
+      hash = 2166136261;
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => {
+        plan.remove = Math.max(age, Math.max(0, plan.rows - cap));
+        plan.signature = plan.rows + ':' + (hash >>> 0);
+        resolve(plan);
+      };
+      tx.onerror = () => {}; // Report only after the transaction has aborted.
+      tx.onabort = () => reject(tx.error ?? new Error('Retention preview failed'));
+      const cursor = tx.objectStore('messages').index('timestamp').openKeyCursor();
+      cursor.onsuccess = () => {
+        const row = cursor.result;
+        if (!row) return;
+        if (typeof row.key === 'number') {
+          plan.rows++;
+          plan.oldest ??= row.key;
+          plan.newest = row.key;
+          if (row.key < cutoff) age++;
+          for (const code of String(row.primaryKey) + ':' + row.key + ';')
+            hash = Math.imul(hash ^ code.charCodeAt(0), 16777619);
+        }
+        row.continue();
+      };
+    });
+  }
   async append(messages: readonly ChatMessage[]): Promise<void> {
     if (messages.length > 2000 || messages.some((message) => !validMessage(message)))
       throw new Error('Archive batch must contain at most 2000 public messages');

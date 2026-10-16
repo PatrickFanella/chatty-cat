@@ -3,8 +3,8 @@
 Issue #137 moves persistence and retained-data queries off the main thread in
 bounded stages. The first stage moves the private moderation journal; the second
 moves archive reads and queries. The third moves appends and bounded recovery.
-Pruning, reviewed retention, statistics and rate-timeline work remain on their
-existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
+The fourth moves read-only retention preview. Pruning, reviewed retention apply,
+statistics and rate-timeline work remain on their existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
 
 ## First stage: private journal
 
@@ -170,6 +170,43 @@ PONG preceded a concurrent user action. A separate test-only repair requires bot
 exact frames in either valid order and adds a forced action-first case. Both cases
 passed 50 race-detector repetitions; the full Go race suite and go vet passed.
 Hosted results for the replacement head must be assessed separately.
+
+## Fourth stage: retention preview
+
+The write stage merged in PR #164 at main `40afd42`; all four PR-head hosted
+checks passed on its final head. Retention preview now uses a read-only worker
+transaction and returns only the review plan. It walks keys in the existing
+chronological index order, accumulating counts, bounds, age eligibility and the
+legacy signature without allocating an array of every retained key. Row/age
+limits combine with the same maximum rule as before, so overlapping removals are
+counted once. The main facade still flushes pending appends before preview.
+
+The plan shape, policy parsing and timestamp/key signature are unchanged.
+Existing apply transactions therefore accept current worker-generated plans and
+reject stale ones. Preview neither changes records nor saves a proposed policy.
+Pruning and retention apply remain unchanged on the main thread, including the
+synchronous localStorage write before deletion and conditional rollback after a
+transaction abort. Moving apply requires a separate design for cross-thread
+policy ownership; passing an asynchronous callback into an IndexedDB transaction
+would not preserve the current guarantee.
+
+All 885 frontend tests in 186 files passed, with TypeScript, production build,
+formatting and diff checks. Added tests compare the exact legacy signature,
+including equal timestamps and Unicode keys, age/cap overlap, unchanged records
+and policy, and an empty plan accepted by the existing apply transaction. Existing
+stale-review and policy-storage failure checks still pass through worker preview.
+
+Native Chromium seeded 10,000 public synthetic records through the emitted worker.
+With main-thread archive key scans blocked, the native worker and actual Export
+logs panel previewed the expected reduction to 5,000 rows / seven days. The
+signature matched an independent calculation; all 10,000 records and the saved
+policy were unchanged after preview. The guard recorded zero attempted scans.
+After replacing that guard with a counter, the panel's existing apply path accepted
+the plan, performed one main-thread key scan, removed exactly 5,000 records and
+saved the selected policy. This fixture confirms compatibility, not complete
+storage isolation or production performance. The worker was in the shell cache;
+disconnected offline loading was not tested. Exact results and asset sizes are
+in the [retention-preview evidence](archive-retention-preview-local-evidence-2026-10-16.json).
 
 ## Remaining stages and release boundary
 

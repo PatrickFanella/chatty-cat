@@ -212,7 +212,7 @@ export class MessageArchive {
   }
   async retentionPreview(policy: ArchiveRetention = readRetention()): Promise<RetentionPlan> {
     await this.flush();
-    return this.retentionTransaction(parseRetention(policy), Date.now(), false);
+    return this.queryWorker().request('archive.retentionPreview', parseRetention(policy), Date.now(), this.cap);
   }
   async applyRetention(plan: RetentionPlan): Promise<void> {
     await this.flush();
