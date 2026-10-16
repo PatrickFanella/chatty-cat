@@ -375,3 +375,47 @@ it('rejects private and oversized batches inside the worker before any append', 
     await worker.stop();
   }
 });
+
+it('returns the legacy retention signature and age/cap overlap without changing records or policy', async () => {
+  const a = archive();
+  const now = Date.now();
+  const records = Array.from({ length: 7 }, (_, i) => ({
+    ...message,
+    id: i === 6 ? 'unicode-猫-🐈' : String(i),
+    timestamp: now - (i < 4 ? 10 : 1) * 86400000,
+  }));
+  for (const record of records) a.add(record);
+  await a.flush();
+  const { StorageWorkerClient } = await import('./storage-worker-client');
+  const worker = new StorageWorkerClient();
+  try {
+    const policy = { rows: 1000, days: 7 };
+    const plan = await worker.request('archive.retentionPreview', policy, now, 3);
+    const entries = records
+      .map((m) => ({ key: m.channel + ':' + m.id, at: m.timestamp }))
+      .sort((a, b) => a.at - b.at || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    let hash = 2166136261;
+    for (const entry of entries)
+      for (const code of entry.key + ':' + entry.at + ';') hash = Math.imul(hash ^ code.charCodeAt(0), 16777619);
+    expect(plan).toEqual({
+      policy,
+      at: now,
+      rows: 7,
+      remove: 4,
+      oldest: entries[0]?.at,
+      newest: entries.at(-1)?.at,
+      signature: '7:' + (hash >>> 0),
+    });
+    expect((await a.search({ text: '' })).map((m) => m.id).sort()).toEqual(records.map((m) => m.id).sort());
+    expect(localStorage.getItem('chatthing:v1:archive-retention')).toBeNull();
+  } finally {
+    await worker.stop();
+  }
+});
+it('returns an empty review plan and lets the existing apply transaction accept it', async () => {
+  const a = archive();
+  const plan = await a.retentionPreview({ rows: 1000, days: 7 });
+  expect(plan).toMatchObject({ rows: 0, remove: 0, oldest: null, newest: null, signature: '0:2166136261' });
+  await a.applyRetention(plan);
+  expect(JSON.parse(localStorage.getItem('chatthing:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
+});

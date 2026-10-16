@@ -71,6 +71,8 @@ export class StorageWorkerHost {
   ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
+      case 'archive.retentionPreview':
+        return (this.archive ??= new ArchiveStore()).retentionPreview(...request.args);
       case 'archive.append':
         return (this.archive ??= new ArchiveStore()).append(...request.args);
       case 'archive.recover':
