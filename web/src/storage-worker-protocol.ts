@@ -1,9 +1,16 @@
+import type { ArchiveRetention } from './archive-retention';
 import type { ChatMessage } from './protocol';
 import type { ArchiveCursor, ArchivePage, ArchiveQuery, ArchiveScanPage } from './archive-records';
 import type { JournalEntry, JournalPlan, JournalPolicy, JournalState } from './moderation-journal-store';
 
 // Explicit operations only: no arbitrary method names, provider requests or automatic retries.
 export interface StorageOperations {
+  'archive.append': { args: [messages: readonly ChatMessage[]]; result: void };
+  'archive.recover': {
+    args: [messages: readonly ChatMessage[], cap: number, policy: ArchiveRetention];
+    result: number;
+  };
+
   'archive.get': { args: [id: string, channels: readonly string[]]; result: ChatMessage | undefined };
   'archive.recent': { args: [channels: readonly string[], limit: number]; result: ChatMessage[] };
   'archive.search': { args: [query: ArchiveQuery]; result: ChatMessage[] };
@@ -31,7 +38,7 @@ export type StorageReply =
   | { version: 1; id: number; ok: true; result: unknown }
   | { version: 1; id: number; ok: false; error: { name: string; message: string } };
 
-export type ArchiveOperation = Extract<StorageOperation, `archive.${string}`>;
+export type ArchiveOperation = Exclude<Extract<StorageOperation, `archive.${string}`>, 'archive.append'>;
 export interface StorageProgress {
   version: 1;
   id: number;

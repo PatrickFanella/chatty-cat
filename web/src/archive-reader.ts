@@ -23,7 +23,7 @@ function done(tx: IDBTransaction): Promise<void> {
   });
 }
 export class ArchiveReader {
-  private db = new Promise<IDBDatabase>((resolve, reject) => {
+  protected db = new Promise<IDBDatabase>((resolve, reject) => {
     let blocked = false;
     if (typeof indexedDB === 'undefined') {
       reject(new Error('Archive unavailable'));

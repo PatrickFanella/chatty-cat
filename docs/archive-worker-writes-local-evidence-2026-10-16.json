@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-16",
+  "issue": 137,
+  "baseCommit": "2c9c5d5868ecf5b4f78d3cc7a4dc81d289271ba0",
+  "scope": "Archive appends and bounded public excerpt recovery",
+  "localChecks": {
+    "frontendTestsPassed": 883,
+    "frontendFilesPassed": 186,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "nativeChromium": {
+    "worker": "assets/storage-worker-BgrwjmBm.js",
+    "baseRows": 3,
+    "channel": "qa-write-1792176287127",
+    "recovered": 1,
+    "retainedDeleted": "1",
+    "fullError": "Local archive is full; keep the bookmark backup or free retained capacity before recovery",
+    "privateError": "Archive batch must contain at most 2000 public messages",
+    "ids": [
+      "one",
+      "three",
+      "two"
+    ],
+    "reopenedIds": [
+      "one",
+      "three",
+      "two"
+    ],
+    "guardedMainInserts": 0,
+    "workerCached": true
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-BLyQMS79.js",
+        "rawBytes": 525331,
+        "gzipBytes": 152885
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-BgrwjmBm.js",
+        "rawBytes": 86380,
+        "gzipBytes": 23017
+      }
+    }
+  },
+  "limits": [
+    "Native check exercises emitted worker RPC with synthetic records; live provider ingestion was not exercised",
+    "Recovery uses the retention policy captured by the facade at request dispatch",
+    "Pruning and retention review/apply remain on main thread",
+    "No production deployment or 15-minute busy-channel qualification",
+    "No disconnected offline loading test",
+    "Issue #137 remains open"
+  ]
+}

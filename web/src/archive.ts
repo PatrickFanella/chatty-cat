@@ -10,9 +10,7 @@ import type { ChatMessage } from './protocol';
 import {
   MAX_ROWS,
   PUBLIC_ARCHIVE_COMMANDS,
-  archiveKey,
   validMessage,
-  type Archived,
   type ArchiveQuery,
   type ArchiveCursor,
   type ArchivePage,
@@ -94,17 +92,9 @@ export class MessageArchive {
     }
   }
   private async write(): Promise<void> {
-    const db = await this.db;
     const batch = this.queue.splice(0);
-    const tx = db.transaction('messages', 'readwrite');
-    const complete = done(tx);
-    const store = tx.objectStore('messages');
-    for (const message of batch) {
-      const key = archiveKey(message);
-      store.put({ key, channel: message.channel, timestamp: message.timestamp, message } satisfies Archived);
-    }
     try {
-      await complete;
+      await this.storageWorker().request('archive.append', batch);
     } catch (error) {
       this.queue = [...batch, ...this.queue].slice(-2000);
       throw error;
@@ -232,10 +222,13 @@ export class MessageArchive {
   private reader: StorageWorkerClient | undefined;
   private queryWorker(): StorageWorkerClient {
     if (this.stopped) throw new Error('Archive stopped');
+    return this.storageWorker();
+  }
+  private storageWorker(): StorageWorkerClient {
     return (this.reader ??= new StorageWorkerClient(
       undefined,
       30000,
-      'Local archive worker unavailable; reload before searching. Live chat continues.',
+      'Local archive worker unavailable; reload before another archive operation. Live chat continues.',
     ));
   }
   async get(id: string, channels: readonly string[]): Promise<ChatMessage | undefined> {
@@ -254,61 +247,7 @@ export class MessageArchive {
     if (messages.length > 6 || messages.some((m) => !PUBLIC_ARCHIVE_COMMANDS.includes(m.command) || !validMessage(m)))
       throw new Error('Recover at most six public excerpts');
     await this.flush();
-    if (signal?.aborted) throw new DOMException('Recovery cancelled', 'AbortError');
-    const db = await this.db;
-    if (signal?.aborted) throw new DOMException('Recovery cancelled', 'AbortError');
-    const tx = db.transaction('messages', 'readwrite'),
-      store = tx.objectStore('messages');
-    let inserted = 0,
-      failure: Error | undefined;
-    return new Promise<number>((resolve, reject) => {
-      const abort = () => {
-        try {
-          tx.abort();
-        } catch {
-          /* Finished transaction. */
-        }
-      };
-      signal?.addEventListener('abort', abort, { once: true });
-      const clean = () => signal?.removeEventListener('abort', abort);
-      tx.oncomplete = () => {
-        clean();
-        resolve(inserted);
-      };
-      tx.onabort = () => {
-        clean();
-        reject(
-          signal?.aborted
-            ? new DOMException('Recovery cancelled', 'AbortError')
-            : (failure ?? tx.error ?? new Error('Recovery failed')),
-        );
-      };
-      tx.onerror = () => {
-        clean();
-        reject(tx.error ?? new Error('Recovery failed'));
-      };
-      const count = store.count();
-      count.onsuccess = () => {
-        let available = Math.max(1, Math.min(MAX_ROWS, this.cap, readRetention().rows)) - count.result;
-        for (const message of new Map(messages.map((m) => [archiveKey(m), m])).values()) {
-          const key = archiveKey(message);
-          const existing = store.get(key);
-          existing.onsuccess = () => {
-            if (existing.result) return;
-            if (available <= 0) {
-              failure = new Error(
-                'Local archive is full; keep the bookmark backup or free retained capacity before recovery',
-              );
-              abort();
-              return;
-            }
-            available--;
-            inserted++;
-            store.add({ key, channel: message.channel, timestamp: message.timestamp, message } satisfies Archived);
-          };
-        }
-      };
-    });
+    return this.queryWorker().query('archive.recover', [messages, this.cap, readRetention()], { signal });
   }
   // Bounded chronological pages give the caller cancellation and backpressure.
   async scanChannel(channel: string, visit: (message: ChatMessage) => void, signal?: AbortSignal): Promise<void> {
