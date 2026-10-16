@@ -23,7 +23,7 @@ function setup() {
   panel = new AccountControls(anchor, change);
   panel.setAuth(alice);
   new AccountProfiles().remember('43', 'bob');
-  [...document.querySelectorAll('button')].find((b) => b.textContent === 'Accounts')!.click();
+  panel.open();
   const button = (name: string) => [...panel!.root.querySelectorAll('button')].find((b) => b.textContent === name)!;
   return { change, button };
 }
@@ -50,10 +50,10 @@ it('requires logout before forgetting an active identity and suppresses profile 
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.textContent).not.toContain('bob');
 });
-it('opens through the account-selector action without changing identity and removes its listener on stop', () => {
+it('opens explicitly without changing identity and removes its view on stop', () => {
   const x = setup();
   panel!.root.close();
-  document.dispatchEvent(new Event('open-account-profiles'));
+  panel!.open();
   expect(panel!.root.open).toBe(true);
   expect(x.change).not.toHaveBeenCalled();
   panel!.stop();

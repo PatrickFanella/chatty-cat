@@ -48,7 +48,7 @@ it('never launches on open, pairing or review; clears reviewed native action on 
     () => ['one'],
     () => 'one',
   );
-  button('Desktop playback').click();
+  panel!.open();
   expect(fetcher).not.toHaveBeenCalled();
   panel.root.querySelector('input')!.value = 'b'.repeat(64);
   button('Pair local companion').click();

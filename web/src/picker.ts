@@ -1,3 +1,5 @@
+import { parsePickerGeometry } from './picker-geometry';
+export { parsePickerGeometry } from './picker-geometry';
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { EMOJI_GROUPS, EMOJI_VERSION, emojiNode } from './emoji';
 import { profileKey } from './account-profiles';
@@ -38,9 +40,9 @@ export class EmotePicker {
   private page = 200;
   private readonly motion = new PickerMotion();
   private nextAgeRefresh = Infinity;
-  private readonly timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof setInterval> | undefined;
   private readonly floating: FloatingPanel;
-  private readonly saveTimer: ReturnType<typeof setInterval>;
+  private saveTimer: ReturnType<typeof setInterval> | undefined;
   constructor(
     private readonly root: HTMLElement,
     private readonly trigger: HTMLButtonElement,
@@ -144,16 +146,6 @@ export class EmotePicker {
     this.search.addEventListener('input', this.searchChange);
     this.search.addEventListener('keydown', this.searchKey);
     this.more.addEventListener('click', this.showMore);
-    this.timer = ownedInterval(
-      'picker.refresh',
-      () => {
-        if (!this.root.hidden) this.paintAgeCoverage();
-        if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold))
-          this.refresh(true);
-      },
-      1000,
-    );
-    this.saveTimer = ownedInterval('storage.picker', () => this.model.saveAll(), 15000);
     this.floating = new FloatingPanel(
       root,
       get(root, 'picker-handle', HTMLElement),
@@ -172,6 +164,22 @@ export class EmotePicker {
       this.restoreSettings,
     );
     if (this.floating.reopen) this.open();
+  }
+  private syncTimer(): void {
+    if (this.root.hidden) {
+      clearOwnedInterval(this.timer);
+      this.timer = undefined;
+      return;
+    }
+    this.timer ??= ownedInterval(
+      'picker.refresh',
+      () => {
+        if (!this.root.hidden) this.paintAgeCoverage();
+        if ((this.dirty || Date.now() >= this.nextAgeRefresh) && (!this.held || !this.model.options.hold))
+          this.refresh(true);
+      },
+      1000,
+    );
   }
   refresh(force = false): void {
     if (!force) {
@@ -414,6 +422,7 @@ export class EmotePicker {
   }
   showRail(open: boolean): void {
     this.root.hidden = !open;
+    this.syncTimer();
     this.trigger.setAttribute('aria-expanded', String(open));
     if (open) this.refresh(true);
     else {
@@ -422,8 +431,9 @@ export class EmotePicker {
       this.model.save(this.channel());
     }
   }
-  private open(): void {
+  open(): void {
     this.root.hidden = false;
+    this.syncTimer();
     this.floating.opened();
     this.trigger.setAttribute('aria-expanded', 'true');
     this.page = 200;
@@ -434,9 +444,10 @@ export class EmotePicker {
     if (!this.root.hidden) this.close();
     else this.open();
   };
-  private close(): void {
+  close(): void {
     this.motion.stop();
     this.root.hidden = true;
+    this.syncTimer();
     this.floating.closed();
     this.trigger.setAttribute('aria-expanded', 'false');
     this.held = false;
@@ -571,21 +582,4 @@ export class EmotePicker {
     this.search.removeEventListener('keydown', this.searchKey);
     this.more.removeEventListener('click', this.showMore);
   }
-}
-
-export function parsePickerGeometry(
-  value: string | null,
-): { width: number; height: number; left: number; top: number } | undefined {
-  if (!value) return undefined;
-  const match = /^(\d{1,5})x(\d{1,5})(?:,(-?\d{1,5}),(-?\d{1,5}))?$/.exec(value);
-  if (!match) return undefined;
-  const width = Number(match[1]),
-    height = Number(match[2]) || 600;
-  if (width < 260 || height < 200 || width > 10000 || height > 10000) return undefined;
-  return {
-    width,
-    height,
-    left: match[3] === undefined ? 12 : Number(match[3]),
-    top: match[4] === undefined ? 16 : Number(match[4]),
-  };
 }

@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import { archiveKey, type MessageArchive, type ArchiveCursor } from './archive';
 import { readRetention, RETENTION_KEY, type RetentionPlan } from './archive-retention';
@@ -197,7 +198,7 @@ export class PortableLogsPanel implements Panel {
     if (privacyEnabled()) return;
     this.closed();
     this.defaultControls();
-    this.root.showModal();
+    showPanel(this.root);
     void this.retention();
   };
   private resetExport = (): void => {

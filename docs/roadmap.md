@@ -150,12 +150,14 @@ local, hosted, merged and deployed results distinguishable.
 
 ## Current lifecycle progress
 
-The #130 slices introduce explicit lazy registration for IRC conversations,
-Chatterino import, Completion, Link preferences, Custom themes, Compare activity,
-Export logs and Device sync. Saved completion,
-link and theme behavior remains active independently of their editors. See [lifecycle progress and compatibility](lazy-panel-progress.md)
-for local checks, stable placement IDs and the next batch. #130 remains open;
-other panels still construct eagerly and the legacy shell adapters remain.
+The complete #130 implementation registers all 40 independent panel roots, with
+lazy templates/editors and separate startup runtime/settings owners. Context
+popovers, pane settings and the command palette also construct on intent. Header
+mirroring, global dialog patching and body-wide panel discovery are removed.
+The full conversion is pending review/merge; close #130 with that PR. See the
+[complete inventory and local evidence](panel-lifecycle-migration.md). Next in the
+queue after merge is #139, followed by #135; production resource qualification
+remains separate from local lifecycle acceptance.
 #142's formatter and #134's resource readout/first local baseline are merged.
 The resource baseline retains its unmeasured deployed, hidden-tab and CPU/GPU
 scenarios; merge did not complete those qualifications.

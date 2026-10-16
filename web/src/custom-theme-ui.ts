@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import type { CustomThemeRuntime } from './custom-theme-runtime';
 import { privacyEnabled } from './privacy';
@@ -173,7 +174,7 @@ export class CustomThemePanel implements Panel {
     } catch (e) {
       this.status.textContent = e instanceof Error ? e.message : 'Theme unavailable';
     }
-    if (!this.root.open) this.root.showModal();
+    if (!this.root.open) showPanel(this.root);
   };
   private closed = (): void => {
     this.revert();

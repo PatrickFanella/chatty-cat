@@ -1,0 +1,146 @@
+{
+  "date": "2026-10-15",
+  "environment": {
+    "browser": "Chromium 154",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "auth": "anonymous",
+    "origin": "http://localhost:4181",
+    "url": "/?channel=patrick__eff&video=off&split=1",
+    "deployment": "local combined Go service with production web/dist"
+  },
+  "build": {
+    "main": "main-DOXreGOL.js",
+    "mainGzipKB": 203.75,
+    "previousMainGzipKB": 334.22,
+    "indexKB": 5.53,
+    "indexGzipKB": 1.92
+  },
+  "closedSample": {
+    "sampledMs": 62896.59999996424,
+    "recording": true,
+    "hidden": false,
+    "visibilityChanges": 0,
+    "mountedRows": 0,
+    "rowCache": 0,
+    "retainedMessages": 8,
+    "repeatingTimers": 9,
+    "timers": [
+      {
+        "owner": "auth.refresh",
+        "intervalMs": 60000,
+        "fires": 1,
+        "hiddenFires": 0,
+        "callbackMs": 0.30000001192092896
+      },
+      {
+        "owner": "links.mirror",
+        "intervalMs": 900000,
+        "fires": 0,
+        "hiddenFires": 0,
+        "callbackMs": 0
+      },
+      {
+        "owner": "rate.timeline",
+        "intervalMs": 1000,
+        "fires": 63,
+        "hiddenFires": 0,
+        "callbackMs": 59.0999995470047
+      },
+      {
+        "owner": "room.paint",
+        "intervalMs": 1000,
+        "fires": 63,
+        "hiddenFires": 0,
+        "callbackMs": 3.4000006914138794
+      },
+      {
+        "owner": "storage.archive",
+        "intervalMs": 3000,
+        "fires": 21,
+        "hiddenFires": 0,
+        "callbackMs": 0
+      },
+      {
+        "owner": "storage.coverage",
+        "intervalMs": 10000,
+        "fires": 6,
+        "hiddenFires": 0,
+        "callbackMs": 0.2999999523162842
+      },
+      {
+        "owner": "storage.messages",
+        "intervalMs": 15000,
+        "fires": 4,
+        "hiddenFires": 0,
+        "callbackMs": 0.2999998927116394
+      },
+      {
+        "owner": "storage.picker",
+        "intervalMs": 15000,
+        "fires": 4,
+        "hiddenFires": 0,
+        "callbackMs": 0.3999999165534973
+      },
+      {
+        "owner": "storage.stats",
+        "intervalMs": 30000,
+        "fires": 2,
+        "hiddenFires": 0,
+        "callbackMs": 0.10000002384185791
+      }
+    ],
+    "longTasks": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0
+    },
+    "heap": {
+      "usedBytes": 18200000,
+      "allocatedBytes": 23100000,
+      "limitBytes": 3760000000
+    },
+    "cpu": "external measurement required",
+    "gpu": "external measurement required"
+  },
+  "cache": {
+    "assets": 56,
+    "entries": 66,
+    "missing": [],
+    "worker": "http://localhost:4181/sw.js?build=%2Fassets%2Fmain-DOXreGOL.js"
+  },
+  "offline": {
+    "serverStopped": true,
+    "panels": [
+      "display-panel",
+      "emote-picker",
+      "resources-panel",
+      "rules-panel",
+      "shortcut-settings"
+    ],
+    "scope": "application origin unavailable; external networks not disabled",
+    "result": {
+      "status": "Go service disconnected; retrying",
+      "topbar": true,
+      "worker": "http://localhost:4181/sw.js?build=%2Fassets%2Fmain-DOXreGOL.js"
+    }
+  },
+  "restoration": {
+    "panel": "presentation-panel",
+    "dockedZone": "left",
+    "workbenchChrome": 1,
+    "modal": false,
+    "placementFeatureCloseEvents": 0,
+    "closedReloadEditorRoots": 0,
+    "closedReloadEditorChunkRequests": 0
+  },
+  "limitations": [
+    "finite anonymous foreground sample",
+    "no CPU or GPU measurement",
+    "heap values are diagnostic only and are not a before/after comparison",
+    "real authenticated/provider/native operations untested",
+    "offline scope covers application-origin unavailability, not every external network"
+  ]
+}

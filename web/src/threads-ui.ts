@@ -1,11 +1,14 @@
+import type { Panel } from './shell/panels';
 import { getPresentation } from './presentation';
 import type { MessageArchive } from './archive';
 import { PRIVACY_KEY, privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
 import { replyRoot, threadKey, ThreadMessages, ThreadViews } from './threads';
-export class ThreadsPanel {
+export class ThreadsPanel implements Panel {
+  readonly id = 'threads-panel';
+  readonly title = 'Threads';
+  readonly group = 'chat';
   readonly root = document.createElement('aside');
-  private trigger = document.createElement('button');
   private tabs = document.createElement('div');
   private results = document.createElement('div');
   private status = document.createElement('p');
@@ -31,11 +34,6 @@ export class ThreadsPanel {
     this.root.hidden = true;
     this.root.setAttribute('aria-label', 'Public reply threads');
     this.root.dataset.rail = 'true';
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Threads';
-    this.trigger.id = 'threads-open';
-    document.getElementById('archive-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.toggle);
     const title = document.createElement('h2');
     title.textContent = 'Reply threads';
     this.root.append(title, this.button('Hide threads', this.toggle), this.tabs);
@@ -150,7 +148,7 @@ export class ThreadsPanel {
       this.views.setScope(account, workspace);
       this.setHidden(privacyEnabled() || !this.views.state.open);
       this.paintTabs();
-      if (!privacyEnabled()) void this.load();
+      if (!privacyEnabled() && this.views.state.open) void this.load();
     } catch (e) {
       this.error(e);
     }
@@ -171,7 +169,15 @@ export class ThreadsPanel {
   private active() {
     return this.views.state.views.find((v) => threadKey(v) === this.views.state.active);
   }
-  async open(message: ChatMessage): Promise<void> {
+  async open(message?: ChatMessage): Promise<void> {
+    if (!message) {
+      if (privacyEnabled() || this.account === undefined) return;
+      this.views.state.open = true;
+      this.views.save();
+      this.setHidden(false);
+      await this.load();
+      return;
+    }
     if (privacyEnabled() || message.command !== 'PRIVMSG' || !message.id || !this.channels.includes(message.channel))
       return;
     try {
@@ -350,21 +356,26 @@ export class ThreadsPanel {
         this.views.reload();
         this.setHidden(privacyEnabled() || !this.views.state.open);
         this.paintTabs();
-        if (!privacyEnabled()) void this.load();
+        if (!privacyEnabled() && this.views.state.open) void this.load();
       } catch (e) {
         this.error(e);
       }
     } else if (event.key === PRIVACY_KEY || event.key === null) this.privacy();
   };
+  close(): void {
+    this.views.state.open = false;
+    this.views.save();
+    this.controller?.abort();
+    this.generation++;
+    this.setHidden(true);
+  }
   stop(): void {
     this.root.removeEventListener('focusout', this.focusOut);
     this.reset();
     this.log.removeEventListener('click', this.clicked);
-    this.trigger.removeEventListener('click', this.toggle);
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.storage);
     document.removeEventListener('visibilitychange', this.visible);
     this.root.remove();
-    this.trigger.remove();
   }
 }

@@ -1,3 +1,4 @@
+import { ProviderPanel } from './provider-preferences-ui';
 // @vitest-environment happy-dom
 import { afterEach, expect, it } from 'vitest';
 import {
@@ -8,7 +9,6 @@ import {
   badgeCategory,
   setProviderPreferences,
   getProviderPreferences,
-  ProviderPanel,
   reconcileProviderMetadata,
 } from './provider-preferences';
 import { setProfileScope } from './account-profiles';

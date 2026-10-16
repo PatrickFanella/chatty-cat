@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import { buildComparison, comparisonExport, raidMark, type Comparison, type ComparisonMark } from './comparison';
 import type { RateTimeline } from './rate-timeline';
@@ -177,7 +178,7 @@ export class ComparisonPanel implements Panel {
     if (privacyEnabled()) return;
     this.window(15);
     this.invalidate();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private async run(): Promise<void> {
     this.invalidate();

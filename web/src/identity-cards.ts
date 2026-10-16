@@ -66,6 +66,19 @@ export function emotePage(source: string, image: string): string {
     : image;
 }
 export class IdentityCards {
+  private rootValue: HTMLElement | undefined;
+  private rootFactory: (() => HTMLElement) | undefined;
+  private get root(): HTMLElement {
+    if (!this.rootValue) {
+      const root = this.rootFactory!();
+      this.rootValue = root;
+      root.addEventListener('pointerenter', this.hold);
+      root.addEventListener('pointerleave', this.leave);
+      root.addEventListener('click', this.click);
+    }
+    return this.rootValue;
+  }
+
   private timer: ReturnType<typeof setTimeout> | undefined;
   private generation = 0;
   private anchor: HTMLElement | undefined;
@@ -80,17 +93,16 @@ export class IdentityCards {
   private cache = new Map<string, { profile: Profile; until: number }>();
   constructor(
     private surface: HTMLElement,
-    private root: HTMLElement,
+    root: HTMLElement | (() => HTMLElement),
     private messages: () => readonly ChatMessage[],
     private pronouns: (login: string) => Promise<string | undefined>,
     private noteEditor?: (id: string, login: string) => HTMLElement | undefined,
   ) {
+    this.rootFactory = typeof root === 'function' ? root : () => root;
+    if (typeof root !== 'function') void this.root;
     surface.addEventListener('pointerover', this.hover);
     surface.addEventListener('focusin', this.hover);
     surface.addEventListener('pointerout', this.leave);
-    root.addEventListener('pointerenter', this.hold);
-    root.addEventListener('pointerleave', this.leave);
-    root.addEventListener('click', this.click);
     document.addEventListener('keydown', this.key);
     document.addEventListener('previewsettings', this.close);
     document.addEventListener('privacychange', this.close);
@@ -114,6 +126,7 @@ export class IdentityCards {
     this.timer = setTimeout(() => void this.open(anchor), 350);
   };
   private leave = (event: Event): void => {
+    if (!this.rootValue) return;
     if (this.root.contains(document.activeElement) && document.activeElement?.matches('textarea,input')) return;
     if (
       event instanceof PointerEvent &&
@@ -267,9 +280,15 @@ export class IdentityCards {
     if (event.target instanceof Element && event.target.closest('[data-close-identity]')) this.close();
   };
   private key = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape' && !this.root.hidden) this.close();
+    if (event.key === 'Escape' && this.rootValue && !this.rootValue.hidden) this.close();
   };
   private close = (): void => {
+    if (!this.rootValue) {
+      clearTimeout(this.timer);
+      this.abort?.abort();
+      this.generation++;
+      return;
+    }
     this.hold();
     this.generation++;
     this.abort?.abort();
@@ -282,9 +301,9 @@ export class IdentityCards {
     this.surface.removeEventListener('pointerover', this.hover);
     this.surface.removeEventListener('focusin', this.hover);
     this.surface.removeEventListener('pointerout', this.leave);
-    this.root.removeEventListener('pointerenter', this.hold);
-    this.root.removeEventListener('pointerleave', this.leave);
-    this.root.removeEventListener('click', this.click);
+    this.rootValue?.removeEventListener('pointerenter', this.hold);
+    this.rootValue?.removeEventListener('pointerleave', this.leave);
+    this.rootValue?.removeEventListener('click', this.click);
     document.removeEventListener('keydown', this.key);
     document.removeEventListener('previewsettings', this.close);
     document.removeEventListener('privacychange', this.close);

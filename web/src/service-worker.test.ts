@@ -186,3 +186,64 @@ it('keeps the previous offline shell when precaching a required build chunk fail
   await expect(installation).rejects.toThrow('chunk unavailable');
   expect(put).not.toHaveBeenCalled();
 });
+
+it('retains every installed chunk when a lazy build exceeds 64 shell entries', async () => {
+  const origin = 'https://chat.subcult.tv';
+  const listeners = new Map<string, (event: any) => void>();
+  const manifest = Object.fromEntries(
+    Array.from({ length: 70 }, (_, i) => ['part' + i, { file: 'assets/part' + i + '.js' }]),
+  );
+  const saved = new Map<string, Response>();
+  const path = (value: RequestInfo) => new URL(typeof value === 'string' ? value : value.url, origin).pathname;
+  const fetcher = vi.fn(async (request: RequestInfo) => {
+    const key = path(request);
+    if (key === '/') return new Response('<script src="/assets/part0.js"></script>');
+    if (key === '/asset-manifest.json') return Response.json(manifest);
+    return new Response(key);
+  });
+  const cache = {
+    put: async (key: RequestInfo, value: Response) => {
+      saved.set(path(key), value);
+    },
+    addAll: async (keys: string[]) => {
+      for (const key of keys) saved.set(key, await fetcher(key));
+    },
+    match: async (key: RequestInfo) => saved.get(path(key))?.clone(),
+    keys: async () => [...saved.keys()].map((key) => new Request(origin + key)),
+    delete: async (key: RequestInfo) => saved.delete(path(key)),
+  };
+  vi.stubGlobal('fetch', fetcher);
+  vi.stubGlobal('caches', { open: async () => cache });
+  vi.stubGlobal('self', {
+    location: { origin },
+    addEventListener: (name: string, handler: (event: any) => void) => listeners.set(name, handler),
+  });
+  await import('./service-worker');
+  let pending!: Promise<unknown>;
+  listeners.get('install')!({
+    waitUntil: (value: Promise<unknown>) => {
+      pending = value;
+    },
+  });
+  await pending;
+  saved.set('/assets/obsolete.js', new Response('old'));
+  listeners.get('fetch')!({
+    request: new Request(origin + '/assets/part69.js'),
+    respondWith: (value: Promise<unknown>) => {
+      pending = value;
+    },
+  });
+  await pending;
+  expect(saved.has('/assets/obsolete.js')).toBe(false);
+  for (let i = 0; i < 70; i++) expect(saved.has('/assets/part' + i + '.js')).toBe(true);
+  expect(saved.has('/')).toBe(true);
+  fetcher.mockRejectedValue(new TypeError('offline'));
+  let response!: Promise<Response>;
+  listeners.get('fetch')!({
+    request: new Request(origin + '/assets/part0.js'),
+    respondWith: (value: Promise<Response>) => {
+      response = value;
+    },
+  });
+  expect(await (await response).text()).toBe('/assets/part0.js');
+});

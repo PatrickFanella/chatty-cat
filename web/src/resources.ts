@@ -6,42 +6,8 @@ import { RepositoryDetails } from './resource-repository';
 import { channelURL } from './channels';
 import { FloatingPanel } from './floating';
 import { RESOURCE_TABS } from './resource-data';
-export function resourceURL(query: URLSearchParams): {
-  tab: string | undefined;
-  open: boolean | undefined;
-  width: number | undefined;
-  action: string | undefined;
-} {
-  const name = query.get('htab') ?? '',
-    tab = (
-      {
-        config: 'help',
-        help: 'help',
-        media: 'htabRes',
-        resources: 'htabRes',
-        left: 'htabLib',
-        liberatory: 'htabLib',
-        libre: 'htabLbr',
-        authors: 'htabAuth',
-        stats: 'help',
-      } as Record<string, string>
-    )[name];
-  const help = query.get('help'),
-    width = Number(query.get('hpw'));
-  return {
-    tab,
-    open:
-      help === 'off' || help === '0' || help === 'labels'
-        ? false
-        : help === 'panel' || help === 'both' || help === '1' || help === ''
-          ? true
-          : tab
-            ? true
-            : undefined,
-    width: Number.isInteger(width) && width >= 480 && width <= 1600 ? width : undefined,
-    action: name === 'config' ? 'display-open' : name === 'stats' ? 'stats-open' : undefined,
-  };
-}
+import { resourceURL } from './resource-url';
+export { resourceURL } from './resource-url';
 export class Resources {
   private floating: FloatingPanel;
   private authors: ResourceAuthors;
@@ -232,14 +198,14 @@ export class Resources {
     if (key === 'help' && !this.root.hidden) this.repositories.start();
     else this.repositories.stop();
   }
-  private open(): void {
+  open(): void {
     this.root.hidden = false;
     this.trigger.setAttribute('aria-expanded', 'true');
     this.floating.opened();
     this.select(this.selected);
     this.tabs.find((tab) => tab.dataset.tab === this.selected)?.focus();
   }
-  private close(): void {
+  close(): void {
     this.repositories.stop();
     this.streams.stop();
     this.root.hidden = true;

@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
-import { DisplaySettings } from './display';
+import { DisplaySettings } from './display-ui';
+import { DisplayRuntime } from './display';
 let settings: DisplaySettings | undefined;
+let runtime: DisplayRuntime | undefined;
 afterEach(() => {
   settings?.stop();
+  runtime?.stop();
   document.body.replaceChildren();
   localStorage.clear();
   vi.unstubAllGlobals();
@@ -16,7 +19,9 @@ it('saves three validated slots, recalls them and only overwrites deliberately',
     '<form><select name="size"></select><select name="colour"></select><input name="keywords"></form><button data-slot="0">Slot 1</button><button data-slot="1">Slot 2</button><button data-slot="2">Slot 3</button>';
   const trigger = document.createElement('button');
   document.body.append(dialog, trigger);
-  settings = new DisplaySettings(dialog, trigger, vi.fn());
+  runtime?.stop();
+  runtime = new DisplayRuntime(vi.fn());
+  settings = new DisplaySettings(dialog, trigger, runtime);
   const size = dialog.querySelector<HTMLSelectElement>('[name=size]')!,
     slot = dialog.querySelector<HTMLButtonElement>('[data-slot="0"]')!;
   size.value = '18';
@@ -46,7 +51,9 @@ it('reads legacy display slots and restores extra state after display recall', a
     '<form><select name="size"></select></form><button data-slot="0"></button><button data-slot="1"></button>';
   const trigger = document.createElement('button');
   document.body.append(dialog, trigger);
-  settings = new DisplaySettings(dialog, trigger, vi.fn());
+  runtime?.stop();
+  runtime = new DisplayRuntime(vi.fn());
+  settings = new DisplaySettings(dialog, trigger, runtime);
   dialog.querySelector<HTMLButtonElement>('[data-slot="0"]')!.click();
   expect(settings.options.size).toBe(18);
   let selected = 'authors';

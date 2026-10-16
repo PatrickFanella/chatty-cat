@@ -1,3 +1,5 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { LocalStorageHealthPanel } from './local-storage-health';
 import { BroadcasterPanel } from './broadcaster-actions-ui';
 import { PredictionPanel } from './predictions-ui';
@@ -21,9 +23,11 @@ import {
   type ModerationContext,
 } from './moderation';
 import { ModerationJournal, journalExport, type JournalPlan } from './moderation-journal';
-export class ModerationWorkspace {
+export class ModerationWorkspace implements Panel {
+  readonly id = 'moderation-workspace';
+  readonly title = 'Moderation';
+  readonly group = 'moderation';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private channel = document.createElement('select');
   private user = document.createElement('input');
   private idMode = document.createElement('input');
@@ -74,10 +78,6 @@ export class ModerationWorkspace {
   ) {
     this.root.id = 'moderation-workspace';
     this.root.setAttribute('aria-label', 'Moderation workspace');
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Moderation';
-    document.getElementById('archive-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', () => this.show());
     const title = document.createElement('h2');
     title.textContent = 'Moderation workspace';
     const help = document.createElement('p');
@@ -309,7 +309,9 @@ export class ModerationWorkspace {
     }
     this.auth = auth;
     this.presetScope();
-    this.trigger.disabled = !auth?.authenticated;
+  }
+  open(): void {
+    this.show(undefined, false);
   }
   show(message?: Pick<ChatMessage, 'channel' | 'login' | 'id'>, autoload = true): void {
     if (privacyEnabled()) return;
@@ -318,7 +320,7 @@ export class ModerationWorkspace {
       if ([...this.channel.options].some((o) => o.value === message.channel)) this.channel.value = message.channel;
       this.user.value = message.login;
     }
-    this.root.showModal();
+    showPanel(this.root);
     this.presetScope();
     if (autoload && this.user.value) void this.load();
     void this.paintJournal();
@@ -803,6 +805,9 @@ export class ModerationWorkspace {
       if (this.root.open) this.root.close();
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.writeAbort?.abort();
     this.closed();
@@ -811,7 +816,6 @@ export class ModerationWorkspace {
     this.root.removeEventListener('close', this.closed);
     this.root.removeEventListener('keydown', this.presetKey);
     this.root.remove();
-    this.trigger.remove();
     void this.journal.stop();
   }
 }

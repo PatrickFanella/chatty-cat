@@ -1,11 +1,15 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { DesktopOverlayControls } from './desktop-overlay-ui';
 import type { AuthStatus } from './auth';
 import { DesktopCompanion, PLAYBACK_QUALITIES, type PlaybackRequest } from './desktop-companion';
 import { privacyEnabled } from './privacy';
 import { getProfileScope } from './account-profiles';
-export class DesktopPlaybackPanel {
+export class DesktopPlaybackPanel implements Panel {
+  readonly id = 'desktop-playback-panel';
+  readonly title = 'Desktop playback';
+  readonly group = 'tools';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private code = document.createElement('input');
   private tool = document.createElement('select');
   private quality = document.createElement('select');
@@ -27,6 +31,7 @@ export class DesktopPlaybackPanel {
   ) {
     this.client = new DesktopCompanion(auth);
     this.overlay = new DesktopOverlayControls(this.client, auth, () => this.channel.value);
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Desktop playback');
     const title = document.createElement('h2');
     title.textContent = 'Optional desktop playback';
@@ -72,13 +77,8 @@ export class DesktopPlaybackPanel {
       this.button('Close playback panel', () => this.root.close()),
       this.status,
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Desktop playback';
-    this.trigger.hidden = hidden;
-    document.getElementById('commands-open')?.after(this.trigger);
     document.body.append(this.root);
     this.root.append(this.overlay.root);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('change', this.edit);
     document.addEventListener('privacychange', this.privacy);
   }
@@ -216,7 +216,7 @@ export class DesktopPlaybackPanel {
     this.status.textContent =
       'Unpaired locally. If the companion is unreachable, close it with Ctrl+C. Restart it for a new pairing code.';
   }
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.channel.replaceChildren();
     for (const c of this.channels()) {
@@ -228,7 +228,7 @@ export class DesktopPlaybackPanel {
     this.channel.value = this.current();
     this.clear();
     this.overlay.discardReview();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private edit = (): void => {
     if (!this.uncertain) this.clear();
@@ -261,12 +261,13 @@ export class DesktopPlaybackPanel {
     if (this.client.authChanged()) this.disconnect();
     else if (this.pending?.account !== this.auth()?.userID) this.clear();
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.disconnect();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('change', this.edit);
     document.removeEventListener('privacychange', this.privacy);
-    this.trigger.remove();
     this.root.remove();
   }
 }

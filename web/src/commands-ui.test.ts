@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import { CommandPanel } from './commands-ui';
+import { CommandRuntime } from './commands-runtime';
 import { Composer } from './composer';
 import type { CommandContext } from './commands';
 afterEach(() => {
@@ -37,7 +38,8 @@ it('stages a selected-message action in its channel while preserving the other c
     message: { name: 'alice', id: 'message', text: 'hello' },
     input: '',
   };
-  const panel = new CommandPanel(composer, () => context, inspector);
+  const runtime = new CommandRuntime(composer, (command, invocation) => panel.showPreview(command, invocation));
+  const panel = new CommandPanel(composer, () => context, inspector, runtime);
   const set = (id: string, value: string) => {
     document.querySelector<HTMLInputElement>('#command-' + id)!.value = value;
   };
@@ -60,5 +62,6 @@ it('stages a selected-message action in its channel while preserving the other c
   expect(sessionStorage.getItem('chatthing:v1:draft:20:other')).toBe('keep this draft');
   expect(fetcher).not.toHaveBeenCalled();
   panel.stop();
+  runtime.stop();
   composer.stop();
 });

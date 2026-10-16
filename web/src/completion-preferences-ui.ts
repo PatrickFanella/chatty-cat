@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import {
   CompletionPreferenceStore,
@@ -214,7 +215,7 @@ export class CompletionPreferencesPanel implements Panel {
     this.invalidate();
     this.load();
     this.announce();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private closed = (): void => {
     this.readGeneration++;

@@ -69,7 +69,7 @@ it('connects explicitly, renders inert private text, and drops late events on cl
   );
   try {
     expect(Source.all).toHaveLength(0);
-    [...document.querySelectorAll('button')].find((b) => b.textContent === 'Own message feedback')!.click();
+    panel.open();
     [...panel.root.querySelectorAll('button')].find((b) => b.textContent === 'Connect own-message feedback')!.click();
     const source = Source.all[0]!;
     source.listeners.get('snapshot')!(new MessageEvent('snapshot', { data: JSON.stringify(snapshot) }));

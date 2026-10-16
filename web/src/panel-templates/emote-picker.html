@@ -1,0 +1,12 @@
+<section id="emote-picker" role="dialog" aria-label="Emote picker" hidden>
+    <div class="picker-header"><button id="picker-handle" type="button" aria-label="Move emote picker with arrow keys">Emotes ↔</button><button id="picker-pin" type="button" aria-pressed="false">Pin</button><input id="picker-search" type="search" placeholder="Search emotes or emoji" aria-label="Search emotes and emoji"><button id="picker-close" type="button" aria-label="Close emote picker">×</button></div>
+    <div id="picker-tabs" aria-label="Enabled providers"></div>
+    <div id="picker-settings"><label><input id="picker-seenOnly" type="checkbox"> Seen only</label><label><input id="picker-ages" type="checkbox"> Age markers</label>
+      <label>Age rows <select id="picker-ageRows"><option value="0">Inline squares</option><option value="1">Each era</option><option value="2">End at last square</option></select></label><button id="picker-reset-order" type="button" title="Clear recorded picker usage; channel usage seeds remain">Reset order</button><label>Order <select id="picker-sort"><option value="use">Recent chat usage</option><option value="az">A–Z</option></select></label>
+      <label>Show <select id="picker-animation"><option value="all">Animated and still</option><option value="animated">Animated only</option><option value="still">Still only</option></select></label>
+      <label>Zoom <select id="picker-zoom"><option value="0.5">½×</option><option value="0.75">¾×</option><option value="1">1×</option><option value="1.3333333333333333">1⅓×</option><option value="1.6666666666666667">1⅔×</option><option value="1.5">1½×</option><option value="2">2×</option></select></label>
+      <label><input id="picker-mixed" type="checkbox">Mix providers</label><label><input id="picker-names" type="checkbox">Names</label>
+      <label><input id="picker-hold" type="checkbox">Hold while hovered</label><label><input id="picker-holdPlus" type="checkbox">Hold+ (pause animations over grid)</label><label><input id="picker-frozen" type="checkbox">Pause animations</label>
+    </div>
+    <div id="picker-count" role="status"></div><div id="picker-recent" aria-label="Recent selections" hidden></div><div id="picker-grid" aria-label="Emotes"></div><button id="picker-more" type="button" hidden>Show more</button>
+  </section>

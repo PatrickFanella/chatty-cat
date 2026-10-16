@@ -1,6 +1,7 @@
+import { showPanel } from './open-panel';
 // Workbench: wraps the chat column in dock zones and lets any dialog or panel be docked, floated, resized and dragged.
 // Feature modules keep owning their panel contents and their open/close logic; the workbench only moves the root element
-// and injects a small chrome bar. A docked or floating <dialog> is open non-modally; showModal() is redirected for it.
+// and injects a small chrome bar. A docked or floating <dialog> is opened non-modally through panel-open-request.
 import {
   Box,
   Layout,
@@ -34,22 +35,10 @@ interface Managed {
   wrapper: HTMLElement;
   home: { parent: Node; next: Node | null };
   title: HTMLElement;
+  close?: () => void;
+  placementCloses: number;
 }
 const ZONE_LABELS: Record<ZoneName, string> = { left: 'left side', right: 'right side', bottom: 'bottom' };
-let patched = false;
-function patchDialogs(): void {
-  if (patched || typeof HTMLDialogElement === 'undefined') return;
-  patched = true;
-  const native = HTMLDialogElement.prototype.showModal;
-  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
-    if (this.dataset.wbPlaced) {
-      if (!this.open) this.show();
-      this.dispatchEvent(new Event('wb-reopen'));
-      return;
-    }
-    native.call(this);
-  };
-}
 function isOpen(root: HTMLElement): boolean {
   return root instanceof HTMLDialogElement ? root.open : !root.hidden;
 }
@@ -64,9 +53,8 @@ export class Workbench {
   private splitters = {} as Record<ZoneName, HTMLElement>;
   private layout: Layout;
   private managed = new Map<string, Managed>();
-  private observer: MutationObserver | undefined;
+  private visibilityObservers: MutationObserver[] = [];
   private transition = 0;
-  private anonymous = 0;
   private drag:
     | {
         id: number;
@@ -84,7 +72,6 @@ export class Workbench {
   private bundleDispose: () => void;
   private layoutListeners = new Set<() => void>();
   constructor(private options: WorkbenchOptions) {
-    patchDialogs();
     this.layout = this.load();
     this.root.id = 'workbench';
     this.row.className = 'wb-row';
@@ -127,15 +114,12 @@ export class Workbench {
       },
     );
     window.addEventListener('resize', this.resized);
-    if (typeof MutationObserver !== 'undefined') {
-      this.observer = new MutationObserver(this.mutated);
-      this.observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open', 'hidden'] });
-    }
     this.render();
   }
-  /** Adopt a panel root now (static panels); runtime dialogs are adopted when they first open. */
-  adopt(root: HTMLElement): void {
-    this.manage(root);
+  /** Adopt each root explicitly after its lazy factory constructs it. */
+  adopt(root: HTMLElement, close?: () => void): void {
+    const entry = this.manage(root);
+    if (close) entry.close = close;
   }
   wantsPanel(id: string): boolean {
     return placementOf(this.layout, id).kind !== 'modal' && !this.layout.closed.includes(id);
@@ -221,14 +205,6 @@ export class Workbench {
     for (const record of records) {
       const target = record.target;
       if (!(target instanceof HTMLElement)) continue;
-      if (
-        record.attributeName === 'open' &&
-        target instanceof HTMLDialogElement &&
-        target.open &&
-        !this.options.exclude(target) &&
-        !target.closest('#workbench .wb-chrome')
-      )
-        this.manage(target);
       const entry = target.id ? this.managed.get(target.id) : undefined;
       if (!entry || this.transition) continue;
       const open = isOpen(target);
@@ -242,7 +218,7 @@ export class Workbench {
     }
   };
   private manage(root: HTMLElement): Managed {
-    if (!root.id) root.id = 'wb-panel-' + ++this.anonymous;
+    if (!root.id) throw new Error('Explicit panels require a stable ID');
     const existing = this.managed.get(root.id);
     if (existing) {
       if (existing.chrome.parentNode !== root) root.prepend(existing.chrome);
@@ -281,8 +257,30 @@ export class Workbench {
       wrapper,
       home: { parent: root.parentNode ?? document.body, next: root.nextSibling },
       title,
+      placementCloses: 0,
     };
     this.managed.set(root.id, entry);
+    root.addEventListener(
+      'close',
+      (event) => {
+        if (!entry.placementCloses) return;
+        entry.placementCloses--;
+        event.stopImmediatePropagation();
+      },
+      true,
+    );
+    root.addEventListener('panel-open-request', (event) => {
+      if (!(root instanceof HTMLDialogElement) || placementOf(this.layout, entry.id).kind === 'modal') return;
+      event.preventDefault();
+      if (!root.open) root.show();
+      root.dispatchEvent(new Event('wb-reopen'));
+    });
+    if (typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(this.mutated);
+      observer.observe(root, { attributes: true, attributeFilter: ['open', 'hidden'] });
+      this.visibilityObservers.push(observer);
+    }
+
     menu.addEventListener('click', () => this.openMenu(entry, menu));
     close.addEventListener('click', () => this.closePanel(entry));
     title.addEventListener('pointerdown', (event) => this.titleDown(entry, event));
@@ -308,11 +306,8 @@ export class Workbench {
     (target ?? entry.title).focus({ preventScroll: true });
   }
   private closePanel(entry: Managed): void {
-    const own = entry.root.querySelector<HTMLButtonElement>(
-      ':scope > button[id$="-close"],:scope > [data-action="close"],:scope > * > button[id$="-close"],:scope > * > [data-action="close"]',
-    );
-    if (own && !own.disabled) {
-      own.click();
+    if (entry.close) {
+      entry.close();
       return;
     }
     if (entry.root instanceof HTMLDialogElement) entry.root.close();
@@ -375,8 +370,9 @@ export class Workbench {
     if (entry.root instanceof HTMLDialogElement && entry.root.open) {
       this.transition++;
       try {
+        entry.placementCloses++;
         entry.root.close();
-        entry.root.showModal();
+        showPanel(entry.root);
       } finally {
         this.transition--;
       }
@@ -409,8 +405,9 @@ export class Workbench {
             entry.wrapper.remove();
             entry.wrapper.removeAttribute('style');
             if (wasOpen && entry.root instanceof HTMLDialogElement) {
+              entry.placementCloses++;
               entry.root.close();
-              entry.root.showModal();
+              showPanel(entry.root);
             }
           } finally {
             this.transition--;
@@ -424,7 +421,10 @@ export class Workbench {
         try {
           const dialog = entry.root instanceof HTMLDialogElement ? entry.root : undefined;
           const modal = dialog?.open && dialog.matches(':modal');
-          if (modal) dialog!.close();
+          if (modal) {
+            entry.placementCloses++;
+            dialog!.close();
+          }
           entry.root.dataset.wbPlaced = 'true';
           if (entry.root.dataset.rail !== 'true') {
             entry.root.dataset.rail = 'true';
@@ -775,7 +775,8 @@ export class Workbench {
   stop(): void {
     this.layoutListeners.clear();
     this.bundleDispose();
-    this.observer?.disconnect();
+    for (const observer of this.visibilityObservers) observer.disconnect();
+    this.visibilityObservers = [];
     this.floatObserver?.disconnect();
     window.removeEventListener('resize', this.resized);
     this.save();

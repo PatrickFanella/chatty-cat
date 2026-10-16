@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import { getProfileScope } from './account-profiles';
 import { planChatterinoImport, type ChatterinoSources, type ChatterinoImport } from './chatterino-import';
@@ -182,7 +183,7 @@ export class ChatterinoImportPanel implements Panel {
     if (this.readonlyView || privacyEnabled()) return;
     try {
       this.scope();
-      this.root.showModal();
+      showPanel(this.root);
     } catch (e) {
       this.status.textContent = e instanceof Error ? e.message : 'Import unavailable';
     }

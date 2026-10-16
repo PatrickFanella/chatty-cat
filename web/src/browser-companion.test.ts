@@ -81,7 +81,7 @@ it('requires a reviewed destination; opening/pairing/polling cannot mutate a wor
     () => 'active',
     apply,
   );
-  button('Browser companion').click();
+  panel!.open();
   expect(f.sendMessage).not.toHaveBeenCalled();
   (document.querySelector('[aria-label="Installed Chromium extension ID"]') as HTMLInputElement).value = 'a'.repeat(32);
   (document.querySelector('[aria-label="Browser companion pairing code"]') as HTMLInputElement).value = f.code;
@@ -118,7 +118,7 @@ it('privacy clears pairing and pending reviews', async () => {
     () => '',
     vi.fn(),
   );
-  button('Browser companion').click();
+  panel!.open();
   savePrivacy({ version: 1, enabled: true, allowed: [], panic: true });
   document.dispatchEvent(new Event('privacychange'));
   expect(panel.root.open).toBe(false);

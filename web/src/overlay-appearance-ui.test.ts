@@ -1,11 +1,14 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it } from 'vitest';
 import { PresentationPanel } from './presentation-ui';
+import { PresentationRuntime } from './presentation-runtime';
 import { presentationDefaults, setPresentation } from './presentation';
 import { setProfileScope, profileKey } from './account-profiles';
 let panel: PresentationPanel | undefined;
+let runtime: PresentationRuntime | undefined;
 afterEach(() => {
   panel?.stop();
+  runtime?.stop();
   panel = undefined;
   setPresentation({ ...presentationDefaults });
   setProfileScope('anonymous');
@@ -16,8 +19,9 @@ afterEach(() => {
 });
 it('previews and cancels overlay rendering independently, then saves it in the current public profile', () => {
   setProfileScope('42');
-  panel = new PresentationPanel(() => {});
-  panel.trigger.click();
+  runtime = new PresentationRuntime(() => {});
+  panel = new PresentationPanel(runtime);
+  panel.open();
   const input = (id: string) => panel!.root.querySelector<HTMLInputElement>('#presentation-' + id)!;
   const click = (name: string) =>
     Array.from(panel!.root.querySelectorAll('button'))
@@ -32,7 +36,7 @@ it('previews and cancels overlay rendering independently, then saves it in the c
   click('Cancel');
   expect(document.documentElement.style.getPropertyValue('--overlay-background-alpha')).toBe('0%');
   expect(document.documentElement.style.getPropertyValue('--overlay-content-shadow')).toBe('none');
-  panel.trigger.click();
+  panel.open();
   input('overlayBackgroundOpacity').value = '128';
   click('Apply');
   expect(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:presentation'))!).overlayBackgroundOpacity).toBe(128);

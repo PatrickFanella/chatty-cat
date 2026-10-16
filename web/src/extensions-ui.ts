@@ -1,3 +1,5 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -6,9 +8,11 @@ import { ExtensionRuntime } from './extension-runtime';
 type Review =
   | { kind: 'install'; manifest: ExtensionManifest; account: string }
   | { kind: 'enable' | 'remove'; id: string; manifest: string; account: string };
-export class ExtensionsPanel {
+export class ExtensionsPanel implements Panel {
+  readonly id = 'extensions-panel';
+  readonly title = 'Web extensions';
+  readonly group = 'tools';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private file = document.createElement('input');
   private selected = document.createElement('select');
   private contribution = document.createElement('select');
@@ -29,9 +33,10 @@ export class ExtensionsPanel {
     private auth: () => AuthStatus | undefined,
     private channel: () => string,
     private stageDraft: (text: string) => void,
-    hidden = false,
+    private hidden = false,
   ) {
     this.observed = this.identity();
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Local web extensions');
     const h = document.createElement('h2');
     h.textContent = 'Optional local text extensions';
@@ -90,12 +95,7 @@ export class ExtensionsPanel {
       this.button('Close extensions', () => this.root.close()),
       this.status,
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Web extensions';
-    this.trigger.hidden = hidden;
-    document.getElementById('commands-open')?.after(this.trigger);
     document.body.append(this.root);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     this.root.addEventListener('change', this.edited);
     this.input.addEventListener('input', this.edited);
@@ -268,16 +268,17 @@ export class ExtensionsPanel {
     this.input.value = '';
     this.file.value = '';
   }
-  private open = (): void => {
+  open = (): void => {
+    if (this.hidden) return;
     if (privacyEnabled()) return;
     try {
       this.store = undefined;
       this.context();
       this.paint();
-      this.root.showModal();
+      showPanel(this.root);
     } catch (e) {
       this.error(e);
-      this.root.showModal();
+      showPanel(this.root);
     }
   };
   private closed = (): void => this.invalidate();
@@ -331,14 +332,19 @@ export class ExtensionsPanel {
       return [];
     }
   }
+  selectAction(id: string): void {
+    this.open();
+    this.contribution.value = id;
+  }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.invalidate();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('close', this.closed);
     this.root.removeEventListener('change', this.edited);
     this.input.removeEventListener('input', this.edited);
     document.removeEventListener('privacychange', this.privacy);
     this.root.remove();
-    this.trigger.remove();
   }
 }

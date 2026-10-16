@@ -45,7 +45,7 @@ it('install stays disabled until separate permission confirmation; disable clear
     () => 'one',
     vi.fn(),
   );
-  b('Web extensions').click();
+  panel!.open();
   expect(panel.actions()).toEqual([]);
   b('Review enable permissions').click();
   expect(new ExtensionStore('42').all()[0]?.enabled).toBe(false);
@@ -68,7 +68,7 @@ it('privacy clears private supplied input, review/output and active frames', () 
     () => 'one',
     vi.fn(),
   );
-  b('Web extensions').click();
+  panel!.open();
   (document.querySelector('[aria-label="Text explicitly supplied to extension"]') as HTMLTextAreaElement).value =
     'private local note';
   b('Run selected extension command/view').click();

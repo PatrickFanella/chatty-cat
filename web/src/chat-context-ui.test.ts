@@ -74,7 +74,7 @@ it('connects explicitly, permits an explicit hidden connection, and clears late 
     changed,
   );
   expect(Source.all).toHaveLength(0);
-  button('Public message context').click();
+  panel!.open();
   expect(Source.all).toHaveLength(0);
   button('Connect public context').click();
   expect(Source.all).toHaveLength(1);
@@ -113,7 +113,7 @@ it('closes and clears on transport failure or a malformed/private snapshot witho
     () => 'one',
     () => 0,
   );
-  button('Public message context').click();
+  panel!.open();
   button('Connect public context').click();
   const source = Source.all[0]!;
   source.emit({ ...snapshot(), rows: [{ ...snapshot().rows[0], text: 'private-canary' }] });

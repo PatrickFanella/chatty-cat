@@ -1,57 +1,64 @@
+import { PassivePanelSettings } from './passive-panel-settings';
+import { mountPanel, panelAdapter, transientRoot } from './shell/static-panel';
+import type { ProviderPanel } from './provider-preferences-ui';
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import type { IRCRelayPanel } from './irc-relay-ui';
-import { ExtensionsPanel } from './extensions-ui';
+import type { ExtensionsPanel } from './extensions-ui';
+import { extensionActions } from './extension-actions';
 import { watchedWorkspace } from './watched-workspace';
-import { BrowserCompanionPanel } from './browser-companion-ui';
-import { DesktopPlaybackPanel } from './desktop-companion-ui';
-import { ChatContextPanel } from './chat-context-ui';
+import type { BrowserCompanionPanel } from './browser-companion-ui';
+import type { DesktopPlaybackPanel } from './desktop-companion-ui';
+import type { ChatContextPanel } from './chat-context-ui';
 import type { DeviceSyncPanel } from './device-sync-ui';
 import { recoverDeviceApply } from './device-sync';
 import { BookmarkStore } from './bookmarks';
 import { getLinkPreferences } from './link-preferences';
-import { UserHoldPanel } from './user-holds';
+import type { UserHoldPanel } from './user-holds';
 import { sharedContext } from './message-context';
 import { CosmeticClient } from './cosmetics';
 import { ProviderEventClient } from './provider-events';
-import { ProviderActivityPanel } from './provider-activity-ui';
+import type { ProviderActivityPanel } from './provider-activity-ui';
 import {
-  ProviderPanel,
+  restoreProviderPreferences,
   getProviderPreferences,
   selectProviderMetadata,
   reconcileProviderMetadata,
 } from './provider-preferences';
-import { ModerationWorkspace } from './moderation-ui';
-import { UserNotesPanel } from './user-notes-ui';
+import type { ModerationWorkspace } from './moderation-ui';
+import type { UserNotesPanel } from './user-notes-ui';
 import { getProfileScope, profileKey } from './account-profiles';
 import type { PortableLogsPanel } from './portable-logs-ui';
 import type { ComparisonPanel } from './comparison-ui';
-import { VodContextPanel } from './vod-context-ui';
-import { ThreadsPanel } from './threads-ui';
+import type { VodContextPanel } from './vod-context-ui';
+import type { ThreadsPanel } from './threads-ui';
+import { ThreadViews } from './threads';
 import { loadRowPronouns } from './row-pronouns';
 import { streamHeader } from './stream-header';
-import { BookmarksPanel } from './bookmarks-ui';
-import { DiscoveryPanel } from './discovery';
-import { PresentationPanel } from './presentation-ui';
+import type { BookmarksPanel } from './bookmarks-ui';
+import type { DiscoveryPanel } from './discovery';
+import { PresentationRuntime } from './presentation-runtime';
 import { CustomThemeRuntime } from './custom-theme-runtime';
 import { getPresentation } from './presentation';
-import { LocalTargets, dispatchLocal, LOCAL_COMMANDS } from './local-commands';
+import { LocalTargets, dispatchLocal } from './local-commands';
 import { privacyEnabled } from './privacy';
-import { RulePanel } from './rules-ui';
+import { RuleRuntime } from './rules-runtime';
 import { SimilarMessages } from './similar';
 import { loadCapacity } from './capacity';
 import { RowCache } from './row-cache';
 import { reconcileSplits } from './splits';
-import { HotkeyPanel } from './hotkeys-ui';
+import { HotkeyRuntime } from './hotkeys-runtime';
 import { ACTIONS, type ActionID } from './hotkeys';
 import { FONT_SIZES } from './display-data';
-import { InboxPanel } from './inbox-ui';
-import { CommandPanel } from './commands-ui';
+import { InboxRuntime } from './inbox-runtime';
+import { CommandRuntime } from './commands-runtime';
+import type { CommandPanel } from './commands-ui';
 import { PrivacyControls } from './privacy-ui';
 import { WorkspaceStore, type ReaderPosition, type WorkspaceSnapshot } from './workspaces';
-import { WorkspacePanel } from './workspaces-ui';
+import type { WorkspacePanel } from './workspaces-ui';
 import { restoreCompletionPreferences, setCompletionPreferences, completionDefaults } from './completion-preferences';
 import { CompletionChatters } from './completion-chatters';
-import { ImageUploads } from './image-uploads';
+import type { ImageUploads } from './image-uploads';
+import { ImageUploadRuntime } from './image-upload-runtime';
 import { captureBundle, restoreBundle } from './settings-bundle';
 import { NitterLinks } from './nitter';
 import { GiphyTitles } from './giphy';
@@ -65,14 +72,13 @@ import { linkFingerprint } from './links';
 import { PickerLighting } from './picker-lighting';
 import { IdentityCards } from './identity-cards';
 import { Pronouns } from './pronouns';
-import { PanelRail, type RailPanel } from './rail';
 import { ChatRecovery } from './recovery';
 import { PageCoverage } from './page-coverage';
 import { LogKeyboard } from './log-keyboard';
-import { Whispers } from './whispers';
+import { WhisperRuntime } from './whispers-runtime';
 import { PersonalChat, PersonalState } from './personal';
-import { UserInspector } from './inspector';
-import { Resources } from './resources';
+import type { UserInspector } from './inspector';
+import type { Resources } from './resources';
 import { SplitLog } from './split-log';
 import { type LogItem } from './virtual-log';
 import { Attention } from './attention';
@@ -81,13 +87,12 @@ import type { AuthStatus } from './auth';
 import { LinkPreview } from './preview';
 import { LinkTools } from './link-tools';
 import { mountLifecycle } from './lifecycle';
-import { VideoPanel } from './video';
+import type { VideoPanel } from './video';
 import { TabSync } from './tab-sync';
-import { DisplaySettings, messageVisibility } from './display';
-import { StatsPanel } from './stats';
+import { DisplayRuntime, messageVisibility } from './display';
+import type { StatsPanel } from './stats';
 import { MessageArchive } from './archive';
-import { HistoryFiles } from './history-import';
-import { ArchiveSearch } from './archive-ui';
+import type { ArchiveSearch } from './archive-ui';
 import { RoomStates } from './room';
 import './style.css';
 import './shell/shell.css';
@@ -96,7 +101,7 @@ import { LazyPanels } from './shell/panels';
 import { mountAuth } from './auth';
 import { Composer } from './composer';
 import { PickerModel } from './picker-model';
-import { EmotePicker } from './picker';
+import type { EmotePicker } from './picker';
 import { MessageNavigation } from './navigation';
 import { tokenize, nativeEmoteTag } from './tokens';
 import { ChatConnection } from './connection';
@@ -105,6 +110,12 @@ import { messageRow, decoratePresentation } from './render';
 import { MessageStore } from './store';
 import { MetadataClient, type ChannelMetadata } from './metadata';
 
+function panelTrigger(id: string): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.id = id;
+  button.type = 'button';
+  return button;
+}
 export async function startMain(): Promise<void> {
   const syncRecovery = await recoverDeviceApply(getProfileScope()).catch(
     () => 'Local sync recovery unavailable; existing data retained',
@@ -128,16 +139,15 @@ export async function startMain(): Promise<void> {
     new URL(location.href).searchParams.has('overlay') && new URL(location.href).searchParams.get('overlay') !== '0';
   document.documentElement.dataset.overlay = String(overlay);
   const log = element('log', HTMLElement);
-  let rail: PanelRail | undefined;
-  let inboxPanel: InboxPanel | undefined;
-  let rulePanel: RulePanel | undefined;
+  let inboxPanel: InboxRuntime | undefined;
+  let rulePanel: RuleRuntime | undefined;
   let inboxGeneration = 0;
   let syncSources: (() => void) | undefined;
   const pronouns = new Pronouns();
   const socialCards = new SocialCards(log);
   const nitterLinks = new NitterLinks(log);
   const giphyTitles = new GiphyTitles(log);
-  const linkPreview = new LinkPreview(log, element('link-preview', HTMLElement));
+  const linkPreview = new LinkPreview(log, () => transientRoot('link-preview', 'Link preview'));
   const status = element('status', HTMLElement);
   const count = element('count', HTMLElement);
   const input = element('channel', HTMLInputElement);
@@ -223,53 +233,14 @@ export async function startMain(): Promise<void> {
   }
   const store = new MessageStore(channels);
   const rateTimeline = new RateTimeline(element('rate', HTMLElement), channels);
-  const videoPanel = new VideoPanel(
-    element('video-panel', HTMLElement),
-    element('video-open', HTMLButtonElement),
-    channels,
-  );
-  const railPanels: RailPanel[] = [
-    {
-      name: 'video',
-      root: element('video-panel', HTMLElement),
-      show: (open) => videoPanel.showRail(open),
-      float: () => videoPanel.float(),
-      isOpen: () => !element('video-panel', HTMLElement).hidden,
-    },
-    {
-      name: 'emotes',
-      root: element('emote-picker', HTMLElement),
-      show: (open) => picker.showRail(open),
-      isOpen: () => !element('emote-picker', HTMLElement).hidden,
-    },
-    {
-      name: 'stats',
-      root: element('stats-panel', HTMLDialogElement),
-      show: (open) => statsPanel.showRail(open),
-      float: () => statsPanel.float(),
-      isOpen: () => element('stats-panel', HTMLDialogElement).open,
-    },
-  ];
-  rail = new PanelRail(log, railPanels);
+  let videoPanel: VideoPanel | undefined;
   window.addEventListener('resize', scheduleRender);
   const statsLedger = new StatsLedger(channels, (channel) => metadata.get(channel)?.emotes ?? {});
   statsLedger.bootstrap(store.messages);
   const streamHistory = new StreamHistory(channels);
-  const statsPanel = new StatsPanel(
-    element('stats-panel', HTMLDialogElement),
-    element('stats-open', HTMLButtonElement),
-    element('rate', HTMLElement),
-    () => store.messages,
-    (channel) => metadata.get(channel)?.emotes ?? {},
-    channels,
-    rateTimeline.series,
-    statsLedger,
-    (channel) => metadata.get(channel)?.emoteUse ?? {},
-    streamHistory,
-    (channel) => metadata.get(channel)?.badges ?? {},
-  );
+  let statsPanel: StatsPanel | undefined;
   const archive = new MessageArchive((message) => {
-    element('archive-status', HTMLElement).textContent = message;
+    (document.getElementById('archive-status') ?? announcer).textContent = message;
   });
   for (const message of store.messages) archive.add(message);
   const composer = new Composer(
@@ -307,7 +278,7 @@ export async function startMain(): Promise<void> {
       tabSync.send(message);
       const codes = new Set(pickerModel.catalog(channel).map((item) => item.code));
       for (const word of text.split(/\s+/)) if (codes.has(word)) pickerModel.select(channel, word);
-      picker.refresh();
+      picker?.refresh();
     },
     (result, text, requestID) => {
       if (result.whisper && result.recipient) {
@@ -358,25 +329,42 @@ export async function startMain(): Promise<void> {
   );
   if (overlay) element('splits-open', HTMLButtonElement).hidden = true;
   const pickerModel = new PickerModel();
-  const picker = new EmotePicker(
-    element('emote-picker', HTMLElement),
-    element('picker-open', HTMLButtonElement),
+  let picker: EmotePicker | undefined;
+  const passiveSettings = new PassivePanelSettings(
     pickerModel,
+    channels,
     () => composer.target,
-    () => composer.canInsert,
-    (code) => composer.insert(code),
-    (on) => {
-      borrowedFreeze = on;
-      document.documentElement.dataset.holdFreeze = String(on);
-      visualRevision++;
-      scheduleRender();
+    (id) => {
+      if (!lazyPanels) return false;
+      void lazyPanels.open(id);
+      return true;
     },
-    () => rateTimeline.series.observationGaps(),
   );
+  const pickerSaveTimer = ownedInterval('storage.picker', () => pickerModel.saveAll(), 15000);
+  const statsSaveTimer = ownedInterval('storage.stats', () => statsLedger.save(), 30000);
+  window.addEventListener('pagehide', () => {
+    clearOwnedInterval(pickerSaveTimer);
+    clearOwnedInterval(statsSaveTimer);
+    pickerModel.saveAll();
+    passiveSettings.stop();
+  });
   let discoveryPanel: DiscoveryPanel | undefined;
   let archiveSearch: ArchiveSearch | undefined;
   let bookmarksPanel: BookmarksPanel | undefined;
   let threadsPanel: ThreadsPanel | undefined;
+  function restoreSavedThreads(): void {
+    if (threadsPanel || !lazyPanels || privacyEnabled()) return;
+    try {
+      const saved = new ThreadViews();
+      saved.setScope(
+        accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+        currentWorkspaceID || channels.join(','),
+      );
+      if (saved.state.open) void lazyPanels.open('threads-panel');
+    } catch {
+      /* The editor reports invalid saved thread state when opened. */
+    }
+  }
   let vodContext: VodContextPanel | undefined;
   let comparisonPanel: ComparisonPanel | undefined;
   let portableLogs: PortableLogsPanel | undefined;
@@ -397,15 +385,15 @@ export async function startMain(): Promise<void> {
   let suppressWorkspaceSave = false;
   let imageUploads: ImageUploads | undefined;
   const sharePicker = (event: Event): void => {
-    if (event instanceof CustomEvent && event.detail instanceof URL) picker.share(event.detail);
+    if (event instanceof CustomEvent && event.detail instanceof URL) picker?.share(event.detail);
   };
   document.addEventListener('share-settings', sharePicker);
-  const pickerLighting = new PickerLighting(log, element('emote-picker', HTMLElement));
+  let pickerLighting: PickerLighting | undefined;
   const accountEmotes = new AccountEmotes(
     (emotes) => {
       pickerModel.setAccount(emotes);
       refreshCandidates();
-      picker.refresh(true);
+      picker?.refresh(true);
     },
     element('account-emotes', HTMLElement),
   );
@@ -428,13 +416,7 @@ export async function startMain(): Promise<void> {
     },
     () => latest.click(),
   );
-  const whispers = new Whispers(
-    element('whisper-panel', HTMLElement),
-    element('whisper-open', HTMLButtonElement),
-    (login) => {
-      localTargets.whisper(login);
-      composer.prepareWhisper(login);
-    },
+  const whispers = new WhisperRuntime(
     (message) => attention.whisper(message),
     (message, outgoing) => {
       localTargets.whisper(message.login);
@@ -461,7 +443,6 @@ export async function startMain(): Promise<void> {
     providerEvents?.authChanged(auth);
     if (auth && getProfileScope() !== (auth.authenticated ? auth.userID : 'anonymous')) {
       providerActivity?.preferencesChanged();
-      chatContextPanel?.stop();
       try {
         sessionStorage.setItem('chatthing:v1:last-profile', auth.authenticated ? auth.userID! : 'anonymous');
       } catch {
@@ -499,6 +480,7 @@ export async function startMain(): Promise<void> {
       auth === undefined ? undefined : auth.authenticated ? auth.userID : 'anonymous',
       currentWorkspaceID || channels.join(','),
     );
+    restoreSavedThreads();
     discoveryPanel?.setAuth(auth);
     archiveSearch?.setAccount(auth === undefined ? undefined : auth.authenticated ? auth.userID : 'anonymous');
     bookmarksPanel?.setAccount(auth === undefined ? undefined : auth.authenticated ? auth.userID : 'anonymous');
@@ -522,7 +504,7 @@ export async function startMain(): Promise<void> {
     const wasEnabled = composer.canInsert;
     composer.setAuth(auth);
     imageUploads?.contextChanged();
-    picker.refresh(wasEnabled !== composer.canInsert);
+    picker?.refresh(wasEnabled !== composer.canInsert);
   });
   log.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) return;
@@ -604,7 +586,7 @@ export async function startMain(): Promise<void> {
       render();
       window.dispatchEvent(new PopStateEvent('popstate'));
     } catch {
-      element('archive-status', HTMLElement).textContent = 'Archived context unavailable';
+      (document.getElementById('archive-status') ?? announcer).textContent = 'Archived context unavailable';
     }
   }
   const channelControls = new ChannelControls(
@@ -615,62 +597,65 @@ export async function startMain(): Promise<void> {
     capacity.workspaceChannels,
   );
   window.addEventListener('pagehide', () => channelControls.stop());
-  vodContext = new VodContextPanel((channel) => streamHistory.archives(channel));
-  vodContext.setAccount(
-    accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
-  );
-  bookmarksPanel = new BookmarksPanel(
-    log,
-    viewMessages,
-    archive,
-    (message) => {
-      void showArchived(message);
-    },
-    (message) => vodContext?.show(message),
-  );
-  bookmarksPanel.setAccount(
-    accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
-  );
-  archiveSearch = new ArchiveSearch(
-    element('archive-search', HTMLDialogElement),
-    element('archive-open', HTMLButtonElement),
-    archive,
-    channels,
-    (message) => {
-      void showArchived(message);
-    },
-    (message) => {
-      element('archive-search', HTMLDialogElement).close();
-      void bookmarksPanel?.capture(message);
-    },
-    (message) => vodContext?.show(message),
-  );
-  archiveSearch.setAccount(
-    accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
-  );
-  const historyFiles = new HistoryFiles(
-    element('archive-search', HTMLDialogElement),
-    () => channels[0]!,
-    () => store.messages,
-    async (messages) => {
-      for (let index = 0; index < messages.length; index += 500) {
-        for (const message of messages.slice(index, index + 500)) {
-          archive.add(message);
-          statsLedger.observe(message, message.timestamp);
-        }
-        await archive.flush();
-      }
-      store.restore(messages.filter((message) => channels.includes(message.channel)));
-      store.save();
-      statsLedger.save();
-      scheduleRender();
-    },
-    () => {
-      element('archive-search', HTMLDialogElement).close();
-      void lazyPanels?.open('portable-logs');
-    },
-  );
-  window.addEventListener('pagehide', () => historyFiles.stop());
+
+  const inspectRow = (event: MouseEvent): void => {
+    if (
+      inspector ||
+      privacyEnabled() ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey ||
+      event.shiftKey ||
+      !(event.target instanceof Element) ||
+      !event.target.closest('a.name,a.mention')
+    )
+      return;
+    event.preventDefault();
+    void lazyPanels?.perform('user-inspector', () => inspector?.inspect(event), false);
+  };
+  log.addEventListener('click', inspectRow);
+  window.addEventListener('pagehide', () => log.removeEventListener('click', inspectRow));
+  const openRowPanel = (event: MouseEvent): void => {
+    if (!(event.target instanceof Element) || privacyEnabled()) return;
+    const thread = event.target.closest<HTMLButtonElement>('button[data-thread]');
+    const bookmark = event.target.closest<HTMLButtonElement>('button[data-bookmark]');
+    const button = thread ?? bookmark;
+    if (!button || (thread ? threadsPanel : bookmarksPanel)) return;
+    const channel = button.closest<HTMLElement>('.row')?.dataset.channel;
+    const row = button.closest<HTMLElement>('.row');
+    const found = viewMessages().find(
+      (message) =>
+        message.channel === channel &&
+        (thread
+          ? message.id === thread.dataset.thread
+          : message.id === row?.dataset.id &&
+            message.command === row.dataset.command &&
+            message.login === row.dataset.login &&
+            String(message.timestamp) === row.dataset.timestamp),
+    );
+    const message =
+      found && row?.classList.contains('removed') ? { ...found, tags: { ...found.tags, deleted: '1' } } : found;
+    if (!message) return;
+    if (thread)
+      void lazyPanels?.perform(
+        'threads-panel',
+        () => {
+          void threadsPanel?.open(message);
+        },
+        false,
+      );
+    else
+      void lazyPanels?.perform(
+        'bookmarks-panel',
+        () => {
+          void bookmarksPanel?.capture(message);
+        },
+        false,
+      );
+  };
+  log.addEventListener('click', openRowPanel);
+  window.addEventListener('pagehide', () => log.removeEventListener('click', openRowPanel));
   const names = new Map<string, Map<string, true>>();
   const nativeCodes = new Map<string, Set<string>>();
   function ruleIDsFor(message: ChatMessage): string[] {
@@ -704,7 +689,7 @@ export async function startMain(): Promise<void> {
     rateTimeline.series.observe(message, live);
     if (roomStates.observe(message)) renderRoom();
     const used = pickerModel.observe(message, live);
-    if (message.channel === composer.target) pickerLighting.use(used);
+    if (message.channel === composer.target) pickerLighting?.use(used);
     if (message.command !== 'PRIVMSG') return;
     const users = names.get(message.channel) ?? new Map<string, true>();
     if (/^[a-z0-9_]{1,25}$/i.test(message.login)) {
@@ -753,11 +738,11 @@ export async function startMain(): Promise<void> {
   element('send-channel', HTMLSelectElement).addEventListener('change', () => {
     virtualLog.updateTarget(composer.target);
     accountEmotes.update(accountAuth, composer.target);
-    picker.refresh(true);
+    picker?.refresh(true);
   });
   log.addEventListener('click', () => {
     accountEmotes.update(accountAuth, composer.target);
-    picker.refresh();
+    picker?.refresh();
   });
 
   function messageKey(message: ChatMessage): string {
@@ -768,15 +753,66 @@ export async function startMain(): Promise<void> {
         [message.command, message.timestamp, message.login, message.text, message.tags['system-msg'] ?? ''].join(':'))
     );
   }
+  let railRequest = '';
+  function configureRail(mode: number): void {
+    if (!shell || !lazyPanels || overlay) return;
+    const effective = innerWidth > innerHeight && mode >= 4 ? mode : 0;
+    const request = String(effective);
+    if (railRequest === request) return;
+    railRequest = request;
+    const videoMode = new URL(location.href).searchParams.get('video') ?? '';
+    const ids = effective
+      ? [
+          'emote-picker',
+          ...(effective <= 5 && !['off', '0'].includes(videoMode) && !(effective === 4 && videoMode === 'float')
+            ? ['video-panel']
+            : []),
+          ...(effective === 4 ? ['stats-panel'] : []),
+        ]
+      : [];
+    void Promise.all(ids.map((id) => lazyPanels!.perform(id, () => {}, false))).then(() => {
+      if (railRequest !== request || !shell || !document.getElementById('topbar')) return;
+      if (ids.some((id) => !document.getElementById(id))) {
+        railRequest = '';
+        return;
+      }
+      const panels = [
+        ...(videoPanel && document.getElementById('video-panel')
+          ? [
+              {
+                name: 'video',
+                root: document.getElementById('video-panel')!,
+                show: (open: boolean) => videoPanel!.showRail(open),
+              },
+            ]
+          : []),
+        ...(picker && document.getElementById('emote-picker')
+          ? [
+              {
+                name: 'emotes',
+                root: document.getElementById('emote-picker')!,
+                show: (open: boolean) => picker!.showRail(open),
+              },
+            ]
+          : []),
+        ...(statsPanel && document.getElementById('stats-panel')
+          ? [
+              {
+                name: 'stats',
+                root: document.getElementById('stats-panel')!,
+                show: (open: boolean) => statsPanel!.showRail(open),
+              },
+            ]
+          : []),
+      ];
+      shell.workbench.setRail(effective, panels);
+    });
+  }
   let shell: Shell | undefined;
   let lazyPanels: LazyPanels | undefined;
-  let resourceReadout: import('./resource-readout').ResourceReadout | undefined;
-  let resourceReadoutLoading: Promise<void> | undefined;
-  let pageStopped = false;
   function render(): void {
     renderQueued = false;
-    if (shell) shell.workbench.setRail(overlay ? 1 : display.options.split, railPanels);
-    else rail?.set(overlay ? 1 : display.options.split);
+    configureRail(overlay ? 1 : display.options.split);
     document.documentElement.style.setProperty(
       '--composer-bottom',
       element('composer', HTMLFormElement).getBoundingClientRect().bottom + 'px',
@@ -937,24 +973,11 @@ export async function startMain(): Promise<void> {
     navigation.reveal();
   }
 
-  const displaySearch = document.createElement('input');
-  displaySearch.type = 'search';
-  displaySearch.placeholder = 'Search display settings';
-  displaySearch.setAttribute('aria-label', 'Search display settings');
-  element('display-panel', HTMLDialogElement).prepend(displaySearch);
-  displaySearch.addEventListener('input', () => {
-    for (const label of element('display-panel', HTMLDialogElement).querySelectorAll<HTMLLabelElement>('label'))
-      label.hidden = !label.textContent?.toLowerCase().includes(displaySearch.value.toLowerCase());
+  const display = new DisplayRuntime(() => {
+    visualRevision++;
+    picker?.refresh(true);
+    scheduleRender();
   });
-  const display = new DisplaySettings(
-    element('display-panel', HTMLDialogElement),
-    element('display-open', HTMLButtonElement),
-    () => {
-      visualRevision++;
-      picker.refresh(true);
-      scheduleRender();
-    },
-  );
   let hydratedCap = 0;
   let hydrationAbort = new AbortController();
   function hydrateHistory(): void {
@@ -978,19 +1001,20 @@ export async function startMain(): Promise<void> {
         if (signal.aborted) return;
         historyReady = true;
         refreshCandidates();
-        picker.refresh();
+        picker?.refresh();
         scheduleRender();
       })
       .catch(() => {
         if (!signal.aborted) {
           historyReady = true;
-          element('archive-status', HTMLElement).textContent = 'Saved history unavailable; live chat continues';
+          (document.getElementById('archive-status') ?? announcer).textContent =
+            'Saved history unavailable; live chat continues';
           scheduleRender();
         }
       });
   }
   hydrateHistory();
-  element('display-panel', HTMLDialogElement).addEventListener('change', hydrateHistory);
+  display.addEventListener('change', hydrateHistory);
   window.addEventListener('storage', (event) => {
     if (event.key === profileKey('chatthing:v1:display')) hydrateHistory();
   });
@@ -1010,60 +1034,62 @@ export async function startMain(): Promise<void> {
           .catch(() => {});
     },
   );
-  element('display-panel', HTMLDialogElement).addEventListener('change', (event) => {
-    if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked)
-      void attention.permission();
+
+  composer.configureModeration((text, channel) => {
+    if (
+      !/^\/(?:clip|marker|settitle|setgame|commercial|lowtrust|monitor|unmonitor|restrict|unrestrict|warn|shield|shieldoff|banid|untimeout)(?:\s|$)/i.test(
+        text,
+      )
+    )
+      return false;
+    if (moderationPanel) return moderationPanel.reviewCommand(text, channel);
+    void lazyPanels?.perform(
+      'moderation-workspace',
+      () => {
+        try {
+          moderationPanel?.reviewCommand(text, channel);
+        } catch (error) {
+          announcer.textContent = error instanceof Error ? error.message : 'Moderation review unavailable';
+        }
+      },
+      false,
+    );
+    return true;
   });
 
-  element('alert-test', HTMLButtonElement).addEventListener('click', () => {
-    void attention.test().then((result) => {
-      element('alert-test-status', HTMLElement).textContent = result;
-    });
-  });
-  moderationPanel = new ModerationWorkspace(channels, archive, () => currentWorkspaceID || channels.join(','));
-  moderationPanel.setAuth(accountAuth);
-  composer.configureModeration((text, channel) => moderationPanel?.reviewCommand(text, channel) ?? false);
-  userNotesPanel = new UserNotesPanel();
-  userNotesPanel.setAccount(accountAuth?.authenticated ? accountAuth.userID : undefined);
-  inspector = new UserInspector(
-    element('user-inspector', HTMLDialogElement),
-    log,
-    viewMessages,
-    () => accountAuth,
-    (message) => {
-      localTargets.reply(message);
-      composer.selectReply(message);
-    },
-    (login) =>
-      display.options.pn
-        ? pronouns.get(login).then((label) => (display.options.pn ? label : undefined))
-        : Promise.resolve(undefined),
-    (id, login) => userNotesPanel?.editor(id, login),
-    (message) => moderationPanel?.show(message),
-  );
-  inspector.setAccount(accountAuth?.authenticated ? accountAuth.userID : undefined);
+  function noteEditor(id: string, login: string): HTMLElement | undefined {
+    if (!accountAuth?.authenticated || privacyEnabled()) return;
+    const placeholder = document.createElement('div');
+    void lazyPanels?.perform(
+      'user-notes',
+      () => {
+        if (!placeholder.isConnected) return;
+        const editor = userNotesPanel?.editor(id, login);
+        if (editor) placeholder.replaceChildren(editor);
+      },
+      false,
+    );
+    return placeholder;
+  }
+
   identityCards = new IdentityCards(
     document.body,
-    element('identity-preview', HTMLElement),
+    () => transientRoot('identity-preview', 'Identity preview'),
     () => store.messages,
     (login) =>
       display.options.pn
         ? pronouns.get(login).then((label) => (display.options.pn ? label : undefined))
         : Promise.resolve(undefined),
-    (id, login) => userNotesPanel?.editor(id, login),
+    (id, login) => noteEditor(id, login),
   );
   identityCards.setAccount(accountAuth?.authenticated ? accountAuth.userID : undefined);
-  const resources = new Resources(
-    element('resources-panel', HTMLElement),
-    element('resources-open', HTMLButtonElement),
-    (name) => document.getElementById(name)?.click(),
-  );
+  let resources: Resources | undefined;
   function zoomChat(delta: number): void {
     const index = FONT_SIZES.indexOf(display.options.size),
       size = FONT_SIZES[Math.max(0, Math.min(FONT_SIZES.length - 1, index + delta))];
     if (size) display.setOptions({ ...display.options, size });
   }
-  const presentationPanel = new PresentationPanel(() => {
+  const presentationRuntime = new PresentationRuntime(() => {
     visualRevision++;
     scheduleRender();
     renderRoom();
@@ -1079,7 +1105,7 @@ export async function startMain(): Promise<void> {
   window.addEventListener('pagehide', () => document.removeEventListener('emojistylechange', emojiStyleChanged));
   const themeChanged = (): void => {
     visualRevision++;
-    picker.refresh(true);
+    picker?.refresh(true);
     scheduleRender();
   };
   document.addEventListener('customthemechange', themeChanged);
@@ -1087,7 +1113,7 @@ export async function startMain(): Promise<void> {
     document.removeEventListener('customthemechange', themeChanged);
     customThemeRuntime.stop();
   });
-  rulePanel = new RulePanel(() => {
+  rulePanel = new RuleRuntime(() => {
     visualRevision++;
     scheduleRender();
   });
@@ -1101,16 +1127,22 @@ export async function startMain(): Promise<void> {
     return accepted;
   }
   const hotkeyActions = {
-    palette: () => element('actions-open', HTMLButtonElement).click(),
-    shortcuts: () => element('hotkeys-open', HTMLButtonElement).click(),
+    palette: () => shell?.palette.toggle(),
+    shortcuts: () => {
+      void lazyPanels?.open('shortcut-settings');
+    },
     accounts: () => document.dispatchEvent(new Event('open-account-profiles')),
     compose: () => composer.focusTyping(''),
     workspace: () => {
       if (panePopout) throw new Error('Manage workspaces in the main view');
-      element('workspace-open', HTMLButtonElement).click();
+      void lazyPanels?.open('workspace-panel');
     },
-    'desktop-playback': () => desktopPlayback?.openReview('playback'),
-    'desktop-overlay': () => desktopPlayback?.openReview('overlay'),
+    'desktop-playback': () => {
+      void lazyPanels?.perform('desktop-playback-panel', () => desktopPlayback?.openReview('playback'));
+    },
+    'desktop-overlay': () => {
+      void lazyPanels?.perform('desktop-playback-panel', () => desktopPlayback?.openReview('overlay'));
+    },
     'channel-next': () => channelStep(1),
     'channel-prev': () => channelStep(-1),
     'pane-next': () => virtualLog.moveFocus('pane', 1),
@@ -1135,14 +1167,30 @@ export async function startMain(): Promise<void> {
       latest.hidden = false;
     },
     live: () => latest.click(),
-    history: () => archiveSearch?.show(composer.target),
-    'history-global': () => archiveSearch?.show(),
-    emotes: () => element('picker-open', HTMLButtonElement).click(),
-    video: () => element('video-open', HTMLButtonElement).click(),
-    stats: () => element('stats-open', HTMLButtonElement).click(),
-    settings: () => element('display-open', HTMLButtonElement).click(),
-    inbox: () => inboxPanel?.show(),
-    commands: () => commandPanel.openPanel(),
+    history: () => {
+      void lazyPanels?.perform('archive-search', () => archiveSearch?.show(composer.target), false);
+    },
+    'history-global': () => {
+      void lazyPanels?.open('archive-search');
+    },
+    emotes: () => {
+      void lazyPanels?.open('emote-picker');
+    },
+    video: () => {
+      void lazyPanels?.open('video-panel');
+    },
+    stats: () => {
+      void lazyPanels?.open('stats-panel');
+    },
+    settings: () => {
+      void lazyPanels?.open('display-panel');
+    },
+    inbox: () => {
+      void lazyPanels?.open('inbox-panel');
+    },
+    commands: () => {
+      void lazyPanels?.open('commands-panel');
+    },
   } satisfies Record<ActionID, () => void>;
   const paletteExtra = () => [
     ...(panePopout ? virtualLog.layout.activePane.channels : channels).map((channel) => ({
@@ -1151,12 +1199,16 @@ export async function startMain(): Promise<void> {
       context: 'chat',
       run: () => virtualLog.focusChannel(channel),
     })),
-    ...(extensionsPanel?.actions() ?? []),
+    ...extensionActions(accountAuth, (selection) => {
+      void lazyPanels?.perform('extensions-panel', () => extensionsPanel?.selectAction(selection), false);
+    }),
     ...(panePopout ? [] : workspaceStore.all()).map((workspace) => ({
       id: 'workspace:' + workspace.id,
       label: 'Workspace: ' + workspace.name,
       context: 'workspace preview',
-      run: () => workspacePanel.previewSwitch(workspace.id),
+      run: () => {
+        void lazyPanels?.perform('workspace-panel', () => workspacePanel?.previewSwitch(workspace.id), false);
+      },
     })),
     ...(virtualLog.layout.enabled
       ? virtualLog.layout.tabs.flatMap((tab) => [
@@ -1175,20 +1227,9 @@ export async function startMain(): Promise<void> {
   ];
   const actionAvailable = (id: string): boolean =>
     id === 'desktop-playback' || id === 'desktop-overlay'
-      ? !!desktopPlayback &&
-        !!accountAuth?.authenticated &&
-        !panePopout &&
-        !ephemeralPopout &&
-        !overlay &&
-        !composer.sending
+      ? !!accountAuth?.authenticated && !panePopout && !ephemeralPopout && !overlay && !composer.sending
       : ACTIONS.find((action) => action.id === id)?.context !== 'splits' || virtualLog.layout.enabled;
-  const hotkeys = new HotkeyPanel(
-    element('actions-open', HTMLButtonElement),
-    element('hotkeys-open', HTMLButtonElement),
-    (id) => hotkeyActions[id](),
-    paletteExtra,
-    actionAvailable,
-  );
+  const hotkeys = new HotkeyRuntime((id) => hotkeyActions[id](), actionAvailable);
   virtualLog.manageKeyboard();
 
   if (bootWorkspace) {
@@ -1203,7 +1244,7 @@ export async function startMain(): Promise<void> {
       panePopout && virtualLog.layout.enabled ? virtualLog.layout.activePane.target : bootWorkspace.target,
     );
   }
-  if (['off', '0'].includes(workspaceQuery.get('video') ?? '')) videoPanel.showRail(false);
+  if (['off', '0'].includes(workspaceQuery.get('video') ?? '')) videoPanel?.showRail(false);
   function captureWorkspace(): WorkspaceSnapshot {
     return {
       channels: [...channels],
@@ -1228,43 +1269,8 @@ export async function startMain(): Promise<void> {
       announcer.textContent = error instanceof Error ? error.message : 'Workspace storage unavailable';
     }
   }
-  threadsPanel = new ThreadsPanel(
-    log,
-    viewMessages,
-    archive,
-    channels,
-    (message) => {
-      localTargets.reply(message);
-      composer.selectReply(message);
-    },
-    (change) => {
-      document.dispatchEvent(new Event('presentation-before-change'));
-      change();
-      render();
-    },
-  );
-  threadsPanel.setScope(
-    accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
-    currentWorkspaceID || channels.join(','),
-  );
-  const workspacePanel = new WorkspacePanel(
-    element('workspace-panel', HTMLDialogElement),
-    element('workspace-open', HTMLButtonElement),
-    workspaceStore,
-    () => currentWorkspaceID,
-    captureWorkspace,
-    saveWorkspace,
-    (workspace) => {
-      if (composer.sending) throw new Error('Wait for the current send outcome before switching workspaces');
-      const url = new URL(location.href);
-      url.search = '';
-      url.searchParams.set('workspace', workspace.id);
-      url.searchParams.set('channel', workspace.channels.join(','));
-      if (overlay) url.searchParams.set('overlay', '1');
-      location.assign(url.href);
-    },
-    !!panePopout || ephemeralPopout,
-  );
+
+  let workspacePanel: WorkspacePanel | undefined;
   async function replayInbox(): Promise<void> {
     const generation = ++inboxGeneration,
       panel = inboxPanel;
@@ -1282,45 +1288,52 @@ export async function startMain(): Promise<void> {
         if (messages.length > 500) await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
   }
-  inboxPanel = new InboxPanel(
-    channels,
-    (message) => {
-      void showArchived(message);
-    },
-    (login) => composer.prepareWhisper(login),
-  );
+  inboxPanel = new InboxRuntime();
   if (accountAuth?.authenticated) {
     inboxPanel.setAccount(accountAuth.userID ?? '', accountAuth.login ?? '');
     void replayInbox();
   }
-  const commandPanel = new CommandPanel(
+  let commandPanel: CommandPanel | undefined;
+  const commandContext = () => {
+    const selected = inspector?.selectedMessage,
+      channel = selected?.channel ?? composer.target;
+    const room =
+      selected?.tags['room-id'] ??
+      [...store.messages].reverse().find((message) => message.channel === channel && message.tags['room-id'])?.tags[
+        'room-id'
+      ] ??
+      '';
+    return {
+      channel: {
+        name: channel,
+        id: room,
+        title: metadata.get(channel)?.stream.title ?? '',
+        game: metadata.get(channel)?.stream.game ?? '',
+      },
+      account: { name: accountAuth?.login ?? '', id: accountAuth?.userID ?? '' },
+      message: selected
+        ? { name: selected.login, id: selected.id, text: selected.text.replace(/^\x01ACTION (.*)\x01$/s, '$1') }
+        : undefined,
+      input: composer.draft,
+    };
+  };
+  const commandRuntime = new CommandRuntime(
     composer,
-    () => {
-      const selected = inspector?.selectedMessage,
-        channel = selected?.channel ?? composer.target;
-      const room =
-        selected?.tags['room-id'] ??
-        [...store.messages].reverse().find((message) => message.channel === channel && message.tags['room-id'])?.tags[
-          'room-id'
-        ] ??
-        '';
-      return {
-        channel: {
-          name: channel,
-          id: room,
-          title: metadata.get(channel)?.stream.title ?? '',
-          game: metadata.get(channel)?.stream.game ?? '',
+    (command, invocation) => {
+      const context = commandContext();
+      void lazyPanels?.perform(
+        'commands-panel',
+        () => {
+          const current = commandContext();
+          if (current.account.id !== context.account.id || current.channel.name !== context.channel.name) return;
+          commandPanel?.showPreview(command, invocation);
         },
-        account: { name: accountAuth?.login ?? '', id: accountAuth?.userID ?? '' },
-        message: selected
-          ? { name: selected.login, id: selected.id, text: selected.text.replace(/^\x01ACTION (.*)\x01$/s, '$1') }
-          : undefined,
-        input: composer.draft,
-      };
+        false,
+      );
     },
-    element('user-inspector', HTMLDialogElement),
     bootWorkspace?.settings.extras.commands,
   );
+
   completionChatters = new CompletionChatters(() => {
     const raw = metadata.get(composer.target)?.stream.viewers ?? '',
       viewers = /^(?:\d+|[1-9]\d{0,2}(?:,\d{3})+)$/.test(raw) ? Number(raw.replaceAll(',', '')) : undefined;
@@ -1347,13 +1360,29 @@ export async function startMain(): Promise<void> {
   } catch {
     announcer.textContent = 'Saved completion preferences could not be loaded; defaults are active.';
   }
-  imageUploads = new ImageUploads(
+  const uploadRuntime = new ImageUploadRuntime(
     () => ({ auth: accountAuth, channel: composer.target, canInsert: composer.canInsert }),
-    (url) => composer.insert(url),
     !!panePopout || ephemeralPopout || overlay,
+    () => !!imageUploads,
+    (files) => {
+      const channel = composer.target;
+      void lazyPanels?.perform(
+        'image-uploads-panel',
+        () => {
+          if (composer.target === channel) imageUploads?.files(files);
+        },
+        false,
+      );
+    },
   );
+
   element('send-channel', HTMLSelectElement).addEventListener('change', () => imageUploads?.contextChanged());
   const privacyControls = new PrivacyControls(workspaceStore, () => currentWorkspaceID);
+  const openPrivacySettings = (): void => {
+    void lazyPanels?.open('privacy-settings');
+  };
+  document.addEventListener('open-privacy-settings', openPrivacySettings);
+  window.addEventListener('pagehide', () => document.removeEventListener('open-privacy-settings', openPrivacySettings));
   const rememberFocus = (event: FocusEvent): void => {
     if (
       event.target instanceof HTMLElement &&
@@ -1369,18 +1398,17 @@ export async function startMain(): Promise<void> {
       /* status is reported before an intentional switch; pagehide cannot prevent navigation */
     }
     hotkeys.stop();
-    workspacePanel.stop();
     document.removeEventListener('completionpreferenceschange', completionPreferencesChanged);
     document.removeEventListener('privacychange', completionPreferencesChanged);
     setCompletionPreferences(completionDefaults);
     completionChatters?.stop();
-    imageUploads?.stop();
+    uploadRuntime.stop();
     linkTools.stop();
     inboxGeneration++;
     inboxPanel?.stop();
     rulePanel?.stop();
-    presentationPanel.stop();
-    commandPanel.stop();
+    presentationRuntime.stop();
+    commandRuntime.stop();
     privacyControls.stop();
     document.removeEventListener('focusin', rememberFocus);
   });
@@ -1431,7 +1459,7 @@ export async function startMain(): Promise<void> {
     streamHistory.observe(data);
     pickerModel.setSeeds(data.channel, data.emoteUse ?? {});
     pickerModel.setMetadata(data.channel, data.emotes);
-    picker.refresh();
+    picker?.refresh();
     refreshCandidates();
     if (data.stream.uptime && !data.errors.includes('stream uptime'))
       attention.stream(
@@ -1460,70 +1488,12 @@ export async function startMain(): Promise<void> {
       visualRevision++;
       scheduleRender();
     },
-    (_providers, detail) => providerPanel.cosmeticsStatus(detail),
-  );
-  extensionsPanel = new ExtensionsPanel(
-    () => accountAuth,
-    () => composer.target,
-    (text) => {
-      if (!composer.canInsert) throw new Error('Log in before staging extension output');
-      composer.insert(text);
+    (_providers, detail) => {
+      providerCosmeticNotice = detail;
+      providerPanel?.cosmeticsStatus(detail);
     },
-    !!panePopout || ephemeralPopout || overlay,
   );
-  browserCompanion = new BrowserCompanionPanel(
-    () => accountAuth,
-    () =>
-      workspaceStore.all().map((w) => ({ id: w.id, name: w.name, channels: w.channels, revision: JSON.stringify(w) })),
-    () => currentWorkspaceID,
-    (id, channel, revision, switching) => {
-      if (composer.sending || panePopout || overlay || ephemeralPopout)
-        throw new Error('Open watched channels from the main workspace after sending completes');
-      let destination = workspaceStore.get(id);
-      if (!destination || JSON.stringify(destination) !== revision)
-        throw new Error('Destination workspace changed; review again');
-      if (id !== currentWorkspaceID && !switching) throw new Error('Workspace switching is not enabled');
-      saveWorkspace();
-      destination = workspaceStore.get(id)!;
-      const next = watchedWorkspace(destination, channel, capacity.workspaceChannels);
-      workspaceStore.update(id, next);
-      workspaceStore.activate(id);
-      suppressWorkspaceSave = true;
-      const url = new URL(location.href);
-      url.search = '';
-      url.searchParams.set('workspace', id);
-      url.searchParams.set('channel', next.channels.join(','));
-      location.assign(url.href);
-    },
-    !!panePopout || ephemeralPopout || overlay,
-  );
-  desktopPlayback = new DesktopPlaybackPanel(
-    () => accountAuth,
-    () => channels,
-    () => composer.target,
-    !!panePopout || ephemeralPopout || overlay,
-  );
-  userHoldPanel = new UserHoldPanel(
-    () => accountAuth,
-    () => channels,
-    () => composer.target,
-    !!panePopout || ephemeralPopout || overlay,
-  );
-  chatContextPanel = new ChatContextPanel(
-    () => accountAuth,
-    () => channels,
-    () => composer.target,
-    () => {
-      const changed = store.enrichPublic((message) => chatContextPanel?.enrich(message) ?? message);
-      for (const message of changed) archive.add(message);
-      if (changed.length) {
-        visualRevision++;
-        scheduleRender();
-      }
-      return changed.length;
-    },
-    !!panePopout || ephemeralPopout || overlay,
-  );
+
   providerEvents = new ProviderEventClient(
     () =>
       liveSources().flatMap((channel) => {
@@ -1535,31 +1505,21 @@ export async function startMain(): Promise<void> {
       scheduleRender();
     },
     (provider, channel) => metadataClient.requestProviderRefresh(provider, channel),
-    (detail) => providerPanel.eventsStatus(detail),
-  );
-  providerActivity = new ProviderActivityPanel(
-    () => accountAuth,
-    () => {
-      if (!liveSources().includes(composer.target)) return;
-      const data = rawMetadata.get(composer.target);
-      return data?.broadcasterID ? { channel: composer.target, broadcasterID: data.broadcasterID } : undefined;
+    (detail) => {
+      providerEventsNotice = detail;
+      providerPanel?.eventsStatus(detail);
     },
-    (auth, id) => providerEvents?.announceBTTV(auth, id) ?? false,
-    !!panePopout || ephemeralPopout || overlay,
   );
-  const providerPanel = new ProviderPanel(
-    () => {
-      providerActivity?.preferencesChanged();
-      cosmeticClient.preferencesChanged();
-      providerEvents?.preferencesChanged();
-      for (const data of rawMetadata.values()) applyProviderData(data);
-      visualRevision++;
-      scheduleRender();
-    },
-    reloadProviderMetadata,
-    !!panePopout || ephemeralPopout || overlay,
-    () => providerEvents?.reconnect(),
-  );
+
+  let providerPanel: ProviderPanel | undefined;
+  let providerEventsNotice = '',
+    providerCosmeticNotice = '';
+  try {
+    restoreProviderPreferences();
+  } catch {
+    announcer.textContent = 'Saved provider preferences unavailable; defaults are active';
+  }
+
   metadataClient.start();
   cosmeticClient.start();
   providerEvents.start();
@@ -1590,7 +1550,6 @@ export async function startMain(): Promise<void> {
   window.addEventListener('pagehide', () => {
     nitterLinks.stop();
     giphyTitles.stop();
-    historyFiles.stop();
     channelControls.stop();
     streamHistory.save();
     errorReport.stop();
@@ -1600,7 +1559,7 @@ export async function startMain(): Promise<void> {
       rateTimeline.series.status(event);
       if (liveSources().includes(channels[0]!)) recovery.status(event);
       pickerModel.connection(liveSources(), event.state);
-      picker.refresh();
+      picker?.refresh();
       status.textContent = event.detail || event.state;
       status.dataset.state = event.state;
       return;
@@ -1610,7 +1569,7 @@ export async function startMain(): Promise<void> {
     archive.add(event.message);
     observe(event.message, !event.replay, true);
     refreshCandidates();
-    picker.refresh();
+    picker?.refresh();
     if (!event.replay && event.message.command === 'PRIVMSG') {
       const visibility = messageVisibility(event.message, display.options, selfLogin);
       const ids = ruleIDsFor(event.message);
@@ -1680,21 +1639,6 @@ export async function startMain(): Promise<void> {
   };
   log.addEventListener('contextmenu', usernameContext);
   window.addEventListener('pagehide', () => log.removeEventListener('contextmenu', usernameContext));
-  const localHelp = document.createElement('dialog');
-  localHelp.setAttribute('aria-label', 'Local command help');
-  const heading = document.createElement('h2');
-  heading.textContent = 'Local commands';
-  const helpText = document.createElement('p');
-  helpText.textContent = LOCAL_COMMANDS.join(' · ');
-  const details = document.createElement('p');
-  details.textContent =
-    'Context is the selected send channel. /reply stages the selected public thread. /r stages a private whisper to the last selected or observed whisper recipient; it never means a public reply. /whisper, /msg and .w are aliases that stage /w. Review staged messages and press Send separately. /requests opens the channel-points queue. /ignore only hides a user locally; /block changes Twitch blocking. Follow actions open Twitch. /clearmessages hides retained rows locally while preserving the archive. /disconnect pauses public, personal and whisper streams until /reconnect. /streamlink [joined channel] opens desktop playback setup; pairing, tool/quality review and launch confirmation are separate. Raw, debug and automatic native commands are unavailable.';
-  const closeHelp = document.createElement('button');
-  closeHelp.type = 'button';
-  closeHelp.textContent = 'Close';
-  closeHelp.addEventListener('click', () => localHelp.close());
-  localHelp.append(heading, helpText, details, closeHelp);
-  document.body.append(localHelp);
   composer.configureLocal((text) => {
     if (privacyEnabled()) throw new Error('Local commands are unavailable in privacy mode');
     return dispatchLocal(text, {
@@ -1726,7 +1670,26 @@ export async function startMain(): Promise<void> {
         visualRevision++;
         scheduleRender();
       },
-      user: (login, channel) => inspector?.openUser(login, channel),
+      user: (login, channel) => {
+        if (inspector) return inspector.openUser(login, channel);
+        if (
+          !viewMessages().some(
+            (message) =>
+              message.login.toLowerCase() === login.toLowerCase() &&
+              message.channel === channel &&
+              message.command === 'PRIVMSG',
+          )
+        )
+          return false;
+        void lazyPanels?.perform(
+          'user-inspector',
+          () => {
+            inspector?.openUser(login, channel);
+          },
+          false,
+        );
+        return true;
+      },
       ignore: (login, hide) => {
         const names = display.options.hidden
           .split(/[\s,]+/)
@@ -1753,10 +1716,11 @@ export async function startMain(): Promise<void> {
         if (!composer.canInsert) throw new Error('Log in to stage a whisper');
         composer.prepare(value);
       },
-      help: () => localHelp.showModal(),
+      help: () => {
+        void lazyPanels?.open('local-command-help');
+      },
     });
   });
-  window.addEventListener('pagehide', () => localHelp.remove());
 
   log.addEventListener(
     'scroll',
@@ -1787,17 +1751,7 @@ export async function startMain(): Promise<void> {
     log.scrollTop = display.options.rev ? 0 : log.scrollHeight;
     latest.hidden = virtualLog.allFollowing();
   });
-  discoveryPanel = new DiscoveryPanel(channels, (login) => {
-    if (panePopout || overlay) throw new Error('Join channels from the parent workspace');
-    if (composer.sending) throw new Error('Wait for the current send outcome before joining a channel');
-    const next = parseWorkspaceChannels([...channels, login].join(','), capacity.workspaceChannels);
-    if (!reconcileSplits(virtualLog.layout.snapshot(), next, channels))
-      throw new Error('Close a pane or tab before adding another channel');
-    input.value = next.join(',');
-    form.requestSubmit();
-  });
-  discoveryPanel.setAuth(accountAuth);
-  window.addEventListener('pagehide', () => discoveryPanel?.stop());
+
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     try {
@@ -1817,7 +1771,7 @@ export async function startMain(): Promise<void> {
     const next = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
     theme.setAttribute('aria-label', `Switch to ${next === 'dark' ? 'light' : 'dark'} theme`);
     visualRevision++;
-    picker.refresh(true);
+    picker?.refresh(true);
     scheduleRender();
   });
   animation.addEventListener('click', () => {
@@ -1842,24 +1796,12 @@ export async function startMain(): Promise<void> {
     store.save();
     hydrationAbort.abort();
     identityCards?.stop();
-    userNotesPanel?.stop();
-    moderationPanel?.stop();
     pronouns.stop();
-    vodContext?.stop();
-    threadsPanel?.stop();
-    rail?.stop();
     logKeyboard.stop();
     virtualLog.stop();
     connection.stop();
     metadataClient.stop();
-    providerActivity?.stop();
     providerEvents?.stop();
-    providerPanel.stop();
-    userHoldPanel?.stop();
-    chatContextPanel?.stop();
-    desktopPlayback?.stop();
-    browserCompanion?.stop();
-    extensionsPanel?.stop();
     cosmeticClient.stop();
     stopAuth();
     personalChat.stop();
@@ -1869,21 +1811,14 @@ export async function startMain(): Promise<void> {
     accountEmotes.stop();
     composer.stop();
     navigation.stop();
-    pickerLighting.stop();
+    pickerLighting?.stop();
     document.removeEventListener('share-settings', sharePicker);
-    picker.stop();
-    archiveSearch.stop();
-    bookmarksPanel?.stop();
     archive.stop();
-    statsPanel.stop();
     statsLedger.save();
     rateTimeline.stop();
     display.stop();
     attention.stop();
-    resources.stop();
-    inspector?.stop();
     tabSync.stop();
-    videoPanel.stop();
     stopLifecycle();
     linkPreview.stop();
     socialCards.stop();
@@ -1892,7 +1827,6 @@ export async function startMain(): Promise<void> {
     if (event.persisted) location.reload();
   });
   if (!overlay) {
-    rail?.set(0);
     shell = startShell({
       actions: ACTIONS,
       run: (id) => hotkeyActions[id as ActionID](),
@@ -1906,7 +1840,11 @@ export async function startMain(): Promise<void> {
           run: entry.run,
         })),
     });
-    shell.workbench.setRail(display.options.split, railPanels);
+    const panelStateChanged = (): void => {
+      shell?.registry.dispatchEvent(new Event('change'));
+    };
+    document.addEventListener('panelstatechange', panelStateChanged);
+    window.addEventListener('pagehide', () => document.removeEventListener('panelstatechange', panelStateChanged));
     lazyPanels = new LazyPanels(
       shell.registry,
       shell.workbench,
@@ -1978,7 +1916,9 @@ export async function startMain(): Promise<void> {
             (message) => {
               void showArchived(message);
             },
-            (message) => vodContext?.show(message),
+            (message) => {
+              void lazyPanels?.perform('vod-context', () => vodContext?.show(message), false);
+            },
           );
           comparisonPanel.setAccount(
             accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
@@ -1999,6 +1939,777 @@ export async function startMain(): Promise<void> {
           );
           return portableLogs;
         }),
+    });
+    lazyPanels.register({
+      id: 'chat-context-panel',
+      title: 'Public message context',
+      group: 'moderation',
+      load: () =>
+        import('./chat-context-ui').then(({ ChatContextPanel }) => () => {
+          chatContextPanel = new ChatContextPanel(
+            () => accountAuth,
+            () => channels,
+            () => composer.target,
+            () => {
+              const changed = store.enrichPublic((message) => chatContextPanel?.enrich(message) ?? message);
+              for (const message of changed) archive.add(message);
+              if (changed.length) {
+                visualRevision++;
+                scheduleRender();
+              }
+              return changed.length;
+            },
+            !!panePopout || ephemeralPopout || overlay,
+          );
+          return chatContextPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'provider-activity-panel',
+      title: 'Provider activity',
+      group: 'providers',
+      load: () =>
+        import('./provider-activity-ui').then(({ ProviderActivityPanel }) => () => {
+          providerActivity = new ProviderActivityPanel(
+            () => accountAuth,
+            () => {
+              if (!liveSources().includes(composer.target)) return;
+              const data = rawMetadata.get(composer.target);
+              return data?.broadcasterID ? { channel: composer.target, broadcasterID: data.broadcasterID } : undefined;
+            },
+            (auth, id) => providerEvents?.announceBTTV(auth, id) ?? false,
+            !!panePopout || ephemeralPopout || overlay,
+          );
+          return providerActivity;
+        }),
+    });
+    lazyPanels.register({
+      id: 'browser-companion-panel',
+      title: 'Browser companion',
+      group: 'tools',
+      load: () =>
+        import('./browser-companion-ui').then(({ BrowserCompanionPanel }) => () => {
+          browserCompanion = new BrowserCompanionPanel(
+            () => accountAuth,
+            () =>
+              workspaceStore
+                .all()
+                .map((w) => ({ id: w.id, name: w.name, channels: w.channels, revision: JSON.stringify(w) })),
+            () => currentWorkspaceID,
+            (id, channel, revision, switching) => {
+              if (composer.sending || panePopout || overlay || ephemeralPopout)
+                throw new Error('Open watched channels from the main workspace after sending completes');
+              let destination = workspaceStore.get(id);
+              if (!destination || JSON.stringify(destination) !== revision)
+                throw new Error('Destination workspace changed; review again');
+              if (id !== currentWorkspaceID && !switching) throw new Error('Workspace switching is not enabled');
+              saveWorkspace();
+              destination = workspaceStore.get(id)!;
+              const next = watchedWorkspace(destination, channel, capacity.workspaceChannels);
+              workspaceStore.update(id, next);
+              workspaceStore.activate(id);
+              suppressWorkspaceSave = true;
+              const url = new URL(location.href);
+              url.search = '';
+              url.searchParams.set('workspace', id);
+              url.searchParams.set('channel', next.channels.join(','));
+              location.assign(url.href);
+            },
+            !!panePopout || ephemeralPopout || overlay,
+          );
+          return browserCompanion;
+        }),
+    });
+    lazyPanels.register({
+      id: 'desktop-playback-panel',
+      title: 'Desktop playback',
+      group: 'tools',
+      load: () =>
+        import('./desktop-companion-ui').then(({ DesktopPlaybackPanel }) => () => {
+          desktopPlayback = new DesktopPlaybackPanel(
+            () => accountAuth,
+            () => channels,
+            () => composer.target,
+            !!panePopout || ephemeralPopout || overlay,
+          );
+          return desktopPlayback;
+        }),
+    });
+    lazyPanels.register({
+      id: 'user-hold-panel',
+      title: 'Own message feedback',
+      group: 'account',
+      load: () =>
+        import('./user-holds').then(({ UserHoldPanel }) => () => {
+          userHoldPanel = new UserHoldPanel(
+            () => accountAuth,
+            () => channels,
+            () => composer.target,
+            !!panePopout || ephemeralPopout || overlay,
+          );
+          return userHoldPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'discovery-panel',
+      title: 'Channels',
+      group: 'chat',
+      load: () =>
+        import('./discovery').then(({ DiscoveryPanel }) => () => {
+          discoveryPanel = new DiscoveryPanel(channels, (login) => {
+            if (panePopout || overlay) throw new Error('Join channels from the parent workspace');
+            if (composer.sending) throw new Error('Wait for the current send outcome before joining a channel');
+            const next = parseWorkspaceChannels([...channels, login].join(','), capacity.workspaceChannels);
+            if (!reconcileSplits(virtualLog.layout.snapshot(), next, channels))
+              throw new Error('Close a pane or tab before adding another channel');
+            input.value = next.join(',');
+            form.requestSubmit();
+          });
+          discoveryPanel.setAuth(accountAuth);
+          return discoveryPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'user-notes',
+      title: 'User notes',
+      group: 'account',
+      available: () => !!accountAuth?.authenticated,
+      load: () =>
+        import('./user-notes-ui').then(({ UserNotesPanel }) => () => {
+          userNotesPanel = new UserNotesPanel();
+          userNotesPanel.setAccount(accountAuth?.authenticated ? accountAuth.userID : undefined);
+          return userNotesPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'moderation-workspace',
+      title: 'Moderation',
+      group: 'moderation',
+      available: () => !!accountAuth?.authenticated,
+      load: () =>
+        import('./moderation-ui').then(({ ModerationWorkspace }) => () => {
+          moderationPanel = new ModerationWorkspace(channels, archive, () => currentWorkspaceID || channels.join(','));
+          moderationPanel.setAuth(accountAuth);
+          return moderationPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'rules-panel',
+      title: 'Rules',
+      group: 'moderation',
+      load: () =>
+        import('./rules-ui').then(
+          ({ RulePanel }) =>
+            () =>
+              new RulePanel(rulePanel!),
+        ),
+    });
+    lazyPanels.register({
+      id: 'presentation-panel',
+      title: 'Presentation',
+      group: 'view',
+      load: () =>
+        import('./presentation-ui').then(
+          ({ PresentationPanel }) =>
+            () =>
+              new PresentationPanel(presentationRuntime),
+        ),
+    });
+    lazyPanels.register({
+      id: 'commands-panel',
+      title: 'Commands',
+      group: 'moderation',
+      load: () =>
+        import('./commands-ui').then(({ CommandPanel }) => () => {
+          commandPanel = new CommandPanel(composer, commandContext, undefined, commandRuntime);
+          return commandPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'inbox-panel',
+      title: 'Inbox',
+      label: () => {
+        const unread =
+          inboxPanel!.model.unread('mentions') +
+          inboxPanel!.model.unread('replies') +
+          inboxPanel!.model.unread('whispers');
+        return unread ? 'Inbox (' + unread + ')' : 'Inbox';
+      },
+      group: 'chat',
+      load: () =>
+        import('./inbox-ui').then(({ InboxPanel }) => () => {
+          const view = new InboxPanel(
+            channels,
+            (message) => {
+              void showArchived(message);
+            },
+            (login) => composer.prepareWhisper(login),
+            inboxPanel!,
+          );
+          return view;
+        }),
+    });
+    lazyPanels.register({
+      id: 'threads-panel',
+      title: 'Threads',
+      group: 'chat',
+      load: () =>
+        import('./threads-ui').then(({ ThreadsPanel }) => () => {
+          threadsPanel = new ThreadsPanel(
+            log,
+            viewMessages,
+            archive,
+            channels,
+            (message) => {
+              localTargets.reply(message);
+              composer.selectReply(message);
+            },
+            (change) => {
+              document.dispatchEvent(new Event('presentation-before-change'));
+              change();
+              render();
+            },
+          );
+          threadsPanel.setScope(
+            accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+            currentWorkspaceID || channels.join(','),
+          );
+          return threadsPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'bookmarks-panel',
+      title: 'Bookmarks',
+      group: 'chat',
+      load: () =>
+        import('./bookmarks-ui').then(({ BookmarksPanel }) => () => {
+          bookmarksPanel = new BookmarksPanel(
+            log,
+            viewMessages,
+            archive,
+            (message) => {
+              void showArchived(message);
+            },
+            (message) => {
+              void lazyPanels?.perform('vod-context', () => vodContext?.show(message), false);
+            },
+          );
+          bookmarksPanel.setAccount(
+            accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+          );
+          return bookmarksPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'provider-preferences-panel',
+      title: 'Provider and badge preferences',
+      group: 'providers',
+      load: () =>
+        import('./provider-preferences-ui').then(({ ProviderPanel }) => () => {
+          providerPanel = new ProviderPanel(
+            () => {
+              providerActivity?.preferencesChanged();
+              cosmeticClient.preferencesChanged();
+              providerEvents?.preferencesChanged();
+              for (const data of rawMetadata.values()) applyProviderData(data);
+              visualRevision++;
+              scheduleRender();
+            },
+            reloadProviderMetadata,
+            !!panePopout || ephemeralPopout || overlay,
+            () => providerEvents?.reconnect(),
+          );
+          providerPanel.eventsStatus(providerEventsNotice);
+          providerPanel.cosmeticsStatus(providerCosmeticNotice);
+          return providerPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'extensions-panel',
+      title: 'Web extensions',
+      group: 'tools',
+      load: () =>
+        import('./extensions-ui').then(({ ExtensionsPanel }) => () => {
+          extensionsPanel = new ExtensionsPanel(
+            () => accountAuth,
+            () => composer.target,
+            (text) => {
+              if (!composer.canInsert) throw new Error('Log in before staging extension output');
+              composer.insert(text);
+            },
+            !!panePopout || ephemeralPopout || overlay,
+          );
+          return extensionsPanel;
+        }),
+    });
+    lazyPanels.register({
+      id: 'workspace-panel',
+      title: 'Workspaces',
+      group: 'view',
+      load: () =>
+        Promise.all([import('./workspaces-ui'), import('./panel-templates/workspace-panel.html?raw')]).then(
+          ([{ WorkspacePanel }, markup]) =>
+            () => {
+              const root = mountPanel<HTMLDialogElement>(markup.default, 'workspace-panel');
+              workspacePanel = new WorkspacePanel(
+                root,
+                panelTrigger('workspace-open'),
+                workspaceStore,
+                () => currentWorkspaceID,
+                captureWorkspace,
+                saveWorkspace,
+                (workspace) => {
+                  if (composer.sending)
+                    throw new Error('Wait for the current send outcome before switching workspaces');
+                  const url = new URL(location.href);
+                  url.search = '';
+                  url.searchParams.set('workspace', workspace.id);
+                  url.searchParams.set('channel', workspace.channels.join(','));
+                  if (overlay) url.searchParams.set('overlay', '1');
+                  location.assign(url.href);
+                },
+                !!panePopout || ephemeralPopout,
+              );
+              return panelAdapter(
+                'workspace-panel',
+                'Workspaces',
+                'view',
+                root,
+                () => workspacePanel!.open(),
+                () => root.close(),
+                () => workspacePanel!.stop(),
+              );
+            },
+        ),
+    });
+    lazyPanels.register({
+      id: 'archive-search',
+      title: 'Search archive',
+      group: 'chat',
+      load: () =>
+        Promise.all([
+          import('./archive-ui'),
+          import('./history-import'),
+          import('./panel-templates/archive-search.html?raw'),
+        ]).then(([{ ArchiveSearch }, { HistoryFiles }, markup]) => () => {
+          const root = mountPanel<HTMLDialogElement>(markup.default, 'archive-search');
+          archiveSearch = new ArchiveSearch(
+            root,
+            panelTrigger('archive-open'),
+            archive,
+            channels,
+            (message) => {
+              void showArchived(message);
+            },
+            (message) => {
+              root.close();
+              void lazyPanels?.perform(
+                'bookmarks-panel',
+                () => {
+                  void bookmarksPanel?.capture(message);
+                },
+                false,
+              );
+            },
+            (message) => {
+              void lazyPanels?.perform('vod-context', () => vodContext?.show(message), false);
+            },
+          );
+          archiveSearch.setAccount(
+            accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+          );
+          const historyFiles = new HistoryFiles(
+            root,
+            () => channels[0]!,
+            () => store.messages,
+            async (messages) => {
+              for (let index = 0; index < messages.length; index += 500) {
+                for (const message of messages.slice(index, index + 500)) {
+                  archive.add(message);
+                  statsLedger.observe(message, message.timestamp);
+                }
+                await archive.flush();
+              }
+              store.restore(messages.filter((message) => channels.includes(message.channel)));
+              store.save();
+              statsLedger.save();
+              scheduleRender();
+            },
+            () => {
+              root.close();
+              void lazyPanels?.open('portable-logs');
+            },
+          );
+
+          return panelAdapter(
+            'archive-search',
+            'Search archive',
+            'chat',
+            root,
+            () => archiveSearch!.show(),
+            () => root.close(),
+            () => {
+              archiveSearch!.stop();
+              historyFiles.stop();
+            },
+          );
+        }),
+    });
+    lazyPanels.register({
+      id: 'user-inspector',
+      title: 'User context',
+      group: 'chat',
+      command: false,
+      restorable: false,
+      load: () =>
+        Promise.all([import('./inspector'), import('./panel-templates/user-inspector.html?raw')]).then(
+          ([{ UserInspector }, markup]) =>
+            () => {
+              const root = mountPanel<HTMLDialogElement>(markup.default, 'user-inspector');
+              inspector = new UserInspector(
+                root,
+                log,
+                viewMessages,
+                () => accountAuth,
+                (message) => {
+                  localTargets.reply(message);
+                  composer.selectReply(message);
+                },
+                (login) =>
+                  display.options.pn
+                    ? pronouns.get(login).then((label) => (display.options.pn ? label : undefined))
+                    : Promise.resolve(undefined),
+                (id, login) => noteEditor(id, login),
+                (message) => {
+                  void lazyPanels?.perform('moderation-workspace', () => moderationPanel?.show(message), false);
+                },
+              );
+              inspector.setAccount(accountAuth?.authenticated ? accountAuth.userID : undefined);
+              const commandAction = document.createElement('button');
+              commandAction.type = 'button';
+              commandAction.textContent = 'Custom message action';
+              commandAction.addEventListener('click', () => {
+                const selected = commandContext();
+                const context = {
+                  ...selected,
+                  channel: { ...selected.channel },
+                  message: selected.message ? { ...selected.message } : undefined,
+                };
+                void lazyPanels?.perform(
+                  'commands-panel',
+                  () => {
+                    commandPanel?.messageAction(context);
+                    root.close();
+                  },
+                  false,
+                );
+              });
+              root.append(commandAction);
+              return panelAdapter(
+                'user-inspector',
+                'User context',
+                'chat',
+                root,
+                () => {},
+                () => root.close(),
+                () => inspector!.stop(),
+              );
+            },
+        ),
+    });
+    lazyPanels.register({
+      id: 'display-panel',
+      title: 'Settings',
+      group: 'view',
+      load: () =>
+        Promise.all([import('./display-ui'), import('./panel-templates/display-panel.html?raw')]).then(
+          ([{ DisplaySettings }, markup]) =>
+            () => {
+              const root = mountPanel<HTMLDialogElement>(markup.default, 'display-panel');
+              const view = new DisplaySettings(root, panelTrigger('display-open'), display);
+              const displaySearch = document.createElement('input');
+              displaySearch.type = 'search';
+              displaySearch.placeholder = 'Search display settings';
+              displaySearch.setAttribute('aria-label', 'Search display settings');
+              element('display-panel', HTMLDialogElement).prepend(displaySearch);
+              displaySearch.addEventListener('input', () => {
+                for (const label of element('display-panel', HTMLDialogElement).querySelectorAll<HTMLLabelElement>(
+                  'label',
+                ))
+                  label.hidden = !label.textContent?.toLowerCase().includes(displaySearch.value.toLowerCase());
+              });
+
+              element('display-panel', HTMLDialogElement).addEventListener('change', (event) => {
+                if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked)
+                  void attention.permission();
+              });
+
+              element('alert-test', HTMLButtonElement).addEventListener('click', () => {
+                void attention.test().then((result) => {
+                  element('alert-test-status', HTMLElement).textContent = result;
+                });
+              });
+
+              return panelAdapter(
+                'display-panel',
+                'Settings',
+                'view',
+                root,
+                () => view.open(),
+                () => view.close(),
+                () => view.stop(),
+              );
+            },
+        ),
+    });
+    lazyPanels.register({
+      id: 'video-panel',
+      title: 'Video',
+      group: 'chat',
+      load: () =>
+        Promise.all([import('./video'), import('./panel-templates/video-panel.html?raw')]).then(
+          ([{ VideoPanel }, markup]) =>
+            () =>
+              passiveSettings.handoff('video', () => {
+                const root = mountPanel<HTMLElement>(markup.default, 'video-panel');
+                videoPanel = new VideoPanel(root, panelTrigger('video-open'), channels);
+
+                return panelAdapter(
+                  'video-panel',
+                  'Video',
+                  'chat',
+                  root,
+                  () => videoPanel!.open(),
+                  () => videoPanel!.close(),
+                  () => {
+                    videoPanel!.stop();
+                  },
+                );
+              }),
+        ),
+    });
+    lazyPanels.register({
+      id: 'stats-panel',
+      title: 'Stats',
+      group: 'chat',
+      load: () =>
+        Promise.all([import('./stats'), import('./panel-templates/stats-panel.html?raw')]).then(
+          ([{ StatsPanel }, markup]) =>
+            () =>
+              passiveSettings.handoff('stats', () => {
+                const root = mountPanel<HTMLDialogElement>(markup.default, 'stats-panel');
+                statsPanel = new StatsPanel(
+                  root,
+                  panelTrigger('stats-open'),
+                  element('rate', HTMLElement),
+                  () => store.messages,
+                  (channel) => metadata.get(channel)?.emotes ?? {},
+                  channels,
+                  rateTimeline.series,
+                  statsLedger,
+                  (channel) => metadata.get(channel)?.emoteUse ?? {},
+                  streamHistory,
+                  (channel) => metadata.get(channel)?.badges ?? {},
+                );
+
+                return panelAdapter(
+                  'stats-panel',
+                  'Stats',
+                  'chat',
+                  root,
+                  () => statsPanel!.open(),
+                  () => statsPanel!.close(),
+                  () => {
+                    statsPanel!.stop();
+                  },
+                );
+              }),
+        ),
+    });
+    lazyPanels.register({
+      id: 'emote-picker',
+      title: 'Emotes',
+      group: 'chat',
+      load: () =>
+        Promise.all([import('./picker'), import('./panel-templates/emote-picker.html?raw')]).then(
+          ([{ EmotePicker }, markup]) =>
+            () =>
+              passiveSettings.handoff('picker', () => {
+                const root = mountPanel<HTMLElement>(markup.default, 'emote-picker');
+                picker = new EmotePicker(
+                  root,
+                  panelTrigger('picker-open'),
+                  pickerModel,
+                  () => composer.target,
+                  () => composer.canInsert,
+                  (code) => composer.insert(code),
+                  (on) => {
+                    borrowedFreeze = on;
+                    document.documentElement.dataset.holdFreeze = String(on);
+                    visualRevision++;
+                    scheduleRender();
+                  },
+                  () => rateTimeline.series.observationGaps(),
+                );
+                pickerLighting = new PickerLighting(log, root);
+                return panelAdapter(
+                  'emote-picker',
+                  'Emotes',
+                  'chat',
+                  root,
+                  () => picker!.open(),
+                  () => picker!.close(),
+                  () => {
+                    picker!.stop();
+                    pickerLighting?.stop();
+                  },
+                );
+              }),
+        ),
+    });
+    lazyPanels.register({
+      id: 'resources-panel',
+      title: 'Help and resources',
+      group: 'help',
+      load: () =>
+        Promise.all([import('./resources'), import('./panel-templates/resources-panel.html?raw')]).then(
+          ([{ Resources }, markup]) =>
+            () =>
+              passiveSettings.handoff('resources', () => {
+                const root = mountPanel<HTMLElement>(markup.default, 'resources-panel');
+                resources = new Resources(root, panelTrigger('resources-open'), (name) => {
+                  const id = (
+                    {
+                      'display-open': 'display-panel',
+                      'stats-open': 'stats-panel',
+                      'archive-open': 'archive-search',
+                    } as Record<string, string>
+                  )[name];
+                  if (id) void lazyPanels?.open(id);
+                });
+
+                return panelAdapter(
+                  'resources-panel',
+                  'Help and resources',
+                  'help',
+                  root,
+                  () => resources!.open(),
+                  () => resources!.close(),
+                  () => {
+                    resources!.stop();
+                  },
+                );
+              }),
+        ),
+    });
+    lazyPanels.register({
+      id: 'shortcut-settings',
+      title: 'Shortcuts',
+      group: 'help',
+      load: () =>
+        import('./shortcuts-ui').then(
+          ({ ShortcutPanel }) =>
+            () =>
+              new ShortcutPanel(hotkeys),
+        ),
+    });
+    lazyPanels.register({
+      id: 'whisper-panel',
+      title: 'Whispers',
+      label: () => (whispers.unread ? 'Whispers (' + whispers.unread + ')' : 'Whispers'),
+      group: 'chat',
+      available: () => !!accountAuth?.authenticated,
+      load: () =>
+        Promise.all([import('./whispers-ui'), import('./panel-templates/whisper-panel.html?raw')]).then(
+          ([{ WhisperPanel }, markup]) =>
+            () => {
+              const root = mountPanel<HTMLElement>(markup.default, 'whisper-panel');
+              const view = new WhisperPanel(root, whispers, (login) => {
+                localTargets.whisper(login);
+                composer.prepareWhisper(login);
+              });
+              return panelAdapter(
+                'whisper-panel',
+                'Whispers',
+                'chat',
+                root,
+                () => view.open(),
+                () => view.close(),
+                () => view.stop(),
+              );
+            },
+        ),
+    });
+    lazyPanels.register({
+      id: 'image-uploads-panel',
+      title: 'Upload image',
+      group: 'chat',
+      available: () => uploadRuntime.enabled,
+      load: async () => {
+        await uploadRuntime.ready;
+        const { ImageUploads } = await import('./image-uploads');
+        return () => {
+          imageUploads = new ImageUploads(
+            () => ({ auth: accountAuth, channel: composer.target, canInsert: composer.canInsert }),
+            (url) => composer.insert(url),
+            !!panePopout || ephemeralPopout || overlay,
+            undefined,
+            uploadRuntime.config,
+          );
+          return imageUploads;
+        };
+      },
+    });
+    lazyPanels.register({
+      id: 'privacy-settings',
+      title: 'Privacy settings',
+      group: 'view',
+      load: () =>
+        import('./privacy-settings-ui').then(
+          ({ PrivacySettingsPanel }) =>
+            () =>
+              new PrivacySettingsPanel(privacyControls),
+        ),
+    });
+    lazyPanels.register({
+      id: 'account-profiles',
+      title: 'Accounts',
+      group: 'account',
+      load: stopAuth.loadAccountsPanel,
+    });
+    const openAccounts = (): void => {
+      void lazyPanels?.open('account-profiles');
+    };
+    document.addEventListener('open-account-profiles', openAccounts);
+    window.addEventListener('pagehide', () => document.removeEventListener('open-account-profiles', openAccounts));
+    lazyPanels.register({
+      id: 'vod-context',
+      title: 'VOD context',
+      group: 'chat',
+      command: false,
+      restorable: false,
+      load: () =>
+        import('./vod-context-ui').then(({ VodContextPanel }) => () => {
+          vodContext = new VodContextPanel((channel) => streamHistory.archives(channel));
+          vodContext.setAccount(
+            accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
+          );
+          return panelAdapter(
+            'vod-context',
+            'VOD context',
+            'chat',
+            vodContext.root,
+            () => {},
+            () => vodContext!.close(),
+            () => vodContext!.stop(),
+          );
+        }),
+    });
+    lazyPanels.register({
+      id: 'local-command-help',
+      title: 'Local command help',
+      group: 'help',
+      load: () => import('./local-help-ui').then(({ localHelpPanel }) => localHelpPanel),
     });
     lazyPanels.register({
       id: 'device-sync-panel',
@@ -2056,40 +2767,55 @@ export async function startMain(): Promise<void> {
               new CustomThemePanel(customThemeRuntime),
         ),
     });
-    shell.registry.register({
-      id: 'debug:resources',
-      label: 'Resource readout',
-      group: 'help',
-      keywords: 'debug performance timers heap long tasks',
-      available: () => !privacyEnabled(),
-      run: () => {
-        if (privacyEnabled() || pageStopped) return;
-        if (resourceReadout) {
-          resourceReadout.open();
-          return;
-        }
-        resourceReadoutLoading ??= import('./resource-readout')
-          .then(({ ResourceReadout }) => {
-            if (privacyEnabled() || pageStopped) return;
-            resourceReadout = new ResourceReadout(() => ({
-              mountedRows: log.querySelectorAll('[data-virtual-key]').length,
-              rowCache: rowsByMessage.size,
-              retainedMessages: store.messages.length,
-            }));
-            resourceReadout.open();
-          })
-          .catch(() => {
-            announcer.textContent = 'Resource readout could not load. Try again.';
-          })
-          .finally(() => {
-            resourceReadoutLoading = undefined;
-          });
+    passiveSettings.startup();
+    configureRail(display.options.split);
+    for (const command of [
+      {
+        id: 'view:theme',
+        label: 'Toggle light theme',
+        group: 'view' as const,
+        trigger: theme,
+        run: () => theme.click(),
       },
+      {
+        id: 'view:freeze',
+        label: 'Freeze emotes',
+        group: 'view' as const,
+        trigger: animation,
+        run: () => animation.click(),
+      },
+      { id: 'view:header', label: 'Cycle header', group: 'view' as const, run: () => display.minimize() },
+      { id: 'view:panes', label: 'Independent panes', group: 'view' as const, run: () => virtualLog.toggleLayout() },
+      {
+        id: 'chat:selection-search',
+        label: 'Search selected chat text',
+        group: 'chat' as const,
+        available: () => getLinkPreferences().searchEnabled && !privacyEnabled(),
+        run: () => linkTools.selection(),
+      },
+    ])
+      shell.registry.register(command);
+    restoreSavedThreads();
+    const privacyToolbar = document.getElementById('privacy-toolbar');
+    if (privacyToolbar) document.getElementById('topbar')?.append(privacyToolbar);
+    lazyPanels.register({
+      id: 'resource-readout',
+      title: 'Resource readout',
+      group: 'help',
+      keywords: 'debug memory timers long tasks',
+      load: () =>
+        import('./resource-readout').then(
+          ({ ResourceReadout }) =>
+            () =>
+              new ResourceReadout(() => ({
+                mountedRows: log.querySelectorAll('[data-virtual-key]').length,
+                rowCache: rowsByMessage.size,
+                retainedMessages: store.messages.length,
+              })),
+        ),
     });
   }
   window.addEventListener('pagehide', () => {
-    pageStopped = true;
-    resourceReadout?.stop();
     lazyPanels?.stop();
     shell?.stop();
   });

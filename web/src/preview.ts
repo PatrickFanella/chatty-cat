@@ -59,6 +59,19 @@ export function previewMode(): number {
   return [0, 1, 2, 3].includes(value) ? value : 2;
 }
 export class LinkPreview {
+  private rootValue: HTMLElement | undefined;
+  private rootFactory: (() => HTMLElement) | undefined;
+  private get root(): HTMLElement {
+    if (!this.rootValue) {
+      const root = this.rootFactory!();
+      this.rootValue = root;
+      root.addEventListener('pointerenter', this.hold);
+      root.addEventListener('pointerleave', this.leave);
+      root.addEventListener('click', this.closeClick);
+    }
+    return this.rootValue;
+  }
+
   private timer: ReturnType<typeof setTimeout> | undefined;
   private abort: AbortController | undefined;
   private anchor: HTMLElement | undefined;
@@ -66,15 +79,14 @@ export class LinkPreview {
   private generation = 0;
   constructor(
     private log: HTMLElement,
-    private root: HTMLElement,
+    root: HTMLElement | (() => HTMLElement),
   ) {
+    this.rootFactory = typeof root === 'function' ? root : () => root;
+    if (typeof root !== 'function') void this.root;
     log.addEventListener('pointerover', this.hover);
     log.addEventListener('pointerout', this.leave);
     log.addEventListener('focusin', this.hover);
     log.addEventListener('click', this.click);
-    root.addEventListener('pointerenter', this.hold);
-    root.addEventListener('pointerleave', this.leave);
-    root.addEventListener('click', this.closeClick);
     document.addEventListener('keydown', this.key);
     document.addEventListener('previewsettings', this.close);
     document.addEventListener('linkpreferenceschange', this.clearPolicy);
@@ -104,6 +116,7 @@ export class LinkPreview {
     }, 350);
   };
   private leave = (event: Event): void => {
+    if (!this.rootValue) return;
     if (
       event instanceof PointerEvent &&
       event.relatedTarget instanceof Node &&
@@ -290,9 +303,15 @@ export class LinkPreview {
     if (event.target instanceof Element && event.target.closest('[data-close-preview]')) this.close();
   };
   private key = (event: KeyboardEvent): void => {
-    if (!this.root.hidden && event.key === 'Escape') this.close();
+    if (this.rootValue && !this.rootValue.hidden && event.key === 'Escape') this.close();
   };
   private close = (): void => {
+    if (!this.rootValue) {
+      clearTimeout(this.timer);
+      this.abort?.abort();
+      this.generation++;
+      return;
+    }
     this.hold();
     this.generation++;
     this.abort?.abort();
@@ -307,9 +326,9 @@ export class LinkPreview {
     this.log.removeEventListener('pointerout', this.leave);
     this.log.removeEventListener('focusin', this.hover);
     this.log.removeEventListener('click', this.click);
-    this.root.removeEventListener('pointerenter', this.hold);
-    this.root.removeEventListener('pointerleave', this.leave);
-    this.root.removeEventListener('click', this.closeClick);
+    this.rootValue?.removeEventListener('pointerenter', this.hold);
+    this.rootValue?.removeEventListener('pointerleave', this.leave);
+    this.rootValue?.removeEventListener('click', this.closeClick);
     document.removeEventListener('keydown', this.key);
     document.removeEventListener('previewsettings', this.close);
     document.removeEventListener('linkpreferenceschange', this.clearPolicy);

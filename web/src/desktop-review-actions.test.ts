@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import { DesktopPlaybackPanel } from './desktop-companion-ui';
-import { HotkeyPanel } from './hotkeys-ui';
+import { HotkeyRuntime } from './hotkeys-runtime';
 import { defaultBindings, parseHotkeys } from './hotkeys';
 import { setProfileScope } from './account-profiles';
 import { resetPrivacyFallback, savePrivacy } from './privacy';
 const auth = { enabled: true, authenticated: true, loginURL: '/login', userID: '42', csrf: 'token' };
 let desktop: DesktopPlaybackPanel | undefined;
-let hotkeys: HotkeyPanel | undefined;
+let hotkeys: HotkeyRuntime | undefined;
 afterEach(() => {
   hotkeys?.stop();
   desktop?.stop();
@@ -61,14 +61,9 @@ it('keeps new bindings unbound in old snapshots and respects editable, modal and
   // Hotkey storage is resolved through the current account's profile key.
   const bindings = { ...defaultBindings(), 'desktop-overlay': 'Alt+Shift+KeyO' };
   importStorage(bindings);
-  hotkeys = new HotkeyPanel(
-    trigger,
-    editor,
-    (id) => {
-      if (id === 'desktop-overlay') desktop!.openReview('overlay');
-    },
-    () => [],
-  );
+  hotkeys = new HotkeyRuntime((id) => {
+    if (id === 'desktop-overlay') desktop!.openReview('overlay');
+  });
   const key = () =>
     new KeyboardEvent('keydown', { code: 'KeyO', altKey: true, shiftKey: true, bubbles: true, cancelable: true });
   const field = document.createElement('textarea');

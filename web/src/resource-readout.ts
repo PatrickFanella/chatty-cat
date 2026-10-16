@@ -1,3 +1,5 @@
+import type { Panel } from './shell/panels';
+import { showPanel } from './shell/open-panel';
 import { intervalSnapshot, resetIntervalSamples, sampleIntervals } from './resource-timers';
 
 interface LogMetrics {
@@ -5,7 +7,10 @@ interface LogMetrics {
   rowCache: number;
   retainedMessages: number;
 }
-export class ResourceReadout {
+export class ResourceReadout implements Panel {
+  readonly id = 'resource-readout';
+  readonly title = 'Resource readout';
+  readonly group = 'help';
   readonly root = document.createElement('dialog');
   private output = document.createElement('pre');
   private observer: PerformanceObserver | undefined;
@@ -46,7 +51,7 @@ export class ResourceReadout {
         }
       }
     }
-    if (!this.root.open) this.root.showModal();
+    if (!this.root.open) showPanel(this.root);
     this.refresh();
   }
   private consume(entries: readonly PerformanceEntry[]): void {
@@ -113,6 +118,9 @@ export class ResourceReadout {
     this.consume(this.observer?.takeRecords() ?? []);
     this.output.textContent = JSON.stringify(this.snapshot(), null, 2);
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.pause();
     document.removeEventListener('visibilitychange', this.visibility);
