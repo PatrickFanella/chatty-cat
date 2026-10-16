@@ -1,3 +1,4 @@
+import type { RateSnapshot } from './rate-timeline';
 import type { StatisticsMove } from './statistics-records';
 import type { ArchiveRetention, RetentionPlan } from './archive-retention';
 import type { ChatMessage } from './protocol';
@@ -6,6 +7,9 @@ import type { JournalEntry, JournalPlan, JournalPolicy, JournalState } from './m
 
 // Explicit operations only: no arbitrary method names, provider requests or automatic retries.
 export interface StorageOperations {
+  'rates.read': { args: [key: string]; result: unknown };
+  'rates.write': { args: [key: string, snapshot: RateSnapshot]; result: void };
+
   'statistics.read': { args: [key: string]; result: string | undefined };
   'statistics.write': { args: [key: string, raw: string]; result: void };
   'statistics.copy': { args: [plan: StatisticsMove]; result: void };
