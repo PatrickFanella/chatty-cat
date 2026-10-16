@@ -1,0 +1,115 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "bed565dce34cfa34f0d36520e3503bb709ab0567",
+  "presetCompatibility": {
+    "count": 18,
+    "serializedBytes": 3301,
+    "sha256": "ed3b822a52525db759fa2db735efd0c61de9267ed710fe3806df2ba0096a67d8",
+    "identicalToBase": true,
+    "shareMethodIdenticalToBase": true
+  },
+  "browser": {
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "selects": 26,
+    "bareNumericLabels": 0,
+    "root": true,
+    "examples": [
+      {
+        "field": "sub",
+        "selected": "num-left",
+        "labels": {
+          "right": "Full label on the right",
+          "num-right": "Number on the right",
+          "left": "Full label on the left",
+          "num-left": "Number on the left",
+          "hidden": "Hidden"
+        }
+      },
+      {
+        "field": "bauto",
+        "selected": "0",
+        "labels": {
+          "0": "Always visible",
+          "1": "Fade until hovered or focused",
+          "2": "Collapse until hovered or focused"
+        }
+      },
+      {
+        "field": "peek",
+        "selected": "2",
+        "labels": {
+          "0": "Off",
+          "1": "Text cards",
+          "2": "Cards with images and players",
+          "3": "Compact cards"
+        }
+      },
+      {
+        "field": "split",
+        "selected": "4",
+        "labels": {
+          "1": "One chat column",
+          "2": "Two chat columns",
+          "3": "Three columns (two in portrait)",
+          "4": "Chat + video, emotes and stats",
+          "5": "Chat + video and emotes",
+          "6": "Chat + emotes"
+        }
+      },
+      {
+        "field": "hpfs",
+        "selected": "-2",
+        "labels": {
+          "-3": "Three size steps smaller than chat",
+          "-2": "Two size steps smaller than chat",
+          "-1": "One size step smaller than chat",
+          "0": "Follow chat font size",
+          "7": "7 px",
+          "8": "8 px",
+          "9": "9 px",
+          "10": "10 px",
+          "11": "11 px",
+          "12": "12 px",
+          "13": "13 px",
+          "14": "14 px",
+          "15": "15 px",
+          "16": "16 px",
+          "17": "17 px",
+          "18": "18 px",
+          "19": "19 px",
+          "20": "20 px",
+          "21": "21 px",
+          "24": "24 px",
+          "28": "28 px",
+          "32": "32 px"
+        }
+      }
+    ],
+    "shareInteraction": {
+      "rawValues": {
+        "bauto": "2",
+        "sub": "num-right",
+        "hpfs": "-3"
+      },
+      "sharedValuesMatch": true,
+      "previousSelectionsRestored": true
+    }
+  },
+  "validation": {
+    "frontendTests": 855,
+    "testFiles": 184,
+    "productionBuild": true,
+    "formatting": true,
+    "diffCheck": true,
+    "mainGzipKB": 153.18,
+    "labelsAbsentFromMain": true
+  },
+  "limits": [
+    "Local browser check only; not deployed.",
+    "Existing large-main chunk warning remains.",
+    "Legacy header-mode values retain their current behavior; the workbench top bar is unchanged."
+  ]
+}

@@ -119,8 +119,46 @@ Rules:
 2. The default display is gray at shade 7, system sans at 14px/1.3, line style 4, zebra 2,
    timestamps 2. The gray brand palette is that default, so the header cat matches the
    first screen.
-3. The 19 presets in `display-data.ts` are retained verbatim. Adding a preset is a parity
+3. The 18 canonical presets in `display-data.ts` are retained verbatim. Adding a preset is a parity
    question, not a brand one.
+
+## Display option labels
+
+Settings shows readable option text while retaining the existing option values,
+order, storage and share-URL parameters. `display-data.ts` exports the per-field
+label map and formatter from `display-option-labels.ts`; the labels load with the
+Settings editor. Numeric measurements include units, and font keys display the
+font's proper name. Preset labels use spaces and an initial capital; their keys
+and definitions stay unchanged.
+
+| Field | Stored value → displayed meaning |
+| --- | --- |
+| Header mode (`min`) | `0` Full header; `1` Compact header; `2` Graph header |
+| Composer autohide (`bauto`) | `0` Always visible; `1` Fade until hovered or focused; `2` Collapse until hovered or focused |
+| Link and profile cards (`peek`) | `0` Off; `1` Text cards; `2` Cards with images and players; `3` Compact cards |
+| Columns and rail (`split`) | `1` One chat column; `2` Two chat columns; `3` Three columns (two in portrait); `4` Chat + video, emotes and stats; `5` Chat + video and emotes; `6` Chat + emotes |
+| Subscriber months (`sub`) | `right` / `left`: Full label on the right / left; `num-right` / `num-left`: Number on the right / left; `hidden`: Hidden |
+| Emote-only size (`eonly`) | `0` Enlarged emotes; `1` Enlarged emotes aligned right; `2` Normal emote size |
+| Hidden-user mode (`hideMode`) | `vanish` Remove the message; `stub` Show a hidden-message label; `ghost` Dim the message |
+| Separators (`lines`) | `0` Off; `1` Subtle (25%); `2` Medium (50%); `3` Strong (75%); `4` Full (100%) |
+| Zebra (`zebra`) | `0` Off; `1` Subtle (20%); `2` Light (40%); `3` Medium (60%); `4` Strong (80%) |
+| Timestamps (`times`) | `0` Hidden; `1` 24-hour · hours and minutes; `2` 24-hour · hours, minutes and seconds; `3` 12-hour · hours and minutes; `4` 12-hour · hours, minutes and seconds |
+| Text shadow (`shadow`) | `0` None; `1` Soft text-colored shadow; `2` Medium text-colored shadow; `3` Strong text-colored shadow; `4` Dark shadow; `5` Strong dark shadow |
+| Nick shimmer (`anim`) | `0` Off; `1` Slow; `2` Medium; `3` Fast |
+| Rainbow motion (`rbw`) | `0` Sweep; `1` Wave; `2` Hue rotation; `3` Pulse; `4` Flicker |
+| Font/resource link weight (`weight`, `lw`) | `300` Light; `400` Regular; `500` Medium; `600` Semibold; `700` Bold; labels also show the numeric weight |
+| Header font size (`hfs`) | `0` Follow chat font size; positive values use px |
+| Help font size (`hpfs`) | `0` Follow chat font size; `-1`, `-2`, `-3`: One, Two or Three size steps smaller than chat; positive values use px |
+| Other measurements | Size uses px; line height uses × font size; spacing uses em (`0`: Normal); scrollback uses rows |
+
+These labels describe retained display values; they do not add behavior. The
+workbench keeps its single compact top bar, so the legacy header-mode values do
+not change that shell. Rail presets apply in landscape and remain subject to
+the existing video and pane settings. Preview image/player permissions and
+reduced-motion preferences still take priority over their display modes.
+The shimmer speed also sets rainbow animation speed; its Off value stops both.
+Rainbow mode zero means Sweep, not Off. Help's negative sizes count positions in
+the font-size menu, rather than subtracting pixels.
 
 ## Typography
 

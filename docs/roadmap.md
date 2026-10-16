@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `3b87d3a` and the live Gitea issue inventory.
+Updated October 15, 2026 against main `bed565d` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 12 open
 issues: 10 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -164,13 +164,20 @@ The #135 implementation merged in PR #157 and #135 is closed. It shares visible 
 removes provider polling and exposes protocol deadlines separately. Local tests
 and controlled browser visibility checks pass; natural background throttling and
 production resource measurements remain unqualified. The entry is 152.48 kB gzip.
-See [scheduling evidence](visibility-aware-scheduling.md). Merged-main hosted CI
-was still pending at the last deployment readback.
+See [scheduling evidence](visibility-aware-scheduling.md). The deployment's
+merged-main CI subsequently passed after stranded tasks were retried; the missing
+original logs came from tasks with zero recorded log bytes.
 
-The #136 implementation pauses offscreen/hidden virtual rows and hidden picker
+The #136 implementation merged in PR #158. It pauses offscreen/hidden virtual rows and hidden picker
 images while preserving manual freeze, Hold+ and reader geometry. Local tests and
 controlled browser checks pass. External CPU/GPU qualification remains open; see
-[animation evidence](emote-animation.md). Pending review; next implementation is #131.
+[animation evidence](emote-animation.md). The issue remains open for qualification.
+
+The #131 implementation gives Display settings readable labels and measurement
+units, retaining all raw option values and the 18 canonical preset definitions.
+The share-URL serializer is unchanged. The design system records the mapping;
+local tests and a 1280×800 browser check pass. Pending review; next is #132, then
+#133. These settings-label changes are not deployed.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
