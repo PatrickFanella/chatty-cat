@@ -263,6 +263,11 @@ outcomes stay beside their controls. See [the six-panel layout checks](dense-pan
 | Target message | 1px accent outline on `--panel` |
 | Removed message | Strike-through at 50% opacity |
 
+Managed panels use a shared lower sheet at widths up to 700 px or in portrait.
+Open-panel tabs retain drafts and expose one panel at a time; chat stays above
+the sheet. Desktop placements return when the viewport widens to landscape.
+See [compact panel behavior and verification](compact-panels.md).
+
 ## Motion and accessibility
 
 - `prefers-reduced-motion: reduce` removes every animation, transition and smooth scroll,
@@ -272,8 +277,8 @@ outcomes stay beside their controls. See [the six-panel layout checks](dense-pan
   mentions and status. Panels are dialogs with labels; handles are keyboard movable.
 - Contrast is the user's responsibility within the palette axes; the contrast variant
   widens the gap for any colour. Defaults and brand roles meet 4.5:1 for text.
-- Composer and picker remain usable at 600px and below, where the picker fills to 500px
-  tall and the gutters narrow.
+- Compact shell panels share at most 48% of the workbench height; chat and its
+  composer retain the full viewport width above them.
 
 ## Do and do not
 

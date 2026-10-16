@@ -1,0 +1,931 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "e4fc71ddb9b6360f29bc8377d73d753ac3fdbe45",
+  "layoutMeasurementBuild": "assets/main-2Q2_c2Os.js",
+  "portraitMeasurementBuild": "assets/main-DYXTXEup.js",
+  "finalBehaviorBuild": "assets/main-BA0oAvlY.js",
+  "measurementNote": "Geometry was measured before the final focus-following and privacy-tab styling adjustments. Native keyboard, touch-event and viewport round-trip checks were repeated on finalBehaviorBuild.",
+  "signedOut": [
+    {
+      "viewport": [
+        600,
+        800
+      ],
+      "results": [
+        {
+          "name": "Presentation",
+          "panel": "presentation-panel",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        },
+        {
+          "name": "Provider and badge preferences",
+          "panel": "provider-preferences-panel",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        },
+        {
+          "name": "Public message context",
+          "panel": "chat-context-panel",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        },
+        {
+          "name": "Device sync",
+          "panel": "device-sync-panel",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        },
+        {
+          "name": "Search archive",
+          "panel": "archive-search",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        },
+        {
+          "name": "Emotes",
+          "panel": "emote-picker",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        },
+        {
+          "name": "Video",
+          "panel": "video-panel",
+          "sheet": {
+            "x": 0,
+            "y": 405.1015625,
+            "width": 600,
+            "height": 338.8515625,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 600,
+            "height": 254.6640625,
+            "bottom": 358.40625,
+            "client": 600,
+            "scroll": 600
+          },
+          "body": {
+            "x": 0,
+            "y": 447.6953125,
+            "width": 600,
+            "height": 296.2578125,
+            "bottom": 743.953125,
+            "client": 600,
+            "scroll": 600
+          },
+          "modal": 0
+        }
+      ]
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "results": [
+        {
+          "name": "Presentation",
+          "panel": "presentation-panel",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        },
+        {
+          "name": "Provider and badge preferences",
+          "panel": "provider-preferences-panel",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        },
+        {
+          "name": "Public message context",
+          "panel": "chat-context-panel",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        },
+        {
+          "name": "Device sync",
+          "panel": "device-sync-panel",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        },
+        {
+          "name": "Search archive",
+          "panel": "archive-search",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        },
+        {
+          "name": "Emotes",
+          "panel": "emote-picker",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        },
+        {
+          "name": "Video",
+          "panel": "video-panel",
+          "sheet": {
+            "x": 0,
+            "y": 427.9765625,
+            "width": 390,
+            "height": 359.9765625,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 390,
+            "height": 277.5390625,
+            "bottom": 381.28125,
+            "client": 390,
+            "scroll": 390
+          },
+          "body": {
+            "x": 0,
+            "y": 470.5703125,
+            "width": 390,
+            "height": 317.3828125,
+            "bottom": 787.953125,
+            "client": 390,
+            "scroll": 390
+          },
+          "modal": 0
+        }
+      ]
+    },
+    {
+      "viewport": [
+        800,
+        1000
+      ],
+      "results": [
+        {
+          "name": "Presentation",
+          "panel": "presentation-panel",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        },
+        {
+          "name": "Provider and badge preferences",
+          "panel": "provider-preferences-panel",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        },
+        {
+          "name": "Public message context",
+          "panel": "chat-context-panel",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        },
+        {
+          "name": "Device sync",
+          "panel": "device-sync-panel",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        },
+        {
+          "name": "Search archive",
+          "panel": "archive-search",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        },
+        {
+          "name": "Emotes",
+          "panel": "emote-picker",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        },
+        {
+          "name": "Video",
+          "panel": "video-panel",
+          "sheet": {
+            "x": 0,
+            "y": 511.984375,
+            "width": 800,
+            "height": 437.515625,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "chat": {
+            "x": 0,
+            "y": 103.7421875,
+            "width": 800,
+            "height": 361.546875,
+            "bottom": 465.2890625,
+            "client": 800,
+            "scroll": 800
+          },
+          "body": {
+            "x": 0,
+            "y": 554.578125,
+            "width": 800,
+            "height": 394.921875,
+            "bottom": 949.5,
+            "client": 800,
+            "scroll": 800
+          },
+          "modal": 0
+        }
+      ]
+    }
+  ],
+  "syntheticAuthenticated": [
+    {
+      "viewport": [
+        600,
+        800
+      ],
+      "results": [
+        {
+          "name": "Whispers",
+          "panel": "whisper-panel",
+          "box": {
+            "x": 0,
+            "y": 450.578125,
+            "width": 600,
+            "height": 298.921875,
+            "top": 450.578125,
+            "right": 600,
+            "bottom": 749.5,
+            "left": 0
+          },
+          "root": {
+            "x": 0,
+            "y": 450.578125,
+            "width": 600,
+            "height": 298.921875,
+            "top": 450.578125,
+            "right": 600,
+            "bottom": 749.5,
+            "left": 0
+          },
+          "client": 600,
+          "scroll": 600
+        },
+        {
+          "name": "Moderation",
+          "panel": "moderation-workspace",
+          "box": {
+            "x": 0,
+            "y": 450.578125,
+            "width": 600,
+            "height": 298.921875,
+            "top": 450.578125,
+            "right": 600,
+            "bottom": 749.5,
+            "left": 0
+          },
+          "root": {
+            "x": 0,
+            "y": 450.578125,
+            "width": 600,
+            "height": 298.921875,
+            "top": 450.578125,
+            "right": 600,
+            "bottom": 749.5,
+            "left": 0
+          },
+          "client": 600,
+          "scroll": 600
+        }
+      ],
+      "fixture": {
+        "mode": "confirmed",
+        "targetLookups": 0,
+        "writes": 0
+      }
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "results": [
+        {
+          "name": "Whispers",
+          "panel": "whisper-panel",
+          "box": {
+            "x": 0,
+            "y": 473.4609375,
+            "width": 390,
+            "height": 320.0390625,
+            "top": 473.4609375,
+            "right": 390,
+            "bottom": 793.5,
+            "left": 0
+          },
+          "root": {
+            "x": 0,
+            "y": 473.4609375,
+            "width": 390,
+            "height": 320.0390625,
+            "top": 473.4609375,
+            "right": 390,
+            "bottom": 793.5,
+            "left": 0
+          },
+          "client": 390,
+          "scroll": 390
+        },
+        {
+          "name": "Moderation",
+          "panel": "moderation-workspace",
+          "box": {
+            "x": 0,
+            "y": 473.4609375,
+            "width": 390,
+            "height": 320.0390625,
+            "top": 473.4609375,
+            "right": 390,
+            "bottom": 793.5,
+            "left": 0
+          },
+          "root": {
+            "x": 0,
+            "y": 473.4609375,
+            "width": 390,
+            "height": 320.0390625,
+            "top": 473.4609375,
+            "right": 390,
+            "bottom": 793.5,
+            "left": 0
+          },
+          "client": 390,
+          "scroll": 390
+        }
+      ],
+      "fixture": {
+        "mode": "confirmed",
+        "targetLookups": 0,
+        "writes": 0
+      }
+    }
+  ],
+  "keyboard": {
+    "home": {
+      "selected": "Emotes",
+      "focus": "wb-tab-emote-picker"
+    },
+    "end": {
+      "selected": "Presentation",
+      "focus": "wb-tab-presentation-panel",
+      "draft": "7",
+      "pickerHidden": true
+    },
+    "escape": {
+      "selected": "Emotes",
+      "presentationOpen": false,
+      "pickerOpen": true
+    }
+  },
+  "touch": {
+    "pointerType": "touch",
+    "syntheticEvents": true,
+    "placement": "sheet",
+    "bottom": true,
+    "box": {
+      "x": 0,
+      "y": 473.4609375,
+      "width": 390,
+      "height": 320.0390625,
+      "top": 473.4609375,
+      "right": 390,
+      "bottom": 793.5,
+      "left": 0
+    },
+    "touchAction": "none"
+  },
+  "roundTrip": {
+    "compact": {
+      "selected": "Presentation",
+      "box": {
+        "x": 0,
+        "y": 473.4609375,
+        "width": 390,
+        "height": 320.0390625,
+        "top": 473.4609375,
+        "right": 390,
+        "bottom": 793.5,
+        "left": 0
+      },
+      "floating": {
+        "width": 374,
+        "height": 480,
+        "left": 8,
+        "top": 60
+      },
+      "draft": "7"
+    },
+    "desktop": {
+      "box": {
+        "x": 8,
+        "y": 60,
+        "width": 374,
+        "height": 480,
+        "top": 60,
+        "right": 382,
+        "bottom": 540,
+        "left": 8
+      },
+      "floating": {
+        "width": 374,
+        "height": 480,
+        "left": 8,
+        "top": 60
+      },
+      "draft": "7"
+    }
+  },
+  "validation": {
+    "fullFrontendTests": 860,
+    "testFiles": 185,
+    "finalFocusedTests": 30,
+    "strictTypeScript": true,
+    "productionBuild": true,
+    "formatting": true,
+    "mainGzipKB": 153.84
+  },
+  "limits": [
+    "CSS viewports in a desktop Chromium browser; no physical touch device, virtual keyboard or iOS Safari qualification.",
+    "Touch drag uses synthetic PointerEvents with pointerType touch; native keyboard input uses T3 preview_press.",
+    "Whispers uses synthetic identity with incoming whispers disabled; no live private message delivery or provider writes.",
+    "Video panel layout checked without an embedded live player.",
+    "Geometry checks cover seven signed-out panels plus synthetic authenticated whispers and moderation, not every content state of all 40 panels.",
+    "Desktop restoration covers viewport changes in the same session; persisted-layout parsing retains its existing viewport clamping behavior on reload.",
+    "No production deployment."
+  ]
+}

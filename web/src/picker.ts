@@ -514,7 +514,8 @@ export class EmotePicker {
     this.trigger.focus();
   }
   private key = (event: KeyboardEvent): void => {
-    if (!this.root.hidden && !event.isComposing && event.key === 'Escape') {
+    const wrapper = this.root.closest<HTMLElement>('.wb-panel');
+    if (!this.root.hidden && !wrapper?.hidden && !event.isComposing && event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
       this.close();
