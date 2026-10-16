@@ -1,4 +1,5 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
+import { ownedDeadline, clearOwnedDeadline } from './resource-timers';
 import { loadAuth, type AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -49,8 +50,9 @@ export class ProviderActivity {
   private abort = new AbortController();
   private pending: Reviewed | undefined;
   private active: Reviewed | undefined;
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof clockTask> | undefined;
   private nextAt = 0;
+  private background: ReturnType<typeof setTimeout> | undefined;
   private busy = false;
   private attempts = new Map<string, number>();
   private disposed = false;
@@ -64,6 +66,7 @@ export class ProviderActivity {
     private status: (detail: string) => void,
   ) {
     document.addEventListener('privacychange', this.privacy);
+    document.addEventListener('visibilitychange', this.scheduleBackground);
   }
   private context(): { key: string; auth: AuthStatus; context: Context; providers: LiveProvider[] } {
     const auth = this.auth(),
@@ -179,7 +182,7 @@ export class ProviderActivity {
     this.pending = undefined;
     this.active = row;
     this.busy = true;
-    this.timer = ownedInterval('provider.activity', this.tick, 1000);
+    this.timer = clockTask('provider.activity', this.tick, 1000);
     try {
       await this.send(row, generation);
       this.check(row, generation);
@@ -195,7 +198,10 @@ export class ProviderActivity {
       if (generation === this.generation) this.cancel();
       throw error;
     } finally {
-      if (generation === this.generation) this.busy = false;
+      if (generation === this.generation) {
+        this.busy = false;
+        this.scheduleBackground();
+      }
     }
   }
   private async send(row: Reviewed, generation: number): Promise<void> {
@@ -228,6 +234,21 @@ export class ProviderActivity {
       }
     }
   }
+  // A reviewed Keep activity running session retains its protocol deadline
+  // while hidden, without a one-second background poll.
+  private scheduleBackground = (): void => {
+    clearOwnedDeadline(this.background);
+    this.background = undefined;
+    if (!document.hidden || !this.active || this.busy) return;
+    this.background = ownedDeadline(
+      'provider.reviewed-activity',
+      () => {
+        this.background = undefined;
+        this.tick();
+      },
+      Math.max(1, this.nextAt - Date.now()),
+    );
+  };
   private tick = (): void => {
     const row = this.active;
     if (!row) return;
@@ -254,14 +275,19 @@ export class ProviderActivity {
         }
       })
       .finally(() => {
-        if (generation === this.generation) this.busy = false;
+        if (generation === this.generation) {
+          this.busy = false;
+          this.scheduleBackground();
+        }
       });
   };
   cancel(): void {
     this.generation++;
     this.abort.abort();
     this.abort = new AbortController();
-    clearOwnedInterval(this.timer);
+    clearOwnedDeadline(this.background);
+    this.background = undefined;
+    stopClockTask(this.timer);
     this.timer = undefined;
     this.pending = undefined;
     this.active = undefined;
@@ -286,5 +312,6 @@ export class ProviderActivity {
     this.cancel();
     this.disposed = true;
     document.removeEventListener('privacychange', this.privacy);
+    document.removeEventListener('visibilitychange', this.scheduleBackground);
   }
 }

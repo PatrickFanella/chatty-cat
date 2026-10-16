@@ -1,4 +1,4 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import {
   readRetention,
   parseRetention,
@@ -87,7 +87,7 @@ export class MessageArchive {
   private queue: ChatMessage[] = [];
   private flushing: Promise<void> | undefined;
   private stopped = false;
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof clockTask>;
   constructor(
     private readonly failure: (message: string) => void = () => {},
     private readonly cap = MAX_ROWS,
@@ -111,12 +111,13 @@ export class MessageArchive {
       open.onblocked = () => failure('Archive upgrade is blocked by another tab; close it and reload');
     });
     void this.db.catch(() => failure('Local archive unavailable; live chat continues'));
-    this.timer = ownedInterval(
+    this.timer = clockTask(
       'storage.archive',
       () => {
         void this.flush().catch(() => failure('Archive could not save messages; live chat continues'));
       },
       3000,
+      { pool: 'storage', flushOnHide: true },
     );
   }
   add(message: ChatMessage): void {
@@ -521,7 +522,7 @@ export class MessageArchive {
   }
   stop(): void {
     this.stopped = true;
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     void this.flush()
       .then(async () => (await this.db).close())
       .catch(() => {});

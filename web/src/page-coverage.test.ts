@@ -88,3 +88,20 @@ it('stops heartbeats for closed sources and records their unobserved interval on
   expect(add).toHaveBeenCalledOnce();
   expect(add.mock.calls[0]?.[0]).toMatchObject({ channel: 'two', tags: { 'gap-start': closed } });
 });
+
+it('flushes observation once on hiding and stops storage wakeups until visible again', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(1000);
+  let hidden = false;
+  vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  coverage = new PageCoverage(['one'], vi.fn());
+  vi.setSystemTime(2500);
+  hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(localStorage.getItem('chatthing:v1:observed:one')).toBe('2500');
+  vi.advanceTimersByTime(60000);
+  expect(localStorage.getItem('chatthing:v1:observed:one')).toBe('2500');
+  hidden = false;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(localStorage.getItem('chatthing:v1:observed:one')).toBe('62500');
+});

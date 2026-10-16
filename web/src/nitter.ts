@@ -1,4 +1,4 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask, refreshClock } from './shell/clock';
 export function mirrorHost(value: unknown): string {
   if (
     typeof value !== 'string' ||
@@ -39,16 +39,17 @@ export function twitterMirror(
 }
 export class NitterLinks {
   private abort = new AbortController();
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof clockTask>;
   private started = false;
   constructor(private log: HTMLElement) {
     log.addEventListener('virtualpaint', this.scan);
-    this.timer = ownedInterval(
+    this.timer = clockTask(
       'links.mirror',
       () => {
         if (this.started && !document.hidden) void this.poll();
       },
       900000,
+      { active: () => this.started && !this.abort.signal.aborted },
     );
     this.scan();
   }
@@ -67,6 +68,7 @@ export class NitterLinks {
     }
     if (needed && !this.started) {
       this.started = true;
+      refreshClock();
       void this.poll();
     }
   };
@@ -90,7 +92,7 @@ export class NitterLinks {
   }
   stop(): void {
     this.abort.abort();
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     this.log.removeEventListener('virtualpaint', this.scan);
   }
 }

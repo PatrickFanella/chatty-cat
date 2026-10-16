@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
+import { intervalSnapshot, deadlineSnapshot } from './resource-timers';
 import { ProviderActivity } from './provider-activity';
 import { providerDefaults, setProviderPreferences } from './provider-preferences';
 import { setProfileScope } from './account-profiles';
@@ -17,6 +18,7 @@ afterEach(() => {
   activity?.dispose();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   setProfileScope('anonymous');
   setProviderPreferences(providerDefaults());
   localStorage.clear();
@@ -179,4 +181,26 @@ it('aborts a pending write on privacy and never arms from its late response', as
   finish(new Response(null, { status: 204 }));
   await expect(start).rejects.toThrow();
   expect(activity!.running).toBe(false);
+});
+
+it('keeps a reviewed hidden session on its send deadline without a repeating background poll', async () => {
+  const { bttv } = setup();
+  let hidden = false;
+  vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  await activity!.review();
+  await activity!.start();
+  expect(bttv).toHaveBeenCalledOnce();
+  hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(intervalSnapshot()).toEqual([]);
+  expect(deadlineSnapshot()).toEqual([{ owner: 'provider.reviewed-activity', dueInMs: 300000 }]);
+  await vi.advanceTimersByTimeAsync(299999);
+  expect(bttv).toHaveBeenCalledOnce();
+  await vi.advanceTimersByTimeAsync(1);
+  expect(bttv).toHaveBeenCalledTimes(2);
+  expect(intervalSnapshot()).toEqual([]);
+  activity!.cancel();
+  expect(deadlineSnapshot()).toEqual([]);
+  await vi.advanceTimersByTimeAsync(600000);
+  expect(bttv).toHaveBeenCalledTimes(2);
 });

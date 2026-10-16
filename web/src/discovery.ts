@@ -1,6 +1,6 @@
 import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import type { AuthStatus } from './auth';
 import { privacyEnabled } from './privacy';
 import { parseDiscovery, type DiscoveryKind, type DiscoveryPage } from './discovery-model';
@@ -28,7 +28,7 @@ export class DiscoveryPanel implements Panel {
   private status = document.createElement('p');
   private age = document.createElement('p');
   private consent = document.createElement('a');
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof clockTask> | undefined;
   constructor(
     private channels: readonly string[],
     private join: (login: string) => void,
@@ -132,10 +132,10 @@ export class DiscoveryPanel implements Panel {
     if (privacyEnabled()) return;
     this.paintState();
     showPanel(this.root);
-    this.timer ??= ownedInterval('discovery.paint', () => this.paintState(), 1000);
+    this.timer ??= clockTask('discovery.paint', () => this.paintState(), 1000, { active: () => this.root.open });
   };
   private closed = (): void => {
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     this.timer = undefined;
     this.generation++;
     this.abort?.abort();
@@ -280,7 +280,7 @@ export class DiscoveryPanel implements Panel {
   stop(): void {
     this.stopped = true;
     this.reset();
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.privacy);
     this.root.remove();

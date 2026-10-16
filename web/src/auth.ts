@@ -1,4 +1,4 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import type { AccountControls } from './account-profiles-ui';
 import { AccountProfiles } from './account-profiles';
 import type { Panel } from './shell/panels';
@@ -254,7 +254,7 @@ export function mountAuth(
     history.replaceState(null, '', url);
   }
   void update();
-  const timer = ownedInterval(
+  const timer = clockTask(
     'auth.refresh',
     () => {
       if (!changing) void update();
@@ -265,7 +265,7 @@ export function mountAuth(
     disposed = true;
     accounts?.stop();
     controller.abort();
-    clearOwnedInterval(timer);
+    stopClockTask(timer);
     sync?.removeEventListener('message', reload);
     sync?.close();
     button.removeEventListener('click', click);

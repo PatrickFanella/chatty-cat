@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `97699d1` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 14 open
-issues: 12 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 15, 2026 against main `8b09e7e` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 13 open
+issues: 11 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has nine open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has eight open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -156,13 +156,16 @@ and the palette construct on intent. Header mirroring, global dialog patching an
 body-wide discovery are removed. Merged-main CI passed. See the
 [panel inventory and local evidence](panel-lifecycle-migration.md).
 
-The #139 implementation moves emoji metadata and resource tables to immutable
-JSON while preserving startup emoji recognition and saved style behavior. The
-local main entry is 151.21 kB gzip, below the 180 kB target. First-use, retry,
-classic-to-module worker upgrade and app-origin-unavailable data loading passed
-locally. Full precache bytes increased; this is reduced startup parsing, not a
-smaller installed download. See [data-loading measurements](reference-data-loading.md).
-The change is pending review/merge. Next is #135, then #136.
+The #139 data split merged in PR #156 and #139 is closed. Merged-main CI passed.
+The main entry is 151.21 kB gzip; full precache bytes increased while startup
+JavaScript parsing decreased. See [data-loading measurements](reference-data-loading.md).
+
+The #135 implementation shares visible UI/storage clocks, flushes once at hide,
+removes provider polling and exposes protocol deadlines separately. Local tests
+and controlled browser visibility checks pass; natural background throttling and
+production resource measurements remain unqualified. The entry is 152.48 kB gzip.
+See [scheduling evidence](visibility-aware-scheduling.md). Pending review/merge;
+next is #136, then #131.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

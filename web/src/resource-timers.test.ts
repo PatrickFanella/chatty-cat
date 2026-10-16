@@ -1,6 +1,9 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import {
+  ownedDeadline,
+  clearOwnedDeadline,
+  deadlineSnapshot,
   clearOwnedInterval,
   intervalSnapshot,
   ownedInterval,
@@ -37,4 +40,18 @@ it('preserves cadence, counts hidden callbacks only while sampling and removes s
   vi.advanceTimersByTime(100);
   expect(callback).toHaveBeenCalledTimes(5);
   expect(intervalSnapshot()).toEqual([]);
+});
+
+it('reports protocol deadlines separately and removes fired or cancelled deadlines', () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(0);
+  const callback = vi.fn();
+  ownedDeadline('protocol', callback, 25000);
+  const cancelled = ownedDeadline('cancelled', callback, 1000);
+  clearOwnedDeadline(cancelled);
+  expect(deadlineSnapshot()).toEqual([{ owner: 'protocol', dueInMs: 25000 }]);
+  expect(intervalSnapshot()).toEqual([]);
+  vi.advanceTimersByTime(25000);
+  expect(callback).toHaveBeenCalledOnce();
+  expect(deadlineSnapshot()).toEqual([]);
 });
