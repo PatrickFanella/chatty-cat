@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { LazyPanels, type Panel, type PanelWorkbench } from './panels';
 import { CommandRegistry } from './registry';
 import { Workbench } from './workbench';
+import { showPanel } from './open-panel';
 import { dock, emptyLayout, setClosed } from './layout';
 
 let panels: LazyPanels | undefined;
@@ -41,7 +42,7 @@ function setup(restored = false) {
       title: 'Fixture',
       group: 'tools',
       root,
-      open: vi.fn(() => root.showModal()),
+      open: vi.fn(() => showPanel(root)),
       close: vi.fn(() => root.close()),
       stop: vi.fn(() => root.remove()),
     };
@@ -80,7 +81,7 @@ it('registers a command without importing or constructing and coalesces first-op
   expect(f.load).toHaveBeenCalledTimes(1);
   expect(f.create).toHaveBeenCalledTimes(1);
   const instance = f.create.mock.results[0]!.value;
-  expect(f.workbench.adopt).toHaveBeenCalledWith(instance.root);
+  expect(f.workbench.adopt).toHaveBeenCalledWith(instance.root, expect.any(Function));
   panels!.close('fixture-panel');
   expect(instance.root.open).toBe(false);
   f.registry.get('panel:fixture-panel')!.run();
@@ -168,7 +169,7 @@ it('reacts to portable workbench restoration without constructing a saved closed
       title: 'Restored',
       group: 'tools',
       root,
-      open: () => root.showModal(),
+      open: () => showPanel(root),
       close: () => root.close(),
       stop: () => root.remove(),
     };
@@ -196,4 +197,66 @@ it('reacts to portable workbench restoration without constructing a saved closed
     workbench.stop();
     localStorage.clear();
   }
+});
+
+it('constructs contextual helpers without opening them and still honors a concurrent activation', async () => {
+  const f = setup();
+  f.register();
+  const action = vi.fn();
+  await panels!.perform('fixture-panel', action, false);
+  const instance = f.create.mock.results[0]!.value;
+  expect(instance.open).not.toHaveBeenCalled();
+  expect(action).toHaveBeenCalledOnce();
+  await panels!.open('fixture-panel');
+  expect(instance.open).toHaveBeenCalledOnce();
+});
+it('coalesces a contextual load with an explicit open', async () => {
+  const f = setup();
+  f.register();
+  const context = panels!.perform('fixture-panel', vi.fn(), false);
+  const manual = panels!.open('fixture-panel');
+  await Promise.all([context, manual]);
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(f.create.mock.results[0]!.value.open).toHaveBeenCalledOnce();
+});
+it('moves an open dialog without firing its feature close handler or patching dialog prototypes', async () => {
+  localStorage.clear();
+  document.body.innerHTML = '<main id="log"></main>';
+  const original = HTMLDialogElement.prototype.showModal;
+  const wb = new Workbench({ titleFor: (root) => root.id, exclude: () => false, centre: 'main#log' });
+  const root = document.createElement('dialog');
+  root.id = 'live-panel';
+  document.body.append(root);
+  const featureClose = vi.fn();
+  root.addEventListener('close', featureClose);
+  const close = vi.fn(() => root.close());
+  wb.adopt(root, close);
+  showPanel(root);
+  // happy-dom does not implement :modal; emulate that one platform state.
+  const matches = root.matches.bind(root);
+  vi.spyOn(root, 'matches').mockImplementation((selector) => (selector === ':modal' ? root.open : matches(selector)));
+  document.dispatchEvent(
+    new CustomEvent('restore-settings', { detail: { workbench: dock(emptyLayout(), root.id, 'left') } }),
+  );
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(root.open).toBe(true);
+  expect(featureClose).not.toHaveBeenCalled();
+  expect(HTMLDialogElement.prototype.showModal).toBe(original);
+  root.querySelector<HTMLButtonElement>('.wb-close')!.click();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(close).toHaveBeenCalledOnce();
+  expect(featureClose).toHaveBeenCalledOnce();
+  wb.stop();
+  localStorage.clear();
+});
+
+it('cancels a pending contextual callback when the panel is explicitly closed', async () => {
+  const f = setup();
+  f.register();
+  await panels!.open('fixture-panel');
+  const action = vi.fn();
+  const pending = panels!.perform('fixture-panel', action, false);
+  panels!.close('fixture-panel');
+  await pending;
+  expect(action).not.toHaveBeenCalled();
 });

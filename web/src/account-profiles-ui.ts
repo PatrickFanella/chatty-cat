@@ -1,25 +1,24 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { AccountProfiles } from './account-profiles';
 import type { AuthStatus } from './auth';
 import { privacyEnabled } from './privacy';
-export class AccountControls {
+export class AccountControls implements Panel {
+  readonly id = 'account-profiles';
+  readonly title = 'Accounts';
+  readonly group = 'account';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private list = document.createElement('div');
   private status = document.createElement('p');
   private auth: AuthStatus | undefined;
   private busy = false;
   private disposed = false;
   constructor(
-    anchor: HTMLElement,
+    _anchor: HTMLElement,
     private change: (target: string | undefined) => Promise<void>,
   ) {
     this.root.id = 'account-profiles';
     this.root.setAttribute('aria-label', 'Account profiles');
-    this.trigger.id = 'account-profiles-open';
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Accounts';
-    anchor.after(this.trigger);
-    this.trigger.addEventListener('click', this.show);
     const title = document.createElement('h2');
     title.textContent = 'Account profiles';
     const help = document.createElement('p');
@@ -36,7 +35,6 @@ export class AccountControls {
     );
     document.body.append(this.root);
     document.addEventListener('privacychange', this.privacy);
-    document.addEventListener('open-account-profiles', this.show);
   }
   private button(label: string, action: () => void): HTMLButtonElement {
     const button = document.createElement('button');
@@ -60,11 +58,11 @@ export class AccountControls {
     }
     if (this.root.open) this.paint();
   }
-  private show = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.status.textContent = '';
     this.paint();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private paint(): void {
     this.list.replaceChildren();
@@ -127,12 +125,12 @@ export class AccountControls {
       if (this.root.open) this.root.close();
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.disposed = true;
     document.removeEventListener('privacychange', this.privacy);
-    document.removeEventListener('open-account-profiles', this.show);
-    this.trigger.removeEventListener('click', this.show);
     this.root.remove();
-    this.trigger.remove();
   }
 }

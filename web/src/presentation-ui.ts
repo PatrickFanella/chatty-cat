@@ -1,22 +1,14 @@
-import { overlayAppearance, overlayAppearanceStyles } from './overlay-appearance';
-import { profileKey } from './account-profiles';
-import {
-  parsePresentation,
-  setPresentation,
-  presentationDefaults,
-  presentationFields,
-  type PresentationOptions,
-} from './presentation';
-import { registerSettings } from './settings-bundle';
+import { showPanel } from './shell/open-panel';
+import { parsePresentation, presentationDefaults, presentationFields, type PresentationOptions } from './presentation';
+import type { PresentationRuntime } from './presentation-runtime';
+import type { Panel } from './shell/panels';
 import { privacyEnabled } from './privacy';
-export class PresentationPanel {
+export class PresentationPanel implements Panel {
+  readonly id = 'presentation-panel';
+  readonly title = 'Presentation';
+  readonly group = 'view';
   readonly root = document.createElement('dialog');
-  readonly trigger = document.createElement('button');
-  options = { ...presentationDefaults };
-  private saved = { ...presentationDefaults };
-  private raw: string | null = null;
-  private stopSettings: () => void;
-  constructor(private changed: () => void) {
+  constructor(private runtime: PresentationRuntime) {
     this.root.id = 'presentation-panel';
     this.root.setAttribute('aria-label', 'Presentation settings');
     const heading = document.createElement('h2');
@@ -69,13 +61,17 @@ export class PresentationPanel {
       [
         'Preview',
         () => {
-          this.options = this.read();
-          this.apply();
-          this.changed();
+          this.runtime.preview(this.read());
           this.status('Temporary preview; Apply to save');
         },
       ],
-      ['Apply', () => this.persist(this.read())],
+      [
+        'Apply',
+        () => {
+          this.runtime.persist(this.read());
+          this.status('Presentation saved');
+        },
+      ],
       ['Cancel', () => this.root.close()],
       [
         'Reset to defaults',
@@ -101,31 +97,15 @@ export class PresentationPanel {
     status.id = 'presentation-status';
     status.setAttribute('role', 'status');
     this.root.append(status);
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Presentation';
-    document.getElementById('display-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.cancel);
-    window.addEventListener('storage', this.storage);
-    window.addEventListener('focus', this.focus);
-    window.addEventListener('blur', this.focus);
+    this.runtime.addEventListener('change', this.runtimeChanged);
     document.body.append(this.root);
-    try {
-      this.raw = localStorage.getItem(profileKey('chatthing:v1:presentation'));
-      if (this.raw) this.saved = parsePresentation(JSON.parse(this.raw));
-    } catch {
-      this.status('Saved presentation could not be read; defaults are active');
-    }
-    this.options = { ...this.saved };
-    this.sync(this.options);
-    this.apply();
-    this.focus();
-    this.stopSettings = registerSettings(
-      'presentation',
-      () => this.saved,
-      (value) => this.persist(parsePresentation(value)),
-    );
+    this.runtimeChanged();
   }
+  private runtimeChanged = (): void => {
+    this.sync(this.runtime.saved);
+    this.status(this.runtime.error);
+  };
   private status(text: string): void {
     this.root.querySelector('#presentation-status')!.textContent = text;
   }
@@ -149,68 +129,22 @@ export class PresentationPanel {
     }
     return parsePresentation(result);
   }
-  private persist(value: PresentationOptions): void {
-    if (localStorage.getItem(profileKey('chatthing:v1:presentation')) !== this.raw)
-      throw new Error('Presentation changed in another tab; reload before saving');
-    const raw = JSON.stringify(value);
-    localStorage.setItem(profileKey('chatthing:v1:presentation'), raw);
-    this.raw = raw;
-    this.saved = { ...value };
-    this.options = { ...value };
-    this.sync(value);
-    this.apply();
-    this.changed();
-    this.status('Presentation saved');
-  }
-  private apply(): void {
-    document.dispatchEvent(new Event('presentation-before-change'));
-    setPresentation(this.options);
-    const root = document.documentElement;
-    for (const [key, v] of Object.entries(this.options))
-      root.dataset['presentation' + key[0]!.toUpperCase() + key.slice(1)] = String(v);
-    root.style.setProperty('--bold-scale', String(this.options.boldScale));
-    root.style.setProperty('--presentation-scale', String(this.options.uiScale));
-    root.style.setProperty('--last-message-color', this.options.lastColor);
-    root.style.setProperty('--last-message-pattern', this.options.lastPattern);
-    root.style.setProperty('--collapse-lines', String(this.options.collapseLines));
-    for (const [key, value] of Object.entries(overlayAppearanceStyles(overlayAppearance(this.options))))
-      root.style.setProperty(key, value);
-    document.dispatchEvent(new CustomEvent('presentationchange', { detail: this.options }));
-  }
-  private focus = (): void => {
-    document.documentElement.dataset.windowFocused = String(document.hasFocus());
-    if (this.options.animateOnlyFocused) this.changed();
-  };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
-    this.sync(this.saved);
-    this.root.showModal();
+    this.sync(this.runtime.saved);
+    showPanel(this.root);
   };
   private cancel = (): void => {
-    this.options = { ...this.saved };
-    this.sync(this.saved);
-    this.apply();
-    this.changed();
-    this.trigger.focus();
+    this.runtime.cancel();
+    this.sync(this.runtime.saved);
   };
-  private storage = (e: StorageEvent): void => {
-    if (e.key !== profileKey('chatthing:v1:presentation')) return;
-    try {
-      this.raw = e.newValue;
-      this.saved = parsePresentation(JSON.parse(e.newValue ?? 'null'));
-      this.cancel();
-    } catch {
-      this.status('Remote presentation could not be read; existing view retained');
-    }
-  };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
-    this.stopSettings();
-    window.removeEventListener('storage', this.storage);
-    window.removeEventListener('focus', this.focus);
-    window.removeEventListener('blur', this.focus);
-    this.trigger.removeEventListener('click', this.open);
+    this.runtime.cancel();
+    this.runtime.removeEventListener('change', this.runtimeChanged);
     this.root.removeEventListener('close', this.cancel);
     this.root.remove();
-    this.trigger.remove();
   }
 }

@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import { StatisticsStorageControls } from './stats-storage-ui';
 import { profileKey } from './account-profiles';
@@ -175,7 +176,7 @@ export function rateGraph(
 export class StatsPanel {
   private bundleDispose: () => void;
   private storageControls: StatisticsStorageControls | undefined;
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof setInterval> | undefined;
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
@@ -271,19 +272,18 @@ export class StatsPanel {
         }
       },
     );
-    let ticks = 0;
-    this.timer = ownedInterval(
-      'stats.paint',
-      () => {
-        this.paint();
-        if (++ticks % 6 === 0) this.ledger?.save();
-      },
-      5000,
-    );
     this.paint();
   }
+  private syncTimer(): void {
+    if (!this.dialog.open) {
+      clearOwnedInterval(this.timer);
+      this.timer = undefined;
+      return;
+    }
+    this.timer ??= ownedInterval('stats.paint', () => this.paint(), 5000);
+  }
   float(): void {
-    this.dialog.removeAttribute('open');
+    this.dialog.close();
     this.open();
   }
   showRail(open: boolean): void {
@@ -291,15 +291,18 @@ export class StatsPanel {
       if (this.dialog.open) this.dialog.close();
       this.dialog.setAttribute('open', '');
       this.paint();
-    } else this.dialog.removeAttribute('open');
+    } else this.dialog.close();
+    this.syncTimer();
   }
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
-    this.dialog.showModal();
+    showPanel(this.dialog);
+    this.syncTimer();
     this.paint();
   };
-  private close = (): void => this.dialog.close();
+  close = (): void => this.dialog.close();
   private closed = (): void => {
+    this.syncTimer();
     this.trigger.focus();
   };
   private change = (): void => {

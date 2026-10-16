@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import { privacyEnabled } from './privacy';
 import { MessageArchive, type ArchiveCursor, type ArchivePage } from './archive';
 import { archiveFields, formatArchiveClause, parseArchiveQuery } from './archive-query';
@@ -250,7 +251,7 @@ export class ArchiveSearch {
     if (privacyEnabled()) return;
     this.channel.value = channel && this.channels.includes(channel) ? channel : '';
     this.paintSaved();
-    this.dialog.showModal();
+    showPanel(this.dialog);
     this.input.focus();
   }
   private open = (): void => this.show();

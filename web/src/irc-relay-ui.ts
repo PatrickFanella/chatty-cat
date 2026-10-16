@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import {
@@ -313,7 +314,7 @@ export class IRCRelayPanel implements Panel {
   }
   open = (): void => {
     if (this.readonlyView || privacyEnabled()) return;
-    this.root.showModal();
+    showPanel(this.root);
   };
   private closed = (): void => this.clear();
   private edited = (): void => {

@@ -4,39 +4,8 @@ import { TwitchVolume } from './twitch-volume';
 import { registerSettings } from './settings-bundle';
 import { FloatingPanel } from './floating';
 
-export interface VideoPreferences {
-  channel: string;
-  volume: number;
-  muted: boolean;
-  docked: boolean;
-  rememberVolume: boolean;
-}
-export function parseVideo(value: unknown, channels: readonly string[]): VideoPreferences {
-  const defaults = {
-    channel: channels[0] ?? 'hasanabi',
-    volume: 0.5,
-    muted: true,
-    docked: false,
-    rememberVolume: false,
-  };
-  if (!value || typeof value !== 'object') return defaults;
-  const data = value as Record<string, unknown>;
-  return {
-    channel: typeof data.channel === 'string' && channels.includes(data.channel) ? data.channel : defaults.channel,
-    volume:
-      typeof data.volume === 'number' && Number.isFinite(data.volume) && data.volume >= 0 && data.volume <= 1
-        ? data.volume
-        : 0.5,
-    muted: typeof data.muted === 'boolean' ? data.muted : true,
-    docked: data.docked === true,
-    rememberVolume: data.rememberVolume === true,
-  };
-}
-export function twitchParent(hostname: string): string {
-  if (!/^[a-z0-9.-]+$/i.test(hostname)) throw new Error('Invalid Twitch parent domain');
-  return hostname;
-}
-
+import { parseVideo, twitchParent, type VideoPreferences } from './video-preferences';
+export { parseVideo, twitchParent } from './video-preferences';
 export class VideoPanel {
   private bundleDispose: () => void;
   private volume = new TwitchVolume();
@@ -142,7 +111,7 @@ export class VideoPanel {
     if (open) this.open();
     else this.hide();
   }
-  private open(): void {
+  open(): void {
     this.root.hidden = false;
     this.trigger.setAttribute('aria-expanded', 'true');
     this.floating.opened();
@@ -193,7 +162,7 @@ export class VideoPanel {
     if (this.root.hidden) this.open();
     else this.close();
   };
-  private close = (): void => {
+  close = (): void => {
     this.hide();
     this.floating.closed();
     this.trigger.focus();

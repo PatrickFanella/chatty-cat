@@ -1,3 +1,4 @@
+import { showPanel } from './open-panel';
 // Command palette: one search box over every registered command, the keyboard actions and quick-switch targets.
 import { CommandRegistry, GROUP_LABELS, type Command } from './registry';
 export interface PaletteEntry {
@@ -24,16 +25,26 @@ export function scoreMatch(query: string, text: string): number {
   return 1;
 }
 export class CommandPalette {
-  readonly dialog = document.createElement('dialog');
-  private input = document.createElement('input');
-  private list = document.createElement('div');
-  private status = document.createElement('p');
+  private dialogRoot: HTMLDialogElement | undefined;
+  get dialog(): HTMLDialogElement {
+    this.mount();
+    return this.dialogRoot!;
+  }
+  private input!: HTMLInputElement;
+  private list!: HTMLDivElement;
+  private status!: HTMLParagraphElement;
   private entries: PaletteEntry[] = [];
   private selected = 0;
   constructor(
     private registry: CommandRegistry,
     private extra: () => PaletteEntry[],
-  ) {
+  ) {}
+  private mount(): void {
+    if (this.dialogRoot) return;
+    this.dialogRoot = document.createElement('dialog');
+    this.input = document.createElement('input');
+    this.list = document.createElement('div');
+    this.status = document.createElement('p');
     this.dialog.id = 'shell-palette';
     this.dialog.setAttribute('aria-label', 'Search commands');
     this.dialog.dataset.shellOwned = 'true';
@@ -68,19 +79,19 @@ export class CommandPalette {
     });
   }
   get open(): boolean {
-    return this.dialog.open;
+    return this.dialogRoot?.open ?? false;
   }
   show(): void {
     if (this.dialog.open) return;
     this.input.value = '';
     this.selected = 0;
     this.status.textContent = '';
-    this.dialog.showModal();
+    showPanel(this.dialog);
     this.paint();
     this.input.focus();
   }
   toggle(): void {
-    if (this.dialog.open) this.dialog.close();
+    if (this.dialogRoot?.open) this.dialogRoot.close();
     else this.show();
   }
   private candidates(): PaletteEntry[] {
@@ -165,8 +176,13 @@ export class CommandPalette {
       entry.run();
     } catch (error) {
       this.status.textContent = error instanceof Error ? error.message : 'Command failed';
-      this.dialog.showModal();
+      showPanel(this.dialog);
       this.input.focus();
     }
+  }
+  stop(): void {
+    this.dialogRoot?.remove();
+    this.dialogRoot = undefined;
+    this.entries = [];
   }
 }

@@ -117,7 +117,7 @@ it('optionally hides on outside focus while preserving views and read state', as
   expect(panel!.root.hidden).toBe(true);
   expect(panel!.views.state.open).toBe(false);
   expect(JSON.stringify(panel!.views.state.views)).toBe(saved);
-  document.querySelector<HTMLButtonElement>('#threads-open')!.click();
+  panel!.open();
   await flush();
   expect(panel!.root.hidden).toBe(false);
   expect(panel!.root.textContent).not.toContain('unread');

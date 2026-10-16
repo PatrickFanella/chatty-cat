@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import { parseProfile } from './identity-cards';
 import { getPresentation } from './presentation';
 import { privacyEnabled } from './privacy';
@@ -63,7 +64,7 @@ export class UserInspector {
     dialog.addEventListener('close', this.closed);
     dialog.addEventListener('cancel', this.cancel);
   }
-  private inspect = (event: MouseEvent): void => {
+  inspect = (event: MouseEvent): void => {
     if (privacyEnabled()) return;
     if (
       event.button !== 0 ||
@@ -130,7 +131,7 @@ export class UserInspector {
         (button.dataset.command === 'delete' && (!message.id || message.command !== 'PRIVMSG'));
     this.dialog.querySelector<HTMLButtonElement>('[data-reply]')!.disabled =
       !this.auth()?.authenticated || message.command !== 'PRIVMSG' || !message.id;
-    this.dialog.showModal();
+    showPanel(this.dialog);
     this.profileAbort?.abort();
     this.profileAbort = new AbortController();
     const profileAbort = this.profileAbort;

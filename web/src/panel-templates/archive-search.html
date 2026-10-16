@@ -1,0 +1,7 @@
+<dialog id="archive-search" aria-label="Search local chat archive">
+    <fieldset><legend>History files</legend><p>Import a copy of saved history from the original app or Chatty Cat. Original files and existing messages stay intact. Legacy media is restored as text.</p><label for="history-file">History JSON file</label><input id="history-file" type="file" accept=".json,application/json"><button id="history-import" type="button" disabled>Import selected file</button><button id="history-export" type="button">Export retained history</button><p id="history-status" role="status"></p></fieldset>
+    <button id="archive-close" type="button">Close</button>
+    <form><label for="archive-query">Archive query</label><input id="archive-query" type="search" maxlength="1000" placeholder='sender:alice,bob -badge:moderator text:"hello world"'><label for="archive-channel">Channel</label><select id="archive-channel"><option value="">All joined channels</option></select><button type="submit">Search</button></form>
+    <p>Search messages saved by this browser. Up to 100,000 messages are retained. Earlier unsaved chat is unavailable.</p>
+    <div id="archive-status" role="status"></div><div id="archive-results"></div>
+  </dialog>

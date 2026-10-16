@@ -1,82 +1,16 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
 import type { AuthStatus } from './auth';
 import { privacyEnabled } from './privacy';
-export type DiscoveryKind = 'followed' | 'live' | 'chatters';
-export interface DiscoveryItem {
-  id: string;
-  login: string;
-  name: string;
-  title: string;
-  category: string;
-  viewers: number;
-}
-export interface DiscoveryPage {
-  kind: DiscoveryKind;
-  channel: string;
-  accountID: string;
-  items: DiscoveryItem[];
-  after: string;
-  total: number;
-  observedAt: number;
-}
-function object(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === 'object' && !Array.isArray(v);
-}
-function text(v: unknown, max: number): v is string {
-  return typeof v === 'string' && [...v].length <= max && !/[\x00-\x1f\x7f-\x9f]/.test(v);
-}
-export function parseDiscovery(value: unknown): DiscoveryPage {
-  if (
-    !object(value) ||
-    !['followed', 'live', 'chatters'].includes(String(value.kind)) ||
-    !text(value.channel, 25) ||
-    !text(value.accountID, 30) ||
-    !/^\d+$/.test(value.accountID) ||
-    !text(value.after, 512) ||
-    !Number.isSafeInteger(value.total) ||
-    Number(value.total) < 0 ||
-    !Number.isSafeInteger(value.observedAt) ||
-    Number(value.observedAt) < 0 ||
-    !Array.isArray(value.items) ||
-    value.items.length > 100
-  )
-    throw new Error('Invalid discovery page');
-  const items = value.items.map((v): DiscoveryItem => {
-    if (
-      !object(v) ||
-      !text(v.id, 30) ||
-      !/^\d+$/.test(v.id) ||
-      !text(v.login, 25) ||
-      !/^[a-z0-9_]{1,25}$/.test(v.login) ||
-      !text(v.name, 100) ||
-      (v.title !== undefined && !text(v.title, 500)) ||
-      (v.category !== undefined && !text(v.category, 100)) ||
-      (v.viewers !== undefined && (!Number.isSafeInteger(v.viewers) || Number(v.viewers) < 0))
-    )
-      throw new Error('Invalid discovery row');
-    return {
-      id: v.id,
-      login: v.login,
-      name: v.name,
-      title: typeof v.title === 'string' ? v.title : '',
-      category: typeof v.category === 'string' ? v.category : '',
-      viewers: typeof v.viewers === 'number' ? v.viewers : 0,
-    };
-  });
-  const kind = value.kind === 'followed' ? 'followed' : value.kind === 'live' ? 'live' : 'chatters';
-  return {
-    kind,
-    channel: value.channel,
-    accountID: value.accountID,
-    items,
-    after: value.after,
-    total: Number(value.total),
-    observedAt: Number(value.observedAt),
-  };
-}
-export class DiscoveryPanel {
+import { parseDiscovery, type DiscoveryKind, type DiscoveryPage } from './discovery-model';
+export { parseDiscovery } from './discovery-model';
+export type { DiscoveryKind, DiscoveryItem, DiscoveryPage } from './discovery-model';
+export class DiscoveryPanel implements Panel {
+  readonly id = 'discovery-panel';
+  readonly title = 'Channels';
+  readonly group = 'chat';
   readonly root = document.createElement('dialog');
-  readonly trigger = document.createElement('button');
   private auth: AuthStatus | undefined;
   private page: DiscoveryPage | undefined;
   private pageNumber = 0;
@@ -94,13 +28,14 @@ export class DiscoveryPanel {
   private status = document.createElement('p');
   private age = document.createElement('p');
   private consent = document.createElement('a');
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof setInterval> | undefined;
   constructor(
     private channels: readonly string[],
     private join: (login: string) => void,
     private fetcher: typeof fetch = (input, init) => fetch(input, init),
   ) {
     this.root.id = 'discovery-panel';
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Channel discovery');
     const h = document.createElement('h2');
     h.textContent = 'Channel discovery';
@@ -158,15 +93,10 @@ export class DiscoveryPanel {
     close.textContent = 'Close';
     close.addEventListener('click', () => this.root.close());
     this.root.append(this.consent, this.load, this.next, close, this.status, this.age, this.result);
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Channels';
-    document.getElementById('workspace-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     document.addEventListener('privacychange', this.privacy);
     window.addEventListener('storage', this.privacy);
     document.body.append(this.root);
-    this.timer = ownedInterval('discovery.paint', () => this.paintState(), 1000);
     this.paintState();
   }
   setAuth(auth: AuthStatus | undefined): void {
@@ -198,12 +128,15 @@ export class DiscoveryPanel {
     this.status.textContent = '';
     this.paintState();
   };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.paintState();
-    this.root.showModal();
+    showPanel(this.root);
+    this.timer ??= ownedInterval('discovery.paint', () => this.paintState(), 1000);
   };
   private closed = (): void => {
+    clearOwnedInterval(this.timer);
+    this.timer = undefined;
     this.generation++;
     this.abort?.abort();
     this.busy = false;
@@ -341,6 +274,9 @@ export class DiscoveryPanel {
       }
     }
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.stopped = true;
     this.reset();
@@ -348,6 +284,5 @@ export class DiscoveryPanel {
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.privacy);
     this.root.remove();
-    this.trigger.remove();
   }
 }

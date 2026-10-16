@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import { getProfileScope, profileKey } from './account-profiles';
@@ -396,7 +397,7 @@ export class DeviceSyncPanel implements Panel {
     if (this.readonlyView || privacyEnabled()) return;
     this.disconnect();
     if (this.recoveryNotice) this.status.textContent = this.recoveryNotice;
-    this.root.showModal();
+    showPanel(this.root);
   };
   private edit = (): void => this.clearReview();
   private closed = (): void => this.disconnect();

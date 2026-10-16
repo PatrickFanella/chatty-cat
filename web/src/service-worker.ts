@@ -19,6 +19,26 @@ async function put(cache: Cache, key: RequestInfo, response: Response, cap: numb
     /* Cache quota denial must not prevent the network response. */
   }
 }
+async function putShell(cache: Cache, key: string, response: Response): Promise<void> {
+  try {
+    await cache.put(key, response);
+    const manifest = await cache.match('/asset-manifest.json');
+    // A complete lazy build can exceed the old 64-entry limit. Never evict
+    // installed build chunks, its shell or icons to make room for runtime reads.
+    if (!manifest) return;
+    const protectedPaths = new Set(precacheAssets(await manifest.json()));
+    const keys = await cache.keys();
+    const removable = keys.filter((request) => {
+      const path = new URL(request.url).pathname;
+      return path.startsWith('/assets/') && !protectedPaths.has(path);
+    });
+    const protectedCount = keys.length - removable.length;
+    const excess = keys.length - Math.max(64, protectedCount);
+    for (const request of removable.slice(0, Math.max(0, excess))) await cache.delete(request);
+  } catch {
+    /* Optional cache writes must not prevent the network response. */
+  }
+}
 worker.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -27,7 +47,8 @@ worker.addEventListener('install', (event) => {
       if (!response.ok) throw new Error('Shell unavailable');
       const manifest = await fetch('/asset-manifest.json', { cache: 'reload' });
       if (!manifest.ok) throw new Error('Build manifest unavailable');
-      const chunks = precacheAssets(await manifest.json());
+      const manifestData: unknown = await manifest.json();
+      const chunks = precacheAssets(manifestData);
       const html = await response.clone().text();
       const assets = [...html.matchAll(/(?:src|href)="(\/assets\/[^"\s]+)"/g)].flatMap((match) =>
         match[1] ? [match[1]] : [],
@@ -48,6 +69,7 @@ worker.addEventListener('install', (event) => {
       ]);
       // Keep the previous offline shell if any new build chunk is unavailable.
       await cache.put('/', response);
+      await cache.put('/asset-manifest.json', Response.json(manifestData));
     })(),
   );
 });
@@ -85,7 +107,7 @@ async function shell(request: Request): Promise<Response> {
   const key = url.origin + url.pathname;
   try {
     const response = await fetch(request);
-    if (response.ok) await put(cache, key, response.clone(), 64);
+    if (response.ok) await putShell(cache, key, response.clone());
     return response;
   } catch (error) {
     const cached = await cache.match(request.mode === 'navigate' ? '/' : key);

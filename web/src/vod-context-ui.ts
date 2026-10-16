@@ -184,7 +184,7 @@ export class VodContextPanel {
     this.external.hidden = true;
     this.external.removeAttribute('href');
   }
-  private close(): void {
+  close(): void {
     this.reset();
     if (this.root.open) this.root.close();
   }

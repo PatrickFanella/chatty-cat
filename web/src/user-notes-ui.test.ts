@@ -23,7 +23,7 @@ it('renders bounded plain text, reviews backups and requires a separate reviewed
   x.input.value = '<script>private sentinel</script>';
   x.save.click();
   expect(x.editor.querySelector('script')).toBeNull();
-  document.querySelector<HTMLButtonElement>('#user-notes-open')!.click();
+  panel!.open();
   x.button('Preview private user notes backup').click();
   expect(panel!.root.querySelector('pre')?.textContent).toContain('private sentinel');
   expect(x.button('Download reviewed user notes').disabled).toBe(false);
@@ -46,7 +46,7 @@ it('clears private transfer state on account/privacy changes and refuses stale e
   expect(localStorage.getItem('chatthing:v1:user-notes:42')).toContain('alice private');
   expect(panel!.root.querySelector('pre')?.textContent).toBe('');
   panel!.setAccount('42');
-  document.querySelector<HTMLButtonElement>('#user-notes-open')!.click();
+  panel!.open();
   x.button('Preview private user notes backup').click();
   localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
   document.dispatchEvent(new Event('privacychange'));

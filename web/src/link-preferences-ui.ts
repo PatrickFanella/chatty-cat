@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
 import { privacyEnabled } from './privacy';
 import {
@@ -195,7 +196,7 @@ export class LinkPreferencesPanel implements Panel {
     if (privacyEnabled() || this.readonlyView) return;
     this.load();
     this.invalidate();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private closed = (): void => {
     this.invalidate();

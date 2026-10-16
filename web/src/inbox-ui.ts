@@ -1,23 +1,30 @@
-import { ConversationInbox, type InboxKind } from './inbox';
+import { showPanel } from './shell/open-panel';
+import type { InboxKind } from './inbox';
+import { InboxRuntime } from './inbox-runtime';
+import type { Panel } from './shell/panels';
 import type { ChatMessage } from './protocol';
 import { privacyEnabled } from './privacy';
-export class InboxPanel {
-  private model = new ConversationInbox();
-  private root = document.createElement('dialog');
-  private trigger = document.createElement('button');
+export class InboxPanel implements Panel {
+  readonly id = 'inbox-panel';
+  readonly title = 'Inbox';
+  readonly group = 'chat';
+  private get model() {
+    return this.runtime.model;
+  }
+  readonly root = document.createElement('dialog');
   private section: InboxKind = 'mentions';
   private channel = '';
   private frame = 0;
+  private runtime: InboxRuntime;
+  private ownsRuntime: boolean;
   constructor(
     channels: readonly string[],
     private jump: (message: ChatMessage) => void,
     private answer: (login: string) => void,
+    runtime?: InboxRuntime,
   ) {
-    this.trigger.id = 'inbox-open';
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Inbox';
-    document.getElementById('workspace-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.open);
+    this.runtime = runtime ?? new InboxRuntime();
+    this.ownsRuntime = !runtime;
     this.root.id = 'inbox-panel';
     this.root.setAttribute('aria-label', 'Conversation inbox');
     this.root.innerHTML =
@@ -31,26 +38,31 @@ export class InboxPanel {
     }
     this.root.addEventListener('change', this.change);
     this.root.addEventListener('click', this.click);
-    window.addEventListener('storage', this.storage);
+    this.runtime.addEventListener('change', this.runtimeChanged);
+    this.runtime.addEventListener('accountchange', this.accountChanged);
     document.body.append(this.root);
     this.paint();
   }
   setAccount(id: string, login: string): boolean {
-    const changed = this.model.setAccount(id, login);
-    if (changed) {
-      this.root.close();
-      this.root.querySelector('#inbox-items')!.replaceChildren();
-      this.paint();
-    }
+    const changed = this.runtime.setAccount(id, login);
+    if (changed) this.root.close();
     return changed;
   }
   observe(message: ChatMessage, forceMention = false): void {
-    if (this.model.observe(message, forceMention)) this.schedule();
+    this.runtime.observe(message, forceMention);
   }
   whisper(message: ChatMessage, outgoing: boolean): void {
-    this.model.whisper(message, outgoing);
-    this.schedule();
+    this.runtime.whisper(message, outgoing);
   }
+  private accountChanged = (): void => {
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.root.close();
+    this.root.querySelector('#inbox-items')!.replaceChildren();
+  };
+  private runtimeChanged = (): void => {
+    if (this.root.open) this.schedule();
+  };
   private schedule(): void {
     if (!this.frame)
       this.frame = requestAnimationFrame(() => {
@@ -58,23 +70,14 @@ export class InboxPanel {
         this.paint();
       });
   }
-  private storage = (event: StorageEvent): void => {
-    if (event.key?.startsWith('chatthing:v1:inbox-read:'))
-      try {
-        this.model.refreshReads();
-        this.schedule();
-      } catch {
-        this.status('Public read state could not be synchronized');
-      }
-  };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     try {
       this.model.refreshReads();
     } catch {
       this.status('Public read state could not be synchronized');
     }
-    this.root.showModal();
+    showPanel(this.root);
     this.paint();
     this.root.querySelector<HTMLSelectElement>('#inbox-section')!.focus();
   };
@@ -90,8 +93,6 @@ export class InboxPanel {
       replies: this.model.unread('replies'),
       whispers: this.model.unread('whispers'),
     };
-    const unread = counts.mentions + counts.replies + counts.whispers;
-    this.trigger.textContent = 'Inbox' + (unread ? ' (' + unread + ')' : '');
     for (const option of this.root.querySelectorAll<HTMLOptionElement>('#inbox-section option')) {
       const kind = option.value;
       option.textContent =
@@ -184,7 +185,6 @@ export class InboxPanel {
       const action = button.dataset.inboxAction;
       if (action === 'close') {
         this.root.close();
-        this.trigger.focus();
         return;
       }
       if (action === 'read-all') {
@@ -211,14 +211,17 @@ export class InboxPanel {
       this.status(error instanceof Error ? error.message : 'Inbox action failed');
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     cancelAnimationFrame(this.frame);
-    window.removeEventListener('storage', this.storage);
+    this.runtime.removeEventListener('change', this.runtimeChanged);
+    this.runtime.removeEventListener('accountchange', this.accountChanged);
+    if (this.ownsRuntime) this.runtime.stop();
     this.model.clear();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('change', this.change);
     this.root.removeEventListener('click', this.click);
     this.root.remove();
-    this.trigger.remove();
   }
 }

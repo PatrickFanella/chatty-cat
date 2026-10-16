@@ -28,19 +28,19 @@ it('jumps to public context without changing send target and clears private item
     tags: {},
   };
   panel.observe(message);
-  document.getElementById('inbox-open')!.click();
+  panel.open();
   document.querySelector<HTMLButtonElement>('[data-inbox-action=jump]')!.click();
   expect(jump).toHaveBeenCalledWith(expect.objectContaining({ id: 'public', channel: 'room' }));
   expect(target.value).toBe('other');
   panel.whisper({ ...message, id: 'private', command: 'WHISPER', channel: '', text: 'secret body' }, false);
-  document.getElementById('inbox-open')!.click();
+  panel.open();
   const section = document.getElementById('inbox-section') as HTMLSelectElement;
   section.value = 'whispers';
   section.dispatchEvent(new Event('change', { bubbles: true }));
   expect(document.getElementById('inbox-items')!.textContent).toContain('secret body');
   panel.setAccount('43', 'another');
   expect(document.getElementById('inbox-items')!.textContent).toBe('');
-  document.getElementById('inbox-open')!.click();
+  panel.open();
   expect(document.getElementById('inbox-items')!.textContent).not.toContain('secret body');
   panel.stop();
 });
@@ -61,7 +61,7 @@ it('keeps public context jumps available when read-state storage is denied', () 
     timestamp: 1,
     tags: {},
   });
-  document.getElementById('inbox-open')!.click();
+  panel.open();
   vi.stubGlobal('localStorage', {
     getItem: () => null,
     setItem: () => {

@@ -1,32 +1,26 @@
-import {
-  CommandStore,
-  compileTemplate,
-  expandTemplate,
-  parseCommandList,
-  type CommandContext,
-  type CommandTemplate,
-} from './commands';
-import { registerSettings } from './settings-bundle';
+import { showPanel } from './shell/open-panel';
+import { compileTemplate, expandTemplate, type CommandContext, type CommandTemplate } from './commands';
+import type { CommandRuntime } from './commands-runtime';
+import type { Panel } from './shell/panels';
 import type { Composer } from './composer';
 import { privacyEnabled } from './privacy';
-export class CommandPanel {
-  private store = new CommandStore();
-  private root = document.createElement('dialog');
-  private trigger = document.createElement('button');
+export class CommandPanel implements Panel {
+  readonly id = 'commands-panel';
+  readonly title = 'Commands';
+  readonly group = 'moderation';
+  private get store() {
+    return this.runtime.store;
+  }
+  readonly root = document.createElement('dialog');
   private action = document.createElement('button');
   private messageContext: CommandContext | undefined;
   private preview: { text: string; invocation: string; channel: string; account: string } | undefined;
-  private stopSettings: () => void;
   constructor(
     private composer: Composer,
     private context: () => CommandContext,
-    private inspector: HTMLDialogElement,
-    workspaceCommands?: unknown,
+    private inspector: HTMLDialogElement | undefined,
+    private runtime: CommandRuntime,
   ) {
-    this.trigger.id = 'commands-open';
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Commands';
-    document.getElementById('workspace-open')?.after(this.trigger);
     this.root.id = 'commands-panel';
     this.root.setAttribute('aria-label', 'Custom commands');
     this.root.innerHTML =
@@ -36,24 +30,17 @@ export class CommandPanel {
     this.root.addEventListener('change', this.select);
     this.root.addEventListener('input', this.invalidate);
     this.root.addEventListener('close', this.closed);
-    this.trigger.addEventListener('click', this.open);
     this.action.type = 'button';
     this.action.textContent = 'Custom message action';
     this.action.addEventListener('click', this.messageAction);
-    inspector.append(this.action);
+    inspector?.append(this.action);
     this.paint();
-    const restore = (value: unknown): void => {
-      try {
-        this.store.save(parseCommandList(value));
-        this.invalidate();
-        this.paint();
-      } catch (e) {
-        this.status(e instanceof Error ? e.message : 'Workspace commands unavailable');
-      }
-    };
-    this.stopSettings = registerSettings('commands', () => this.store.all(), restore);
-    if (workspaceCommands !== undefined) restore(workspaceCommands);
+    this.runtime.addEventListener('change', this.runtimeChanged);
   }
+  private runtimeChanged = (): void => {
+    this.invalidate();
+    this.paint();
+  };
   private field(id: string): HTMLInputElement | HTMLTextAreaElement {
     return this.root.querySelector<HTMLInputElement | HTMLTextAreaElement>('#command-' + id)!;
   }
@@ -81,16 +68,7 @@ export class CommandPanel {
       option.textContent = (command.group ? command.group + ' · ' : '') + command.name + ' (' + command.trigger + ')';
       select.append(option);
     }
-    this.composer.configureCommands(
-      this.store.all().map((command) => command.trigger),
-      (text) => {
-        const command = this.store.match(text);
-        if (!command) return false;
-        this.showPreview(command, text);
-        return true;
-      },
-    );
-    if (this.store.error) this.status(this.store.error);
+    if (this.runtime.error || this.store.error) this.status(this.runtime.error || this.store.error);
   }
   private select = (event: Event): void => {
     if (!(event.target instanceof HTMLSelectElement) || event.target.id !== 'command-selected') return;
@@ -102,10 +80,10 @@ export class CommandPanel {
   };
   private show(): void {
     if (privacyEnabled()) return;
-    this.root.showModal();
+    showPanel(this.root);
     this.field('input').focus();
   }
-  private open = (): void => {
+  open = (): void => {
     this.messageContext = undefined;
     this.show();
   };
@@ -118,17 +96,17 @@ export class CommandPanel {
       ? { ...current, channel: this.messageContext.channel, message: this.messageContext.message }
       : current;
   }
-  private messageAction = (): void => {
-    const current = this.context();
+  messageAction = (eventOrContext?: Event | CommandContext): void => {
+    const current = eventOrContext && !(eventOrContext instanceof Event) ? eventOrContext : this.context();
     this.messageContext = {
       ...current,
       channel: { ...current.channel },
       message: current.message ? { ...current.message } : undefined,
     };
-    this.inspector.close();
+    this.inspector?.close();
     this.show();
   };
-  private showPreview(command: CommandTemplate, invocation: string): void {
+  showPreview(command: CommandTemplate, invocation: string): void {
     if (privacyEnabled()) throw new Error('Command previews are hidden in privacy mode');
     const context = this.liveContext();
     const args = invocation.trim().split(/\s+/).slice(1);
@@ -149,7 +127,7 @@ export class CommandPanel {
         '. Review the exact text, then stage it. Moderation still requires the normal explicit Send action.',
     );
     this.root.querySelector<HTMLButtonElement>('[data-action=stage]')!.disabled = !this.composer.canInsert;
-    if (!this.root.open) this.root.showModal();
+    if (!this.root.open) showPanel(this.root);
   }
   private click = (event: MouseEvent): void => {
     if (!(event.target instanceof Element)) return;
@@ -160,7 +138,6 @@ export class CommandPanel {
         this.messageContext = undefined;
         this.invalidate();
         this.root.close();
-        this.trigger.focus();
         return;
       }
       if (action === 'preview') {
@@ -201,21 +178,23 @@ export class CommandPanel {
       }
       this.invalidate();
       this.paint();
+      this.runtime.refresh();
       this.status('Command definition saved');
     } catch (error) {
       this.status(error instanceof Error ? error.message : 'Command action failed');
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
-    this.stopSettings();
+    this.runtime.removeEventListener('change', this.runtimeChanged);
     this.root.removeEventListener('click', this.click);
     this.root.removeEventListener('change', this.select);
     this.root.removeEventListener('input', this.invalidate);
     this.root.removeEventListener('close', this.closed);
-    this.trigger.removeEventListener('click', this.open);
     this.action.removeEventListener('click', this.messageAction);
     this.root.remove();
-    this.trigger.remove();
     this.action.remove();
   }
 }

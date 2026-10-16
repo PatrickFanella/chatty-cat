@@ -41,7 +41,17 @@ export class SplitLog {
   private grid: HTMLElement | undefined;
   private paneSelect: HTMLSelectElement | undefined;
   private status: HTMLElement;
-  private dialog: HTMLDialogElement;
+  private dialogRoot: HTMLDialogElement | undefined;
+  private get dialog(): HTMLDialogElement {
+    if (!this.dialogRoot) {
+      const root = document.createElement('dialog');
+      root.id = 'split-settings';
+      root.setAttribute('aria-label', 'Pane settings');
+      document.body.append(root);
+      this.dialogRoot = root;
+    }
+    return this.dialogRoot;
+  }
   private stopSettings: () => void;
   private stopped = false;
   private observed = new Set<string>();
@@ -57,10 +67,6 @@ export class SplitLog {
     this.status = document.createElement('p');
     this.status.className = 'split-status';
     this.status.setAttribute('role', 'status');
-    this.dialog = document.createElement('dialog');
-    this.dialog.id = 'split-settings';
-    this.dialog.setAttribute('aria-label', 'Pane settings');
-    document.body.append(this.dialog);
     this.legacy = new ColumnLog(root);
     toggle.addEventListener('click', this.toggleLayout);
     root.addEventListener('pointerdown', this.pointer);
@@ -122,7 +128,7 @@ export class SplitLog {
       this.status.textContent = error instanceof Error ? error.message : 'Layout change failed';
     }
   }
-  private toggleLayout = (): void => {
+  toggleLayout = (): void => {
     if (this.popoutID) return;
     if (this.joined.length > 6 && this.layout.enabled) {
       this.status.textContent =
@@ -377,124 +383,40 @@ export class SplitLog {
     this.paintLayout();
     this.tabs?.querySelector<HTMLElement>('[aria-selected=true]')?.focus();
   }
+  private settingsRequest = 0;
+  private showSettings(id?: string): void {
+    if (this.stopped || privacyEnabled()) return;
+    const request = ++this.settingsRequest;
+    const tab = this.layout.activeTab.id;
+    void import('./split-settings-ui')
+      .then(({ SplitSettingsUI }) => {
+        if (this.stopped || privacyEnabled() || request !== this.settingsRequest || tab !== this.layout.activeTab.id)
+          return;
+        const ui = new SplitSettingsUI({
+          layout: this.layout,
+          dialog: this.dialog,
+          status: this.status,
+          joined: this.joined,
+          actions: this.actions,
+          available: () => !this.stopped && !privacyEnabled() && this.canChange(),
+          canChange: () => this.canChange(),
+          run: (action) => this.run(action),
+          captureReaders: () => this.captureReaders(),
+          rebuild: () => this.rebuild(),
+        });
+        if (id === undefined) ui.rename();
+        else ui.configure(id);
+      })
+      .catch(() => {
+        if (!this.stopped && request === this.settingsRequest)
+          this.status.textContent = 'Pane settings could not be loaded; try again';
+      });
+  }
   private rename(): void {
-    if (privacyEnabled()) return;
-    this.dialog.replaceChildren();
-    const form = document.createElement('form'),
-      input = document.createElement('input');
-    input.value = this.layout.activeTab.name;
-    input.maxLength = 60;
-    input.setAttribute('aria-label', 'Tab name');
-    const submit = button('Save', () => {
-      this.run(() => this.layout.renameTab(this.layout.activeTab.id, input.value));
-      if (!this.status.textContent) this.dialog.close();
-    });
-    form.append(
-      input,
-      submit,
-      button('Cancel', () => this.dialog.close()),
-    );
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      submit.click();
-    });
-    this.dialog.append(form);
-    this.dialog.showModal();
+    this.showSettings();
   }
   private configure(id: string): void {
-    if (privacyEnabled() || !this.canChange()) return;
-    const pane = this.layout.activeTab.panes.find((p) => p.id === id);
-    if (!pane) return;
-    this.dialog.replaceChildren();
-    const form = document.createElement('form');
-    form.className = 'split-form';
-    const channels = document.createElement('fieldset'),
-      legend = document.createElement('legend');
-    legend.textContent = 'Display channels';
-    channels.append(legend);
-    const checks = this.joined.map((channel) => {
-      const label = document.createElement('label'),
-        check = document.createElement('input');
-      check.type = 'checkbox';
-      check.value = channel;
-      check.checked = pane.channels.includes(channel);
-      label.append(check, channel);
-      channels.append(label);
-      return check;
-    });
-    const target = document.createElement('select');
-    target.setAttribute('aria-label', 'Pane send target');
-    for (const channel of this.joined) {
-      const option = document.createElement('option');
-      option.value = channel;
-      option.textContent = channel;
-      target.append(option);
-    }
-    target.value = pane.target;
-    const filter = document.createElement('input');
-    filter.type = 'search';
-    filter.maxLength = 200;
-    filter.value = pane.filter;
-    filter.setAttribute('aria-label', 'Pane text filter');
-    filter.placeholder = 'Only messages containing…';
-    const checkbox = (text: string, on: boolean): { label: HTMLLabelElement; input: HTMLInputElement } => {
-      const label = document.createElement('label'),
-        input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = on;
-      label.append(input, text);
-      return { label, input };
-    };
-    const ruleChoices = document.createElement('fieldset'),
-      ruleLegend = document.createElement('legend');
-    ruleLegend.textContent = 'Message rules for this pane';
-    ruleChoices.append(ruleLegend);
-    const ruleChecks = (this.actions.rules?.() ?? []).map((rule) => {
-      const choice = checkbox(rule.name, (pane.rules ?? []).includes(rule.id));
-      choice.input.value = rule.id;
-      ruleChoices.append(choice.label);
-      return choice.input;
-    });
-    const reverse = checkbox('Newest first', pane.reverse),
-      hover = checkbox('Pause on hover', pane.pauseHover);
-    const error = document.createElement('p');
-    error.setAttribute('role', 'status');
-    const save = button('Apply pane settings', () => {
-      this.captureReaders();
-      try {
-        this.layout.configure(id, {
-          channels: checks.filter((c) => c.checked).map((c) => c.value),
-          target: target.value,
-          filter: filter.value,
-          rules: ruleChecks.filter((c) => c.checked).map((c) => c.value),
-          reverse: reverse.input.checked,
-          pauseHover: hover.input.checked,
-        });
-        if (this.layout.activePane.id === id) this.actions.target(target.value);
-        this.rebuild();
-        this.dialog.close();
-        this.actions.changed();
-      } catch (e) {
-        error.textContent = e instanceof Error ? e.message : 'Invalid pane';
-      }
-    });
-    form.append(
-      channels,
-      target,
-      filter,
-      ruleChoices,
-      reverse.label,
-      hover.label,
-      error,
-      save,
-      button('Cancel', () => this.dialog.close()),
-    );
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      save.click();
-    });
-    this.dialog.append(form);
-    this.dialog.showModal();
+    this.showSettings(id);
   }
   set(
     items: readonly LogItem[],
@@ -743,7 +665,7 @@ export class SplitLog {
     this.toggle.removeEventListener('click', this.toggleLayout);
     this.root.removeEventListener('pointerdown', this.pointer);
     this.root.removeEventListener('keydown', this.key);
-    this.dialog.remove();
+    this.dialogRoot?.remove();
     this.clear();
   }
 }

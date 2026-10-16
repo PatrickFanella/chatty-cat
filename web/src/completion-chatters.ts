@@ -1,6 +1,6 @@
 import type { AuthStatus } from './auth';
 import { getCompletionPreferences } from './completion-preferences';
-import { parseDiscovery } from './discovery';
+import { parseDiscovery } from './discovery-model';
 import { privacyEnabled } from './privacy';
 export interface CompletionChatterContext {
   auth: AuthStatus | undefined;

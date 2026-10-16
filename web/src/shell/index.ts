@@ -24,25 +24,6 @@ export interface Shell {
   topbar: Topbar;
   stop: () => void;
 }
-const STATIC_PANELS = [
-  'video-panel',
-  'whisper-panel',
-  'resources-panel',
-  'emote-picker',
-  'stats-panel',
-  'archive-search',
-  'workspace-panel',
-  'display-panel',
-  'user-inspector',
-];
-const EXCLUDED_PANELS = new Set([
-  'shell-palette',
-  'action-palette',
-  'identity-preview',
-  'link-preview',
-  'split-settings',
-]);
-const SKIPPED_TRIGGERS = new Set(['header-min', 'actions-open']);
 const ACTION_GROUPS: Record<string, CommandGroup> = {
   compose: 'chat',
   'channel-next': 'chat',
@@ -62,7 +43,7 @@ const ACTION_GROUPS: Record<string, CommandGroup> = {
   'tab-right': 'view',
   'tab-left': 'view',
 };
-// Hotkey actions that merely click a header button are already present as header commands.
+// Panel hotkeys share the explicit panel commands registered by the application.
 const DUPLICATE_ACTIONS = new Set([
   'palette',
   'shortcuts',
@@ -118,25 +99,12 @@ export function startShell(options: ShellOptions): Shell {
       available: () => options.available(action.id),
     });
   }
-  // Controls that modules placed beside the log belong with the other triggers.
-  for (const stray of [...document.querySelectorAll<HTMLElement>('.chat-workspace > button, .chat-workspace > p')])
-    header.append(stray);
-  registry.watch(header, SKIPPED_TRIGGERS);
-  const privacy = document.getElementById('privacy-toolbar');
-  if (privacy) registry.watch(privacy);
   const workbench = new Workbench({
     titleFor: (root) => titleFor(registry, root),
-    exclude: (root) =>
-      EXCLUDED_PANELS.has(root.id) ||
-      root.dataset.shellOwned !== undefined ||
-      root.closest('#topbar,.shell-menu') !== null,
+    exclude: (root) => root.dataset.shellOwned !== undefined || root.closest('#topbar,.shell-menu') !== null,
     centre:
       '#offline,#app-update,#stream,#room-state,#video-panel,main#log,.chat-workspace,#announcer,#composer,.message-navigation',
   });
-  for (const id of STATIC_PANELS) {
-    const root = document.getElementById(id);
-    if (root) workbench.adopt(root);
-  }
   const palette = new CommandPalette(registry, options.extra);
   const parts = {
     header,
@@ -175,6 +143,7 @@ export function startShell(options: ShellOptions): Shell {
     topbar,
     stop: () => {
       document.removeEventListener('keydown', keys, true);
+      palette.stop();
       registry.stop();
       workbench.stop();
       topbar.stop();

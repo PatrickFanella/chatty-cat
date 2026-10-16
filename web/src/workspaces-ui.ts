@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import { privacyEnabled } from './privacy';
 import {
   WorkspaceStore,
@@ -66,10 +67,10 @@ export class WorkspacePanel {
     this.invalidate();
     this.name.value = this.store.get(this.selected.value)?.name ?? '';
   };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled() || this.readonlyView) return;
     this.paint();
-    this.root.showModal();
+    showPanel(this.root);
     this.selected.focus();
   };
   previewSwitch(id: string): void {

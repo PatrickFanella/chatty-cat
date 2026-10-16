@@ -70,9 +70,7 @@ it('applies saved click/search policy before either editor or selection-review D
   const click = new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 });
   document.querySelector('a')!.dispatchEvent(click);
   expect(click.defaultPrevented).toBe(true);
-  expect(
-    [...document.querySelectorAll('button')].find((b) => b.textContent === 'Search selected chat text')?.disabled,
-  ).toBe(false);
+  expect(getLinkPreferences().searchEnabled).toBe(true);
   panel = new LinkPreferencesPanel();
   panel.open();
   panel.close();
@@ -104,7 +102,7 @@ it('reviews only selection contained in public chat and exposes a safe encoded s
   range.selectNodeContents(document.querySelector('#test-log p')!);
   selection.removeAllRanges();
   selection.addRange(range);
-  [...document.querySelectorAll('button')].find((b) => b.textContent === 'Search selected chat text')!.click();
+  tools!.selection();
   const review = document.querySelector<HTMLDialogElement>('[aria-label="Review selection search"]')!;
   expect(review.textContent).toContain('Alice & 😀');
   expect(review.querySelector('a')?.href).toBe('https://duckduckgo.com/?q=Alice%20%26%20%F0%9F%98%80');
@@ -113,7 +111,7 @@ it('reviews only selection contained in public chat and exposes a safe encoded s
   range.selectNodeContents(document.getElementById('outside')!);
   selection.removeAllRanges();
   selection.addRange(range);
-  [...document.querySelectorAll('button')].find((b) => b.textContent === 'Search selected chat text')!.click();
+  tools!.selection();
   expect(review.open).toBe(false);
 });
 it('requires double-click for pointer opening while preserving Enter and handles a blocked new tab', () => {

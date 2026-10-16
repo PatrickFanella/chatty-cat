@@ -1,11 +1,15 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { BrowserCompanionRegistry } from './browser-companion-registry';
 import { getProfileScope } from './account-profiles';
 import type { AuthStatus } from './auth';
 import { BrowserCompanion, type WatchedChannel } from './browser-companion';
 import { privacyEnabled } from './privacy';
-export class BrowserCompanionPanel {
+export class BrowserCompanionPanel implements Panel {
+  readonly id = 'browser-companion-panel';
+  title = 'Browser companion';
+  readonly group = 'tools';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private extension = document.createElement('input');
   private code = document.createElement('input');
   private workspace = document.createElement('select');
@@ -33,9 +37,10 @@ export class BrowserCompanionPanel {
     private workspaces: () => { id: string; name: string; channels: string[]; revision: string }[],
     private current: () => string,
     private apply: (workspace: string, channel: string, revision: string, switching: boolean) => void,
-    hidden = false,
+    private hidden = false,
   ) {
     this.client = new BrowserCompanion(auth);
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Browser companion');
     const h = document.createElement('h2');
     h.textContent = 'Watched-channel browser companion';
@@ -99,7 +104,8 @@ export class BrowserCompanionPanel {
         await this.client.pair(this.extension.value.trim(), this.code.value.trim());
         this.code.value = '';
         this.connected = true;
-        this.trigger.textContent = 'Browser bridge active';
+        this.title = 'Browser bridge active';
+        document.dispatchEvent(new Event('panelstatechange'));
         this.status.textContent =
           'Paired. Use Send watched channel in the extension; received channels wait for review.';
         this.poll();
@@ -118,12 +124,7 @@ export class BrowserCompanionPanel {
       this.button('Close and disconnect browser bridge', () => this.root.close()),
       this.status,
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Browser companion';
-    this.trigger.hidden = hidden;
-    document.getElementById('commands-open')?.after(this.trigger);
     document.body.append(this.root);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     this.root.addEventListener('change', this.edited);
     document.addEventListener('privacychange', this.privacy);
@@ -236,6 +237,8 @@ export class BrowserCompanionPanel {
   private disconnect(detail: string): void {
     this.generation++;
     this.connected = false;
+    this.title = 'Browser companion';
+    document.dispatchEvent(new Event('panelstatechange'));
     this.busy = false;
     clearTimeout(this.timer);
     this.client.disconnect();
@@ -243,11 +246,11 @@ export class BrowserCompanionPanel {
     this.seq = 0;
     this.code.value = '';
     this.clearReview();
-    this.trigger.textContent = 'Browser companion';
     this.status.textContent = detail;
     this.lockRegistry();
   }
-  private open = (): void => {
+  open = (): void => {
+    if (this.hidden) return;
     if (privacyEnabled()) return;
     this.refreshRegistry();
     const selected = this.workspace.value || this.current();
@@ -260,7 +263,7 @@ export class BrowserCompanionPanel {
     }
     this.workspace.value = selected;
     this.clearReview();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private refreshRegistry(selected = this.extension.value): void {
     this.registered.replaceChildren();
@@ -342,14 +345,15 @@ export class BrowserCompanionPanel {
       this.clearRegistry();
     }
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.disconnect('Closed');
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('close', this.closed);
     this.root.removeEventListener('change', this.edited);
     this.registered.removeEventListener('change', this.selectRegistered);
     document.removeEventListener('privacychange', this.privacy);
-    this.trigger.remove();
     this.root.remove();
   }
 }

@@ -8,15 +8,13 @@ import {
 } from './privacy';
 import type { WorkspaceStore } from './workspaces';
 export class PrivacyControls {
-  private policy: PrivacyPolicy = readPrivacy();
+  policy: PrivacyPolicy = readPrivacy();
   private toolbar = document.createElement('aside');
   private toggle = document.createElement('button');
   private configure = document.createElement('button');
   private status = document.createElement('span');
-  private dialog = document.createElement('dialog');
-  private choices = document.createElement('fieldset');
   constructor(
-    private workspaces: WorkspaceStore,
+    readonly workspaces: WorkspaceStore,
     private current: () => string,
   ) {
     this.toolbar.id = 'privacy-toolbar';
@@ -31,17 +29,6 @@ export class PrivacyControls {
     this.status.role = 'status';
     this.toolbar.append(this.toggle, this.configure, this.status);
     document.body.prepend(this.toolbar);
-    this.dialog.id = 'privacy-settings';
-    this.dialog.setAttribute('aria-label', 'Streamer privacy settings');
-    const info = document.createElement('p');
-    info.textContent =
-      'Choose workspaces allowed on screen while privacy mode is active. Account details, composer, whispers, alerts and settings exports stay hidden. Alt+Shift+P panic-hides every workspace. Privacy mode is manual; no process detection is used.';
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.textContent = 'Save and close';
-    close.addEventListener('click', this.saveAllowlist);
-    this.dialog.append(info, this.choices, close);
-    document.body.append(this.dialog);
     window.addEventListener('storage', this.storage);
     document.addEventListener('keydown', this.panic, true);
     this.paint();
@@ -64,7 +51,7 @@ export class PrivacyControls {
     }
     document.dispatchEvent(new Event('privacychange'));
   }
-  private commit(next: PrivacyPolicy): void {
+  commit(next: PrivacyPolicy): void {
     try {
       savePrivacy(next);
       this.policy = next;
@@ -79,26 +66,7 @@ export class PrivacyControls {
     this.commit({ ...this.policy, enabled: !this.policy.enabled, panic: false });
   };
   private open = (): void => {
-    if (this.policy.enabled) return;
-    this.choices.replaceChildren();
-    const legend = document.createElement('legend');
-    legend.textContent = 'Visible workspaces';
-    this.choices.append(legend);
-    for (const workspace of this.workspaces.all()) {
-      const label = document.createElement('label'),
-        input = document.createElement('input');
-      input.type = 'checkbox';
-      input.value = workspace.id;
-      input.checked = this.policy.allowed.includes(workspace.id);
-      label.append(input, document.createTextNode(workspace.name));
-      this.choices.append(label);
-    }
-    this.dialog.showModal();
-  };
-  private saveAllowlist = (): void => {
-    const allowed = [...this.choices.querySelectorAll<HTMLInputElement>('input:checked')].map((input) => input.value);
-    this.dialog.close();
-    this.commit({ ...this.policy, allowed });
+    document.dispatchEvent(new Event('open-privacy-settings'));
   };
   private panic = (event: KeyboardEvent): void => {
     if (
@@ -126,6 +94,5 @@ export class PrivacyControls {
     this.toggle.removeEventListener('click', this.change);
     this.configure.removeEventListener('click', this.open);
     this.toolbar.remove();
-    this.dialog.remove();
   }
 }

@@ -1,11 +1,20 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { HotkeyPanel } from './hotkeys-ui';
-import { defaultBindings } from './hotkeys';
-let panel: HotkeyPanel | undefined;
+import { ShortcutPanel } from './shortcuts-ui';
+import { HotkeyRuntime } from './hotkeys-runtime';
+import { CommandPalette } from './shell/palette';
+import { CommandRegistry } from './shell/registry';
+import { ACTIONS, defaultBindings } from './hotkeys';
+let panel: ShortcutPanel | undefined;
+let runtime: HotkeyRuntime | undefined;
+let palette: CommandPalette | undefined;
+let registry: CommandRegistry | undefined;
 beforeEach(() => localStorage.clear());
 afterEach(() => {
   panel?.stop();
+  runtime?.stop();
+  palette?.stop();
+  registry?.stop();
   document.body.replaceChildren();
   vi.unstubAllGlobals();
 });
@@ -14,21 +23,33 @@ function setup() {
     settings = document.createElement('button');
   document.body.append(trigger, settings);
   const run = vi.fn();
-  panel = new HotkeyPanel(trigger, settings, run, () => [
+  registry = new CommandRegistry();
+  const dispatch = (id: (typeof ACTIONS)[number]['id']) => {
+    if (id === 'palette') palette!.show();
+    else if (id === 'shortcuts') panel!.open();
+    else run(id);
+  };
+  runtime = new HotkeyRuntime(dispatch);
+  panel = new ShortcutPanel(runtime);
+  for (const action of ACTIONS)
+    registry.register({ id: action.id, label: action.label, group: 'chat', run: () => dispatch(action.id) });
+  palette = new CommandPalette(registry, () => [
     { id: 'channel:room', label: 'Send channel: room', context: 'chat', run: () => run('channel:room') },
   ]);
+  trigger.addEventListener('click', () => palette!.show());
+  settings.addEventListener('click', () => panel!.open());
   return { trigger, settings, run };
 }
 it('opens a searchable palette, supports keyboard selection and never executes an action while searching', () => {
   const { trigger, run } = setup();
   trigger.click();
-  const input = document.querySelector<HTMLInputElement>('#action-search')!;
+  const input = document.querySelector<HTMLInputElement>('#shell-palette input')!;
   input.value = 'send channel: room';
   input.dispatchEvent(new Event('input'));
   expect(run).not.toHaveBeenCalled();
   input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
   expect(run).toHaveBeenCalledWith('channel:room');
-  expect(document.querySelector<HTMLDialogElement>('#action-palette')?.open).toBe(false);
+  expect(document.querySelector<HTMLDialogElement>('#shell-palette')?.open).toBe(false);
 });
 it('shows conflicts without writing settings and resets only keyboard preferences', () => {
   const { settings } = setup();
@@ -128,8 +149,8 @@ it('allows archive shortcuts and the palette with a pinned rail, while other ope
   expect(run).toHaveBeenCalledWith('history');
   run.mockClear();
   trigger.click();
-  expect(document.querySelector<HTMLDialogElement>('#action-palette')?.open).toBe(true);
-  document.querySelector<HTMLDialogElement>('#action-palette')!.close();
+  expect(document.querySelector<HTMLDialogElement>('#shell-palette')?.open).toBe(true);
+  document.querySelector<HTMLDialogElement>('#shell-palette')!.close();
   const modal = document.createElement('dialog');
   document.body.append(modal);
   modal.showModal();
@@ -167,8 +188,8 @@ it('exposes the account selector as a configurable palette action with guarded d
   );
   expect(run).toHaveBeenCalledWith('accounts');
   trigger.click();
-  const input = document.querySelector<HTMLInputElement>('#action-search')!;
+  const input = document.querySelector<HTMLInputElement>('#shell-palette input')!;
   input.value = 'account profiles';
   input.dispatchEvent(new Event('input'));
-  expect(document.querySelector('#action-results')?.textContent).toContain('Open account profiles');
+  expect(document.querySelector('#shell-palette-list')?.textContent).toContain('Open account profiles');
 });

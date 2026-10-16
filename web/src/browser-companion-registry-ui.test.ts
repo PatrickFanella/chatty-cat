@@ -42,9 +42,7 @@ function setup(current = () => auth) {
     () => '',
     vi.fn(),
   );
-  Array.from(document.querySelectorAll('button'))
-    .find((b) => b.textContent === 'Browser companion')!
-    .click();
+  panel.open();
   return sendMessage;
 }
 it('selects/remembers/forgets public IDs without extension requests or saved pairing data', async () => {
@@ -87,9 +85,7 @@ it('keeps one active companion, locks switching while paired and clears registry
   expect(requests.mock.calls.every((c) => c[0] === 'a'.repeat(32))).toBe(true);
   button('Return to chat; keep browser bridge connected').click();
   await vi.waitFor(() => expect(panel!.root.open).toBe(false));
-  Array.from(document.querySelectorAll('button'))
-    .find((b) => b.textContent === 'Browser bridge active')!
-    .click();
+  panel!.open();
   expect(select.value).toBe('a'.repeat(32));
   expect(select.disabled).toBe(true);
   current = { ...auth, userID: '43' };

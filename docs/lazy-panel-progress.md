@@ -1,12 +1,11 @@
 # Lazy panel conversion
 
-Issue [#130](https://git.subcult.tv/subculture-collective/chatty-cat/issues/130)
-remains open. Eight panels now use the lifecycle: **IRC conversations**,
-**Chatterino import**, **Completion**, **Link preferences**, **Custom themes**,
-**Compare activity**, **Export logs** and **Device sync**. Other panels still
-construct eagerly. The application has not reached the issue's startup-DOM or
-closed-panel timer acceptance gates. The sections below retain each slice's
-local evidence rather than treating it as a new full resource qualification.
+The complete conversion now covers all 40 independently registered panel roots,
+plus lazy contextual popovers, pane settings and the command palette. The final
+implementation, inventory, compatibility notes and current local evidence are in
+[Complete panel lifecycle](panel-lifecycle-migration.md). Header mirroring, global
+dialog patching and body-wide panel discovery have been removed. The records
+below describe earlier slices and retain their historical proof boundaries.
 
 ## Contract and construction
 
@@ -283,22 +282,11 @@ is precached. Total download, CPU/heap savings and full #130 acceptance remain
 unqualified. No browser sync connection, server mutation, download or deployment
 was performed. The large main-chunk warning remains.
 
-## Continue the conversion
+## Completion
 
-Keep #130 open while migrating the remaining panels in reviewed batches. Before
-deferring each constructor, separate any startup responsibility that must remain:
-saved-setting registration/validation, active extension runtimes, companion
-bridges, context subscriptions, rules/completion state and metadata consumers.
-Do not make those features depend on opening a settings panel.
-
-The first-slice main entry measured 348.97 kB gzip, compared with 356.44 kB
-before that slice. IRC and import chunks measured 4.88 and 5.36 kB gzip respectively.
-These are entry/chunk measurements, not a claim of lower total installed bytes
-or measured heap/CPU savings. The manifest also precaches the optional diagnostic
-chunk for offline use; the page still does not execute it until requested.
-
-Continue with other passive editors after checking their settings/model
-initialization paths and consumers outside their dialogs.
-Measure startup DOM, loaded chunks and timer owners with the resource readout
-for each batch. Leave picker/rate scheduling changes and the shared scheduler's
-quantitative acceptance distinguishable from this lifecycle work.
+The remaining panels are converted together in the complete lifecycle change.
+Use the [final inventory and evidence](panel-lifecycle-migration.md) for current
+status. Earlier references to remaining eager panels and legacy adapters describe
+the state at each prior slice. Issue #130 is ready to close when the complete
+change merges; production deployment and broader performance qualification remain
+separate.

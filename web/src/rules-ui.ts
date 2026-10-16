@@ -1,56 +1,42 @@
-import { profileKey } from './account-profiles';
+import { showPanel } from './shell/open-panel';
 import { RuleEngine, parseRules, type MessageRule } from './rules';
-import { SimilarMessages, parseSimilarity } from './similar';
 import { privacyEnabled } from './privacy';
-import { registerSettings } from './settings-bundle';
-export interface RulePreferences {
-  muted: boolean;
-  quietStart: number;
-  quietEnd: number;
-}
-export class RulePanel {
+import type { RuleRuntime } from './rules-runtime';
+import type { Panel } from './shell/panels';
+export class RulePanel implements Panel {
+  readonly id = 'rules-panel';
+  readonly title = 'Rules';
+  readonly group = 'moderation';
   readonly root = document.createElement('dialog');
-  readonly trigger = document.createElement('button');
-  engine = new RuleEngine([]);
-  similarity = new SimilarMessages(parseSimilarity(null));
-  preferences: RulePreferences = { muted: false, quietStart: 0, quietEnd: 0 };
-  private raw: string | null = null;
   private preview = '';
-  private stopSettings: () => void;
-  constructor(private changed: () => void) {
+  get engine() {
+    return this.runtime.engine;
+  }
+  get similarity() {
+    return this.runtime.similarity;
+  }
+  get preferences() {
+    return this.runtime.preferences;
+  }
+  constructor(private runtime: RuleRuntime) {
     this.root.id = 'rules-panel';
     this.root.setAttribute('aria-label', 'Message rules');
     this.root.innerHTML =
       '<h2>Message rules</h2><button type="button" data-action="close">Close</button><label>Saved rule<select id="rule-selected"><option value="">New rule</option></select></label><label>Name<input id="rule-name" maxlength="60"></label><label>Match field<select id="rule-field"><option value="phrase">Phrase</option><option value="author">Author</option><option value="badge">Badge</option><option value="source">Origin room ID</option><option value="sourcebadge">Origin badge</option><option value="reward">Reward ID/type</option><option value="streak">Watch streak</option><option value="effect">Message effect</option><option value="type">Message type</option></select></label><label>Pattern<input id="rule-pattern" maxlength="128"></label><label><input type="checkbox" id="rule-regex">Regular expression</label><label><input type="checkbox" id="rule-caseSensitive">Case sensitive</label><label>Action<select id="rule-action"><option value="highlight">Highlight</option><option value="ignore">Hide from view</option></select></label><label>Scope<select id="rule-scope"><option value="global">All panes</option><option value="pane">Selected panes</option></select></label><label>Highlight color<input type="color" id="rule-color" value="#b392f0"></label><label><input type="checkbox" id="rule-enabled" checked>Enabled</label><label><input type="checkbox" id="rule-sound">Sound</label><label><input type="checkbox" id="rule-notify">Notification</label><label><input type="checkbox" id="rule-inbox">Include in mentions inbox</label><p>Sound and notifications also require their main settings to be enabled. Privacy mode suppresses alerts. Pane rules are selected in pane settings. Rules run in order; a hide action stops matching.</p><label>Preview text<input id="rule-sample" maxlength="2000" value="Hello chat"></label><label>Preview author<input id="rule-author" maxlength="25" value="alice"></label><label>Preview badges<input id="rule-badges" maxlength="200" value="moderator/1"></label><label>Preview message type<input id="rule-type" maxlength="30" value="PRIVMSG"></label><button type="button" data-action="preview">Preview rule</button><button type="button" data-action="save">Save previewed rule</button><button type="button" data-action="delete">Delete</button><button type="button" data-action="up">Move earlier</button><button type="button" data-action="down">Move later</button><pre id="rule-result"></pre><p id="rule-counts"></p><details><summary>Similarity and quiet hours</summary><label><input id="similar-enabled" type="checkbox">Filter similar messages</label><label>Similarity threshold<input id="similar-threshold" type="number" min="0.5" max="1" step="0.05" value="0.85"></label><label>Window in seconds<input id="similar-windowSeconds" type="number" min="1" max="120" value="30"></label><label>Maximum prior comparisons<input id="similar-maxComparisons" type="number" min="1" max="50" value="20"></label><label><input id="similar-sameAuthorExempt" type="checkbox" checked>Exempt same author</label><label><input id="similar-selfExempt" type="checkbox" checked>Exempt own messages</label><label>Similar message behavior<select id="similar-behavior"><option value="dim">Dim</option><option value="hide">Hide</option></select></label><label><input id="similar-highlightSimilar" type="checkbox">Visible similar messages trigger highlights and alerts</label><label><input id="rule-muted" type="checkbox">Mute rule alerts</label><label>Quiet hours start (0–23)<input id="rule-quietStart" type="number" min="0" max="23" value="0"></label><label>Quiet hours end (0–23)<input id="rule-quietEnd" type="number" min="0" max="23" value="0"></label><p>Equal hours disable quiet hours. Similarity is off by default. Distinct messages remain in history and statistics.</p><button type="button" data-action="preferences">Apply preferences</button></details><p>Regex supports literals, character classes, anchors, alternatives and at most one .* or .+ wildcard. Groups, backreferences and other repetitions are rejected. Patterns are limited to 128 characters; matching examines the first 2,000 characters.</p><p id="rule-status" role="status"></p>';
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Rules';
-    document.getElementById('commands-open')?.after(this.trigger);
     document.body.append(this.root);
     this.root.addEventListener('click', this.click);
     this.root.addEventListener('change', this.select);
     this.root.addEventListener('input', this.invalidate);
-    this.trigger.addEventListener('click', this.open);
-    window.addEventListener('storage', this.storage);
-    try {
-      this.raw = localStorage.getItem(profileKey('chatthing:v1:rules'));
-      if (this.raw) this.restore(JSON.parse(this.raw), false);
-    } catch {
-      this.status('Saved rules could not be read; chat remains available');
-    }
+    this.runtime.addEventListener('change', this.runtimeChanged);
+    this.runtime.addEventListener('counts', this.counts);
+    this.runtimeChanged();
+  }
+  private runtimeChanged = (): void => {
+    this.preview = '';
     this.paint();
     this.syncPreferences();
-    this.stopSettings = registerSettings(
-      'rules',
-      () => this.snapshot(),
-      (value) => {
-        try {
-          this.restore(value, true);
-        } catch {
-          this.status('Workspace rules are invalid; existing rules retained');
-        }
-      },
-    );
-  }
+    this.status(this.runtime.error);
+  };
   private input(name: string): HTMLInputElement {
     return this.root.querySelector<HTMLInputElement>('#rule-' + name)!;
   }
@@ -81,33 +67,6 @@ export class RulePanel {
       ],
     })[0]!;
   }
-  private snapshot(): unknown {
-    return { version: 1, rules: this.engine.rules, similarity: this.similarity.options, preferences: this.preferences };
-  }
-  private restore(value: unknown, persist: boolean): void {
-    if (!value || typeof value !== 'object') throw new Error('Invalid rules');
-    const v = value as Record<string, unknown>;
-    const rules = parseRules(v),
-      similarity = parseSimilarity(v.similarity),
-      p = v.preferences && typeof v.preferences === 'object' ? (v.preferences as Record<string, unknown>) : {};
-    const hour = (key: string): number =>
-      typeof p[key] === 'number' && Number.isInteger(p[key]) && p[key] >= 0 && p[key] <= 23 ? p[key] : 0;
-    const preferences = { muted: p.muted === true, quietStart: hour('quietStart'), quietEnd: hour('quietEnd') };
-    if (persist) {
-      if (localStorage.getItem(profileKey('chatthing:v1:rules')) !== this.raw)
-        throw new Error('Rules changed in another tab; reload before saving');
-      const raw = JSON.stringify({ version: 1, rules, similarity, preferences });
-      localStorage.setItem(profileKey('chatthing:v1:rules'), raw);
-      this.raw = raw;
-    }
-    this.engine = new RuleEngine(rules);
-    this.similarity = new SimilarMessages(similarity);
-    this.preferences = preferences;
-    this.preview = '';
-    this.paint();
-    this.syncPreferences();
-    this.changed();
-  }
   private paint(): void {
     const select = this.root.querySelector<HTMLSelectElement>('#rule-selected')!,
       selected = select.value;
@@ -123,12 +82,12 @@ export class RulePanel {
     select.value = selected;
     this.counts();
   }
-  counts(): void {
+  counts = (): void => {
     this.root.querySelector('#rule-counts')!.textContent =
       this.engine.rules
         .map((r) => r.name + ': ' + (this.engine.counts()[r.id] ?? 0) + ' observed matches')
         .join(' · ') || 'No rules enabled';
-  }
+  };
   private syncPreferences(): void {
     for (const [key, value] of Object.entries(this.similarity.options)) {
       const el = this.root.querySelector<HTMLInputElement | HTMLSelectElement>('#similar-' + key)!;
@@ -138,15 +97,6 @@ export class RulePanel {
     this.input('muted').checked = this.preferences.muted;
     this.input('quietStart').value = String(this.preferences.quietStart);
     this.input('quietEnd').value = String(this.preferences.quietEnd);
-  }
-  alertsAllowed(now = new Date()): boolean {
-    const p = this.preferences,
-      h = now.getHours();
-    return (
-      !p.muted &&
-      (p.quietStart === p.quietEnd ||
-        (p.quietStart < p.quietEnd ? h < p.quietStart || h >= p.quietEnd : h < p.quietStart && h >= p.quietEnd))
-    );
   }
   private invalidate = (): void => {
     this.preview = '';
@@ -164,19 +114,10 @@ export class RulePanel {
     }
     this.preview = '';
   };
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.counts();
-    this.root.showModal();
-  };
-  private storage = (e: StorageEvent): void => {
-    if (e.key !== profileKey('chatthing:v1:rules')) return;
-    try {
-      this.raw = e.newValue;
-      this.restore(JSON.parse(e.newValue ?? '{"rules":[]}'), false);
-    } catch {
-      this.status('Rules changed but could not be loaded; existing rules retained');
-    }
+    showPanel(this.root);
   };
   private click = (event: MouseEvent): void => {
     if (!(event.target instanceof Element)) return;
@@ -223,7 +164,7 @@ export class RulePanel {
                 ? Number(el.value)
                 : el.value;
         }
-        this.restore(
+        this.runtime.restore(
           {
             rules: this.engine.rules,
             similarity: values,
@@ -254,20 +195,21 @@ export class RulePanel {
         if (index < 0 || next < 0 || next >= rules.length) return;
         [rules[index], rules[next]] = [rules[next]!, rules[index]!];
       }
-      this.restore({ ...(this.snapshot() as object), rules }, true);
+      this.runtime.restore({ ...(this.runtime.snapshot() as object), rules }, true);
       this.status('Rules saved');
     } catch (e) {
       this.status(e instanceof Error ? e.message : 'Rules could not be saved');
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
-    this.stopSettings();
-    window.removeEventListener('storage', this.storage);
-    this.trigger.removeEventListener('click', this.open);
+    this.runtime.removeEventListener('change', this.runtimeChanged);
+    this.runtime.removeEventListener('counts', this.counts);
     this.root.removeEventListener('click', this.click);
     this.root.removeEventListener('change', this.select);
     this.root.removeEventListener('input', this.invalidate);
     this.root.remove();
-    this.trigger.remove();
   }
 }

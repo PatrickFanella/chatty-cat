@@ -1,10 +1,14 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import type { ChatMessage } from './protocol';
 import { privacyEnabled } from './privacy';
 import { parseChatContext, applyChatContext, type ChatContextRow } from './chat-context';
-export class ChatContextPanel {
+export class ChatContextPanel implements Panel {
+  readonly id = 'chat-context-panel';
+  title = 'Public message context';
+  readonly group = 'moderation';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private channel = document.createElement('select');
   private status = document.createElement('p');
   private report = document.createElement('p');
@@ -22,8 +26,9 @@ export class ChatContextPanel {
     private channels: () => readonly string[],
     private current: () => string,
     private changed: () => number,
-    readonlyView = false,
+    private readonlyView = false,
   ) {
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Public message context');
     const heading = document.createElement('h2');
     heading.textContent = 'Optional public EventSub context';
@@ -54,12 +59,7 @@ export class ChatContextPanel {
       }),
       this.button('Close and disconnect public context', () => this.root.close()),
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Public message context';
-    this.trigger.hidden = readonlyView;
-    document.getElementById('commands-open')?.after(this.trigger);
     document.body.append(this.root);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     this.channel.addEventListener('change', this.channelChanged);
     document.addEventListener('privacychange', this.privacy);
@@ -98,7 +98,8 @@ export class ChatContextPanel {
           (auth.chatContextEnabled ? 'Ready to connect explicitly' : 'Grant user:read:chat first')
         : 'Log in to read supplemental public context';
   }
-  private open = (): void => {
+  open = (): void => {
+    if (this.readonlyView) return;
     if (privacyEnabled()) return;
     this.channel.replaceChildren();
     for (const name of this.channels()) {
@@ -112,7 +113,7 @@ export class ChatContextPanel {
     if (this.connected && !this.channels().includes(this.connected.channel))
       this.disconnect('Joined channels changed; reconnect explicitly');
     this.permission();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private valid(): boolean {
     const auth = this.auth(),
@@ -144,7 +145,8 @@ export class ChatContextPanel {
     const generation = this.generation,
       source = (this.source = new EventSource('/api/auth/chat-context/events?' + new URLSearchParams({ channel })));
     this.status.textContent = 'Connecting supplemental public context…';
-    this.trigger.textContent = 'Public context: #' + channel;
+    this.title = 'Public context: #' + channel;
+    document.dispatchEvent(new Event('panelstatechange'));
     source.addEventListener('snapshot', (event) => {
       if (generation !== this.generation || source !== this.source) return;
       if (!this.valid()) {
@@ -197,13 +199,14 @@ export class ChatContextPanel {
     this.source?.close();
     this.source = undefined;
     this.connected = undefined;
+    this.title = 'Public message context';
+    document.dispatchEvent(new Event('panelstatechange'));
     this.rows.clear();
     this.broadcaster = '';
     this.epoch = '';
     this.signature = '';
     this.report.textContent = '';
     this.status.textContent = detail;
-    this.trigger.textContent = 'Public message context';
   }
   authChanged(): void {
     if (this.connected && !this.valid())
@@ -227,13 +230,14 @@ export class ChatContextPanel {
       this.root.close();
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.disconnect();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('close', this.closed);
     this.channel.removeEventListener('change', this.channelChanged);
     document.removeEventListener('privacychange', this.privacy);
     this.root.remove();
-    this.trigger.remove();
   }
 }

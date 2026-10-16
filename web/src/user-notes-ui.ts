@@ -1,8 +1,12 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { UserNotes, parseUserNotes, USER_NOTE_BYTES, type UserNoteBackup } from './user-notes';
 import { privacyEnabled, PRIVACY_KEY } from './privacy';
-export class UserNotesPanel {
+export class UserNotesPanel implements Panel {
+  readonly id = 'user-notes';
+  readonly title = 'User notes';
+  readonly group = 'account';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private store = new UserNotes();
   private account: string | undefined;
   private generation = 0;
@@ -20,13 +24,7 @@ export class UserNotesPanel {
   constructor() {
     this.root.id = 'user-notes';
     this.root.setAttribute('aria-label', 'Private user notes');
-    this.trigger.disabled = true;
     this.file.disabled = true;
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'User notes';
-    this.trigger.id = 'user-notes-open';
-    document.getElementById('account-profiles-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.show);
     const title = document.createElement('h2');
     title.textContent = 'Private user notes';
     const help = document.createElement('p');
@@ -126,7 +124,6 @@ export class UserNotesPanel {
     if (account === this.account) return;
     this.account = account;
     this.closed();
-    this.trigger.disabled = !account;
     this.file.disabled = !account;
     try {
       this.store.setAccount(account);
@@ -135,13 +132,13 @@ export class UserNotesPanel {
     }
     if (this.root.open) this.root.close();
   }
-  private show = (): void => {
+  open = (): void => {
     if (privacyEnabled() || !this.account) return;
     this.closed();
     try {
       this.store.setAccount(this.account);
       this.paint();
-      this.root.showModal();
+      showPanel(this.root);
     } catch (e) {
       this.status.textContent = e instanceof Error ? e.message : 'User notes unavailable';
     }
@@ -261,13 +258,14 @@ export class UserNotesPanel {
       }
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.closed();
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.storage);
-    this.trigger.removeEventListener('click', this.show);
     this.root.removeEventListener('close', this.closed);
     this.root.remove();
-    this.trigger.remove();
   }
 }

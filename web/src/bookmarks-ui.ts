@@ -1,3 +1,5 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import { privacyEnabled } from './privacy';
 import type { ChatMessage } from './protocol';
 import type { MessageArchive } from './archive';
@@ -15,9 +17,11 @@ import {
   type BookmarkKind,
   type BookmarkShare,
 } from './bookmarks';
-export class BookmarksPanel {
+export class BookmarksPanel implements Panel {
+  readonly id = 'bookmarks-panel';
+  readonly title = 'Bookmarks';
+  readonly group = 'chat';
   readonly root = document.createElement('dialog');
-  readonly trigger = document.createElement('button');
   private store = new BookmarkStore();
   private account: string | undefined;
   private generation = 0;
@@ -66,9 +70,6 @@ export class BookmarksPanel {
     const help = document.createElement('p');
     help.textContent =
       'Public message and conversation excerpts are saved on this device, separately for each account or the signed-out profile. Notes and tags stay private. Up to 200 bookmarks / 1 MB; five context excerpts and 1,000 characters per message. These snapshots are not a complete thread or a current moderation record.';
-    this.trigger.textContent = 'Bookmarks';
-    this.trigger.type = 'button';
-    document.getElementById('archive-open')?.after(this.trigger);
     this.status.setAttribute('role', 'status');
     this.root.append(
       title,
@@ -254,7 +255,6 @@ export class BookmarksPanel {
     );
     this.root.append(this.edit, this.share, backup, this.status);
     document.body.append(this.root);
-    this.trigger.addEventListener('click', this.open);
     this.log.addEventListener('click', this.captureRow);
     this.root.addEventListener('close', this.closed);
     document.addEventListener('privacychange', this.privacy);
@@ -341,10 +341,10 @@ export class BookmarksPanel {
     this.publicLink.removeAttribute('href');
     this.clearShare();
   }
-  private open = (): void => {
+  open = (): void => {
     if (privacyEnabled()) return;
     this.paintList();
-    this.root.showModal();
+    showPanel(this.root);
     this.find.focus();
   };
   private closed = (): void => {
@@ -375,7 +375,6 @@ export class BookmarksPanel {
   private paintList(): void {
     this.list.replaceChildren();
     this.prev.disabled = this.next.disabled = true;
-    this.trigger.disabled = this.account === undefined;
     this.file.disabled = this.account === undefined;
     if (privacyEnabled()) return;
     try {
@@ -465,14 +464,14 @@ export class BookmarksPanel {
           .find((b) => b.kind === 'message' && bookmarkIdentity(b.message) === bookmarkIdentity(anchor));
       if (existing) {
         this.choose(existing);
-        if (!this.root.open) this.root.showModal();
+        if (!this.root.open) showPanel(this.root);
         return;
       }
       this.pending = anchor;
       this.kind.value = 'message';
       this.edit.disabled = false;
       this.status.textContent = 'Loading retained local context…';
-      if (!this.root.open) this.root.showModal();
+      if (!this.root.open) showPanel(this.root);
       const parts = await Promise.all([
         this.archive.search(
           {
@@ -631,15 +630,16 @@ export class BookmarksPanel {
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.generation++;
     this.controller?.abort();
-    this.trigger.removeEventListener('click', this.open);
     this.log.removeEventListener('click', this.captureRow);
     this.root.removeEventListener('close', this.closed);
     document.removeEventListener('privacychange', this.privacy);
     window.removeEventListener('storage', this.storage);
     this.root.remove();
-    this.trigger.remove();
   }
 }

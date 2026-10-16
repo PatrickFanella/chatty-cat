@@ -1,10 +1,14 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import { privacyEnabled } from './privacy';
 import { ProviderActivity } from './provider-activity';
 
-export class ProviderActivityPanel {
+export class ProviderActivityPanel implements Panel {
+  readonly id = 'provider-activity-panel';
+  title = 'Provider activity';
+  readonly group = 'providers';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private detail = document.createElement('p');
   private startButton: HTMLButtonElement;
   private controller: ProviderActivity;
@@ -15,8 +19,9 @@ export class ProviderActivityPanel {
     auth: () => AuthStatus | undefined,
     channel: () => { channel: string; broadcasterID: string } | undefined,
     bttv: (auth: AuthStatus, id: string) => boolean,
-    readonlyView = false,
+    private readonlyView = false,
   ) {
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Provider activity');
     const h = document.createElement('h2');
     h.textContent = 'Provider activity sharing';
@@ -60,11 +65,6 @@ export class ProviderActivityPanel {
       }),
       this.detail,
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Provider activity';
-    this.trigger.hidden = readonlyView;
-    this.trigger.addEventListener('click', this.open);
-    document.getElementById('commands-open')?.after(this.trigger);
     this.root.addEventListener('close', this.closed);
     document.addEventListener('privacychange', this.privacy);
     document.body.append(this.root);
@@ -78,7 +78,8 @@ export class ProviderActivityPanel {
   }
   private status(text: string): void {
     this.detail.textContent = text;
-    this.trigger.textContent = this.controller?.running ? 'Provider activity active' : 'Provider activity';
+    this.title = this.controller?.running ? 'Provider activity active' : 'Provider activity';
+    document.dispatchEvent(new Event('panelstatechange'));
   }
   private run(action: () => Promise<void>): void {
     if (this.busy || privacyEnabled()) return;
@@ -96,8 +97,9 @@ export class ProviderActivityPanel {
         if (generation === this.generation) this.busy = false;
       });
   }
-  private open = (): void => {
-    if (!privacyEnabled()) this.root.showModal();
+  open = (): void => {
+    if (this.readonlyView) return;
+    if (!privacyEnabled()) showPanel(this.root);
   };
   private closed = (): void => {
     if (this.keep) {
@@ -123,13 +125,14 @@ export class ProviderActivityPanel {
     this.controller.authChanged();
     if (!this.controller.running) this.startButton.disabled = true;
   }
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.generation++;
     this.controller.dispose();
     document.removeEventListener('privacychange', this.privacy);
     this.root.removeEventListener('close', this.closed);
     this.root.remove();
-    this.trigger.removeEventListener('click', this.open);
-    this.trigger.remove();
   }
 }

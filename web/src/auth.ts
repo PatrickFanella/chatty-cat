@@ -1,5 +1,7 @@
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
-import { AccountControls } from './account-profiles-ui';
+import type { AccountControls } from './account-profiles-ui';
+import { AccountProfiles } from './account-profiles';
+import type { Panel } from './shell/panels';
 export type AuthStatus = {
   enabled: boolean;
   authenticated: boolean;
@@ -116,7 +118,7 @@ export function mountAuth(
   button: HTMLButtonElement,
   label: HTMLElement,
   onChange: (status: AuthStatus | undefined) => void = () => {},
-): () => void {
+): (() => void) & { loadAccountsPanel: () => Promise<() => Panel> } {
   let session: AuthStatus | undefined;
   let disposed = false;
   let generation = 0;
@@ -142,13 +144,14 @@ export function mountAuth(
   } catch {
     /* optional sync */
   }
-  const accounts = new AccountControls(button, async (target) => {
+  let accounts: AccountControls | undefined;
+  const changeAccount = async (target: string | undefined): Promise<void> => {
     if (changing || !session) throw new Error('Wait for login status before changing accounts');
     changing = true;
     generation++;
     const previous = session;
     onChange(undefined);
-    accounts.setAuth(undefined);
+    accounts?.setAuth(undefined);
     button.disabled = true;
     try {
       if (previous.authenticated) await logout(previous.csrf!);
@@ -172,7 +175,7 @@ export function mountAuth(
     } finally {
       changing = false;
     }
-  });
+  };
   async function update(): Promise<void> {
     const current = ++generation;
     try {
@@ -189,7 +192,16 @@ export function mountAuth(
         }
       }
       onChange(data);
-      accounts.setAuth(data);
+      if (data.authenticated && data.userID && data.login) {
+        try {
+          const profiles = new AccountProfiles();
+          const saved = profiles.list().find((profile) => profile.id === data.userID);
+          if (!saved || saved.login !== data.login) profiles.remember(data.userID, data.login);
+        } catch {
+          /* Keep authentication usable when profile storage is unavailable. */
+        }
+      }
+      accounts?.setAuth(data);
       button.disabled = !data.enabled;
       button.textContent = data.authenticated ? 'Sign out' : 'Log in with Twitch';
       label.textContent = data.authenticated
@@ -201,7 +213,7 @@ export function mountAuth(
       if (!disposed && current === generation) {
         session = undefined;
         onChange(undefined);
-        accounts.setAuth(undefined);
+        accounts?.setAuth(undefined);
         button.disabled = true;
         label.textContent = 'Login status unavailable';
       }
@@ -212,7 +224,7 @@ export function mountAuth(
     generation++;
     changing = true;
     onChange(undefined);
-    accounts.setAuth(undefined);
+    accounts?.setAuth(undefined);
     button.disabled = true;
     if (!session.authenticated) {
       const url = new URL(session.loginURL);
@@ -249,13 +261,21 @@ export function mountAuth(
     },
     60000,
   );
-  return () => {
+  const stop = () => {
     disposed = true;
-    accounts.stop();
+    accounts?.stop();
     controller.abort();
     clearOwnedInterval(timer);
     sync?.removeEventListener('message', reload);
     sync?.close();
     button.removeEventListener('click', click);
   };
+  return Object.assign(stop, {
+    loadAccountsPanel: () =>
+      import('./account-profiles-ui').then(({ AccountControls }) => () => {
+        accounts = new AccountControls(button, changeAccount);
+        accounts.setAuth(session);
+        return accounts;
+      }),
+  });
 }

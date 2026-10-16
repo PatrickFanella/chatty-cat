@@ -1,3 +1,5 @@
+import { showPanel } from './shell/open-panel';
+import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import { privacyEnabled } from './privacy';
 interface UserHoldRow {
@@ -77,9 +79,11 @@ export function parseUserHolds(raw: unknown, account: string, channel: string): 
     rows,
   };
 }
-export class UserHoldPanel {
+export class UserHoldPanel implements Panel {
+  readonly id = 'user-hold-panel';
+  readonly title = 'Own message feedback';
+  readonly group = 'account';
   readonly root = document.createElement('dialog');
-  private trigger = document.createElement('button');
   private channel = document.createElement('select');
   private status = document.createElement('p');
   private list = document.createElement('div');
@@ -91,8 +95,9 @@ export class UserHoldPanel {
     private auth: () => AuthStatus | undefined,
     private channels: () => readonly string[],
     private currentChannel: () => string,
-    readonlyView = false,
+    private readonlyView = false,
   ) {
+    this.root.id = this.id;
     this.root.setAttribute('aria-label', 'Own message feedback');
     this.root.dataset.privateUserHolds = 'true';
     const h = document.createElement('h2');
@@ -117,11 +122,6 @@ export class UserHoldPanel {
       this.status,
       this.button('Close own-message feedback', () => this.root.close()),
     );
-    this.trigger.type = 'button';
-    this.trigger.textContent = 'Own message feedback';
-    this.trigger.hidden = readonlyView;
-    document.getElementById('commands-open')?.after(this.trigger);
-    this.trigger.addEventListener('click', this.open);
     this.root.addEventListener('close', this.closed);
     this.channel.addEventListener('change', this.channelChanged);
     document.addEventListener('privacychange', this.privacy);
@@ -159,7 +159,8 @@ export class UserHoldPanel {
         (auth.userFeedbackEnabled ? 'Ready to connect explicitly' : 'Grant user:read:chat first')
       : 'Log in to read your own message feedback';
   }
-  private open = (): void => {
+  open = (): void => {
+    if (this.readonlyView) return;
     if (privacyEnabled()) return;
     this.disconnect();
     this.channel.replaceChildren();
@@ -173,7 +174,7 @@ export class UserHoldPanel {
     if ([...this.channel.options].some((o) => o.value === this.currentChannel()))
       this.channel.value = this.currentChannel();
     this.permission();
-    this.root.showModal();
+    showPanel(this.root);
   };
   private connect(): void {
     const auth = this.auth(),
@@ -264,13 +265,14 @@ export class UserHoldPanel {
       this.root.close();
     }
   };
+  close(): void {
+    this.root.close();
+  }
   stop(): void {
     this.disconnect();
-    this.trigger.removeEventListener('click', this.open);
     this.root.removeEventListener('close', this.closed);
     this.channel.removeEventListener('change', this.channelChanged);
     document.removeEventListener('privacychange', this.privacy);
     this.root.remove();
-    this.trigger.remove();
   }
 }

@@ -1,3 +1,4 @@
+import { showPanel } from './shell/open-panel';
 import { privacyEnabled } from './privacy';
 import {
   LinkPreferenceStore,
@@ -11,7 +12,6 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 export class LinkTools {
   private searchRoot: HTMLDialogElement | undefined;
-  private searchTrigger = document.createElement('button');
   private openingStatus = document.createElement('p');
   private selected = '';
   private resolveAbort: AbortController | undefined;
@@ -21,12 +21,8 @@ export class LinkTools {
     private changed: () => void = () => {},
     private readonlyView = false,
   ) {
-    this.searchTrigger.type = 'button';
-    this.searchTrigger.textContent = 'Search selected chat text';
-    this.searchTrigger.hidden = readonlyView;
-    log.before(this.searchTrigger, this.openingStatus);
+    log.before(this.openingStatus);
     this.openingStatus.setAttribute('role', 'status');
-    this.searchTrigger.addEventListener('click', this.selection);
     document.addEventListener('privacychange', this.privacy);
     document.addEventListener('linkpreferenceschange', this.preferencesChanged);
     log.addEventListener('click', this.click, true);
@@ -68,10 +64,9 @@ export class LinkTools {
     document.dispatchEvent(new Event('linkpreferenceschange'));
   }
   private preferencesChanged = (): void => {
-    this.searchTrigger.disabled = !getLinkPreferences().searchEnabled || privacyEnabled();
     this.changed();
   };
-  private selection = (): void => {
+  selection = (): void => {
     if (privacyEnabled() || this.readonlyView || !getLinkPreferences().searchEnabled) return;
     const selection = document.getSelection();
     if (
@@ -110,7 +105,7 @@ export class LinkTools {
       link,
       this.button('Close selection search', () => this.search.close()),
     );
-    this.search.showModal();
+    showPanel(this.search);
   };
   private resolveReview(raw: string): void {
     if (privacyEnabled() || this.readonlyView || !getLinkPreferences().unshorten) return;
@@ -176,7 +171,7 @@ export class LinkTools {
       result,
       this.button('Close link resolution', () => this.search.close()),
     );
-    this.search.showModal();
+    showPanel(this.search);
   }
   private clearSearch = (): void => {
     this.resolveGeneration++;
@@ -232,7 +227,6 @@ export class LinkTools {
   };
   stop(): void {
     this.clearSearch();
-    this.searchTrigger.removeEventListener('click', this.selection);
     this.searchRoot?.removeEventListener('close', this.clearSearch);
     document.removeEventListener('privacychange', this.privacy);
     document.removeEventListener('linkpreferenceschange', this.preferencesChanged);
@@ -240,7 +234,6 @@ export class LinkTools {
     this.log.removeEventListener('dblclick', this.double, true);
     this.openingStatus.remove();
     this.searchRoot?.remove();
-    this.searchTrigger.remove();
     setLinkPreferences(linkDefaults);
   }
 }
