@@ -9,7 +9,11 @@ export class StorageWorkerShim extends EventTarget {
     if (this.terminated) throw new Error('Worker terminated');
     const request = structuredClone(value);
     void Promise.resolve()
-      .then(() => this.host.handle(request))
+      .then(() =>
+        this.host.handle(request, (progress) => {
+          if (!this.terminated) this.dispatchEvent(new MessageEvent('message', { data: structuredClone(progress) }));
+        }),
+      )
       .then((reply) => {
         if (!this.terminated && reply)
           this.dispatchEvent(new MessageEvent('message', { data: structuredClone(reply) }));

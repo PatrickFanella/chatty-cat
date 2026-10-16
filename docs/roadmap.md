@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 16, 2026 against main `98d120c` and the live Gitea issue inventory.
+Updated October 16, 2026 against main `2062797` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -194,13 +194,15 @@ viewport round trip; synthetic whispers/moderation and touch-event checks retain
 their provider/device qualification limits. See [compact panel evidence](compact-panels.md).
 All four PR-head hosted checks passed. These panel changes are not deployed.
 
-The first #137 migration moves private journal transactions and capacity checks
-to a dedicated storage worker. Existing receipt/account/recovery checks pass
-through the worker shim; a native worker retained synthetic receipts with no
-main-thread journal database opens or provider writes. See the
-[staged worker plan and evidence](storage-worker-migration.md). Pending review.
-#137 remains open: archive/query migration is next, followed by statistics/rates
-and the 15-minute busy-channel long-task qualification.
+The first #137 migration merged in PR #162, moving private journal transactions
+and capacity checks to a dedicated storage worker. All four PR-head checks passed.
+The second stage moves archive reads, searches and bounded channel scans to the
+worker, with cloneable filters, cancellation and progress. Local validation passed
+879 tests; native Chromium scanned 1,500 public records with zero main-thread
+archive read transactions and no private sentinel. See the
+[staged worker plan and evidence](storage-worker-migration.md). The archive-query
+stage is pending review. #137 remains open: archive writes/retention ownership is
+next, followed by statistics/rates and the 15-minute busy-channel qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

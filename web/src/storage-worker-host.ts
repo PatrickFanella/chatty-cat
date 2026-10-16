@@ -1,12 +1,29 @@
+import { ArchiveReader } from './archive-reader';
 import { JournalStore } from './moderation-journal-store';
-import type { StorageReply, StorageRequest } from './storage-worker-protocol';
+import type { StorageProgress, StorageReply, StorageRequest } from './storage-worker-protocol';
 
 export class StorageWorkerHost {
-  private journal = new JournalStore();
+  private journalStore: JournalStore | undefined;
+  private get journal(): JournalStore {
+    return (this.journalStore ??= new JournalStore());
+  }
+  private archive: ArchiveReader | undefined;
+  private controllers = new Map<number, AbortController>();
   private pending = new Set<Promise<unknown>>();
   private closing = false;
   private stopped: Promise<void> | undefined;
-  async handle(raw: unknown): Promise<StorageReply | undefined> {
+  async handle(raw: unknown, progress: (value: StorageProgress) => void = () => {}): Promise<StorageReply | undefined> {
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      'version' in raw &&
+      raw.version === 1 &&
+      'cancel' in raw &&
+      Number.isSafeInteger(raw.cancel)
+    ) {
+      this.controllers.get(Number(raw.cancel))?.abort();
+      return;
+    }
     if (!raw || typeof raw !== 'object' || !('id' in raw) || !Number.isSafeInteger(raw.id) || Number(raw.id) < 1)
       return;
     const id = Number(raw.id);
@@ -20,12 +37,17 @@ export class StorageWorkerHost {
         await this.stop();
         return { version: 1, id, ok: true, result: undefined };
       }
-      const operation = this.execute(request);
+      const controller = new AbortController();
+      this.controllers.set(id, controller);
+      const operation = this.execute(request, controller.signal, (scanned) =>
+        progress({ version: 1, id, progress: scanned }),
+      );
       this.pending.add(operation);
       try {
         return { version: 1, id, ok: true, result: await operation };
       } finally {
         this.pending.delete(operation);
+        this.controllers.delete(id);
       }
     } catch (error) {
       return {
@@ -42,9 +64,28 @@ export class StorageWorkerHost {
       };
     }
   }
-  private async execute(request: StorageRequest): Promise<unknown> {
+  private async execute(
+    request: StorageRequest,
+    signal: AbortSignal,
+    progress: (scanned: number) => void,
+  ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
+      case 'archive.get':
+        return (this.archive ??= new ArchiveReader()).get(...request.args);
+      case 'archive.recent':
+        return (this.archive ??= new ArchiveReader()).recent(...request.args, signal);
+      case 'archive.search':
+        return (this.archive ??= new ArchiveReader()).search(...request.args, signal);
+      case 'archive.searchPage':
+        return (this.archive ??= new ArchiveReader()).searchPage(...request.args, signal, progress);
+      case 'archive.scanPage':
+        return (this.archive ??= new ArchiveReader()).scanPage(
+          request.args[0],
+          request.args[1],
+          request.args[2],
+          signal,
+        );
       case 'journal.list':
         if (args.length !== 1 || typeof args[0] !== 'string') break;
         return this.journal.list(request.args[0]);
@@ -71,7 +112,10 @@ export class StorageWorkerHost {
   stop(): Promise<void> {
     if (!this.stopped) {
       this.closing = true;
-      this.stopped = Promise.allSettled([...this.pending]).then(() => this.journal.stop());
+      this.stopped = Promise.allSettled([...this.pending]).then(async () => {
+        await this.journalStore?.stop();
+        await this.archive?.stop();
+      });
     }
     return this.stopped;
   }
