@@ -3,6 +3,7 @@ import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import { getProfileScope, profileKey } from './account-profiles';
 import { privacyEnabled } from './privacy';
+import { panelActions, panelDetails, panelSection } from './panel-sections';
 import {
   makeDeviceDocument,
   parseDeviceDocument,
@@ -57,7 +58,11 @@ export class DeviceSyncPanel implements Panel {
     const note = document.createElement('p');
     note.textContent =
       'Local-only by default. Nothing is fetched or uploaded until you act here. Select public record categories and review the exact JSON before publishing. Workspaces include channels, layouts, saved public rules and command templates; their text is included. Common preferences include display/filter text, presentation, picker, provider and link options. Bookmark excerpts include authors, channel, message/context text and record timestamps. Private bookmark notes/tags, local nickname annotations, drafts, whispers, moderation journals and own-message feedback are excluded. Server snapshots are private to your signed-in Twitch account. No OAuth token is sent by this browser.';
-    this.root.append(h, note);
+    const lead = document.createElement('p');
+    lead.textContent =
+      'Local-only until you act. Select public data, fetch the server revision, then review before publishing, applying or deleting. Applying replaces selected local records and creates a recovery backup.';
+    const selection = panelSection('Choose public data to sync');
+    this.root.append(h, lead, selection);
     for (const [key, label] of [
       ['workspaces', 'Sync saved workspaces'],
       ['preferences', 'Sync common preferences'],
@@ -68,12 +73,11 @@ export class DeviceSyncPanel implements Panel {
       input.type = 'checkbox';
       input.name = key;
       field.append(input, label);
-      this.root.append(field);
+      selection.append(field);
     }
     const bounds = document.createElement('p');
     bounds.textContent =
       'Manual fetch/publish/apply only; two MiB per snapshot. Concurrent edits are rejected by revision. Failed requests never retry automatically. Refresh and review to resolve a conflict. Delete removes active server data but retains a minimal revision tombstone against stale clients; downloaded copies and operator backups are separate. Applying a remote snapshot replaces selected local public records, preserves private annotations locally, records a recovery backup, and reloads the selected view.';
-    this.root.append(bounds);
     this.exact.readOnly = true;
     this.exact.rows = 12;
     this.exact.setAttribute('aria-label', 'Exact reviewed public sync JSON');
@@ -83,16 +87,7 @@ export class DeviceSyncPanel implements Panel {
     this.report.style.overflow = 'auto';
     this.confirm = this.button('Confirm reviewed sync action', () => this.commit());
     this.exportButton = this.button('Export reviewed public JSON', () => this.exportReviewed());
-    this.root.append(
-      this.button('Connect / fetch current revision', () => this.fetch()),
-      this.button('Review publish local selection', () => this.reviewPublish()),
-      this.button('Review apply server snapshot', () => this.reviewApply()),
-      this.button('Review delete server snapshot', () => this.reviewDelete()),
-      this.report,
-      this.exact,
-      this.confirm,
-      this.exportButton,
-      this.button('Disconnect and clear review', () => this.disconnect(), false),
+    const recoveryActions = panelActions(
       this.button('Review clear local recovery record', () => this.reviewRecoveryClear()),
       this.button('Export local recovery backup', () =>
         this.exportLocal('sync-local-recovery', 'chatty-cat-local-sync-recovery.json'),
@@ -101,8 +96,22 @@ export class DeviceSyncPanel implements Panel {
       this.button('Export private bookmark annotation backup', () =>
         this.exportLocal('sync-annotation-backup', 'chatty-cat-private-bookmark-backup.json'),
       ),
-      this.button('Close device sync', () => this.root.close(), false),
+    );
+    this.root.append(
+      panelDetails('Included data, privacy and conflict handling', note, bounds),
+      panelSection('Review exact data and action', this.report, this.exact),
+      panelDetails('Local recovery and private annotation backups', recoveryActions),
       this.status,
+      panelActions(
+        this.button('Connect / fetch current revision', () => this.fetch()),
+        this.button('Review publish local selection', () => this.reviewPublish()),
+        this.button('Review apply server snapshot', () => this.reviewApply()),
+        this.button('Review delete server snapshot', () => this.reviewDelete()),
+        this.confirm,
+        this.exportButton,
+        this.button('Disconnect and clear review', () => this.disconnect(), false),
+        this.button('Close device sync', () => this.root.close(), false),
+      ),
     );
     this.root.addEventListener('change', this.edit);
     this.root.addEventListener('close', this.closed);

@@ -239,6 +239,15 @@ the font-size menu, rather than subtracting pixels.
 
 ## States
 
+Dense panels use labelled fieldsets for the first task and native
+`details`/`summary` disclosures for specialist tools and longer explanations.
+Shared `panel-section`, `panel-details` and `panel-actions` markup keeps labels,
+focus and wrapping action rows consistent. A fieldset containing only buttons or
+status text remains visible; visibility is explicit rather than inferred from
+the presence of labels. Presentation search hides nonmatching fields and empty
+groups while keeping edited controls intact. Consent, reviewed data and action
+outcomes stay beside their controls. See [the six-panel layout checks](dense-panels.md).
+
 | State | Treatment |
 | --- | --- |
 | Connecting | Status text "Connecting…" in `--muted` |
