@@ -12,11 +12,11 @@
     "deployment": "local combined Go service with production web/dist"
   },
   "build": {
-    "main": "main-DOXreGOL.js",
-    "mainGzipKB": 203.75,
+    "main": "main-BYsgIkO4.js",
+    "mainGzipKB": 203.76,
     "previousMainGzipKB": 334.22,
-    "indexKB": 5.53,
-    "indexGzipKB": 1.92
+    "indexKB": 5.51,
+    "indexGzipKB": 1.91
   },
   "closedSample": {
     "sampledMs": 62896.59999996424,
@@ -109,7 +109,7 @@
     "assets": 56,
     "entries": 66,
     "missing": [],
-    "worker": "http://localhost:4181/sw.js?build=%2Fassets%2Fmain-DOXreGOL.js"
+    "worker": "http://localhost:4181/sw.js?build=%2Fassets%2Fmain-BYsgIkO4.js"
   },
   "offline": {
     "serverStopped": true,
@@ -124,8 +124,9 @@
     "result": {
       "status": "Go service disconnected; retrying",
       "topbar": true,
-      "worker": "http://localhost:4181/sw.js?build=%2Fassets%2Fmain-DOXreGOL.js"
-    }
+      "worker": "http://localhost:4181/sw.js?build=%2Fassets%2Fmain-BYsgIkO4.js"
+    },
+    "finalBuildRepeat": "Cached shell reloaded with server stopped; Emotes/Stats restored, and Settings/Resources/Rules/Shortcuts opened from the palette."
   },
   "restoration": {
     "panel": "presentation-panel",
@@ -142,5 +143,6 @@
     "heap values are diagnostic only and are not a before/after comparison",
     "real authenticated/provider/native operations untested",
     "offline scope covers application-origin unavailability, not every external network"
-  ]
+  ],
+  "closedSampleBuild": "main-DOXreGOL.js"
 }

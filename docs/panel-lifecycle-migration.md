@@ -100,7 +100,7 @@ explicit Workbench rail placement owns the live video/emotes/stats rail.
 
 ## Verification
 
-Local validation: 835 frontend tests across 180 files, strict TypeScript and the
+Local validation: 836 frontend tests across 180 files, strict TypeScript and the
 production build passed. Regression checks cover lazy construction/cancellation,
 context-only loads, concurrent activation, owner Close, docking without feature
 Close callbacks, fallback settings ownership/invalid restore/retry, upload paste
@@ -108,8 +108,8 @@ retention without upload and late config responses after teardown. Existing
 feature review, account and privacy fixtures remain. Happy-dom still prints its
 existing localhost stylesheet-fetch teardown warnings.
 
-Final build: `main-DOXreGOL.js`, 203.75 kB gzip, compared with 334.22 kB at the
-preceding Device sync slice. `index.html` is 5.53 kB (1.92 kB gzip), down from
+Final build: `main-BYsgIkO4.js`, 203.76 kB gzip, compared with 334.22 kB at the
+preceding Device sync slice. `index.html` is 5.51 kB (1.91 kB gzip), down from
 19.34 kB before this complete conversion. Panel markup and editor modules emit
 separate chunks; pane settings is 1.19 kB gzip. The large-main warning remains.
 Assets remain precached, so these are initial-entry measurements, not total
@@ -126,7 +126,7 @@ requests. Selecting the rail layout loads Emotes and Stats explicitly. Docked Pr
 with one chrome and no modal top layer; closing and reloading defers its root and
 chunk. Docking generates zero feature Close events. Stats/Emotes/Resources close
 without leaving a phantom modal layer. Emotes/Stats/Channels open and close before
-the resource sample; closed UI refresh owners are absent. The 62.9-second foreground sample
+the resource sample; closed UI refresh owners are absent. The 62.9-second foreground sample (before the final picker share-URL correction)
 contains nine application runtime/storage timers and no picker, stats or discovery
 UI refresh owner. Explicitly reviewed provider sessions may still run in the
 background when the user chooses Keep activity running; this is intentional

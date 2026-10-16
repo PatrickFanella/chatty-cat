@@ -2,6 +2,7 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { PassivePanelSettings } from './passive-panel-settings';
 import { PickerModel } from './picker-model';
+import { parsePickerGeometry } from './picker-geometry';
 import { registerSettings } from './settings-bundle';
 
 let runtime: PassivePanelSettings | undefined;
@@ -73,4 +74,23 @@ it('retains prior state on invalid data and re-registers settings after construc
     }),
   ).toThrow('fixture');
   expect(capture()).toEqual(previous);
+});
+
+it('shares unopened picker geometry using the existing URL format', () => {
+  localStorage.setItem(
+    'chatthing:v1:picker:geometry',
+    JSON.stringify({ width: 500, height: 400, left: 20, top: 30, pinned: true, open: false }),
+  );
+  runtime = new PassivePanelSettings(
+    new PickerModel(),
+    ['fixture'],
+    () => 'fixture',
+    () => false,
+  );
+  const url = new URL('https://chat.example/');
+  document.dispatchEvent(new CustomEvent('share-settings', { detail: url }));
+  expect(url.searchParams.get('epgeo')).toBe('500x400,20,30');
+  expect(parsePickerGeometry(url.searchParams.get('epgeo'))).toEqual({ width: 500, height: 400, left: 20, top: 30 });
+  expect(url.searchParams.get('epopen')).toBe('0');
+  expect(document.querySelector('dialog')).toBeNull();
 });

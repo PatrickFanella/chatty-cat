@@ -244,7 +244,10 @@ export class PassivePanelSettings {
       if (state.box)
         event.detail.searchParams.set(
           'epgeo',
-          [state.box.left, state.box.top, state.box.width, state.box.height].map(Math.round).join(','),
+          Math.round(state.box.width) +
+            'x' +
+            Math.round(state.box.height) +
+            (state.pinned ? ',' + Math.round(state.box.left) + ',' + Math.round(state.box.top) : ''),
         );
     }
     if (this.stops.has('resources')) {
