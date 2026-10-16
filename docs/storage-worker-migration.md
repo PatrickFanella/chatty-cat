@@ -2,8 +2,9 @@
 
 Issue #137 moves persistence and retained-data queries off the main thread in
 bounded stages. The first stage moves the private moderation journal; the second
-moves archive reads and queries. Archive writes, statistics and rate-timeline work
-remain on their existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
+moves archive reads and queries. The third moves appends and bounded recovery.
+Pruning, reviewed retention, statistics and rate-timeline work remain on their
+existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
 
 ## First stage: private journal
 
@@ -118,9 +119,61 @@ includes public-record validation and query parsing, increasing its payload from
 the journal-only stage. This is a thread-ownership change, not a total transfer
 reduction. The existing large-main warning remains.
 
+## Third stage: archive appends and bounded recovery
+
+The query stage merged in PR #163 at main `2c9c5d5`; all four PR-head hosted
+checks passed. Appends and public bookmark-excerpt recovery now use the same
+archive worker connection as reads. The main facade retains its bounded incoming
+queue and scheduling. It awaits the append acknowledgement before pruning, and
+flushes its final queued batch before stopping the worker.
+
+The worker validates every append as a public archive record before starting a
+transaction, limits a batch to 2,000 messages and retains the channel/ID key for
+deduplication. Failed transactions report after rollback. A definite quota failure
+leaves the bounded facade queue available for retry. A lost acknowledgement or
+transport failure permanently closes that client; subsequent flushes cannot
+resubmit its queued batch. Reload and inspect retained history after an uncertain
+write. There is no automatic worker restart or main-thread insertion fallback.
+
+Recovery remains limited to six public excerpts. It uses the cap and retention
+policy captured by the facade at dispatch, counts existing rows, skips retained
+keys and atomically inserts only missing records. It never overwrites a retained
+moderation flag. Capacity failure aborts all inserts and preserves the useful
+capacity error through subsequent IndexedDB error events. Cancellation remains
+available for recovery; appends use the non-cancellable request path.
+
+Pruning and retention preview/apply remain unchanged on the main thread. Their
+localStorage policy reads, reviewed signatures, deletion and conditional rollback
+need to move as a coordinated unit. The main archive connection remains for those
+operations. This stage does not establish that all archive storage is off-thread.
+There is no schema change, destructive conversion or cleanup of existing data.
+
+All 883 frontend tests in 186 files passed, including existing archive retention,
+private journal and provider fixtures. New checks cover append quota rollback and
+queue recovery, all-or-nothing recovery capacity, final shutdown flush, and worker
+rejection of private/oversized batches. TypeScript, production build, formatting
+and diff checks passed.
+
+Native Chromium exercised the emitted worker directly with synthetic records
+while a Window-level guard rejected archive put/add calls. A duplicate append
+retained two keys; recovery inserted one missing key while preserving an existing
+deleted flag. An over-capacity recovery and a mixed private append left no partial
+records. Exactly the three expected records survived shutdown and worker
+recreation, with zero guarded main-thread inserts. This verifies the native RPC
+path; live provider ingestion was not exercised. The worker was in the shell
+cache, but disconnected offline loading was not tested. Exact bundle sizes and
+results are in the [write evidence](archive-worker-writes-local-evidence-2026-10-16.json).
+
+The initial write-stage head had both frontend jobs and the pull-request Go job
+pass, while its push Go job failed in `TestPersonalChat`. That fixture assumed
+PONG preceded a concurrent user action. A separate test-only repair requires both
+exact frames in either valid order and adds a forced action-first case. Both cases
+passed 50 race-detector repetitions; the full Go race suite and go vet passed.
+Hosted results for the replacement head must be assessed separately.
+
 ## Remaining stages and release boundary
 
-1. Move archive appends, pruning, recovery and retention ownership. Preserve
+1. Move archive pruning and retention ownership. Preserve
    localStorage policy rollback, exact retention review and quota recovery. Keep
    the main in-memory message store.
 2. Move statistics ledger aggregation/serialization and statistics IndexedDB,
@@ -131,7 +184,7 @@ reduction. The existing large-main warning remains.
    15-minute busy-channel session with the resource readout. Attribute storage
    work separately from rendering and structured-clone costs before closing #137.
 
-Neither storage-worker stage is deployed. Rolling source back leaves the original
+These storage-worker stages are not deployed. Rolling source back leaves the original
 database readable by the previous implementation. No schema reset or destructive
 data conversion is part of rollback. Do not treat a worker crash as permission to
 repeat an uncertain provider action.

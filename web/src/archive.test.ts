@@ -303,3 +303,75 @@ it('fixes a channel scan upper cursor so newer live appends cannot extend the sc
     await worker.stop();
   }
 });
+
+it('rolls back a failed append batch, then retries its queued messages after a definite quota failure', async () => {
+  const a = archive();
+  a.add(message);
+  a.add({ ...message, id: 'second', timestamp: 200 });
+  const original = IDBObjectStore.prototype.put;
+  let puts = 0;
+  const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, ...args) {
+    if (++puts === 2) throw new DOMException('quota fixture', 'QuotaExceededError');
+    return original.apply(this, args);
+  });
+  await expect(a.flush()).rejects.toHaveProperty('name', 'QuotaExceededError');
+  put.mockRestore();
+  const db = await new Promise<IDBDatabase>((resolve) => {
+    const open = indexedDB.open('chatthing-archive', 1);
+    open.onsuccess = () => resolve(open.result);
+  });
+  const count = db.transaction('messages', 'readonly').objectStore('messages').count();
+  expect(
+    await new Promise((resolve) => {
+      count.onsuccess = () => resolve(count.result);
+    }),
+  ).toBe(0);
+  db.close();
+  await a.flush();
+  expect((await a.search({ text: '' })).map((m) => m.id)).toEqual(['second', 'id']);
+});
+it('rolls back every recovery insert when the reviewed excerpts exceed remaining capacity', async () => {
+  const a = new MessageArchive(() => {}, 2);
+  archives.push(a);
+  a.add(message);
+  await a.flush();
+  await expect(
+    a.recoverMissing([
+      { ...message, id: 'first' },
+      { ...message, id: 'second' },
+    ]),
+  ).rejects.toThrow('full');
+  expect((await a.search({ text: '' })).map((m) => m.id)).toEqual(['id']);
+  const controller = new AbortController();
+  controller.abort();
+  await expect(a.recoverMissing([{ ...message, id: 'cancelled' }], controller.signal)).rejects.toHaveProperty(
+    'name',
+    'AbortError',
+  );
+  expect(await a.get('cancelled', ['one'])).toBeUndefined();
+});
+it('flushes the final queued append before stopping the worker', async () => {
+  const a = archive();
+  a.add(message);
+  a.stop();
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(await archive().get('id', ['one'])).toEqual(message);
+});
+it('rejects private and oversized batches inside the worker before any append', async () => {
+  const { StorageWorkerClient } = await import('./storage-worker-client');
+  const worker = new StorageWorkerClient();
+  try {
+    await expect(
+      worker.request('archive.append', [message, { ...message, id: 'private', command: 'WHISPER' }]),
+    ).rejects.toThrow('public');
+    await expect(
+      worker.request(
+        'archive.append',
+        Array.from({ length: 2001 }, () => message),
+      ),
+    ).rejects.toThrow('2000');
+    expect(await worker.request('archive.search', { text: '' })).toEqual([]);
+  } finally {
+    await worker.stop();
+  }
+});

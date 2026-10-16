@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 16, 2026 against main `2062797` and the live Gitea issue inventory.
+Updated October 16, 2026 against main `2c9c5d5` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -195,14 +195,15 @@ their provider/device qualification limits. See [compact panel evidence](compact
 All four PR-head hosted checks passed. These panel changes are not deployed.
 
 The first #137 migration merged in PR #162, moving private journal transactions
-and capacity checks to a dedicated storage worker. All four PR-head checks passed.
-The second stage moves archive reads, searches and bounded channel scans to the
-worker, with cloneable filters, cancellation and progress. Local validation passed
-879 tests; native Chromium scanned 1,500 public records with zero main-thread
-archive read transactions and no private sentinel. See the
-[staged worker plan and evidence](storage-worker-migration.md). The archive-query
-stage is pending review. #137 remains open: archive writes/retention ownership is
-next, followed by statistics/rates and the 15-minute busy-channel qualification.
+and capacity checks to a dedicated storage worker. The archive-query stage merged
+in PR #163, adding cloneable filters, cancellation and bounded scans. Both had all
+four PR-head hosted checks pass. The third stage moves archive appends and bounded
+public-excerpt recovery to the worker. Local validation passed 883 tests; native
+Chromium verified deduplication, atomic capacity rollback and retained moderation
+flags across worker recreation, with zero guarded main-thread inserts. See the
+[staged worker plan and evidence](storage-worker-migration.md). The write stage is
+pending review. #137 remains open: pruning/retention ownership is next, followed
+by statistics/rates and the 15-minute busy-channel qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

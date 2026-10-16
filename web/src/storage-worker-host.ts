@@ -1,4 +1,4 @@
-import { ArchiveReader } from './archive-reader';
+import { ArchiveStore } from './archive-store';
 import { JournalStore } from './moderation-journal-store';
 import type { StorageProgress, StorageReply, StorageRequest } from './storage-worker-protocol';
 
@@ -7,7 +7,7 @@ export class StorageWorkerHost {
   private get journal(): JournalStore {
     return (this.journalStore ??= new JournalStore());
   }
-  private archive: ArchiveReader | undefined;
+  private archive: ArchiveStore | undefined;
   private controllers = new Map<number, AbortController>();
   private pending = new Set<Promise<unknown>>();
   private closing = false;
@@ -71,16 +71,20 @@ export class StorageWorkerHost {
   ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
+      case 'archive.append':
+        return (this.archive ??= new ArchiveStore()).append(...request.args);
+      case 'archive.recover':
+        return (this.archive ??= new ArchiveStore()).recoverMissing(...request.args, signal);
       case 'archive.get':
-        return (this.archive ??= new ArchiveReader()).get(...request.args);
+        return (this.archive ??= new ArchiveStore()).get(...request.args);
       case 'archive.recent':
-        return (this.archive ??= new ArchiveReader()).recent(...request.args, signal);
+        return (this.archive ??= new ArchiveStore()).recent(...request.args, signal);
       case 'archive.search':
-        return (this.archive ??= new ArchiveReader()).search(...request.args, signal);
+        return (this.archive ??= new ArchiveStore()).search(...request.args, signal);
       case 'archive.searchPage':
-        return (this.archive ??= new ArchiveReader()).searchPage(...request.args, signal, progress);
+        return (this.archive ??= new ArchiveStore()).searchPage(...request.args, signal, progress);
       case 'archive.scanPage':
-        return (this.archive ??= new ArchiveReader()).scanPage(
+        return (this.archive ??= new ArchiveStore()).scanPage(
           request.args[0],
           request.args[1],
           request.args[2],
