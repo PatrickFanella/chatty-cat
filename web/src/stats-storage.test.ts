@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
+import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { moveStatistics, previewStatisticsMove, readStatistics, writeStatistics } from './stats-storage';
 const key = 'chatthing:v1:stats:counts:one',
@@ -82,4 +83,59 @@ it('retains every original when the copy transaction aborts before commit', asyn
   await expect(moveStatistics(previewStatisticsMove())).rejects.toThrow('aborted');
   expect(localStorage.getItem(key)).toBe(raw);
   expect(await readStatistics(key)).toBeUndefined();
+});
+
+it('retains local originals when committed recovery copies cannot be verified', async () => {
+  localStorage.setItem(key, raw);
+  const get = IDBObjectStore.prototype.get;
+  const spy = vi.spyOn(IDBObjectStore.prototype, 'get').mockImplementation(function (this: IDBObjectStore, ...args) {
+    const request = get.apply(this, args);
+    if (this.name === 'backups')
+      request.addEventListener('success', () => {
+        Object.defineProperty(request, 'result', { value: undefined });
+      });
+    return request;
+  });
+  await expect(moveStatistics(previewStatisticsMove())).rejects.toThrow('backup verification failed');
+  spy.mockRestore();
+  expect(localStorage.getItem(key)).toBe(raw);
+  expect(await readStatistics(key)).toBe(raw);
+});
+it('preserves a local original changed while the worker verifies its recovery copy', async () => {
+  localStorage.setItem(key, raw);
+  const get = IDBObjectStore.prototype.get;
+  vi.spyOn(IDBObjectStore.prototype, 'get').mockImplementation(function (this: IDBObjectStore, ...args) {
+    const request = get.apply(this, args);
+    if (this.name === 'backups') request.addEventListener('success', () => localStorage.setItem(key, raw + ' '));
+    return request;
+  });
+  expect(await moveStatistics(previewStatisticsMove())).toEqual({ moved: 0, changed: 1 });
+  expect(localStorage.getItem(key)).toBe(raw + ' ');
+  expect(await readStatistics(key)).toBe(raw);
+});
+it('captures reviewed entries before a caller mutates its plan during the worker request', async () => {
+  localStorage.setItem(key, raw);
+  const plan = previewStatisticsMove();
+  const moving = moveStatistics(plan);
+  plan.entries[0]!.raw = 'caller changed the plan';
+  expect(await moving).toEqual({ moved: 1, changed: 0 });
+  expect(await readStatistics(key)).toBe(raw);
+});
+it('keeps reviewed local originals when the worker cannot start', async () => {
+  localStorage.setItem(key, raw);
+  const native = Worker;
+  vi.stubGlobal(
+    'Worker',
+    class {
+      constructor() {
+        throw new Error('Worker denied');
+      }
+    },
+  );
+  try {
+    await expect(moveStatistics(previewStatisticsMove())).rejects.toThrow('Statistics worker unavailable');
+    expect(localStorage.getItem(key)).toBe(raw);
+  } finally {
+    vi.stubGlobal('Worker', native);
+  }
 });

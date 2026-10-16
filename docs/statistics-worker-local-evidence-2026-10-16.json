@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-16",
+  "issue": 137,
+  "baseCommit": "dcd16e628f765b341e4da5e6106034a05dd31149",
+  "scope": "Statistics IndexedDB persistence and verified migration recovery copies",
+  "localChecks": {
+    "frontendTestsPassed": 889,
+    "frontendFilesPassed": 186,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "nativeChromium": {
+    "worker": "assets/storage-worker-DuxrUXi1.js",
+    "status": "Moved 1 public statistics scopes; exact IndexedDB recovery copies retained. Workspaces and settings can retry saving now.",
+    "originalRemoved": true,
+    "readExact": true,
+    "writeReadExact": true,
+    "invalidScopeError": "Invalid statistics scope",
+    "exactRecoveryCopies": 1,
+    "guardedMainStatisticsOpens": 0,
+    "workerCached": true
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-DJNCqYvJ.js",
+        "rawBytes": 524069,
+        "gzipBytes": 152489
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-DuxrUXi1.js",
+        "rawBytes": 89958,
+        "gzipBytes": 24278
+      }
+    }
+  },
+  "limits": [
+    "Native local synthetic records only; no provider qualification",
+    "Read-only backup inspection bypassed the main-thread guard after the guarded UI/RPC flow",
+    "Count aggregation, JSON serialization and legacy migration preview still run on main thread",
+    "A worker is created and stopped for each storage operation; startup and clone costs are not benchmarked",
+    "Archive pruning/apply, rates and 15-minute performance qualification remain",
+    "No production deployment or disconnected offline qualification",
+    "Issue #137 remains open"
+  ]
+}

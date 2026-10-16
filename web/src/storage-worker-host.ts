@@ -1,3 +1,4 @@
+import { readStatisticsRecord, writeStatisticsRecord, copyStatisticsRecords } from './statistics-store';
 import { ArchiveStore } from './archive-store';
 import { JournalStore } from './moderation-journal-store';
 import type { StorageProgress, StorageReply, StorageRequest } from './storage-worker-protocol';
@@ -71,6 +72,12 @@ export class StorageWorkerHost {
   ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
+      case 'statistics.read':
+        return readStatisticsRecord(...request.args);
+      case 'statistics.write':
+        return writeStatisticsRecord(...request.args);
+      case 'statistics.copy':
+        return copyStatisticsRecords(...request.args);
       case 'archive.retentionPreview':
         return (this.archive ??= new ArchiveStore()).retentionPreview(...request.args);
       case 'archive.append':
