@@ -3,8 +3,10 @@
 Issue #137 moves persistence and retained-data queries off the main thread in
 bounded stages. The first stage moves the private moderation journal; the second
 moves archive reads and queries. The third moves appends and bounded recovery.
-The fourth moves read-only retention preview. Pruning, reviewed retention apply,
-statistics and rate-timeline work remain on their existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
+The fourth moves read-only retention preview; the fifth moves statistics
+IndexedDB persistence and verified recovery copies. Pruning, reviewed retention
+apply, statistics aggregation/serialization and rate-timeline work remain on their
+existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
 
 ## First stage: private journal
 
@@ -208,13 +210,57 @@ storage isolation or production performance. The worker was in the shell cache;
 disconnected offline loading was not tested. Exact results and asset sizes are
 in the [retention-preview evidence](archive-retention-preview-local-evidence-2026-10-16.json).
 
+## Fifth stage: statistics persistence and recovery copies
+
+Retention preview merged in PR #165 at main `dcd16e6`; all four PR-head checks
+passed. Statistics IndexedDB reads, snapshot writes, migration copies and backup
+verification now execute in the storage worker. The existing async storage API,
+key allowlist, six-million-character limits and database version are unchanged.
+Each storage call owns a worker for that operation and stops it after its result;
+the underlying database connections close before replying. Worker startup and
+structured-clone overhead remain to be measured.
+
+Migration still requires explicit review. The facade captures the reviewed key/raw
+pairs before yielding, checks that local originals match, and sends that snapshot
+to the worker. The worker commits exact recovery copies and fills only missing
+snapshot keys, then reads every copy back in a separate committed transaction.
+Only a successful verification acknowledgement lets the facade compare each local
+original again and release unchanged slots. Changed originals remain in place and
+are reported separately. Failure or a lost acknowledgement cannot authorize
+removing originals. No operation is automatically replayed by the transport;
+later statistics saves retain their existing scheduling and overwrite semantics.
+
+This stage preserves newer IndexedDB snapshots and unrelated localStorage keys.
+There is no schema migration, deletion of recovery copies or fallback insertion
+on the main thread. Statistics aggregation, snapshot JSON serialization and the
+synchronous legacy-preview parse remain on the main thread. The existing
+non-IndexedDB compatibility branch in StatsLedger is unchanged.
+
+All 889 frontend tests in 186 files passed, with TypeScript, production build,
+formatting and diff checks. The existing statistics storage, ledger and storage-UI
+checks run through the structured-clone worker shim. New failures cover backup
+verification, concurrent local changes, caller mutation of an in-flight reviewed
+plan, and worker startup refusal. They retain originals or the captured reviewed
+values as appropriate. Existing abort, quota, newer-snapshot and replay-deduplication
+checks pass.
+
+Native Chromium moved one synthetic legacy scope through the actual Stats panel
+while a guard rejected main-thread opens of `chatthing-statistics`. The panel
+reported success, the old slot was released, and worker reads returned exact
+counts. Direct worker write/read and invalid-scope checks also passed. A read-only
+inspection using the saved native open after the guarded flow found one exact
+recovery copy. The flow recorded zero guarded opens; the worker asset was in the
+shell cache. These are local persistence checks, not live provider, disconnected
+offline or performance qualification. See the
+[statistics evidence](statistics-worker-local-evidence-2026-10-16.json).
+
 ## Remaining stages and release boundary
 
 1. Move archive pruning and retention ownership. Preserve
    localStorage policy rollback, exact retention review and quota recovery. Keep
    the main in-memory message store.
-2. Move statistics ledger aggregation/serialization and statistics IndexedDB,
-   preserving reviewed localStorage migration and verified recovery copies.
+2. Move statistics ledger aggregation and snapshot serialization while preserving
+   replay exclusions, scope keys and the reviewed localStorage migration boundary.
 3. Move rate snapshot persistence and retained-window queries while preserving
    coverage gaps, replay exclusions and visible graph behavior.
 4. Run archive/statistics/storage suites through the worker shim and observe a

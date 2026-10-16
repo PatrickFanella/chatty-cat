@@ -1,73 +1,31 @@
-const DATABASE = 'chatthing-statistics';
-const MAX_CHARS = 6000000;
-export interface StatisticsMove {
-  entries: { key: string; raw: string }[];
-  characters: number;
-}
-function validKey(key: string): boolean {
-  return /^chatthing:v1:stats:counts:[a-z0-9_]{1,25}(?:,[a-z0-9_]{1,25}){0,11}$/.test(key);
-}
-async function database(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    let blocked = false;
-    const q = indexedDB.open(DATABASE, 1);
-    q.onupgradeneeded = () => {
-      q.result.createObjectStore('snapshots');
-      q.result.createObjectStore('backups');
-    };
-    q.onsuccess = () => {
-      if (blocked) {
-        q.result.close();
-        return;
-      }
-      q.result.onversionchange = () => q.result.close();
-      resolve(q.result);
-    };
-    q.onerror = () => reject(q.error ?? new Error('Statistics storage unavailable'));
-    q.onblocked = () => {
-      blocked = true;
-      reject(new Error('Close older statistics tabs and retry'));
-    };
-  });
-}
-function complete(tx: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onabort = () => reject(tx.error ?? new Error('Statistics storage transaction aborted'));
-    tx.onerror = () => {};
-  });
+import { StorageWorkerClient } from './storage-worker-client';
+import type { StatisticsOperation, StorageOperations } from './storage-worker-protocol';
+import { MAX_CHARS, validKey, validateStatisticsMove, type StatisticsMove } from './statistics-records';
+export type { StatisticsMove } from './statistics-records';
+
+async function inWorker<K extends StatisticsOperation>(
+  operation: K,
+  ...args: StorageOperations[K]['args']
+): Promise<StorageOperations[K]['result']> {
+  const worker = new StorageWorkerClient(
+    undefined,
+    30000,
+    'Statistics worker unavailable; retained originals are unchanged. Reload before another storage operation.',
+  );
+  try {
+    return await worker.request(operation, ...args);
+  } finally {
+    await worker.stop();
+  }
 }
 export async function readStatistics(key: string): Promise<string | undefined> {
   if (!validKey(key)) throw new Error('Invalid statistics scope');
-  const db = await database();
-  try {
-    const tx = db.transaction('snapshots', 'readonly'),
-      done = complete(tx),
-      q = tx.objectStore('snapshots').get(key);
-    let raw: unknown;
-    q.onsuccess = () => {
-      raw = q.result;
-    };
-    await done;
-    if (raw !== undefined && (typeof raw !== 'string' || raw.length > MAX_CHARS))
-      throw new Error('Invalid saved statistics');
-    return raw as string | undefined;
-  } finally {
-    db.close();
-  }
+  return inWorker('statistics.read', key);
 }
 export async function writeStatistics(key: string, raw: string): Promise<void> {
   if (!validKey(key)) throw new Error('Invalid statistics scope');
   if (raw.length > MAX_CHARS) throw new Error('Statistics capacity reached');
-  const db = await database();
-  try {
-    const tx = db.transaction('snapshots', 'readwrite'),
-      done = complete(tx);
-    tx.objectStore('snapshots').put(raw, key);
-    await done;
-  } finally {
-    db.close();
-  }
+  await inWorker('statistics.write', key, raw);
 }
 export function previewStatisticsMove(): StatisticsMove {
   const entries: { key: string; raw: string }[] = [];
@@ -95,53 +53,21 @@ export function previewStatisticsMove(): StatisticsMove {
   return { entries, characters };
 }
 export async function moveStatistics(plan: StatisticsMove): Promise<{ moved: number; changed: number }> {
-  if (!plan.entries.length) throw new Error('No local statistics need moving');
-  if (
-    plan.entries.length > 64 ||
-    plan.entries.reduce((total, e) => total + e.key.length + e.raw.length, 0) > MAX_CHARS ||
-    new Set(plan.entries.map((e) => e.key)).size !== plan.entries.length ||
-    plan.entries.some((e) => !validKey(e.key) || e.raw.length > MAX_CHARS)
-  )
-    throw new Error('Invalid statistics move');
-  if (plan.entries.some((e) => localStorage.getItem(e.key) !== e.raw))
+  // Capture the reviewed values before yielding to the worker or caller again.
+  const reviewed = { entries: plan.entries.map((entry) => ({ ...entry })), characters: plan.characters };
+  validateStatisticsMove(reviewed);
+  if (reviewed.entries.some((entry) => localStorage.getItem(entry.key) !== entry.raw))
     throw new Error('Statistics changed; review the move again');
-  const db = await database(),
-    copies = plan.entries.map((entry) => ({ ...entry, id: crypto.randomUUID() }));
-  try {
-    const tx = db.transaction(['snapshots', 'backups'], 'readwrite'),
-      done = complete(tx);
-    for (const entry of copies) {
-      tx.objectStore('backups').add({ key: entry.key, raw: entry.raw }, entry.id);
-      const q = tx.objectStore('snapshots').get(entry.key);
-      q.onsuccess = () => {
-        if (q.result === undefined) tx.objectStore('snapshots').put(entry.raw, entry.key);
-      };
+  await inWorker('statistics.copy', reviewed);
+  let moved = 0,
+    changed = 0;
+  for (const entry of reviewed.entries) {
+    if (localStorage.getItem(entry.key) !== entry.raw) {
+      changed++;
+      continue;
     }
-    await done;
-    // Read exact recovery copies in a separate committed transaction before releasing slots.
-    const verify = db.transaction('backups', 'readonly'),
-      verified = complete(verify);
-    let mismatch = false;
-    for (const entry of copies) {
-      const q = verify.objectStore('backups').get(entry.id);
-      q.onsuccess = () => {
-        if (q.result?.key !== entry.key || q.result?.raw !== entry.raw) mismatch = true;
-      };
-    }
-    await verified;
-    if (mismatch) throw new Error('Statistics backup verification failed; local originals retained');
-    let moved = 0,
-      changed = 0;
-    for (const entry of copies) {
-      if (localStorage.getItem(entry.key) !== entry.raw) {
-        changed++;
-        continue;
-      }
-      localStorage.removeItem(entry.key);
-      moved++;
-    }
-    return { moved, changed };
-  } finally {
-    db.close();
+    localStorage.removeItem(entry.key);
+    moved++;
   }
+  return { moved, changed };
 }

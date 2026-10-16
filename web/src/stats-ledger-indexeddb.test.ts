@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
+import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { StatsLedger } from './stats-ledger';
 import * as storage from './stats-storage';

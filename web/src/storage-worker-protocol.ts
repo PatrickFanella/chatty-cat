@@ -1,3 +1,4 @@
+import type { StatisticsMove } from './statistics-records';
 import type { ArchiveRetention, RetentionPlan } from './archive-retention';
 import type { ChatMessage } from './protocol';
 import type { ArchiveCursor, ArchivePage, ArchiveQuery, ArchiveScanPage } from './archive-records';
@@ -5,6 +6,10 @@ import type { JournalEntry, JournalPlan, JournalPolicy, JournalState } from './m
 
 // Explicit operations only: no arbitrary method names, provider requests or automatic retries.
 export interface StorageOperations {
+  'statistics.read': { args: [key: string]; result: string | undefined };
+  'statistics.write': { args: [key: string, raw: string]; result: void };
+  'statistics.copy': { args: [plan: StatisticsMove]; result: void };
+
   'archive.retentionPreview': { args: [policy: ArchiveRetention, at: number, cap: number]; result: RetentionPlan };
   'archive.append': { args: [messages: readonly ChatMessage[]]; result: void };
   'archive.recover': {
@@ -48,3 +53,5 @@ export interface StorageProgress {
   id: number;
   progress: number;
 }
+
+export type StatisticsOperation = Extract<StorageOperation, `statistics.${string}`>;
