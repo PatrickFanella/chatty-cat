@@ -34,7 +34,7 @@ function setup(open = true) {
     },
     archive = {
       searchPage: vi.fn(async (query: ArchiveQuery) => ({
-        messages: query.matches ? [message] : [message],
+        messages: query.commands ? [message] : [message],
         next: undefined,
         scanned: 1,
         bounds: { rows: 1, oldest: message.timestamp, newest: message.timestamp },

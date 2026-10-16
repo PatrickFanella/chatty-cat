@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
+import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { MessageArchive, matchesArchive } from './archive';
 import type { ChatMessage } from './protocol';
@@ -184,7 +185,7 @@ it('keeps archived records if retention policy storage fails', async () => {
     removeItem: (key: string) => native.removeItem(key),
   });
   await expect(a.applyRetention(plan)).rejects.toThrow('quota');
-  vi.unstubAllGlobals();
+  vi.stubGlobal('localStorage', native);
   expect(await a.get('id', ['one'])).toBeDefined();
   localStorage.removeItem('chatthing:v1:archive-retention');
 });
@@ -216,4 +217,89 @@ it('rejects private records already present in storage across every archive read
   const rows: ChatMessage[] = [];
   await a.scanChannel('one', (m) => rows.push(m));
   expect(rows.map((m) => m.id)).toEqual(['id']);
+});
+
+it('evaluates serialized query expressions and command filters inside the worker', async () => {
+  const a = archive();
+  a.add({ ...message, tags: { badges: 'moderator/1' } });
+  a.add({ ...message, id: 'notice', command: 'NOTICE', text: 'hello notice' });
+  expect(
+    (await a.search({ text: '', expression: 'sender:alice badge:moderator text:hello' })).map((m) => m.id),
+  ).toEqual(['id']);
+  expect((await a.searchPage({ text: '', commands: ['NOTICE'] })).messages.map((m) => m.id)).toEqual(['notice']);
+  await expect(a.search({ text: '', expression: 'regex:"(a+)+$"' })).rejects.toThrow();
+});
+it('keeps moderation user-ID and imported-history matching equivalent across the worker boundary', async () => {
+  const a = archive();
+  a.add({ ...message, id: 'id-match', login: 'renamed', tags: { 'user-id': '42' } });
+  a.add({ ...message, id: 'wrong-id', tags: { 'user-id': '43' } });
+  a.add({ ...message, id: 'imported', tags: { 'user-id': '43', 'imported-history': 'true' } });
+  a.add({ ...message, id: 'missing-id' });
+  a.add({ ...message, id: 'private', command: 'WHISPER', tags: { 'user-id': '42' } });
+  const named = await a.searchPage({ text: '', moderationTarget: { id: '42', login: 'alice' } });
+  expect(named.messages.map((m) => m.id).sort()).toEqual(['id-match', 'imported', 'missing-id']);
+  const numeric = await a.searchPage({ text: '', moderationTarget: { id: '42' } });
+  expect(numeric.messages.map((m) => m.id)).toEqual(['id-match']);
+});
+it('streams equal-time rows across bounded pages without duplicate callbacks', async () => {
+  const a = archive();
+  for (let i = 0; i < 245; i++) a.add({ ...message, id: String(i).padStart(3, '0') });
+  const ids: string[] = [];
+  await a.scanChannel('one', (m) => ids.push(m.id));
+  expect(ids).toHaveLength(245);
+  expect(new Set(ids).size).toBe(245);
+  expect(ids).toEqual([...ids].sort());
+});
+
+it('reports cancellation when Chromium-style transaction error precedes the abort event', async () => {
+  const a = archive();
+  for (let i = 0; i < 300; i++) a.add({ ...message, id: String(i), timestamp: i });
+  await a.flush();
+  const { StorageWorkerHost } = await import('./storage-worker-host');
+  const host = new StorageWorkerHost();
+  const transaction = IDBDatabase.prototype.transaction;
+  vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementation(function (this: IDBDatabase, ...args) {
+    const tx = transaction.apply(this, args);
+    const abort = tx.abort.bind(tx);
+    tx.abort = () => {
+      tx.dispatchEvent(new Event('error'));
+      abort();
+    };
+    return tx;
+  });
+  try {
+    const result = await host.handle(
+      { version: 1, id: 777, operation: 'archive.searchPage', args: [{ text: 'absent' }, undefined] },
+      () => {
+        void host.handle({ version: 1, cancel: 777 });
+      },
+    );
+    expect(result).toMatchObject({ ok: false, error: { name: 'AbortError' } });
+  } finally {
+    await host.stop();
+  }
+});
+
+it('fixes a channel scan upper cursor so newer live appends cannot extend the scan', async () => {
+  const a = archive();
+  for (let i = 0; i < 245; i++) a.add({ ...message, id: String(i).padStart(3, '0'), timestamp: i });
+  await a.flush();
+  const { StorageWorkerClient } = await import('./storage-worker-client');
+  const worker = new StorageWorkerClient();
+  try {
+    const first = await worker.request('archive.scanPage', 'one', undefined, undefined);
+    a.add({ ...message, id: 'live-after-start', timestamp: 300 });
+    await a.flush();
+    const ids = first.messages.map((m) => m.id);
+    let after = first.next;
+    while (after) {
+      const page = await worker.request('archive.scanPage', 'one', after, first.until);
+      ids.push(...page.messages.map((m) => m.id));
+      after = page.next;
+    }
+    expect(ids).toHaveLength(245);
+    expect(ids).not.toContain('live-after-start');
+  } finally {
+    await worker.stop();
+  }
 });

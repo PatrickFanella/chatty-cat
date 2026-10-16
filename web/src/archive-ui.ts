@@ -304,7 +304,7 @@ export class ArchiveSearch {
           text: '',
           channels: this.channels,
           ...(this.activeChannel ? { channel: this.activeChannel } : {}),
-          matches: query.matches,
+          expression: query.source,
           limit: 100,
         },
         cursor,

@@ -1,0 +1,63 @@
+{
+  "date": "2026-10-16",
+  "issue": 137,
+  "baseCommit": "20627971ea3f49cdd6193d0cc3890c46421c14cc",
+  "scope": "Archive read/query operations only; writes and retention remain on main thread",
+  "localChecks": {
+    "frontendFilesPassed": 186,
+    "frontendTestsPassed": 879,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-Cl_2iaAV.js",
+        "rawBytes": 526357,
+        "gzipBytes": 153198
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-Q5gVYsLk.js",
+        "rawBytes": 84438,
+        "gzipBytes": 22471
+      },
+      "src/moderation-ui.ts": {
+        "file": "assets/moderation-ui-B9bwUARC.js",
+        "rawBytes": 95317,
+        "gzipBytes": 21575
+      }
+    }
+  },
+  "nativeChromium": {
+    "origin": "http://127.0.0.1:5197",
+    "fixture": "synthetic local archive and moderation provider",
+    "publicFixtureRows": 1500,
+    "privateSentinelRows": 1,
+    "firstSearchPageRows": 100,
+    "secondSearchPageRows": 100,
+    "pageOverlap": 0,
+    "allScanRows": 1500,
+    "uniqueScanRows": 1500,
+    "largestReplyBatch": 100,
+    "privateSentinelIncluded": false,
+    "cancelProgressRows": [
+      250
+    ],
+    "cancelErrorName": "AbortError",
+    "queryAfterCancellationRows": 1,
+    "guardedMainArchiveReadAttempts": 0,
+    "uiSearchStatus": "Page 1 \u00b7 100 matches \u00b7 more results available",
+    "providerWrites": 0,
+    "workerManifestAndShellCache": true
+  },
+  "limits": [
+    "No production deployment",
+    "No 15-minute busy-channel or external CPU/GPU qualification",
+    "Disconnected offline loading not tested",
+    "Channel scan upper cursor bounds new appends; separate page transactions are not snapshot isolation",
+    "Archive writes, pruning, recovery and retention remain on main thread",
+    "Issue #137 remains open"
+  ]
+}

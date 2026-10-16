@@ -262,7 +262,7 @@ export class PortableLogsPanel implements Panel {
         last = cursor;
       reading: while (messages.length < LOG_ROWS) {
         const page = await this.archive.searchPage(
-          { text: '', ...query, limit: 100, matches: (m) => PUBLIC_LOG_COMMANDS.includes(m.command) },
+          { text: '', ...query, limit: 100, commands: PUBLIC_LOG_COMMANDS },
           cursor,
           controller.signal,
         );

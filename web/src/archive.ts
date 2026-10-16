@@ -6,69 +6,20 @@ import {
   type ArchiveRetention,
   type RetentionPlan,
 } from './archive-retention';
-import { parseEvent, type ChatMessage } from './protocol';
-interface Archived {
-  key: string;
-  channel: string;
-  timestamp: number;
-  message: ChatMessage;
-}
-export interface ArchiveQuery {
-  text: string;
-  channel?: string;
-  channels?: readonly string[];
-  login?: string;
-  before?: number;
-  after?: number;
-  limit?: number;
-  order?: 'oldest' | 'newest';
-  matches?: (message: ChatMessage) => boolean;
-}
-export interface ArchiveCursor {
-  timestamp: number;
-  key: string;
-}
-export interface ArchiveBounds {
-  rows: number;
-  oldest: number | undefined;
-  newest: number | undefined;
-}
-export interface ArchivePage {
-  messages: ChatMessage[];
-  next: ArchiveCursor | undefined;
-  scanned: number;
-  bounds: ArchiveBounds;
-}
-const MAX_ROWS = 100000;
-export const PUBLIC_ARCHIVE_COMMANDS = ['PRIVMSG', 'USERNOTICE', 'NOTICE', 'CLEARCHAT', 'CLEARMSG'];
-export function archiveKey(message: ChatMessage): string {
-  return (
-    message.channel +
-    ':' +
-    (message.id ||
-      [message.command, message.timestamp, message.login, message.text, message.tags['system-msg'] ?? ''].join(':'))
-  );
-}
-function validMessage(value: unknown): ChatMessage | undefined {
-  const event = parseEvent(JSON.stringify({ type: 'message', message: value, replay: true }));
-  return event?.type === 'message' && PUBLIC_ARCHIVE_COMMANDS.includes(event.message.command)
-    ? event.message
-    : undefined;
-}
-export function matchesArchive(message: ChatMessage, query: ArchiveQuery): boolean {
-  return (
-    (!query.channel || message.channel === query.channel) &&
-    (!query.channels || query.channels.includes(message.channel)) &&
-    (!query.login || message.login.toLowerCase() === query.login.toLowerCase()) &&
-    (query.before === undefined || message.timestamp <= query.before) &&
-    (query.after === undefined || message.timestamp >= query.after) &&
-    (!query.text.trim() ||
-      (message.text + ' ' + (message.tags['system-msg'] ?? ''))
-        .toLowerCase()
-        .includes(query.text.trim().toLowerCase())) &&
-    (!query.matches || query.matches(message))
-  );
-}
+import type { ChatMessage } from './protocol';
+import {
+  MAX_ROWS,
+  PUBLIC_ARCHIVE_COMMANDS,
+  archiveKey,
+  validMessage,
+  type Archived,
+  type ArchiveQuery,
+  type ArchiveCursor,
+  type ArchivePage,
+} from './archive-records';
+import { StorageWorkerClient } from './storage-worker-client';
+export { PUBLIC_ARCHIVE_COMMANDS, archiveKey, matchesArchive } from './archive-records';
+export type { ArchiveQuery, ArchiveCursor, ArchiveBounds, ArchivePage } from './archive-records';
 function request<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
@@ -278,27 +229,26 @@ export class MessageArchive {
     await this.retentionTransaction(parseRetention(plan.policy), plan.at, true, plan);
   }
 
+  private reader: StorageWorkerClient | undefined;
+  private queryWorker(): StorageWorkerClient {
+    if (this.stopped) throw new Error('Archive stopped');
+    return (this.reader ??= new StorageWorkerClient(
+      undefined,
+      30000,
+      'Local archive worker unavailable; reload before searching. Live chat continues.',
+    ));
+  }
   async get(id: string, channels: readonly string[]): Promise<ChatMessage | undefined> {
     await this.flush();
-    const db = await this.db;
-    const tx = db.transaction('messages', 'readonly');
-    const complete = done(tx);
-    const values = await Promise.all(
-      channels.map(
-        (channel) => request(tx.objectStore('messages').get(channel + ':' + id)) as Promise<Archived | undefined>,
-      ),
-    );
-    await complete;
-    return values.flatMap((value) => {
-      const message = value ? validMessage(value.message) : undefined;
-      return message ? [message] : [];
-    })[0];
+    return this.queryWorker().request('archive.get', id, channels);
   }
   async recent(channels: readonly string[], limit: number, signal?: AbortSignal): Promise<ChatMessage[]> {
-    return (await this.read({ text: '', limit }, signal, new Set(channels), MAX_ROWS)).reverse();
+    await this.flush();
+    return this.queryWorker().query('archive.recent', [channels, limit], { signal });
   }
   async search(query: ArchiveQuery, signal?: AbortSignal): Promise<ChatMessage[]> {
-    return this.read(query, signal);
+    await this.flush();
+    return this.queryWorker().query('archive.search', [query], { signal });
   }
   async recoverMissing(messages: readonly ChatMessage[], signal?: AbortSignal): Promise<number> {
     if (messages.length > 6 || messages.some((m) => !PUBLIC_ARCHIVE_COMMANDS.includes(m.command) || !validMessage(m)))
@@ -360,20 +310,19 @@ export class MessageArchive {
       };
     });
   }
-  // Visit retained channel records in chronological order without retaining a full scan.
+  // Bounded chronological pages give the caller cancellation and backpressure.
   async scanChannel(channel: string, visit: (message: ChatMessage) => void, signal?: AbortSignal): Promise<void> {
-    await this.read(
-      {
-        text: '',
-        channel,
-        order: 'oldest',
-        matches: (message) => {
-          visit(message);
-          return false;
-        },
-      },
-      signal,
-    );
+    await this.flush();
+    let after: ArchiveCursor | undefined, until: ArchiveCursor | undefined;
+    do {
+      const page = await this.queryWorker().query('archive.scanPage', [channel, after, until], { signal });
+      for (const message of page.messages) {
+        if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
+        visit(message);
+      }
+      after = page.next;
+      until = page.until;
+    } while (after);
   }
   async searchPage(
     query: ArchiveQuery,
@@ -382,149 +331,16 @@ export class MessageArchive {
     progress: (scanned: number) => void = () => {},
   ): Promise<ArchivePage> {
     await this.flush();
-    if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
-    const db = await this.db;
-    if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
-    const tx = db.transaction('messages', 'readonly'),
-      store = tx.objectStore('messages'),
-      index = store.index('timestamp');
-    const limit = Math.max(1, Math.min(100, Math.floor(query.limit ?? 100))),
-      messages: ChatMessage[] = [];
-    const page: ArchivePage = {
-      messages,
-      next: undefined,
-      scanned: 0,
-      bounds: { rows: 0, oldest: undefined, newest: undefined },
-    };
-    return new Promise<ArchivePage>((resolve, reject) => {
-      const cancelled = () => new DOMException('Search cancelled', 'AbortError');
-      const abort = () => {
-        try {
-          tx.abort();
-        } catch {
-          /* Transaction may have just completed. */
-        }
-      };
-      signal?.addEventListener('abort', abort, { once: true });
-      const clean = () => signal?.removeEventListener('abort', abort);
-      tx.oncomplete = () => {
-        clean();
-        signal?.aborted ? reject(cancelled()) : resolve(page);
-      };
-      tx.onabort = () => {
-        clean();
-        reject(signal?.aborted ? cancelled() : (tx.error ?? new Error('Archive scan aborted')));
-      };
-      tx.onerror = () => {
-        clean();
-        reject(tx.error ?? new Error('Archive scan failed'));
-      };
-      const count = store.count();
-      count.onsuccess = () => {
-        page.bounds.rows = count.result;
-      };
-      const oldest = index.openKeyCursor();
-      oldest.onsuccess = () => {
-        if (typeof oldest.result?.key === 'number') page.bounds.oldest = oldest.result.key;
-      };
-      const newest = index.openKeyCursor(undefined, 'prev');
-      newest.onsuccess = () => {
-        if (typeof newest.result?.key === 'number') page.bounds.newest = newest.result.key;
-      };
-      const lower = Math.max(0, query.after ?? 0),
-        upper = Math.min(8640000000000000, query.before ?? 8640000000000000, after?.timestamp ?? Infinity);
-      if (lower > upper) return;
-      const cursor = index.openCursor(IDBKeyRange.bound(lower, upper), 'prev');
-      let last: ArchiveCursor | undefined;
-      cursor.onsuccess = () => {
-        if (signal?.aborted) {
-          abort();
-          return;
-        }
-        const row = cursor.result;
-        if (!row) return;
-        if (typeof row.key !== 'number' || typeof row.primaryKey !== 'string') {
-          row.continue();
-          return;
-        }
-        const position = { timestamp: row.key, key: row.primaryKey };
-        if (after && position.timestamp === after.timestamp && position.key >= after.key) {
-          row.continue();
-          return;
-        }
-        page.scanned++;
-        if (page.scanned % 250 === 0) progress(page.scanned);
-        if (signal?.aborted) {
-          abort();
-          return;
-        }
-        const record: unknown = row.value;
-        const message =
-          record && typeof record === 'object' && 'message' in record ? validMessage(record.message) : undefined;
-        if (message && matchesArchive(message, query)) {
-          if (messages.length === limit) {
-            page.next = last;
-            return;
-          }
-          messages.push(message);
-          last = position;
-        }
-        row.continue();
-      };
-    });
-  }
-  private async read(
-    query: ArchiveQuery,
-    signal?: AbortSignal,
-    channels?: Set<string>,
-    max = 500,
-  ): Promise<ChatMessage[]> {
-    await this.flush();
-    if (signal?.aborted) throw new DOMException('Search cancelled', 'AbortError');
-    const db = await this.db;
-    const tx = db.transaction('messages', 'readonly');
-    const complete = done(tx);
-    const source = tx.objectStore('messages');
-    const index = query.channel ? source.index('channel-time') : source.index('timestamp');
-    const lower = Math.max(0, query.after ?? 0);
-    const upper = Math.min(8640000000000000, query.before ?? 8640000000000000);
-    if (lower > upper) {
-      await complete;
-      return [];
-    }
-    const range = query.channel
-      ? IDBKeyRange.bound([query.channel, lower], [query.channel, upper])
-      : IDBKeyRange.bound(lower, upper);
-    const results: ChatMessage[] = [];
-    const limit = Math.max(1, Math.min(max, Number.isFinite(query.limit) ? Math.floor(query.limit ?? 100) : 100));
-    await new Promise<void>((resolve, reject) => {
-      const cursor = index.openCursor(range, query.order === 'oldest' ? 'next' : 'prev');
-      cursor.onerror = () => reject(cursor.error);
-      cursor.onsuccess = () => {
-        if (signal?.aborted) {
-          reject(new DOMException('Search cancelled', 'AbortError'));
-          return;
-        }
-        const row = cursor.result;
-        if (!row || results.length >= limit) {
-          resolve();
-          return;
-        }
-        const record = row.value as Partial<Archived>;
-        const message = validMessage(record.message);
-        if (message && (!channels || channels.has(message.channel)) && matchesArchive(message, query))
-          results.push(message);
-        row.continue();
-      };
-    });
-    await complete;
-    return results;
+    return this.queryWorker().query('archive.searchPage', [query, after], { signal, progress });
   }
   stop(): void {
     this.stopped = true;
     stopClockTask(this.timer);
     void this.flush()
-      .then(async () => (await this.db).close())
+      .then(async () => {
+        await this.reader?.stop();
+        (await this.db).close();
+      })
       .catch(() => {});
   }
 }

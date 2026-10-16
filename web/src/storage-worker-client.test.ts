@@ -112,3 +112,34 @@ it('admits shutdown when the request queue is full and drains before terminating
   await stopped;
   expect(port.terminate).toHaveBeenCalledOnce();
 });
+
+it('cancels archive reads without replaying them or poisoning later requests', async () => {
+  const { port, value } = client();
+  const controller = new AbortController();
+  const pending = value.query('archive.searchPage', [{ text: 'absent' }, undefined], { signal: controller.signal });
+  controller.abort();
+  await expect(pending).rejects.toHaveProperty('name', 'AbortError');
+  expect(port.sent).toHaveLength(2);
+  expect(port.sent[1]).toEqual({ version: 1, cancel: 1 });
+  port.reply(1, { messages: [] });
+  const next = value.query('archive.search', [{ text: 'next' }]);
+  port.reply(2, []);
+  await expect(next).resolves.toEqual([]);
+  expect(port.terminate).not.toHaveBeenCalled();
+});
+it('routes progress and aborts before posting a pre-cancelled query', async () => {
+  const { port, value } = client();
+  const controller = new AbortController();
+  controller.abort();
+  await expect(value.query('archive.search', [{ text: '' }], { signal: controller.signal })).rejects.toHaveProperty(
+    'name',
+    'AbortError',
+  );
+  expect(port.sent).toHaveLength(0);
+  const progress = vi.fn();
+  const pending = value.query('archive.searchPage', [{ text: '' }, undefined], { progress });
+  port.dispatchEvent(new MessageEvent('message', { data: { version: 1, id: 1, progress: 250 } }));
+  expect(progress).toHaveBeenCalledWith(250);
+  port.reply(1, { messages: [], scanned: 250 });
+  await expect(pending).resolves.toMatchObject({ scanned: 250 });
+});

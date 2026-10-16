@@ -1,4 +1,4 @@
-import type { StorageOperation, StorageOperations, StorageReply } from './storage-worker-protocol';
+import type { ArchiveOperation, StorageOperation, StorageOperations, StorageReply } from './storage-worker-protocol';
 
 const UNAVAILABLE =
   'Private journal worker unavailable; reload and check retained receipts before another action. No automatic retry.';
@@ -12,13 +12,15 @@ export class StorageWorkerClient {
     {
       resolve: (value: unknown) => void;
       reject: (error: Error) => void;
-      timer: ReturnType<typeof setTimeout>;
+      clean: () => void;
+      progress?: ((scanned: number) => void) | undefined;
     }
   >();
   constructor(
     create = () =>
       new Worker(new URL('./storage-worker.ts', import.meta.url), { type: 'module', name: 'chatty-cat-storage' }),
     private timeoutMs = 30000,
+    private unavailable = UNAVAILABLE,
   ) {
     try {
       this.worker = create();
@@ -33,14 +35,49 @@ export class StorageWorkerClient {
     operation: K,
     ...args: StorageOperations[K]['args']
   ): Promise<StorageOperations[K]['result']> {
+    return this.enqueue(operation, args);
+  }
+  query<K extends ArchiveOperation>(
+    operation: K,
+    args: StorageOperations[K]['args'],
+    options: { signal?: AbortSignal | undefined; progress?: ((scanned: number) => void) | undefined } = {},
+  ): Promise<StorageOperations[K]['result']> {
+    return this.enqueue(operation, args, options);
+  }
+  private enqueue<K extends StorageOperation>(
+    operation: K,
+    args: StorageOperations[K]['args'],
+    options: { signal?: AbortSignal | undefined; progress?: ((scanned: number) => void) | undefined } = {},
+  ): Promise<StorageOperations[K]['result']> {
+    if (options.signal?.aborted) return Promise.reject(new DOMException('Search cancelled', 'AbortError'));
     if (this.failed) return Promise.reject(this.failed);
-    if (this.closing) return Promise.reject(new Error('Private journal stopped; reload before another action.'));
+    if (this.closing) return Promise.reject(new Error('Storage worker stopped; reload before another operation.'));
     if (operation !== 'stop' && this.pending.size >= 64)
-      return Promise.reject(new Error('Private journal busy; wait for pending operations before another action.'));
+      return Promise.reject(new Error('Storage worker busy; wait for pending operations.'));
     const id = ++this.nextID;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => this.fail(), this.timeoutMs);
-      this.pending.set(id, { resolve: (value) => resolve(value as StorageOperations[K]['result']), reject, timer });
+      const clean = () => {
+        clearTimeout(timer);
+        options.signal?.removeEventListener('abort', abort);
+      };
+      const abort = () => {
+        if (!this.pending.delete(id)) return;
+        clean();
+        try {
+          this.worker?.postMessage({ version: 1, cancel: id });
+        } catch {
+          this.fail();
+        }
+        reject(new DOMException('Search cancelled', 'AbortError'));
+      };
+      this.pending.set(id, {
+        resolve: (value) => resolve(value as StorageOperations[K]['result']),
+        reject,
+        clean,
+        progress: options.progress,
+      });
+      options.signal?.addEventListener('abort', abort, { once: true });
       try {
         this.worker!.postMessage({ version: 1, id, operation, args });
       } catch {
@@ -49,6 +86,32 @@ export class StorageWorkerClient {
     });
   }
   private message = (event: MessageEvent<unknown>): void => {
+    const notice = event.data;
+    if (
+      notice &&
+      typeof notice === 'object' &&
+      'version' in notice &&
+      notice.version === 1 &&
+      'id' in notice &&
+      Number.isSafeInteger(notice.id) &&
+      'progress' in notice &&
+      Number.isSafeInteger(notice.progress)
+    ) {
+      const pending = this.pending.get(Number(notice.id));
+      try {
+        pending?.progress?.(Number(notice.progress));
+      } catch (error) {
+        pending?.clean();
+        this.pending.delete(Number(notice.id));
+        try {
+          this.worker?.postMessage({ version: 1, cancel: Number(notice.id) });
+        } catch {
+          this.fail();
+        }
+        pending?.reject(error instanceof Error ? error : new Error('Archive progress callback failed'));
+      }
+      return;
+    }
     const reply = event.data as StorageReply | undefined;
     if (!reply || reply.version !== 1 || !Number.isSafeInteger(reply.id) || typeof reply.ok !== 'boolean') {
       this.fail();
@@ -57,14 +120,14 @@ export class StorageWorkerClient {
     const pending = this.pending.get(reply.id);
     if (!pending) return;
     this.pending.delete(reply.id);
-    clearTimeout(pending.timer);
+    pending.clean();
     if (reply.ok) pending.resolve(reply.result);
     else if (reply.error && typeof reply.error.name === 'string' && typeof reply.error.message === 'string') {
       const error = new Error(reply.error.message);
       error.name = reply.error.name;
       pending.reject(error);
     } else {
-      pending.reject(new Error(UNAVAILABLE));
+      pending.reject(new Error(this.unavailable));
       this.fail();
     }
   };
@@ -72,9 +135,9 @@ export class StorageWorkerClient {
     this.fail();
   };
   private fail(): void {
-    this.failed ??= new Error(UNAVAILABLE);
+    this.failed ??= new Error(this.unavailable);
     for (const pending of this.pending.values()) {
-      clearTimeout(pending.timer);
+      pending.clean();
       pending.reject(this.failed);
     }
     this.pending.clear();

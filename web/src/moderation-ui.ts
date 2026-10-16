@@ -489,12 +489,10 @@ export class ModerationWorkspace implements Panel {
           text: '',
           channel: context.channel,
           limit: 100,
-          matches: (m) =>
-            m.command === 'PRIVMSG' &&
-            ((m.tags['user-id'] === context.targetID && !m.tags['imported-history']) ||
-              (context.targetKind === 'login' &&
-                m.login.toLowerCase() === context.target &&
-                (!m.tags['user-id'] || !!m.tags['imported-history']))),
+          moderationTarget: {
+            id: context.targetID,
+            ...(context.targetKind === 'login' ? { login: context.target } : {}),
+          },
         },
         next ? this.cursor : undefined,
         signal,
