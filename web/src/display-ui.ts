@@ -12,6 +12,7 @@ import {
   WEIGHTS,
   LS_STEPS,
   SHADE_NAMES,
+  displayOptionLabel,
 } from './display-data';
 import { defaultDisplay, parseDisplay, displayFromURL, type DisplayRuntime } from './display';
 export class DisplaySettings {
@@ -63,7 +64,7 @@ export class DisplaySettings {
       for (const value of values) {
         const option = document.createElement('option');
         option.value = String(value);
-        option.textContent = name === 'shade' ? (SHADE_NAMES[Number(value)] ?? String(value)) : String(value);
+        option.textContent = displayOptionLabel(name, name === 'shade' ? (SHADE_NAMES[Number(value)] ?? value) : value);
         select.append(option);
       }
     }
@@ -72,7 +73,7 @@ export class DisplaySettings {
       for (const name of Object.keys(PRESETS)) {
         const option = document.createElement('option');
         option.value = name;
-        option.textContent = name;
+        option.textContent = displayOptionLabel('preset', name);
         presets.append(option);
       }
     this.readSlots();

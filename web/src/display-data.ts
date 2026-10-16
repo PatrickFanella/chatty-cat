@@ -433,3 +433,6 @@ export const SHADE_NAMES = [
   'murk',
   'twilight',
 ];
+
+// Editor-only labels stay in the lazy settings chunk.
+export { DISPLAY_OPTION_LABELS, displayOptionLabel } from './display-option-labels';
