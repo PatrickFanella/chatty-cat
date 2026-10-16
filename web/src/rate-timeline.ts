@@ -1,3 +1,4 @@
+import { StorageWorkerClient } from './storage-worker-client';
 import { clockTask, stopClockTask } from './shell/clock';
 import { ObservationCoverage, type ObservationSpan } from './observation-coverage';
 import type { ChatMessage, ServerEvent } from './protocol';
@@ -325,56 +326,25 @@ export class RateTimeline {
   readonly ready: Promise<void>;
   private timer: ReturnType<typeof clockTask>;
   private storageTimer: ReturnType<typeof clockTask>;
-  private saving = false;
-  private database: Promise<IDBDatabase | undefined>;
+  private saving: Promise<void> | undefined;
+  private closing: Promise<void> | undefined;
+  private storage = new StorageWorkerClient(
+    undefined,
+    30000,
+    'Rate storage worker unavailable; live rates continue without persistence.',
+  );
   private stopped = false;
   constructor(
     private header: HTMLElement,
     channels: readonly string[],
   ) {
     this.series = new RateSeries(channels);
-    this.database = new Promise((resolve) => {
-      let abandoned = false;
-      try {
-        const request = indexedDB.open('chatthing:v1:rates', 1);
-        request.onupgradeneeded = () => request.result.createObjectStore('snapshots');
-        request.onerror = () => resolve(undefined);
-        request.onblocked = () => {
-          abandoned = true;
-          resolve(undefined);
-        };
-        request.onsuccess = () => {
-          const db = request.result;
-          db.onversionchange = () => db.close();
-          if (this.stopped || abandoned) {
-            db.close();
-            resolve(undefined);
-            return;
-          }
-          resolve(db);
-        };
-      } catch {
-        resolve(undefined);
-      }
-    });
-    this.ready = this.database
-      .then((db) => {
-        if (!db || this.stopped) return;
-        return new Promise<void>((resolve) => {
-          try {
-            const request = db.transaction('snapshots').objectStore('snapshots').get(channels.join(','));
-            request.onsuccess = () => {
-              if (!this.stopped) {
-                this.series.restore(request.result);
-                this.paint();
-              }
-              resolve();
-            };
-            request.onerror = () => resolve();
-          } catch {
-            resolve();
-          }
-        });
+    this.ready = this.storage
+      .request('rates.read', channels.join(','))
+      .then((snapshot) => {
+        // Restore retained history even when stop is waiting to save its final snapshot.
+        this.series.restore(snapshot);
+        if (!this.stopped) this.paint();
       })
       .catch(() => {});
     this.timer = clockTask(
@@ -411,36 +381,31 @@ export class RateTimeline {
     this.header.replaceChildren(timelineGraph(samples));
     this.header.title = latest?.gap ?? `${latest?.rate.toFixed(1) ?? '0.0'} msgs/sec · last ${seconds}s`;
   }
-  private async save(key: string): Promise<void> {
-    if (this.saving) return;
-    this.saving = true;
+  private save(key: string): Promise<void> {
+    if (this.saving) return this.saving;
+    this.saving = this.persist(key).finally(() => {
+      this.saving = undefined;
+    });
+    return this.saving;
+  }
+  private async persist(key: string): Promise<void> {
     try {
-      const db = await this.database;
-      if (!db) return;
-      const snapshot = this.series.snapshot();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction('snapshots', 'readwrite');
-        const store = tx.objectStore('snapshots');
-        store.put(snapshot, key);
-        const keys = store.getAllKeys();
-        keys.onsuccess = () => {
-          const older = keys.result.filter((other) => other !== key);
-          for (const other of older.slice(0, Math.max(0, older.length - 15))) store.delete(other);
-        };
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-        tx.onabort = () => reject(tx.error);
-      });
+      await this.ready;
+      await this.storage.request('rates.write', key, this.series.snapshot());
     } catch {
-      /* optional public aggregate storage */
-    } finally {
-      this.saving = false;
+      /* Optional public aggregate storage; live rate observations continue. */
     }
   }
-  stop(): void {
+  stop(): Promise<void> {
+    if (this.closing) return this.closing;
     this.stopped = true;
     stopClockTask(this.timer);
     stopClockTask(this.storageTimer);
-    void this.save(this.key).finally(() => void this.database.then((db) => db?.close()));
+    // Drain an older save, then capture any observations received while it was pending.
+    this.closing = (this.saving ?? Promise.resolve())
+      .then(() => this.save(this.key))
+      .finally(() => this.storage.stop())
+      .catch(() => {});
+    return this.closing;
   }
 }

@@ -5,8 +5,8 @@ bounded stages. The first stage moves the private moderation journal; the second
 moves archive reads and queries. The third moves appends and bounded recovery.
 The fourth moves read-only retention preview; the fifth moves statistics
 IndexedDB persistence and verified recovery copies. Pruning, reviewed retention
-apply, statistics aggregation/serialization and rate-timeline work remain on their
-existing paths. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
+apply, statistics aggregation/serialization and rate-series computation remain on
+their existing paths. The sixth stage moves rate snapshot persistence. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
 
 ## First stage: private journal
 
@@ -254,6 +254,48 @@ shell cache. These are local persistence checks, not live provider, disconnected
 offline or performance qualification. See the
 [statistics evidence](statistics-worker-local-evidence-2026-10-16.json).
 
+## Sixth stage: rate snapshot persistence
+
+Statistics persistence merged in PR #166 at main `4f3f342`; all four PR-head
+checks passed. RateTimeline now owns a storage-worker client for retained snapshot
+reads and writes. The worker keeps the existing database, store and channel-list
+key without a schema migration. Counts, gaps and source-specific coverage remain
+one snapshot value; writing the current scope and trimming other scopes to the
+existing 16-key bound remain one transaction. Scope trimming retains its existing
+key-order behavior rather than adding a recency policy.
+
+RateSeries and the graph stay on the main thread. Their live/replay rules,
+validation of restored records, page-closed gaps, rolling windows and hidden-tab
+painting behavior are unchanged. Storage startup/transaction/transport failure
+leaves live rate observations running without a main-thread persistence fallback.
+A failed transport closes that timeline's client, with no restart or replay.
+Ordinary transaction aborts preserve the previous value and allow a later save.
+
+Managed shutdown is now awaitable and idempotent. It stops both clocks, waits for
+an older save, captures a final snapshot containing later observations, and then
+closes the database and terminates the worker. Startup restoration completes
+before that final capture even if stop arrives while the read is pending; retained
+history is not overwritten by a partial startup snapshot. This does not guarantee
+completion during abrupt tab/process termination.
+
+All 895 frontend tests across 187 files passed, with TypeScript, production build,
+formatting and diff checks. Six new checks cover restoration of counts/coverage
+and closed-page gaps with replay exclusion, in-flight save drain, startup-stop
+ordering, atomic snapshots and 16-scope trimming, aborted-write recovery, and live
+observations with a denied worker. Existing graph/visibility checks still pass.
+
+Native Chromium retained an exact synthetic snapshot with counts, socket gaps and
+coverage across worker recreation. Cloned-result mutation did not change storage.
+Eighteen scope writes left 16 keys, retained the newest written scope and removed
+the earliest test scope. A Window guard recorded zero rate-database opens. Over
+about 65 seconds the actual application sent two scheduled worker saves; a later
+controlled hide flush produced an application snapshot readable through a native
+worker. These observations are local persistence smoke checks, not the required
+15-minute busy-channel performance session. Read-only key-count inspection used
+the saved native open after the guarded operations. The worker was in the shell
+cache; disconnected offline loading was not tested. See the
+[rate evidence](rate-worker-local-evidence-2026-10-16.json).
+
 ## Remaining stages and release boundary
 
 1. Move archive pruning and retention ownership. Preserve
@@ -261,8 +303,9 @@ offline or performance qualification. See the
    the main in-memory message store.
 2. Move statistics ledger aggregation and snapshot serialization while preserving
    replay exclusions, scope keys and the reviewed localStorage migration boundary.
-3. Move rate snapshot persistence and retained-window queries while preserving
-   coverage gaps, replay exclusions and visible graph behavior.
+3. Move rate retained-window computation into the worker, preserving
+   coverage gaps, replay exclusions and visible graph behavior. Snapshot creation
+   and queries still use the main-thread RateSeries.
 4. Run archive/statistics/storage suites through the worker shim and observe a
    15-minute busy-channel session with the resource readout. Attribute storage
    work separately from rendering and structured-clone costs before closing #137.

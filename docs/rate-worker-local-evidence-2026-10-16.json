@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-16",
+  "issue": 137,
+  "baseCommit": "4f3f3420eb529f691e04696baea56b69a45826ca",
+  "scope": "Rate snapshot IndexedDB reads/writes, atomic 16-scope trimming and managed shutdown drain",
+  "localChecks": {
+    "frontendFilesPassed": 187,
+    "frontendTestsPassed": 895,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "nativeChromium": {
+    "worker": {
+      "worker": "assets/storage-worker-k2IiFgOD.js",
+      "exactSnapshot": true,
+      "cloneIsolated": true,
+      "reopenedExact": true,
+      "oldestTrimmed": true,
+      "newestRetained": true,
+      "retainedScopeKeys": 16,
+      "guardedMainRateOpens": 0,
+      "appRateWrites": 2,
+      "guardElapsedMs": 64610.30000001192,
+      "workerCached": true
+    },
+    "application": {
+      "controlledHideFlush": true,
+      "appRateWrites": 5,
+      "readBackApplicationSnapshot": true,
+      "savedAt": 1792180163,
+      "guardedMainRateOpens": 0
+    }
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-BXud-HSc.js",
+        "rawBytes": 523518,
+        "gzipBytes": 152306
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-k2IiFgOD.js",
+        "rawBytes": 91343,
+        "gzipBytes": 24686
+      }
+    }
+  },
+  "limits": [
+    "RateSeries aggregation, snapshot construction and retained-window queries remain on main thread",
+    "Read-only key-count inspection bypassed the guard after native worker operations",
+    "Visibility flush was controlled through document.hidden; natural background behavior not qualified",
+    "Managed shutdown is asynchronous and does not guarantee a flush before abrupt tab/process termination",
+    "No production deployment, disconnected offline test, busy-channel or CPU/GPU qualification",
+    "Issue #137 remains open"
+  ]
+}

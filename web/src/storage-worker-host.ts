@@ -1,3 +1,4 @@
+import { RateStore } from './rate-store';
 import { readStatisticsRecord, writeStatisticsRecord, copyStatisticsRecords } from './statistics-store';
 import { ArchiveStore } from './archive-store';
 import { JournalStore } from './moderation-journal-store';
@@ -9,6 +10,7 @@ export class StorageWorkerHost {
     return (this.journalStore ??= new JournalStore());
   }
   private archive: ArchiveStore | undefined;
+  private rates: RateStore | undefined;
   private controllers = new Map<number, AbortController>();
   private pending = new Set<Promise<unknown>>();
   private closing = false;
@@ -72,6 +74,10 @@ export class StorageWorkerHost {
   ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
+      case 'rates.read':
+        return (this.rates ??= new RateStore()).read(...request.args);
+      case 'rates.write':
+        return (this.rates ??= new RateStore()).write(...request.args);
       case 'statistics.read':
         return readStatisticsRecord(...request.args);
       case 'statistics.write':
@@ -128,6 +134,7 @@ export class StorageWorkerHost {
       this.stopped = Promise.allSettled([...this.pending]).then(async () => {
         await this.journalStore?.stop();
         await this.archive?.stop();
+        await this.rates?.stop();
       });
     }
     return this.stopped;

@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 16, 2026 against main `dcd16e6` and the live Gitea issue inventory.
+Updated October 16, 2026 against main `4f3f342` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -194,16 +194,18 @@ viewport round trip; synthetic whispers/moderation and touch-event checks retain
 their provider/device qualification limits. See [compact panel evidence](compact-panels.md).
 All four PR-head hosted checks passed. These panel changes are not deployed.
 
-The first four #137 migrations merged in PRs #162–#165: private journal,
-archive queries, appends, bounded public-excerpt recovery and retention preview.
-Each final PR head passed all four hosted checks. The fifth stage moves statistics
-IndexedDB reads/writes and verified recovery-copy transactions to the worker.
-All 889 frontend tests passed locally; native Chromium completed the actual
-reviewed move with exact recovery data and zero guarded main-thread statistics
-database opens. See the [staged worker plan and evidence](storage-worker-migration.md).
-The statistics persistence stage is pending review. #137 remains open: archive
-pruning/retention apply, statistics aggregation/serialization, rates and the
-15-minute busy-channel qualification remain.
+The first five #137 migrations merged in PRs #162–#166: private journal,
+archive queries/appends/recovery/retention preview, and statistics IndexedDB
+persistence with verified recovery copies. Each final PR head passed all four
+hosted checks. The sixth stage moves rate snapshot reads/writes and 16-scope
+trimming to the worker, with a final-save drain before managed shutdown. All 895
+frontend tests passed locally. Native Chromium preserved exact counts/gaps/coverage
+across worker recreation, observed scheduled application saves and a controlled
+hide flush, and recorded zero guarded main-thread rate database opens. See the
+[staged worker plan and evidence](storage-worker-migration.md). The rate stage is
+pending review. #137 remains open: archive pruning/retention apply, statistics
+aggregation/serialization, rate computation and the 15-minute busy-channel
+qualification remain.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
