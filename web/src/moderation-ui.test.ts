@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
+import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ModerationWorkspace } from './moderation-ui';
 import { ModerationJournal } from './moderation-journal';
@@ -348,4 +349,22 @@ it('updates child poll permissions and clears private form values on workspace p
   document.dispatchEvent(new Event('privacychange'));
   expect(title.value).toBe('');
   expect(choices.value).toBe('');
+});
+
+it('refuses provider confirmation when the journal worker cannot start', async () => {
+  vi.stubGlobal(
+    'Worker',
+    class {
+      constructor() {
+        throw new Error('Fixture worker denied');
+      }
+    },
+  );
+  const x = setup();
+  await vi.waitFor(() => expect(panel!.root.textContent).toContain('1 retained user messages in this page'));
+  x.button('Preview moderation action').click();
+  x.button('Confirm reviewed moderation action').click();
+  await vi.waitFor(() => expect(panel!.root.textContent).toContain('journal worker unavailable'));
+  expect(x.fetcher.mock.calls.filter((c) => c[1]?.method === 'POST')).toHaveLength(0);
+  expect(x.button('Confirm reviewed moderation action').disabled).toBe(true);
 });

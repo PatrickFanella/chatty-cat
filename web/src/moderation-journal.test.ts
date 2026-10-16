@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
+import '../test-support/storage-worker-shim';
 import { forceCloseDatabase } from 'fake-indexeddb';
 import { afterEach, expect, it, vi } from 'vitest';
 import { ModerationJournal, journalExport, type JournalEntry } from './moderation-journal';
@@ -106,4 +107,32 @@ it('preserves terminal outcomes and refuses capacity exhaustion before admitting
   await a.begin('42', { ...receipt, id: 'request-after-resolved' });
   expect((await a.list('42')).entries).toHaveLength(100);
   expect((await a.list('42')).entries.some((e) => e.id === first.id)).toBe(false);
+});
+
+it('preserves quota errors through the worker boundary and permits an explicit retry after recovery', async () => {
+  const store = journal();
+  const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementationOnce(() => {
+    throw new DOMException('Fixture storage quota denied', 'QuotaExceededError');
+  });
+  await expect(store.begin('42', receipt)).rejects.toMatchObject({ name: 'QuotaExceededError' });
+  expect((await store.list('42')).entries).toEqual([]);
+  put.mockRestore();
+  await store.begin('42', receipt);
+  expect((await store.list('42')).entries[0]?.outcome).toBe('pending');
+});
+
+it('clones request and response graphs and drains admitted writes before stopping', async () => {
+  const store = journal();
+  const input = { ...receipt };
+  const write = store.begin('42', input);
+  input.command = '/w alice must not cross the boundary';
+  await write;
+  const value = await store.list('42');
+  value.entries[0]!.command = '/w alice caller mutation';
+  expect((await store.list('42')).entries[0]?.command).toBe(receipt.command);
+  const finish = store.finish('42', receipt.id, 'confirmed', 'Provider confirmed');
+  const stopped = store.stop();
+  await Promise.all([finish, stopped]);
+  await expect(store.begin('42', { ...receipt, id: 'request-after-stop' })).rejects.toThrow(/stopped|unavailable/);
+  expect((await journal().list('42')).entries[0]?.outcome).toBe('confirmed');
 });

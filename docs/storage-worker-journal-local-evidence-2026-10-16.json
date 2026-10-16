@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-16",
+  "baseCommit": "98d120c3ade1944ec0bb35ef9fc5cb674aea6caf",
+  "scope": "First bounded migration for #137: private moderation journal and dedicated storage worker protocol",
+  "native": {
+    "worker": "assets/storage-worker-Br8I0l9A.js",
+    "pendingBeforeCompletion": "pending",
+    "staleRetentionRejected": true,
+    "otherAccountRows": 0,
+    "persistedAfterNewWorker": "confirmed",
+    "mainJournalOpenAttempts": 0,
+    "fixture": {
+      "mode": "confirmed",
+      "targetLookups": 0,
+      "writes": 0
+    }
+  },
+  "ui": {
+    "guard": "Window indexedDB.open throws for chatthing-moderation-journal; calls to other databases remain permitted",
+    "mainJournalOpenAttempts": 0,
+    "refreshSucceeded": true,
+    "reviewedExportSucceeded": true
+  },
+  "offlineAsset": {
+    "file": "assets/storage-worker-Br8I0l9A.js",
+    "manifestEntry": true,
+    "shellCacheContains": true,
+    "offlineNetworkDisabled": false
+  },
+  "build": {
+    "main": "assets/main-D-AyQBGs.js",
+    "mainGzipKB": 153.85,
+    "moderationPanelGzipKB": 22.62,
+    "workerRawBytes": 11145,
+    "workerGzipBytes": 3857,
+    "nativeCheckMain": "assets/main-CEaQvsVU.js"
+  },
+  "checks": {
+    "frontendTests": 872,
+    "testFiles": 186,
+    "journalCoreUnchangedExceptClassName": true,
+    "strictTypeScript": true,
+    "productionBuild": true,
+    "formatting": true,
+    "finalFocusedTests": 52,
+    "finalChange": "Shutdown control is admitted even when the ordinary request queue is full; worker bundle unchanged."
+  },
+  "limits": [
+    "Archive, stats ledger/storage, rate timeline and history/search are not moved by this first migration.",
+    "The #137 15-minute busy-channel storage long-task acceptance has not been run and the issue remains open.",
+    "Native checks use a synthetic local provider and synthetic receipts; zero provider writes, no Twitch acceptance.",
+    "Presence in the shell cache is verified; disconnected offline loading has not been exercised.",
+    "No production deployment."
+  ]
+}
