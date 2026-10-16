@@ -12,6 +12,7 @@ import type { AuthStatus } from './auth';
 import type { MessageArchive, ArchiveCursor } from './archive';
 import type { ChatMessage } from './protocol';
 import { privacyEnabled } from './privacy';
+import { panelActions, panelDetails, panelSection } from './panel-sections';
 import { portableMessage, LogModeration } from './portable-logs';
 import { parseSendResult } from './composer';
 import {
@@ -89,17 +90,19 @@ export class ModerationWorkspace implements Panel {
       option.textContent = '#' + name;
       this.channel.append(option);
     }
-    this.label(this.root, 'Moderation channel', this.channel);
+    const target = panelSection('Select channel and user');
+    this.root.append(target);
+    this.label(target, 'Moderation channel', this.channel);
     this.user.maxLength = 30;
     this.idMode.type = 'checkbox';
-    this.label(this.root, 'Review direct numeric user ID', this.idMode);
+    this.label(target, 'Review direct numeric user ID', this.idMode);
     this.idMode.addEventListener('change', this.reset);
-    this.label(this.root, 'User to review', this.user);
+    this.label(target, 'User to review', this.user);
     this.channel.addEventListener('change', this.reset);
     this.user.addEventListener('input', this.reset);
     this.next = this.button('Next retained user messages', () => void this.historyPage(true));
     this.next.disabled = true;
-    const historyPane = document.createElement('section');
+    const historyPane = panelSection('Retained history and permissions');
     historyPane.append(
       this.info,
       this.button('Refresh user context and history', () => void this.load()),
@@ -123,7 +126,7 @@ export class ModerationWorkspace implements Panel {
     this.amount.type = 'number';
     this.amount.value = '600';
     this.reason.maxLength = 200;
-    const actions = document.createElement('section');
+    const actions = panelSection('Review moderation action');
     this.label(actions, 'Moderation action', this.action);
     this.label(actions, 'Seconds / follower minutes', this.amount);
     this.label(actions, 'Action reason (sent to Twitch)', this.reason);
@@ -135,9 +138,11 @@ export class ModerationWorkspace implements Panel {
     this.confirm = this.button('Confirm reviewed moderation action', () => void this.send());
     this.confirm.disabled = true;
     actions.append(
-      this.button('Preview moderation action', () => this.stage()),
       this.staged,
-      this.confirm,
+      panelActions(
+        this.button('Preview moderation action', () => this.stage()),
+        this.confirm,
+      ),
     );
     const columns = document.createElement('div');
     columns.className = 'moderation-columns';
@@ -190,11 +195,10 @@ export class ModerationWorkspace implements Panel {
       this.apply,
     );
     this.status.setAttribute('role', 'status');
-    this.root.prepend(
-      title,
-      this.button('Close moderation workspace', () => this.root.close()),
-      help,
-    );
+    const lead = document.createElement('p');
+    lead.textContent =
+      'Select a channel and user, refresh permissions, then preview an action. Confirm rechecks identity and sends once. Reasons go to Twitch and the private journal; uncertain outcomes are never retried automatically.';
+    this.root.prepend(title, lead);
     this.presets = new ModerationPresetPanel(
       (preset) => {
         const context = this.context;
@@ -252,14 +256,16 @@ export class ModerationWorkspace implements Panel {
     );
     this.root.append(
       columns,
-      this.presets.root,
-      this.broadcaster.root,
-      this.predictions.root,
-      this.polls.root,
-      this.suspicious.root,
-      this.automod.root,
-      journalPane,
+      panelDetails('Channel moderation presets', this.presets.root),
+      panelDetails('Clip, marker and broadcaster actions', this.broadcaster.root),
+      panelDetails('Predictions', this.predictions.root),
+      panelDetails('Polls', this.polls.root),
+      panelDetails('Suspicious users', this.suspicious.root),
+      panelDetails('Private AutoMod queue', this.automod.root),
+      panelDetails('Private journal, retention and recovery', journalPane),
+      panelDetails('Permissions, action outcomes and supported behavior', help),
       this.status,
+      panelActions(this.button('Close moderation workspace', () => this.root.close())),
     );
     document.body.append(this.root);
     this.root.addEventListener('close', this.closed);

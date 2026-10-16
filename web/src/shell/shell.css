@@ -826,8 +826,31 @@ html[data-shell] dialog fieldset {
   border-radius: var(--shell-radius);
   padding: 10px 12px 12px;
 }
-html[data-shell] dialog fieldset:not(:has(label:not([hidden]))) {
-  display: none;
+html[data-shell] dialog .panel-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 8px 12px;
+}
+html[data-shell] dialog :is(.panel-section[hidden], [data-setting][hidden]) {
+  display: none !important;
+}
+html[data-shell] dialog .panel-details {
+  flex-basis: 100%;
+  min-width: 0;
+}
+html[data-shell] dialog .panel-details > summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 12px;
+  padding: 6px 0;
+}
+html[data-shell] dialog .panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex-basis: 100%;
 }
 html[data-shell] dialog label {
   display: flex;

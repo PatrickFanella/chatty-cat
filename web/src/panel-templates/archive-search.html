@@ -1,7 +1,19 @@
 <dialog id="archive-search" aria-label="Search local chat archive">
-    <fieldset><legend>History files</legend><p>Import a copy of saved history from the original app or Chatty Cat. Original files and existing messages stay intact. Legacy media is restored as text.</p><label for="history-file">History JSON file</label><input id="history-file" type="file" accept=".json,application/json"><button id="history-import" type="button" disabled>Import selected file</button><button id="history-export" type="button">Export retained history</button><p id="history-status" role="status"></p></fieldset>
-    <button id="archive-close" type="button">Close</button>
-    <form><label for="archive-query">Archive query</label><input id="archive-query" type="search" maxlength="1000" placeholder='sender:alice,bob -badge:moderator text:"hello world"'><label for="archive-channel">Channel</label><select id="archive-channel"><option value="">All joined channels</option></select><button type="submit">Search</button></form>
-    <p>Search messages saved by this browser. Up to 100,000 messages are retained. Earlier unsaved chat is unavailable.</p>
-    <div id="archive-status" role="status"></div><div id="archive-results"></div>
-  </dialog>
+  <h2>Search local chat archive</h2>
+  <p>Search messages saved by this browser. Up to 100,000 messages are retained. Earlier unsaved chat is unavailable.</p>
+  <form><fieldset class="panel-section"><legend>Search retained messages</legend>
+    <label for="archive-query">Archive query<input id="archive-query" type="search" maxlength="1000" placeholder='sender:alice,bob -badge:moderator text:"hello world"'></label>
+    <label for="archive-channel">Channel<select id="archive-channel"><option value="">All joined channels</option></select></label>
+    <div class="panel-actions"><button type="submit">Search</button></div>
+  </fieldset></form>
+  <div id="archive-status" role="status"></div><div id="archive-results"></div>
+  <details class="panel-details"><summary>History files</summary>
+    <fieldset class="panel-section"><legend>Import and export retained history</legend>
+      <p>Import a copy of saved history from the original app or Chatty Cat. Original files and existing messages stay intact. Legacy media is restored as text.</p>
+      <label for="history-file">History JSON file<input id="history-file" type="file" accept=".json,application/json"></label>
+      <p id="history-status" role="status"></p>
+      <div class="panel-actions"><button id="history-import" type="button" disabled>Import selected file</button><button id="history-export" type="button">Export retained history</button></div>
+    </fieldset>
+  </details>
+  <div class="panel-actions"><button id="archive-close" type="button">Close</button></div>
+</dialog>

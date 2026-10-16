@@ -3,6 +3,7 @@ import type { Panel } from './shell/panels';
 import type { AuthStatus } from './auth';
 import type { ChatMessage } from './protocol';
 import { privacyEnabled } from './privacy';
+import { panelActions, panelDetails, panelSection } from './panel-sections';
 import { parseChatContext, applyChatContext, type ChatContextRow } from './chat-context';
 export class ChatContextPanel implements Panel {
   readonly id = 'chat-context-panel';
@@ -41,23 +42,27 @@ export class ChatContextPanel implements Panel {
     label.append(this.channel);
     this.consent.textContent = 'Grant public context read permission';
     this.status.setAttribute('role', 'status');
+    const lead = document.createElement('p');
+    lead.textContent =
+      'Connect explicitly to enrich matching public messages in one channel. This reads context only; it sends no chat or moderation actions and excludes private held-message bodies.';
     this.root.append(
       heading,
-      help,
-      label,
-      this.consent,
-      this.button('Connect public context', () => this.connect()),
-      this.button('Disconnect and clear supplemental context', () =>
-        this.disconnect('Disconnected; supplemental context cleared'),
+      lead,
+      panelSection('Channel and permission', label, this.consent),
+      panelSection('Connection and observed context', this.report, this.status),
+      panelDetails('What is read, retained and excluded', help),
+      panelActions(
+        this.button('Connect public context', () => this.connect()),
+        this.button('Disconnect and clear supplemental context', () =>
+          this.disconnect('Disconnected; supplemental context cleared'),
+        ),
+        this.button('Return to chat; keep context connected', () => {
+          if (!this.connected) throw new Error('Connect first, or close and disconnect');
+          this.keepOnClose = true;
+          this.root.close();
+        }),
+        this.button('Close and disconnect public context', () => this.root.close()),
       ),
-      this.report,
-      this.status,
-      this.button('Return to chat; keep context connected', () => {
-        if (!this.connected) throw new Error('Connect first, or close and disconnect');
-        this.keepOnClose = true;
-        this.root.close();
-      }),
-      this.button('Close and disconnect public context', () => this.root.close()),
     );
     document.body.append(this.root);
     this.root.addEventListener('close', this.closed);

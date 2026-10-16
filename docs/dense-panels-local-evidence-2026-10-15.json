@@ -1,0 +1,361 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "ffd677f322259000128736b3874bb067f8a179b8",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "panels": [
+    {
+      "id": "presentation-panel",
+      "root": {
+        "top": 60,
+        "bottom": 740,
+        "width": 760,
+        "height": 680,
+        "scrollWidth": 758,
+        "clientWidth": 758
+      },
+      "sections": [
+        "Message text",
+        "Names and mentions",
+        "Replies and moderation",
+        "Composer",
+        "Scrolling",
+        "Mouse and popups",
+        "Header and motion",
+        "History and membership",
+        "Last-message marker",
+        "Overlay"
+      ],
+      "directParagraphLengths": [
+        0
+      ],
+      "details": [
+        {
+          "title": "Preview, privacy and supported behavior",
+          "open": false
+        }
+      ],
+      "first": {
+        "top": 178.140625,
+        "bottom": 409.390625,
+        "visible": true,
+        "height": 231.25
+      },
+      "buttons": 6,
+      "inputs": 65
+    },
+    {
+      "id": "provider-preferences-panel",
+      "root": {
+        "top": 16,
+        "bottom": 784,
+        "width": 800,
+        "height": 768,
+        "scrollWidth": 798,
+        "clientWidth": 798
+      },
+      "sections": [
+        "Emote providers",
+        "Emote display",
+        "Twitch badges",
+        "Optional cosmetics and live services",
+        "Activity sharing"
+      ],
+      "directParagraphLengths": [
+        188
+      ],
+      "details": [
+        {
+          "title": "Provider requests, privacy and limits",
+          "open": false
+        }
+      ],
+      "first": {
+        "top": 159.078125,
+        "bottom": 284.21875,
+        "visible": true,
+        "height": 125.140625
+      },
+      "buttons": 7,
+      "inputs": 35
+    },
+    {
+      "id": "chat-context-panel",
+      "root": {
+        "top": 186.1484375,
+        "bottom": 613.8515625,
+        "width": 800,
+        "height": 427.703125,
+        "scrollWidth": 798,
+        "clientWidth": 798
+      },
+      "sections": [
+        "Channel and permission",
+        "Connection and observed context"
+      ],
+      "directParagraphLengths": [
+        175
+      ],
+      "details": [
+        {
+          "title": "What is read, retained and excluded",
+          "open": false
+        }
+      ],
+      "first": {
+        "top": 329.2265625,
+        "bottom": 417.1171875,
+        "visible": true,
+        "height": 87.890625
+      },
+      "buttons": 6,
+      "inputs": 1
+    },
+    {
+      "id": "device-sync-panel",
+      "root": {
+        "top": 70.2265625,
+        "bottom": 729.7734375,
+        "width": 800,
+        "height": 659.546875,
+        "scrollWidth": 798,
+        "clientWidth": 798
+      },
+      "sections": [
+        "Choose public data to sync",
+        "Review exact data and action"
+      ],
+      "directParagraphLengths": [
+        197,
+        77
+      ],
+      "details": [
+        {
+          "title": "Included data, privacy and conflict handling",
+          "open": false
+        },
+        {
+          "title": "Local recovery and private annotation backups",
+          "open": false
+        }
+      ],
+      "first": {
+        "top": 213.3046875,
+        "bottom": 275.6484375,
+        "visible": true,
+        "height": 62.34375
+      },
+      "buttons": 14,
+      "inputs": 4
+    },
+    {
+      "id": "archive-search",
+      "root": {
+        "top": 163.1953125,
+        "bottom": 636.8046875,
+        "width": 800,
+        "height": 473.609375,
+        "scrollWidth": 798,
+        "clientWidth": 798
+      },
+      "sections": [
+        "Search retained messages",
+        "Add a filter",
+        "Saved queries",
+        "Import and export retained history"
+      ],
+      "directParagraphLengths": [
+        112,
+        0
+      ],
+      "details": [
+        {
+          "title": "Build a query and filter syntax",
+          "open": false
+        },
+        {
+          "title": "Saved queries",
+          "open": false
+        },
+        {
+          "title": "History files",
+          "open": false
+        }
+      ],
+      "first": {
+        "top": 287.6796875,
+        "bottom": 412.8125,
+        "visible": true,
+        "height": 125.1328125
+      },
+      "buttons": 14,
+      "inputs": 8
+    },
+    {
+      "id": "moderation-workspace",
+      "root": {
+        "top": 16,
+        "bottom": 784,
+        "width": 1100,
+        "height": 768,
+        "scrollWidth": 1098,
+        "clientWidth": 1098
+      },
+      "sections": [
+        "Select channel and user",
+        "Retained history and permissions",
+        "Review moderation action",
+        "Channel moderation presets",
+        "Clip, marker and broadcaster actions",
+        "Broadcaster predictions",
+        "Broadcaster polls",
+        "Private suspicious-user signals",
+        "Private AutoMod queue",
+        "Private account action journal"
+      ],
+      "directParagraphLengths": [
+        211,
+        0
+      ],
+      "details": [
+        {
+          "title": "Channel moderation presets",
+          "open": false
+        },
+        {
+          "title": "Clip, marker and broadcaster actions",
+          "open": false
+        },
+        {
+          "title": "Predictions",
+          "open": false
+        },
+        {
+          "title": "Polls",
+          "open": false
+        },
+        {
+          "title": "Suspicious users",
+          "open": false
+        },
+        {
+          "title": "Private AutoMod queue",
+          "open": false
+        },
+        {
+          "title": "Private journal, retention and recovery",
+          "open": false
+        },
+        {
+          "title": "Permissions, action outcomes and supported behavior",
+          "open": false
+        }
+      ],
+      "first": {
+        "top": 159.078125,
+        "bottom": 260.8125,
+        "visible": true,
+        "height": 101.734375
+      },
+      "buttons": 43,
+      "inputs": 22
+    }
+  ],
+  "search": {
+    "groups": [
+      "Overlay"
+    ],
+    "restored": 10
+  },
+  "build": [
+    "http://localhost:4181/assets/main-CH5gHRKd.js"
+  ],
+  "moderationDetails": [
+    {
+      "title": "Channel moderation presets",
+      "visible": true,
+      "controls": 11
+    },
+    {
+      "title": "Clip, marker and broadcaster actions",
+      "visible": true,
+      "controls": 8
+    },
+    {
+      "title": "Predictions",
+      "visible": true,
+      "controls": 7
+    },
+    {
+      "title": "Polls",
+      "visible": true,
+      "controls": 9
+    },
+    {
+      "title": "Suspicious users",
+      "visible": true,
+      "controls": 3
+    },
+    {
+      "title": "Private AutoMod queue",
+      "visible": true,
+      "controls": 4
+    },
+    {
+      "title": "Private journal, retention and recovery",
+      "visible": true,
+      "controls": 9
+    },
+    {
+      "title": "Permissions, action outcomes and supported behavior",
+      "visible": true,
+      "controls": 0
+    }
+  ],
+  "moderationReview": {
+    "before": {
+      "preview": "Review: /timeout viewer 600 edited\nChannel #one (ID 123)\nTarget viewer (ID 456)\nActor moderator / moderator\nRequired scope moderator:manage:banned_users\nConfirm rechecks identities/role and sends once. No automatic retry.",
+      "confirmEnabled": true
+    },
+    "confirmDisabledAfterEdit": true,
+    "fixture": {
+      "mode": "confirmed",
+      "targetLookups": 0,
+      "writes": 0
+    }
+  },
+  "moderationKeyboard": {
+    "keyboardExpanded": true,
+    "fieldsetVisible": true,
+    "fixture": {
+      "mode": "confirmed",
+      "targetLookups": 0,
+      "writes": 0
+    }
+  },
+  "providerReview": {
+    "applyEnabledAfterReview": true,
+    "reviewTag": "PRE",
+    "reviewWrap": "pre-wrap",
+    "directParagraphMax": 188,
+    "applyDisabledAfterEdit": true
+  },
+  "validation": {
+    "frontendTests": 856,
+    "testFiles": 184,
+    "finalFocusedTests": 19,
+    "productionBuild": true,
+    "formatting": true,
+    "mainGzipKB": 153.21
+  },
+  "limits": [
+    "Local production builds and synthetic moderation provider only; not deployed.",
+    "No real provider write was sent; synthetic provider write count remained zero.",
+    "Narrow and portrait qualification continues under #133.",
+    "Close buttons were used; the existing open-picker Escape routing remains outside this layout change."
+  ],
+  "buildNote": "Initial layout pass before the provider review output changed from paragraph to wrapping preformatted text. Provider final geometry and review behavior were checked again on finalBuild.",
+  "finalBuild": "assets/main-C6YTm1Rx.js"
+}

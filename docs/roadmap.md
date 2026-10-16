@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `bed565d` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 12 open
-issues: 10 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 15, 2026 against main `ffd677f` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 11 open
+issues: 9 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has seven open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has six open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -173,11 +173,17 @@ images while preserving manual freeze, Hold+ and reader geometry. Local tests an
 controlled browser checks pass. External CPU/GPU qualification remains open; see
 [animation evidence](emote-animation.md). The issue remains open for qualification.
 
-The #131 implementation gives Display settings readable labels and measurement
+The #131 implementation merged in PR #159 and #131 is closed. It gives Display settings readable labels and measurement
 units, retaining all raw option values and the 18 canonical preset definitions.
 The share-URL serializer is unchanged. The design system records the mapping;
-local tests and a 1280×800 browser check pass. Pending review; next is #132, then
-#133. These settings-label changes are not deployed.
+local tests and a 1280×800 browser check pass. PR-head hosted CI passed after a
+stranded frontend task was retried. These settings-label changes are not deployed.
+
+The #132 implementation groups all six dense panels, preserves detailed copy in
+disclosures and keeps review/consent/recovery controls together. Each first
+section fits at 1280×800, with no horizontal overflow and direct explanatory
+paragraphs below 300 characters. Local tests and synthetic moderation checks pass;
+see [panel evidence](dense-panels.md). Pending review; next is #133.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

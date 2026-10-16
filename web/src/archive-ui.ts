@@ -1,5 +1,6 @@
 import { showPanel } from './shell/open-panel';
 import { privacyEnabled } from './privacy';
+import { panelActions, panelDetails } from './panel-sections';
 import { MessageArchive, type ArchiveCursor, type ArchivePage } from './archive';
 import { archiveFields, formatArchiveClause, parseArchiveQuery } from './archive-query';
 import { SavedArchiveQueries } from './archive-saved';
@@ -87,14 +88,16 @@ export class ArchiveSearch {
     const help = document.createElement('p');
     help.textContent =
       'AND between filters; comma-separated alternatives use OR. Prefix - to exclude. Quote phrases, for example sender:alice,bob -badge:moderator text:"hello world". Dates use UTC midnight or ISO time with an offset. Regex supports at most one .* or .+ wildcard, no groups/backreferences, and checks the first 2,000 characters. Emotes use native IDs or literal case-sensitive message tokens. Moderation/deletion filters use retained notices or recorded deletion flags. source uses the supplied origin room ID; sourcebadge, reward, streak and effect match only supplied Twitch context. is:shared/reward/streak/effect test its presence.';
-    this.input.closest('form')?.after(builder, help);
+    this.input.closest('form')?.after(panelDetails('Build a query and filter syntax', builder, help));
     const saved = document.createElement('fieldset');
+    saved.className = 'panel-section';
     const savedLegend = document.createElement('legend');
     savedLegend.textContent = 'Saved queries';
     saved.append(savedLegend);
     this.name.maxLength = 80;
     this.label(saved, 'Saved query', this.savedList);
     this.label(saved, 'Query name', this.name);
+    const savedActions = panelActions();
     for (const [name, action] of [
       [
         'Save query',
@@ -144,14 +147,14 @@ export class ArchiveSearch {
         }
       });
       this.savedControls.push(button);
-      saved.append(button);
+      savedActions.append(button);
     }
     this.savedStatus.setAttribute('role', 'status');
     const savedNote = document.createElement('p');
     savedNote.textContent =
       'Up to 20 queries on this device, isolated by signed-in account or signed-out profile. Names and query text stay private. Saving an existing name replaces its query. The selected Channel is included as a query filter.';
-    saved.append(savedNote, this.savedStatus);
-    this.results.before(saved);
+    saved.append(savedNote, this.savedStatus, savedActions);
+    this.results.before(panelDetails('Saved queries', saved));
     this.previous = this.button('Previous results', () => {
       if (this.page > 0) {
         this.page--;
@@ -171,7 +174,7 @@ export class ArchiveSearch {
       this.status.textContent = 'Search cancelled';
       this.paintPaging();
     });
-    this.results.before(this.previous, this.next, this.cancel, this.coverage);
+    this.results.before(this.coverage, panelActions(this.previous, this.next, this.cancel));
     trigger.addEventListener('click', this.open);
     dialog.querySelector('#archive-close')?.addEventListener('click', this.close);
     dialog.querySelector('form')?.addEventListener('submit', this.search);

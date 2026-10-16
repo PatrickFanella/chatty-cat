@@ -56,3 +56,23 @@ it('applies saved presentation without an editor and ignores editor cancellation
   expect(event).not.toHaveBeenCalled();
   document.removeEventListener('presentationchange', event);
 });
+
+it('searches across groups without discarding edited controls and restores every section when cleared', () => {
+  runtime = new PresentationRuntime(vi.fn());
+  panel = new PresentationPanel(runtime);
+  const search = panel.root.querySelector<HTMLInputElement>('input[type="search"]')!;
+  const edited = panel.root.querySelector<HTMLInputElement>('#presentation-collapseLines')!;
+  edited.value = '7';
+  search.value = 'shadow';
+  search.dispatchEvent(new Event('input'));
+  const visible = [...panel.root.querySelectorAll<HTMLFieldSetElement>('fieldset')].filter((group) => !group.hidden);
+  expect(visible.map((group) => group.querySelector('legend')?.textContent)).toEqual(['Overlay']);
+  expect(panel.root.querySelector('#presentation-collapseLines')).toBe(edited);
+  search.value = '';
+  search.dispatchEvent(new Event('input'));
+  expect([...panel.root.querySelectorAll<HTMLFieldSetElement>('fieldset')].every((group) => !group.hidden)).toBe(true);
+  expect(edited.value).toBe('7');
+  [...panel.root.querySelectorAll('button')].find((b) => b.textContent === 'Preview')!.click();
+  expect(getPresentation().collapseLines).toBe(7);
+  expect(localStorage.getItem('chatthing:v1:presentation')).toBeNull();
+});
