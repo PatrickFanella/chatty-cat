@@ -26,6 +26,12 @@ func TestPersonalChatWorkspaceLimit(t *testing.T) {
 }
 
 func TestPersonalChat(t *testing.T) {
+	for _, order := range []string{"concurrent-pong", "action-first"} {
+		t.Run(order, func(t *testing.T) { testPersonalChat(t, order == "action-first") })
+	}
+}
+
+func testPersonalChat(t *testing.T, actionFirst bool) {
 	f := setup(t)
 	cookies, csrf := f.signin(t)
 	f.service.mu.Lock()
@@ -52,19 +58,38 @@ func TestPersonalChat(t *testing.T) {
 				t.Error("wrong IRC handshake")
 			}
 		}
-		data := ":tmi.twitch.tv 001 viewer :Welcome\r\n@user-id=42;display-name=Viewer :tmi.twitch.tv GLOBALUSERSTATE\r\n@mod=1;subscriber=0 :tmi.twitch.tv USERSTATE #hasanabi\r\n@mod=0 :tmi.twitch.tv USERSTATE #other\r\n:id!id@id PRIVMSG #hasanabi :not duplicated\r\nPING :tmi.twitch.tv\r\n"
+		data := ":tmi.twitch.tv 001 viewer :Welcome\r\n@user-id=42;display-name=Viewer :tmi.twitch.tv GLOBALUSERSTATE\r\n@mod=1;subscriber=0 :tmi.twitch.tv USERSTATE #hasanabi\r\n@mod=0 :tmi.twitch.tv USERSTATE #other\r\n:id!id@id PRIVMSG #hasanabi :not duplicated\r\n"
+		if !actionFirst {
+			data += "PING :tmi.twitch.tv\r\n"
+		}
 		if err := conn.Write(ctx, websocket.MessageText, []byte(data)); err != nil {
 			t.Error(err)
 			return
 		}
-		_, pong, err := conn.Read(ctx)
-		if err != nil || string(pong) != "PONG :tmi.twitch.tv\r\n" {
-			t.Error("missing pong")
+		// The action request can race the upstream reader's PING handling after
+		// USERSTATE reaches the client. Both exact frames are required; either
+		// ordering is valid on the serialized upstream writer.
+		want := map[string]bool{
+			"PONG :tmi.twitch.tv\r\n":          true,
+			"PRIVMSG #hasanabi :/me waves\r\n": true,
 		}
-		_, action, err := conn.Read(ctx)
-		if err != nil || string(action) != "PRIVMSG #hasanabi :/me waves\r\n" {
-			t.Error("action payload mismatch")
-			return
+		for range 2 {
+			_, frame, err := conn.Read(ctx)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if !want[string(frame)] {
+				t.Errorf("unexpected or duplicate IRC frame: %q", frame)
+				return
+			}
+			delete(want, string(frame))
+			if actionFirst && string(frame) == "PRIVMSG #hasanabi :/me waves\r\n" {
+				if err := conn.Write(ctx, websocket.MessageText, []byte("PING :tmi.twitch.tv\r\n")); err != nil {
+					t.Error(err)
+					return
+				}
+			}
 		}
 		if err := conn.Write(ctx, websocket.MessageText, []byte("@id=action-id;mod=1 :tmi.twitch.tv USERSTATE #hasanabi\r\n")); err != nil {
 			t.Error(err)

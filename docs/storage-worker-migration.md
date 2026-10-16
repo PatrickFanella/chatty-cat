@@ -164,6 +164,13 @@ path; live provider ingestion was not exercised. The worker was in the shell
 cache, but disconnected offline loading was not tested. Exact bundle sizes and
 results are in the [write evidence](archive-worker-writes-local-evidence-2026-10-16.json).
 
+The initial write-stage head had both frontend jobs and the pull-request Go job
+pass, while its push Go job failed in `TestPersonalChat`. That fixture assumed
+PONG preceded a concurrent user action. A separate test-only repair requires both
+exact frames in either valid order and adds a forced action-first case. Both cases
+passed 50 race-detector repetitions; the full Go race suite and go vet passed.
+Hosted results for the replacement head must be assessed separately.
+
 ## Remaining stages and release boundary
 
 1. Move archive pruning and retention ownership. Preserve

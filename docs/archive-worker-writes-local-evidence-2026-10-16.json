@@ -8,7 +8,14 @@
     "frontendFilesPassed": 186,
     "typescript": "passed",
     "productionBuild": "passed",
-    "format": "passed"
+    "format": "passed",
+    "goRaceAll": "passed",
+    "goVetAll": "passed",
+    "personalChatRaceRepetitions": 50,
+    "personalChatOrderCases": [
+      "concurrent-pong",
+      "action-first"
+    ]
   },
   "nativeChromium": {
     "worker": "assets/storage-worker-BgrwjmBm.js",
@@ -53,5 +60,12 @@
     "No production deployment or 15-minute busy-channel qualification",
     "No disconnected offline loading test",
     "Issue #137 remains open"
-  ]
+  ],
+  "ciRepair": {
+    "initialHead": "f6f88267f415938c328252ca438c8e95d0234b7c",
+    "failedJob": "https://git.subcult.tv/subculture-collective/chatty-cat/actions/runs/15766/jobs/29007",
+    "failure": "TestPersonalChat expected PONG before a concurrent user action",
+    "change": "Require both exact frames in either order; add forced action-first fixture case",
+    "productionGoCodeChanged": false
+  }
 }
