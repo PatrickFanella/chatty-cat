@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
-import { afterEach, expect, it } from 'vitest';
+import { beforeAll, afterEach, expect, it } from 'vitest';
+import { loadEmojiFixture } from '../test-support/reference-data';
+beforeAll(loadEmojiFixture);
 import { EMOJIS, EMOJI_CATALOG, EMOJI_VERSION, emojiEntry, emojiImage, appendEmojiText, setEmojiStyle } from './emoji';
 import { tokenize, nativeEmoteTag } from './tokens';
 afterEach(() => setEmojiStyle('native'));

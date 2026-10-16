@@ -3,7 +3,6 @@ from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlparse
-import json
 import argparse
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,6 +59,5 @@ class Tabs(HTMLParser):
 
 tabs = Tabs(); tabs.feed(source)
 if len(tabs.tabs) != 4: raise ValueError('Original resource tabs changed')
-output = '// Curated links and attribution ported from the original AGPL app.\n'
-output += 'export const RESOURCE_TABS: Record<string, string> = ' + json.dumps(tabs.tabs, ensure_ascii=False, indent=2) + ';\n'
-(ROOT / 'web/src/resource-data.ts').write_text(output)
+from reference_data import emit
+emit('resource-data', tabs.tabs)

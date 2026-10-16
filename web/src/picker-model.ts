@@ -87,7 +87,8 @@ export function restorePickerOptions(current: PickerOptions, value: unknown): Pi
 function matchesEmoji(item: PickerItem, options: PickerOptions): boolean {
   if (item.source !== 'Emoji') return true;
   const entry = emojiEntry(item.code);
-  if (!entry || (options.emojiCategory !== 'all' && entry.group !== options.emojiCategory)) return false;
+  if (!entry) return options.emojiCategory === 'all' && options.emojiTone === 'all';
+  if (options.emojiCategory !== 'all' && entry.group !== options.emojiCategory) return false;
   if (options.emojiTone === 'all') return true;
   if (options.emojiTone === 'none') return !entry.tones.length;
   if (options.emojiTone === 'mixed') return new Set(entry.tones).size > 1;

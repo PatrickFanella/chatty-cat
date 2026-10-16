@@ -2572,21 +2572,30 @@ export async function startMain(): Promise<void> {
       title: 'Help and resources',
       group: 'help',
       load: () =>
-        Promise.all([import('./resources'), import('./panel-templates/resources-panel.html?raw')]).then(
-          ([{ Resources }, markup]) =>
+        Promise.all([
+          import('./resources'),
+          import('./panel-templates/resources-panel.html?raw'),
+          import('./resource-data-loader').then(({ loadResourceData }) => loadResourceData()),
+        ]).then(
+          ([{ Resources }, markup, resourceTabs]) =>
             () =>
               passiveSettings.handoff('resources', () => {
                 const root = mountPanel<HTMLElement>(markup.default, 'resources-panel');
-                resources = new Resources(root, panelTrigger('resources-open'), (name) => {
-                  const id = (
-                    {
-                      'display-open': 'display-panel',
-                      'stats-open': 'stats-panel',
-                      'archive-open': 'archive-search',
-                    } as Record<string, string>
-                  )[name];
-                  if (id) void lazyPanels?.open(id);
-                });
+                resources = new Resources(
+                  root,
+                  panelTrigger('resources-open'),
+                  (name) => {
+                    const id = (
+                      {
+                        'display-open': 'display-panel',
+                        'stats-open': 'stats-panel',
+                        'archive-open': 'archive-search',
+                      } as Record<string, string>
+                    )[name];
+                    if (id) void lazyPanels?.open(id);
+                  },
+                  resourceTabs,
+                );
 
                 return panelAdapter(
                   'resources-panel',

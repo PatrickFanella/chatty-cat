@@ -36,7 +36,8 @@ def main():
   assert len(rows)==3944 and len({r['code'] for r in rows})==3944
   license_member=next(m for m in tar.getmembers() if m.name.endswith('/LICENSE-GRAPHICS'))
   (target/'LICENSE-GRAPHICS.txt').write_bytes(tar.extractfile(license_member).read())
-  (ROOT/'web/src/emoji-catalog.ts').write_text('// Generated from Unicode Emoji 17.0; see scripts/data/unicode-17/LICENSE.txt.\nexport const EMOJI_VERSION="17.0";\nexport interface CatalogEmoji {code:string;name:string;group:string;subgroup:string;version:string;asset:string;tones:readonly string[]}\nexport const EMOJI_CATALOG:readonly CatalogEmoji[]='+json.dumps(rows,ensure_ascii=False,separators=(',',':'))+';\n')
+  from reference_data import emoji
+  emoji(rows)
   (ROOT/'docs/emoji-sources.json').write_text(json.dumps({'unicodeVersion':'17.0','unicodeURL':'https://www.unicode.org/Public/17.0.0/emoji/emoji-test.txt','unicodeSHA256':UNICODE_SHA,'twemojiVersion':'17.0.3','twemojiURL':'https://api.github.com/repos/jdecked/twemoji/tarball/v17.0.3','twemojiSHA256':TWEMOJI_SHA,'catalogEntries':len(rows),'assetCount':len(assets),'assetBytes':sum((target/x).stat().st_size for x in assets),'maxAssetBytes':max((target/x).stat().st_size for x in assets),'assets':assets},indent=2)+'\n')
   print('Generated',len(rows),'entries and',len(assets),'validated SVGs')
 if __name__=='__main__':main()

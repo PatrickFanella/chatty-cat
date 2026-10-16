@@ -5,7 +5,6 @@ import { ResourceStreams } from './resource-streams';
 import { RepositoryDetails } from './resource-repository';
 import { channelURL } from './channels';
 import { FloatingPanel } from './floating';
-import { RESOURCE_TABS } from './resource-data';
 import { resourceURL } from './resource-url';
 export { resourceURL } from './resource-url';
 export class Resources {
@@ -21,6 +20,7 @@ export class Resources {
     private root: HTMLElement,
     private trigger: HTMLButtonElement,
     private action: (name: string) => void,
+    resourceTabs: Readonly<Record<string, string>>,
   ) {
     const nav = root.querySelector<HTMLElement>('[role=tablist]')!;
     const content = root.querySelector<HTMLElement>('.resource-content')!;
@@ -88,7 +88,7 @@ export class Resources {
     this.repositories = new RepositoryDetails(repositoryOutputs);
     this.pages.set('help', help);
     content.append(help);
-    for (const [key, html] of Object.entries(RESOURCE_TABS)) {
+    for (const [key, html] of Object.entries(resourceTabs)) {
       const page = document.createElement('section');
       page.id = 'resources-' + key;
       page.role = 'tabpanel';

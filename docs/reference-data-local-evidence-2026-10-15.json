@@ -1,0 +1,233 @@
+{
+  "date": "2026-10-15",
+  "environment": {
+    "browser": "Chromium 154",
+    "viewport": "1280x800",
+    "auth": "anonymous",
+    "url": "/?channel=patrick__eff&video=off&split=1",
+    "service": "same local Go binary, uncompressed HTTP, isolated profiles",
+    "beforeCommit": "97699d192f8484ca231bda85eeeed548abb44074",
+    "afterBundle": "main-BIs1ma0m.js"
+  },
+  "before": {
+    "summary": {
+      "sameOriginResourceEncodedBytes": 1363343,
+      "sameOriginResourceTransferBytes": 1365743,
+      "navigationEncodedBytes": 5509,
+      "initialJavaScriptDecodedBytes": 1110320,
+      "observedDomContentLoadedMs": 43
+    },
+    "startup": [
+      {
+        "path": "/seo.css",
+        "encoded": 61,
+        "decoded": 61,
+        "transfer": 361,
+        "initiator": "link"
+      },
+      {
+        "path": "/assets/main-BYsgIkO4.js",
+        "encoded": 1110320,
+        "decoded": 1110320,
+        "transfer": 1110620,
+        "initiator": "script"
+      },
+      {
+        "path": "/assets/main-CZC9yJc-.css",
+        "encoded": 63141,
+        "decoded": 63141,
+        "transfer": 63441,
+        "initiator": "link"
+      },
+      {
+        "path": "/api/auth/session",
+        "encoded": 90,
+        "decoded": 90,
+        "transfer": 390,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/public-config",
+        "encoded": 78,
+        "decoded": 78,
+        "transfer": 378,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/auth/session",
+        "encoded": 90,
+        "decoded": 90,
+        "transfer": 390,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/uploads/config",
+        "encoded": 84,
+        "decoded": 84,
+        "transfer": 384,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/channels/patrick__eff",
+        "encoded": 189479,
+        "decoded": 189479,
+        "transfer": 189779,
+        "initiator": "fetch"
+      }
+    ],
+    "navigation": [
+      {
+        "encoded": 5509,
+        "domContentLoaded": 43
+      }
+    ]
+  },
+  "after": {
+    "summary": {
+      "sameOriginResourceEncodedBytes": 770371,
+      "sameOriginResourceTransferBytes": 773071,
+      "navigationEncodedBytes": 5595,
+      "initialJavaScriptDecodedBytes": 517348,
+      "observedDomContentLoadedMs": 23.30000001192093
+    },
+    "dataRequests": [],
+    "editors": [],
+    "startup": [
+      {
+        "path": "/seo.css",
+        "encoded": 61,
+        "decoded": 61,
+        "transfer": 361,
+        "initiator": "link"
+      },
+      {
+        "path": "/assets/main-BIs1ma0m.js",
+        "encoded": 517283,
+        "decoded": 517283,
+        "transfer": 517583,
+        "initiator": "script"
+      },
+      {
+        "path": "/assets/main-CZC9yJc-.css",
+        "encoded": 63141,
+        "decoded": 63141,
+        "transfer": 63441,
+        "initiator": "link"
+      },
+      {
+        "path": "/assets/emoji-data-source-9Nhgh7OK.js",
+        "encoded": 65,
+        "decoded": 65,
+        "transfer": 365,
+        "initiator": "other"
+      },
+      {
+        "path": "/api/auth/session",
+        "encoded": 90,
+        "decoded": 90,
+        "transfer": 390,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/public-config",
+        "encoded": 78,
+        "decoded": 78,
+        "transfer": 378,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/auth/session",
+        "encoded": 90,
+        "decoded": 90,
+        "transfer": 390,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/uploads/config",
+        "encoded": 84,
+        "decoded": 84,
+        "transfer": 384,
+        "initiator": "fetch"
+      },
+      {
+        "path": "/api/channels/patrick__eff",
+        "encoded": 189479,
+        "decoded": 189479,
+        "transfer": 189779,
+        "initiator": "fetch"
+      }
+    ],
+    "navigation": [
+      {
+        "encoded": 5595,
+        "domContentLoaded": 23.30000001192093
+      }
+    ]
+  },
+  "firstUse": {
+    "tabs": 5,
+    "links": 1640,
+    "authors": 106,
+    "dataRequests": [
+      {
+        "path": "/data/emoji-data-7000e9d719af6f10.json",
+        "size": 708820
+      },
+      {
+        "path": "/data/resource-data-ee5feedf5d01120b.json",
+        "size": 213275
+      }
+    ]
+  },
+  "offline": {
+    "links": 1640,
+    "tabs": 5,
+    "status": "Go service disconnected; retrying",
+    "worker": "http://localhost:4182/sw.js?build=%2Fassets%2Fmain-BIs1ma0m.js",
+    "dataRequests": [
+      {
+        "path": "/data/emoji-data-7000e9d719af6f10.json",
+        "transfer": 0,
+        "decoded": 708820
+      },
+      {
+        "path": "/data/resource-data-ee5feedf5d01120b.json",
+        "transfer": 0,
+        "decoded": 213275
+      }
+    ]
+  },
+  "upgrade": {
+    "from": "classic worker at main-BYsgIkO4.js",
+    "to": "module worker at main-BIs1ma0m.js",
+    "automaticActivation": false,
+    "activatedBy": "Update ready action",
+    "dataPrecachedBeforeUse": true
+  },
+  "failureRetry": "Synthetic first emoji-data fetch rejection displayed Retry; retry loaded searchable distorted-face emoji.",
+  "limitations": [
+    "Browser resource timing covers the main document's requests, not worker-install background downloads.",
+    "Single navigation timings are observations, not a startup-speed or parse-time benchmark.",
+    "No direct JavaScript/JSON parsing-duration profiling or CPU/GPU measurements.",
+    "Offline smoke uses native emoji text; the existing bounded first-use image cache is unchanged.",
+    "Application origin was unavailable; external networks were not disabled."
+  ],
+  "buildInventory": {
+    "before": {
+      "mainFile": "assets/main-BYsgIkO4.js",
+      "mainBytes": 1110320,
+      "mainGzip6Bytes": 203355,
+      "buildAssetCount": 56,
+      "precacheBuildBytes": 1871423,
+      "sumAssetGzip6Bytes": 414147
+    },
+    "after": {
+      "mainFile": "assets/main-BIs1ma0m.js",
+      "mainBytes": 517283,
+      "mainGzip6Bytes": 150731,
+      "buildAssetCount": 61,
+      "precacheBuildBytes": 2000806,
+      "sumAssetGzip6Bytes": 429630
+    }
+  }
+}

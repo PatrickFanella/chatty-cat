@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { precacheAssets } from './precache-assets';
+import { REFERENCE_ASSETS } from './reference-assets';
 export {};
 const worker = self as unknown as ServiceWorkerGlobalScope;
 const SHELL = 'chatthing-shell-v1';
@@ -26,11 +27,11 @@ async function putShell(cache: Cache, key: string, response: Response): Promise<
     // A complete lazy build can exceed the old 64-entry limit. Never evict
     // installed build chunks, its shell or icons to make room for runtime reads.
     if (!manifest) return;
-    const protectedPaths = new Set(precacheAssets(await manifest.json()));
+    const protectedPaths = new Set([...precacheAssets(await manifest.json()), ...REFERENCE_ASSETS]);
     const keys = await cache.keys();
     const removable = keys.filter((request) => {
       const path = new URL(request.url).pathname;
-      return path.startsWith('/assets/') && !protectedPaths.has(path);
+      return (path.startsWith('/assets/') || path.startsWith('/data/')) && !protectedPaths.has(path);
     });
     const protectedCount = keys.length - removable.length;
     const excess = keys.length - Math.max(64, protectedCount);
@@ -57,6 +58,7 @@ worker.addEventListener('install', (event) => {
         ...new Set([
           ...assets,
           ...chunks,
+          ...REFERENCE_ASSETS,
           '/manifest.webmanifest',
           '/icon-192.png',
           '/icon-512.png',
@@ -151,6 +153,7 @@ worker.addEventListener('fetch', (event) => {
     url.origin === worker.location.origin &&
     (request.mode === 'navigate' ||
       url.pathname.startsWith('/assets/') ||
+      REFERENCE_ASSETS.some((path) => path === url.pathname) ||
       ['/manifest.webmanifest', '/favicon.ico'].includes(url.pathname))
   )
     event.respondWith(shell(request));

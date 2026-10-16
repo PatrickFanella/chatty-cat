@@ -34,7 +34,7 @@ export function mountLifecycle(
     void navigator.serviceWorker
       // Lazy chunk manifests change even when the worker source does not. Tie
       // registration to the loaded app build so its new chunks are installed.
-      .register('/sw.js?build=' + encodeURIComponent(build), { scope: '/', updateViaCache: 'none' })
+      .register('/sw.js?build=' + encodeURIComponent(build), { scope: '/', updateViaCache: 'none', type: 'module' })
       .then((value) => {
         if (disposed) return;
         registration = value;
