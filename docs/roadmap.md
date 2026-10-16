@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `e4fc71d` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 10 open
-issues: 8 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 16, 2026 against main `98d120c` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 9 open
+issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has five open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has four open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -186,12 +186,21 @@ paragraphs below 300 characters. Local tests and synthetic moderation checks pas
 see [panel evidence](dense-panels.md). Its final PR-head frontend check had a stranded
 task with zero log bytes; merge is separate from hosted CI success.
 
-The #133 implementation uses one lower sheet and keyboard-accessible tabs for
+The #133 implementation merged in PR #161 and #133 is closed. It uses one lower
+sheet and keyboard-accessible tabs for
 managed panels at narrow/portrait sizes. Local checks at 600×800 and 390×844
 retain readable chat, on-screen panels and drafts. Desktop geometry survives a
 viewport round trip; synthetic whispers/moderation and touch-event checks retain
 their provider/device qualification limits. See [compact panel evidence](compact-panels.md).
-Pending review; next is #137, the storage/search worker migration.
+All four PR-head hosted checks passed. These panel changes are not deployed.
+
+The first #137 migration moves private journal transactions and capacity checks
+to a dedicated storage worker. Existing receipt/account/recovery checks pass
+through the worker shim; a native worker retained synthetic receipts with no
+main-thread journal database opens or provider writes. See the
+[staged worker plan and evidence](storage-worker-migration.md). Pending review.
+#137 remains open: archive/query migration is next, followed by statistics/rates
+and the 15-minute busy-channel long-task qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
