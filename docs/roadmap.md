@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `ffd677f` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 11 open
-issues: 9 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 15, 2026 against main `e4fc71d` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 10 open
+issues: 8 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has six open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has five open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -179,11 +179,19 @@ The share-URL serializer is unchanged. The design system records the mapping;
 local tests and a 1280×800 browser check pass. PR-head hosted CI passed after a
 stranded frontend task was retried. These settings-label changes are not deployed.
 
-The #132 implementation groups all six dense panels, preserves detailed copy in
+The #132 implementation merged in PR #160 and #132 is closed. It groups all six dense panels, preserves detailed copy in
 disclosures and keeps review/consent/recovery controls together. Each first
 section fits at 1280×800, with no horizontal overflow and direct explanatory
 paragraphs below 300 characters. Local tests and synthetic moderation checks pass;
-see [panel evidence](dense-panels.md). Pending review; next is #133.
+see [panel evidence](dense-panels.md). Its final PR-head frontend check had a stranded
+task with zero log bytes; merge is separate from hosted CI success.
+
+The #133 implementation uses one lower sheet and keyboard-accessible tabs for
+managed panels at narrow/portrait sizes. Local checks at 600×800 and 390×844
+retain readable chat, on-screen panels and drafts. Desktop geometry survives a
+viewport round trip; synthetic whispers/moderation and touch-event checks retain
+their provider/device qualification limits. See [compact panel evidence](compact-panels.md).
+Pending review; next is #137, the storage/search worker migration.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

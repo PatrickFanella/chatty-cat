@@ -217,6 +217,25 @@ html[data-shell] body {
   display: none;
 }
 @media (max-width: 700px) {
+  #topbar .tb-account {
+    min-width: 0;
+  }
+  #topbar .tb-account > :not(button) {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #topbar #login {
+    white-space: nowrap;
+    font-size: 11px;
+  }
+  #topbar .tb-search {
+    flex: none;
+  }
+  #topbar kbd {
+    white-space: nowrap;
+  }
   #topbar .tb-search span {
     display: none;
   }
@@ -227,7 +246,7 @@ html[data-shell] body {
   #topbar .tb-state-text {
     display: none;
   }
-  #topbar .tb-brand strong {
+  #topbar .tb-brand :is(strong, h1) {
     display: none;
   }
 }
@@ -414,6 +433,72 @@ body.wb-dragging iframe {
   background: var(--accent);
 }
 
+/* Compact panels share one lower sheet; desktop placements remain in the layout model. */
+.wb-sheet {
+  flex: 0 1 48%;
+  height: 48%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.wb-sheet[hidden] {
+  display: none;
+}
+.wb-sheet-tabs {
+  display: flex;
+  flex: none;
+  overflow-x: auto;
+  gap: 4px;
+  padding: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.wb-sheet-tabs button {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.wb-sheet-tabs [aria-selected='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.wb-sheet-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+.wb-sheet-body > .wb-panel {
+  flex: 1;
+  width: 100%;
+}
+#workbench[data-compact='true'] > .wb-row {
+  flex: 1 1 52%;
+  min-width: 0;
+}
+#workbench[data-compact='true'] :is(.wb-zone, .wb-splitter) {
+  display: none;
+}
+#workbench[data-compact='true'] .wb-panel > * {
+  max-width: 100% !important;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+}
+#workbench[data-compact='true'] .wb-panel :is(input:not([type='checkbox'], [type='radio']), select, textarea) {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+#workbench[data-compact='true'] .wb-panel :is(fieldset, label, details) {
+  min-width: 0;
+  max-width: 100%;
+}
+#workbench[data-compact='true'] .wb-panel > #video-panel #video-player {
+  min-height: 100px !important;
+}
+
 /* ---- Managed panels (docked and floating) ---- */
 .wb-panel {
   display: flex;
@@ -509,6 +594,7 @@ body.wb-dragging iframe {
   user-select: none;
 }
 .wb-chrome .wb-title {
+  touch-action: none;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -548,7 +634,7 @@ body.wb-dragging .wb-title {
 dialog:not(.wb-panel > *) > .wb-chrome {
   margin: -16px -16px 14px;
 }
-html[data-privacy='true'] .wb-chrome {
+html[data-privacy='true'] :is(.wb-chrome, .wb-sheet-tabs) {
   display: none;
 }
 

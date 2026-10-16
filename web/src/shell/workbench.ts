@@ -49,6 +49,13 @@ export class Workbench {
   readonly root = document.createElement('div');
   private row = document.createElement('div');
   private centre = document.createElement('div');
+  private sheet = document.createElement('div');
+  private sheetTabs = document.createElement('div');
+  private sheetBody = document.createElement('div');
+  private activeSheet: string | undefined;
+  private get compact(): boolean {
+    return innerWidth <= 700 || innerWidth <= innerHeight;
+  }
   private zones = {} as Record<ZoneName, HTMLElement>;
   private splitters = {} as Record<ZoneName, HTMLElement>;
   private layout: Layout;
@@ -99,7 +106,21 @@ export class Workbench {
       splitter.addEventListener('keydown', this.zoneKey);
     }
     this.row.append(this.zones.left, this.splitters.left, this.centre, this.splitters.right, this.zones.right);
-    this.root.append(this.row, this.splitters.bottom, this.zones.bottom);
+    this.sheet.className = 'wb-sheet';
+    this.sheet.hidden = true;
+    this.sheetTabs.className = 'wb-sheet-tabs';
+    this.sheetTabs.setAttribute('role', 'tablist');
+    this.sheetTabs.setAttribute('aria-label', 'Open panels');
+    this.sheetBody.className = 'wb-sheet-body';
+    this.sheet.append(this.sheetTabs, this.sheetBody);
+    this.root.append(this.row, this.splitters.bottom, this.zones.bottom, this.sheet);
+    this.sheet.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+      const entry = this.activeSheet ? this.managed.get(this.activeSheet) : undefined;
+      if (!entry) return;
+      event.preventDefault();
+      this.closePanel(entry);
+    });
     const first = document.body.querySelector(options.centre);
     (first ?? document.body.firstChild)?.before(this.root);
     for (const element of [...document.body.querySelectorAll(options.centre)])
@@ -208,10 +229,13 @@ export class Workbench {
       const entry = target.id ? this.managed.get(target.id) : undefined;
       if (!entry || this.transition) continue;
       const open = isOpen(target);
-      if (placementOf(this.layout, entry.id).kind !== 'modal') {
+      if (this.compact || placementOf(this.layout, entry.id).kind !== 'modal') {
         this.layout = setClosed(this.layout, entry.id, !open);
         entry.wrapper.hidden = !open;
-        if (open) this.focusPanel(entry);
+        if (open) {
+          this.activeSheet = entry.id;
+          this.focusPanel(entry);
+        }
         this.save();
         this.syncZones();
       }
@@ -270,7 +294,11 @@ export class Workbench {
       true,
     );
     root.addEventListener('panel-open-request', (event) => {
-      if (!(root instanceof HTMLDialogElement) || placementOf(this.layout, entry.id).kind === 'modal') return;
+      if (
+        !(root instanceof HTMLDialogElement) ||
+        (!this.compact && placementOf(this.layout, entry.id).kind === 'modal')
+      )
+        return;
       event.preventDefault();
       if (!root.open) root.show();
       root.dispatchEvent(new Event('wb-reopen'));
@@ -281,6 +309,9 @@ export class Workbench {
       this.visibilityObservers.push(observer);
     }
 
+    root.addEventListener('focusin', () => {
+      this.activeSheet = entry.id;
+    });
     menu.addEventListener('click', () => this.openMenu(entry, menu));
     close.addEventListener('click', () => this.closePanel(entry));
     title.addEventListener('pointerdown', (event) => this.titleDown(entry, event));
@@ -289,14 +320,15 @@ export class Workbench {
     title.addEventListener('pointercancel', this.titleUp);
     title.addEventListener('keydown', (event) => this.titleKey(entry, event));
     root.addEventListener('wb-reopen', () => {
-      if (placementOf(this.layout, entry.id).kind === 'modal') return;
+      if (!this.compact && placementOf(this.layout, entry.id).kind === 'modal') return;
       this.layout = setClosed(this.layout, entry.id, false);
       entry.wrapper.hidden = false;
+      this.activeSheet = entry.id;
       this.save();
       this.syncZones();
       this.focusPanel(entry);
     });
-    if (placementOf(this.layout, entry.id).kind !== 'modal') this.render();
+    if (this.compact || placementOf(this.layout, entry.id).kind !== 'modal') this.render();
     return entry;
   }
   private focusPanel(entry: Managed): void {
@@ -381,6 +413,7 @@ export class Workbench {
   /** Rebuild the DOM from the layout. Roots keep their identity; only wrappers move. */
   private render(): void {
     const view = viewport();
+    this.root.dataset.compact = String(this.compact);
     for (const zone of ZONES) {
       const size = this.layout.sizes[zone];
       this.root.style.setProperty(
@@ -390,7 +423,10 @@ export class Workbench {
     }
     for (const entry of this.managed.values()) {
       const place = placementOf(this.layout, entry.id);
-      if (place.kind === 'modal') {
+      entry.wrapper.inert = false;
+      entry.wrapper.removeAttribute('role');
+      entry.wrapper.removeAttribute('aria-labelledby');
+      if (place.kind === 'modal' && !this.compact) {
         if (entry.root.dataset.wbPlaced) {
           this.transition++;
           try {
@@ -431,14 +467,20 @@ export class Workbench {
             entry.root.dataset.wbRail = 'true';
           }
           entry.wrapper.append(entry.root);
-          if (dialog && !dialog.open && (modal || !this.layout.closed.includes(entry.id))) dialog.show();
+          if (dialog && !dialog.open && (modal || (place.kind !== 'modal' && !this.layout.closed.includes(entry.id))))
+            dialog.show();
         } finally {
           this.transition--;
         }
       }
       entry.wrapper.hidden = this.layout.closed.includes(entry.id) || !isOpen(entry.root);
       entry.chrome.dataset.placement = place.kind;
-      entry.wrapper.dataset.placement = place.kind;
+      entry.wrapper.dataset.placement = this.compact ? 'sheet' : place.kind;
+      if (this.compact) {
+        entry.wrapper.removeAttribute('style');
+        this.sheetBody.append(entry.wrapper);
+        continue;
+      }
       if (place.kind === 'floating') {
         const box = fit(place.box, view);
         entry.wrapper.style.left = box.left + 'px';
@@ -447,7 +489,7 @@ export class Workbench {
         entry.wrapper.style.height = box.height + 'px';
         entry.wrapper.style.flex = '';
         if (entry.wrapper.parentElement !== document.body) document.body.append(entry.wrapper);
-      } else {
+      } else if (place.kind === 'docked') {
         entry.wrapper.style.left = '';
         entry.wrapper.style.top = '';
         entry.wrapper.style.width = '';
@@ -457,7 +499,7 @@ export class Workbench {
     }
     for (const zone of ZONES) {
       const element = this.zones[zone];
-      const ids = this.layout.zones[zone].panels.filter((id) => this.managed.has(id));
+      const ids = this.compact ? [] : this.layout.zones[zone].panels.filter((id) => this.managed.has(id));
       const wanted: HTMLElement[] = [];
       ids.forEach((id, index) => {
         if (index > 0) {
@@ -485,6 +527,7 @@ export class Workbench {
     if (typeof ResizeObserver !== 'undefined') this.observeFloating();
   }
   private syncZones(): void {
+    this.syncSheet();
     for (const zone of ZONES) {
       const element = this.zones[zone];
       const visible = [...element.querySelectorAll<HTMLElement>(':scope > .wb-panel')].filter(
@@ -499,11 +542,57 @@ export class Workbench {
       }
     }
   }
+  private syncSheet(): void {
+    const open = this.compact
+      ? [...this.managed.values()].filter((entry) => isOpen(entry.root) && !this.layout.closed.includes(entry.id))
+      : [];
+    this.sheet.hidden = !open.length;
+    if (!open.some((entry) => entry.id === this.activeSheet)) this.activeSheet = open[0]?.id;
+    const tabs = open.map((entry, index) => {
+      const active = entry.id === this.activeSheet;
+      entry.wrapper.hidden = !active;
+      entry.wrapper.inert = !active;
+      entry.wrapper.id = 'wb-sheet-' + entry.id;
+      entry.wrapper.setAttribute('role', 'tabpanel');
+      entry.wrapper.setAttribute('aria-labelledby', 'wb-tab-' + entry.id);
+      const tab = document.createElement('button');
+      tab.type = 'button';
+      tab.id = 'wb-tab-' + entry.id;
+      tab.textContent = this.options.titleFor(entry.root);
+      tab.setAttribute('role', 'tab');
+      tab.setAttribute('aria-controls', entry.wrapper.id);
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      const select = (target: Managed): void => {
+        this.activeSheet = target.id;
+        this.syncSheet();
+        document.getElementById('wb-tab-' + target.id)?.focus();
+      };
+      tab.addEventListener('click', () => select(entry));
+      tab.addEventListener('keydown', (event) => {
+        const next =
+          event.key === 'ArrowRight'
+            ? (index + 1) % open.length
+            : event.key === 'ArrowLeft'
+              ? (index + open.length - 1) % open.length
+              : event.key === 'Home'
+                ? 0
+                : event.key === 'End'
+                  ? open.length - 1
+                  : undefined;
+        if (next === undefined) return;
+        event.preventDefault();
+        select(open[next]!);
+      });
+      return tab;
+    });
+    this.sheetTabs.replaceChildren(...tabs);
+  }
   private floatObserver: ResizeObserver | undefined;
   private observeFloating(): void {
     this.floatObserver?.disconnect();
     this.floatObserver = new ResizeObserver((entries) => {
-      if (this.drag?.active) return;
+      if (this.compact || this.drag?.active) return;
       let changed = false;
       for (const record of entries) {
         const wrapper = record.target as HTMLElement;
@@ -544,6 +633,13 @@ export class Workbench {
   private titleMove = (event: PointerEvent): void => {
     const drag = this.drag;
     if (!drag || drag.id !== event.pointerId) return;
+    if (this.compact) {
+      if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 5) return;
+      drag.active = true;
+      drag.target = { zone: 'bottom', index: this.layout.zones.bottom.panels.length };
+      this.root.dataset.drop = 'bottom';
+      return;
+    }
     if (!drag.active) {
       if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < 5) return;
       drag.active = true;
@@ -656,7 +752,7 @@ export class Workbench {
       ArrowDown: [0, 1],
     };
     const move = delta[event.key];
-    if (place.kind === 'floating' && move && !event.altKey) {
+    if (!this.compact && place.kind === 'floating' && move && !event.altKey) {
       event.preventDefault();
       const step = event.shiftKey ? 40 : 10;
       this.apply(
