@@ -1,5 +1,5 @@
 import { showPanel } from './shell/open-panel';
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import { StatisticsStorageControls } from './stats-storage-ui';
 import { profileKey } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -176,7 +176,7 @@ export function rateGraph(
 export class StatsPanel {
   private bundleDispose: () => void;
   private storageControls: StatisticsStorageControls | undefined;
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof clockTask> | undefined;
   private scope: HTMLSelectElement;
   private channel: HTMLSelectElement;
   private exclusions: HTMLInputElement;
@@ -276,11 +276,11 @@ export class StatsPanel {
   }
   private syncTimer(): void {
     if (!this.dialog.open) {
-      clearOwnedInterval(this.timer);
+      stopClockTask(this.timer);
       this.timer = undefined;
       return;
     }
-    this.timer ??= ownedInterval('stats.paint', () => this.paint(), 5000);
+    this.timer ??= clockTask('stats.paint', () => this.paint(), 5000, { active: () => this.dialog.open });
   }
   float(): void {
     this.dialog.close();
@@ -587,7 +587,7 @@ export class StatsPanel {
   stop(): void {
     this.storageControls?.stop();
     this.bundleDispose();
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     this.trigger.removeEventListener('click', this.open);
     this.dialog.querySelector('#stats-close')?.removeEventListener('click', this.close);
     this.dialog.removeEventListener('close', this.closed);

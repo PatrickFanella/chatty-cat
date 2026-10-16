@@ -1,7 +1,7 @@
 import { PassivePanelSettings } from './passive-panel-settings';
 import { mountPanel, panelAdapter, transientRoot } from './shell/static-panel';
 import type { ProviderPanel } from './provider-preferences-ui';
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import type { IRCRelayPanel } from './irc-relay-ui';
 import type { ExtensionsPanel } from './extensions-ui';
 import { extensionActions } from './extension-actions';
@@ -161,11 +161,11 @@ export async function startMain(): Promise<void> {
   const personalState = new PersonalState();
   const roomInfo = element('room-state', HTMLElement);
   function renderRoom(): void {
-    roomInfo.textContent = [...roomStates.labels(composer.target), ...personalState.labels(composer.target)].join(
-      ' · ',
-    );
+    const labels = [...roomStates.labels(composer.target), ...personalState.labels(composer.target)].join(' · ');
+    if (roomInfo.textContent !== labels) roomInfo.textContent = labels;
     composer.setBlock(personalState.block(composer.target, roomStates.slow(composer.target)));
-    roomInfo.hidden = !roomInfo.textContent || document.documentElement.dataset.cmodes === 'false';
+    const hidden = !roomInfo.textContent || document.documentElement.dataset.cmodes === 'false';
+    if (roomInfo.hidden !== hidden) roomInfo.hidden = hidden;
   }
   const metadata = new Map<string, ChannelMetadata>();
   const fingerprints = new WeakMap<ChatMessage, string>();
@@ -340,11 +340,17 @@ export async function startMain(): Promise<void> {
       return true;
     },
   );
-  const pickerSaveTimer = ownedInterval('storage.picker', () => pickerModel.saveAll(), 15000);
-  const statsSaveTimer = ownedInterval('storage.stats', () => statsLedger.save(), 30000);
+  const pickerSaveTimer = clockTask('storage.picker', () => pickerModel.saveAll(), 15000, {
+    pool: 'storage',
+    flushOnHide: true,
+  });
+  const statsSaveTimer = clockTask('storage.stats', () => statsLedger.save(), 30000, {
+    pool: 'storage',
+    flushOnHide: true,
+  });
   window.addEventListener('pagehide', () => {
-    clearOwnedInterval(pickerSaveTimer);
-    clearOwnedInterval(statsSaveTimer);
+    stopClockTask(pickerSaveTimer);
+    stopClockTask(statsSaveTimer);
     pickerModel.saveAll();
     passiveSettings.stop();
   });
@@ -438,7 +444,7 @@ export async function startMain(): Promise<void> {
       renderRoom();
     },
   );
-  const personalTimer = ownedInterval('room.paint', renderRoom, 1000);
+  const personalTimer = clockTask('room.paint', renderRoom, 1000);
   const stopAuth = mountAuth(element('login', HTMLButtonElement), element('account', HTMLElement), (auth) => {
     providerEvents?.authChanged(auth);
     if (auth && getProfileScope() !== (auth.authenticated ? auth.userID : 'anonymous')) {
@@ -1785,13 +1791,7 @@ export async function startMain(): Promise<void> {
     visualRevision++;
     scheduleRender();
   });
-  const storeTimer = ownedInterval('storage.messages', () => store.save(), 15000);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      store.save();
-      statsLedger.save();
-    }
-  });
+  const storeTimer = clockTask('storage.messages', () => store.save(), 15000, { pool: 'storage', flushOnHide: true });
   window.addEventListener('pagehide', () => {
     store.save();
     hydrationAbort.abort();
@@ -1806,8 +1806,8 @@ export async function startMain(): Promise<void> {
     stopAuth();
     personalChat.stop();
     whispers.stop();
-    clearOwnedInterval(personalTimer);
-    clearOwnedInterval(storeTimer);
+    stopClockTask(personalTimer);
+    stopClockTask(storeTimer);
     accountEmotes.stop();
     composer.stop();
     navigation.stop();

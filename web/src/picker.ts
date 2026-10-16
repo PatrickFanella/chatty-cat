@@ -1,6 +1,6 @@
 import { parsePickerGeometry } from './picker-geometry';
 export { parsePickerGeometry } from './picker-geometry';
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import { EMOJI_GROUPS, EMOJI_VERSION, emojiNode, loadEmojiCatalog, emojiCatalogLoaded } from './emoji';
 import { profileKey } from './account-profiles';
 import { registerSettings } from './settings-bundle';
@@ -40,7 +40,7 @@ export class EmotePicker {
   private page = 200;
   private readonly motion = new PickerMotion();
   private nextAgeRefresh = Infinity;
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof clockTask> | undefined;
   private readonly floating: FloatingPanel;
   private stopped = false;
   private emojiPending = false;
@@ -180,11 +180,11 @@ export class EmotePicker {
   }
   private syncTimer(): void {
     if (this.root.hidden) {
-      clearOwnedInterval(this.timer);
+      stopClockTask(this.timer);
       this.timer = undefined;
       return;
     }
-    this.timer ??= ownedInterval(
+    this.timer ??= clockTask(
       'picker.refresh',
       () => {
         if (!this.root.hidden) this.paintAgeCoverage();
@@ -192,6 +192,7 @@ export class EmotePicker {
           this.refresh(true);
       },
       1000,
+      { active: () => !this.root.hidden && !this.stopped },
     );
   }
   private ensureEmoji(): void {
@@ -607,7 +608,7 @@ export class EmotePicker {
     this.gridLeave();
     this.grid.removeEventListener('pointerenter', this.gridEnter);
     this.grid.removeEventListener('pointerleave', this.gridLeave);
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     this.floating.stop();
     this.model.saveAll();
     this.trigger.removeEventListener('click', this.toggle);

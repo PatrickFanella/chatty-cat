@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
-import { expect, it } from 'vitest';
-import { RateSeries, isGlorp, timelineGraph } from './rate-timeline';
+import { expect, it, vi } from 'vitest';
+import { RateSeries, RateTimeline, isGlorp, timelineGraph } from './rate-timeline';
 import type { ChatMessage } from './protocol';
 const message: ChatMessage = {
   id: 'id',
@@ -135,4 +135,42 @@ it('persists source-specific coverage atomically with counts and leaves legacy c
   const legacy = new RateSeries(['one', 'two'], 110000);
   legacy.restore({ ...snapshot, coverage: undefined }, 110000);
   expect(legacy.coverage.snapshot(110000)).toEqual([]);
+});
+
+it('stops graph rebuilds while hidden or detached and refreshes once on return without losing observations', async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(100000);
+  let hidden = false;
+  const visibility = vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  const header = document.createElement('span');
+  document.body.append(header);
+  const paint = vi.spyOn(header, 'replaceChildren');
+  const timeline = new RateTimeline(header, ['one']);
+  await timeline.ready;
+  paint.mockClear();
+  try {
+    timeline.series.status({ type: 'status', state: 'connected', detail: '' });
+    timeline.series.observe({ ...message, id: 'visible', timestamp: Date.now() }, true);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(paint).toHaveBeenCalledOnce();
+    hidden = true;
+    document.dispatchEvent(new Event('visibilitychange'));
+    paint.mockClear();
+    timeline.series.observe({ ...message, id: 'hidden', timestamp: Date.now() }, true);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(paint).not.toHaveBeenCalled();
+    hidden = false;
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(paint).toHaveBeenCalledOnce();
+    expect(timeline.series.snapshot().rows.length).toBeGreaterThan(0);
+    header.remove();
+    paint.mockClear();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(paint).not.toHaveBeenCalled();
+  } finally {
+    timeline.stop();
+    header.remove();
+    visibility.mockRestore();
+    vi.useRealTimers();
+  }
 });

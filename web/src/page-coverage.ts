@@ -1,10 +1,10 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import type { ChatMessage } from './protocol';
 
 // Observation timestamps are separate from message timestamps: quiet chat does
 // not imply the page was closed, and replay is not proof of live observation.
 export class PageCoverage {
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof clockTask>;
   constructor(
     private channels: readonly string[],
     private add: (message: ChatMessage) => void,
@@ -13,7 +13,7 @@ export class PageCoverage {
     const initial = [...channels];
     this.channels = [];
     this.setChannels(initial, now);
-    this.timer = ownedInterval('storage.coverage', () => this.save(), 10000);
+    this.timer = clockTask('storage.coverage', () => this.save(), 10000, { pool: 'storage', flushOnHide: true });
   }
   setChannels(channels: readonly string[], now = Date.now()): void {
     this.save(now);
@@ -60,7 +60,7 @@ export class PageCoverage {
     }
   }
   stop(): void {
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
     this.save();
   }
 }

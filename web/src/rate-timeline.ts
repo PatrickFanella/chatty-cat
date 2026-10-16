@@ -1,4 +1,4 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 import { ObservationCoverage, type ObservationSpan } from './observation-coverage';
 import type { ChatMessage, ServerEvent } from './protocol';
 export type GapCause = 'not observed' | 'connecting' | 'socket dropped' | 'page closed' | 'timer paused';
@@ -323,7 +323,8 @@ export function timelineGraph(samples: readonly RateSample[]): SVGSVGElement {
 export class RateTimeline {
   readonly series: RateSeries;
   readonly ready: Promise<void>;
-  private timer: ReturnType<typeof setInterval>;
+  private timer: ReturnType<typeof clockTask>;
+  private storageTimer: ReturnType<typeof clockTask>;
   private saving = false;
   private database: Promise<IDBDatabase | undefined>;
   private stopped = false;
@@ -376,21 +377,34 @@ export class RateTimeline {
         });
       })
       .catch(() => {});
-    let ticks = 0;
-    this.timer = ownedInterval(
+    this.timer = clockTask(
       'rate.timeline',
       () => {
         this.series.tick();
         this.paint();
-        if (++ticks % 30 === 0) void this.save(channels.join(','));
       },
       1000,
+      { active: () => !this.stopped, resume: true },
+    );
+    this.storageTimer = clockTask(
+      'storage.rates',
+      () => {
+        void this.save(this.key);
+      },
+      30000,
+      { pool: 'storage', flushOnHide: true },
     );
     this.key = channels.join(',');
     this.paint();
   }
   private key: string;
   private paint(): void {
+    if (
+      document.hidden ||
+      !this.header.isConnected ||
+      (typeof this.header.checkVisibility === 'function' && !this.header.checkVisibility())
+    )
+      return;
     const seconds = Math.max(240, Math.min(1800, Math.floor((this.header.clientWidth || 720) / 3)));
     const samples = this.series.samples(Date.now(), seconds),
       latest = samples.at(-1);
@@ -425,7 +439,8 @@ export class RateTimeline {
   }
   stop(): void {
     this.stopped = true;
-    clearOwnedInterval(this.timer);
+    stopClockTask(this.timer);
+    stopClockTask(this.storageTimer);
     void this.save(this.key).finally(() => void this.database.then((db) => db?.close()));
   }
 }

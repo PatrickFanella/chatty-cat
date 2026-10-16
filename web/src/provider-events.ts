@@ -1,4 +1,5 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
+import { ownedDeadline, clearOwnedDeadline } from './resource-timers';
 import type { AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { getProviderPreferences } from './provider-preferences';
@@ -32,6 +33,7 @@ interface Connection {
   frames: number;
   bytes: number;
   window: number;
+  nextSend: number;
 }
 // Read connections never announce by themselves. BTTV activity requires the separate reviewed session.
 export class ProviderEventClient {
@@ -44,9 +46,11 @@ export class ProviderEventClient {
   private abort = new AbortController();
   private configTimer: ReturnType<typeof setTimeout> | undefined;
   private reconcileTimer: ReturnType<typeof setTimeout> | undefined;
-  private lastPrune = 0;
-  private tick: ReturnType<typeof setInterval> | undefined;
-  private paint: ReturnType<typeof setTimeout> | undefined;
+  private deadline: ReturnType<typeof setTimeout> | undefined;
+  private pruneTimer: ReturnType<typeof clockTask> | undefined;
+  private pumpPending = false;
+  private paintPending = false;
+  private paintDirty = false;
   private announced = false;
   private connections: Connection[] = [];
   private allowed: LiveProvider[] = [];
@@ -60,6 +64,7 @@ export class ProviderEventClient {
     private status: (detail: string) => void,
   ) {
     document.addEventListener('privacychange', this.privacy);
+    document.addEventListener('visibilitychange', this.visiblePaint);
     for (const provider of LIVE_PROVIDERS)
       setLiveCosmeticLookup(provider, (id) =>
         this.valid() && this.allowed.includes(provider) ? this.badges.forUser(provider, id) : [],
@@ -138,17 +143,25 @@ export class ProviderEventClient {
       }
     }
     if (generation === this.generation && this.valid())
-      this.configTimer = setTimeout(() => {
-        void this.configure();
-      }, 60000);
+      this.configTimer = ownedDeadline(
+        'provider.config-refresh',
+        () => {
+          void this.configure();
+        },
+        60000,
+      );
   }
   metadataChanged(): void {
     if (!this.valid()) return;
-    clearTimeout(this.reconcileTimer);
-    this.reconcileTimer = setTimeout(() => {
-      this.reconcileTimer = undefined;
-      this.reconcile();
-    }, 1000);
+    clearOwnedDeadline(this.reconcileTimer);
+    this.reconcileTimer = ownedDeadline(
+      'provider.reconcile',
+      () => {
+        this.reconcileTimer = undefined;
+        this.reconcile();
+      },
+      1000,
+    );
   }
   preferencesChanged(): void {
     if (this.stopped) return;
@@ -217,7 +230,15 @@ export class ProviderEventClient {
         plan.sevenTV.slice(i, i + 80).map((s: Subscription) => JSON.stringify({ op: 35, d: s })),
       );
     if (this.connections.length) {
-      this.tick = ownedInterval('provider.pump', this.pump, 50);
+      this.pruneTimer = clockTask(
+        'provider.badges',
+        () => {
+          if (this.badges.prune(Date.now())) this.schedulePaint();
+        },
+        5000,
+        { active: () => this.connections.length > 0 },
+      );
+      this.requestPump();
       this.status(
         'Optional provider read connections opening. Joined channel IDs are sent directly to configured providers; activity sharing requires a separate reviewed session.',
       );
@@ -251,6 +272,7 @@ export class ProviderEventClient {
         frames: 0,
         bytes: 0,
         window: now,
+        nextSend: now,
       };
     this.connections.push(connection);
     const current = (): boolean => {
@@ -266,6 +288,7 @@ export class ProviderEventClient {
       connection.ready = provider === 'BTTV';
       connection.opened = Date.now();
       connection.lastBeat = Date.now();
+      this.requestPump();
     };
     socket.onmessage = (event) => {
       if (!current()) return;
@@ -316,6 +339,7 @@ export class ProviderEventClient {
           connection.heartbeat = value.d.heartbeat_interval;
           connection.lastBeat = now;
           connection.ready = true;
+          this.requestPump();
           return;
         }
         if (!connection.hello) {
@@ -324,6 +348,7 @@ export class ProviderEventClient {
         }
         if (value.op === 2) {
           connection.lastBeat = now;
+          this.requestPump();
           return;
         }
         if (value.op === 4 || value.op === 6 || value.op === 7) {
@@ -335,6 +360,7 @@ export class ProviderEventClient {
       const prefs = getProviderPreferences();
       for (const channel of refreshTargets(provider, value, this.metadata(), prefs)) this.hint(provider, channel);
       if (prefs.cosmetics[provider] && this.badges.accept(provider, value, now)) this.schedulePaint();
+      this.requestPump();
     };
     socket.onerror = () => {
       if (current()) this.fail();
@@ -342,6 +368,35 @@ export class ProviderEventClient {
     socket.onclose = () => {
       if (current()) this.fail();
     };
+  }
+  private requestPump(): void {
+    if (this.pumpPending) return;
+    this.pumpPending = true;
+    const generation = this.generation;
+    queueMicrotask(() => {
+      if (generation !== this.generation) return;
+      this.pumpPending = false;
+      this.pump();
+    });
+  }
+  private scheduleDeadline(): void {
+    clearOwnedDeadline(this.deadline);
+    this.deadline = undefined;
+    const deadlines = this.connections.flatMap((connection) => [
+      ...(!connection.ready ? [connection.opened + 12001] : []),
+      ...(connection.heartbeat ? [connection.lastBeat + connection.heartbeat * 2 + 5001] : []),
+      ...(connection.ready && connection.queue.length ? [connection.nextSend] : []),
+    ]);
+    const next = Math.min(...deadlines);
+    if (Number.isFinite(next))
+      this.deadline = ownedDeadline(
+        'provider.protocol',
+        () => {
+          this.deadline = undefined;
+          this.requestPump();
+        },
+        Math.max(1, next - Date.now()),
+      );
   }
   private pump = (): void => {
     if (!this.valid() || this.preferences !== this.preferenceSignature()) {
@@ -358,9 +413,19 @@ export class ProviderEventClient {
         this.fail();
         return;
       }
-      if (connection.ready && connection.socket.readyState === WebSocket.OPEN && connection.queue.length) {
+      if (
+        connection.ready &&
+        connection.socket.readyState === WebSocket.OPEN &&
+        connection.queue.length &&
+        now >= connection.nextSend
+      ) {
         try {
           connection.socket.send(connection.queue.shift()!);
+          connection.nextSend = now + 50;
+          if (connection.socket.bufferedAmount > 65536) {
+            this.fail();
+            return;
+          }
         } catch {
           this.fail();
           return;
@@ -373,27 +438,37 @@ export class ProviderEventClient {
         'Optional provider read subscriptions sent. Activity sharing requires a separate reviewed session; provider failures require explicit Reconnect.',
       );
     }
-    if (now - this.lastPrune >= 5000) {
-      this.lastPrune = now;
-      if (this.badges.prune(now)) this.schedulePaint();
-    }
+    this.scheduleDeadline();
+  };
+  private visiblePaint = (): void => {
+    if (!document.hidden && this.paintDirty) this.schedulePaint();
   };
   private schedulePaint(): void {
-    if (this.paint === undefined)
-      this.paint = setTimeout(() => {
-        this.paint = undefined;
-        if (this.valid()) this.changed();
-      }, 250);
+    this.paintDirty = true;
+    if (document.hidden || this.paintPending) return;
+    this.paintPending = true;
+    const generation = this.generation;
+    queueMicrotask(() => {
+      if (generation !== this.generation) return;
+      this.paintPending = false;
+      if (this.valid() && !document.hidden) {
+        this.paintDirty = false;
+        this.changed();
+      }
+    });
   }
   private fail(): void {
     this.suspend();
     this.status('Optional provider connection ended or exceeded its limits. Chat continues; use Reconnect to retry.');
   }
   private disconnect(): void {
-    clearOwnedInterval(this.tick);
-    this.tick = undefined;
-    clearTimeout(this.paint);
-    this.paint = undefined;
+    clearOwnedDeadline(this.deadline);
+    this.deadline = undefined;
+    stopClockTask(this.pruneTimer);
+    this.pruneTimer = undefined;
+    this.pumpPending = false;
+    this.paintPending = false;
+    this.paintDirty = false;
     this.announced = false;
     const connections = this.connections;
     this.connections = [];
@@ -409,12 +484,12 @@ export class ProviderEventClient {
     if (hadBadges && !this.stopped) this.changed();
   }
   private reset(): void {
-    clearTimeout(this.reconcileTimer);
+    clearOwnedDeadline(this.reconcileTimer);
     this.reconcileTimer = undefined;
     this.generation++;
     this.abort.abort();
     this.abort = new AbortController();
-    clearTimeout(this.configTimer);
+    clearOwnedDeadline(this.configTimer);
     this.configTimer = undefined;
     this.disconnect();
     this.allowed = [];
@@ -432,6 +507,7 @@ export class ProviderEventClient {
     this.stopped = true;
     this.reset();
     document.removeEventListener('privacychange', this.privacy);
+    document.removeEventListener('visibilitychange', this.visiblePaint);
     for (const provider of LIVE_PROVIDERS) setLiveCosmeticLookup(provider, undefined);
   }
 }

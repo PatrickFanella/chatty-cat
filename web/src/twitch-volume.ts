@@ -1,4 +1,4 @@
-import { ownedInterval, clearOwnedInterval } from './resource-timers';
+import { clockTask, stopClockTask } from './shell/clock';
 interface TwitchPlayer {
   pause(): void;
   setVolume(volume: number): void;
@@ -53,7 +53,7 @@ function sdk(): Promise<TwitchSDK> {
 }
 export class TwitchVolume {
   private generation = 0;
-  private timer: ReturnType<typeof setInterval> | undefined;
+  private timer: ReturnType<typeof clockTask> | undefined;
   async mount(
     container: HTMLElement,
     channel: string,
@@ -91,7 +91,7 @@ export class TwitchVolume {
         player.setMuted(false);
         player.setVolume(volume);
         player.setMuted(muted);
-        this.timer = ownedInterval(
+        this.timer = clockTask(
           'player.volume',
           () => {
             if (generation !== this.generation) return;
@@ -116,7 +116,7 @@ export class TwitchVolume {
   stop(): void {
     this.generation++;
     if (this.timer !== undefined) {
-      clearOwnedInterval(this.timer);
+      stopClockTask(this.timer);
       this.timer = undefined;
     }
   }

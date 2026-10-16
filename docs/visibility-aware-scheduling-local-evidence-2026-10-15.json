@@ -1,0 +1,533 @@
+{
+  "date": "2026-10-15",
+  "environment": {
+    "browser": "Chromium 154",
+    "viewport": "1280x800",
+    "auth": "anonymous",
+    "service": "local combined Go service serving production web/dist",
+    "url": "/?channel=patrick__eff&video=off&split=1",
+    "bundle": "main-viS6fz2P.js",
+    "mainGzipKB": 152.48
+  },
+  "visibleAfterPanelClose": {
+    "sampledMs": 71528.89999997616,
+    "recording": true,
+    "hidden": false,
+    "visibilityChanges": 0,
+    "mountedRows": 2,
+    "rowCache": 2,
+    "retainedMessages": 6,
+    "repeatingTimers": 2,
+    "timers": [
+      {
+        "owner": "scheduler.storage",
+        "intervalMs": 1000,
+        "fires": 71,
+        "hiddenFires": 0,
+        "callbackMs": 1.4000000357627869
+      },
+      {
+        "owner": "scheduler.ui",
+        "intervalMs": 1000,
+        "fires": 71,
+        "hiddenFires": 0,
+        "callbackMs": 71.50000143051147
+      }
+    ],
+    "scheduledTasks": [
+      {
+        "owner": "auth.refresh",
+        "intervalMs": 60000,
+        "fires": 1,
+        "hiddenFires": 0,
+        "callbackMs": 0.40000003576278687,
+        "pool": "ui",
+        "active": true
+      },
+      {
+        "owner": "links.mirror",
+        "intervalMs": 900000,
+        "fires": 0,
+        "hiddenFires": 0,
+        "callbackMs": 0,
+        "pool": "ui",
+        "active": false
+      },
+      {
+        "owner": "rate.timeline",
+        "intervalMs": 1000,
+        "fires": 71,
+        "hiddenFires": 0,
+        "callbackMs": 68.00000137090683,
+        "pool": "ui",
+        "active": true
+      },
+      {
+        "owner": "room.paint",
+        "intervalMs": 1000,
+        "fires": 71,
+        "hiddenFires": 0,
+        "callbackMs": 1.4999998807907104,
+        "pool": "ui",
+        "active": true
+      },
+      {
+        "owner": "storage.archive",
+        "intervalMs": 3000,
+        "fires": 23,
+        "hiddenFires": 0,
+        "callbackMs": 0.19999992847442627,
+        "pool": "storage",
+        "active": true
+      },
+      {
+        "owner": "storage.coverage",
+        "intervalMs": 10000,
+        "fires": 7,
+        "hiddenFires": 0,
+        "callbackMs": 0.30000007152557373,
+        "pool": "storage",
+        "active": true
+      },
+      {
+        "owner": "storage.messages",
+        "intervalMs": 15000,
+        "fires": 4,
+        "hiddenFires": 0,
+        "callbackMs": 0.09999996423721313,
+        "pool": "storage",
+        "active": true
+      },
+      {
+        "owner": "storage.picker",
+        "intervalMs": 15000,
+        "fires": 4,
+        "hiddenFires": 0,
+        "callbackMs": 0.6000000238418579,
+        "pool": "storage",
+        "active": true
+      },
+      {
+        "owner": "storage.rates",
+        "intervalMs": 30000,
+        "fires": 2,
+        "hiddenFires": 0,
+        "callbackMs": 0,
+        "pool": "storage",
+        "active": true
+      },
+      {
+        "owner": "storage.stats",
+        "intervalMs": 30000,
+        "fires": 2,
+        "hiddenFires": 0,
+        "callbackMs": 0,
+        "pool": "storage",
+        "active": true
+      }
+    ],
+    "protocolDeadlines": [],
+    "longTasks": {
+      "count": 0,
+      "totalMs": 0,
+      "maxMs": 0
+    },
+    "heap": {
+      "usedBytes": 10000000,
+      "allocatedBytes": 10000000,
+      "limitBytes": 3760000000
+    },
+    "cpu": "external measurement required",
+    "gpu": "external measurement required"
+  },
+  "controlledHidden": {
+    "method": "Own isolated browser tab: configurable document.hidden / visibilityState getters plus visibilitychange, then native getters restored. Native renderer backgrounding was unavailable.",
+    "atBoundary": {
+      "sampledMs": 113.10000002384186,
+      "recording": true,
+      "hidden": true,
+      "visibilityChanges": 1,
+      "mountedRows": 0,
+      "rowCache": 0,
+      "retainedMessages": 2,
+      "repeatingTimers": 0,
+      "timers": [],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0.2999999523162842,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        }
+      ],
+      "protocolDeadlines": [
+        {
+          "owner": "provider.reconcile",
+          "dueInMs": 815
+        }
+      ],
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      },
+      "heap": {
+        "usedBytes": 10000000,
+        "allocatedBytes": 10000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "later": {
+      "elapsedHiddenMs": 32685.5,
+      "sample": {
+        "sampledMs": 32787.19999998808,
+        "recording": true,
+        "hidden": true,
+        "visibilityChanges": 1,
+        "mountedRows": 0,
+        "rowCache": 0,
+        "retainedMessages": 3,
+        "repeatingTimers": 0,
+        "timers": [],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 1,
+            "hiddenFires": 1,
+            "callbackMs": 0,
+            "pool": "storage",
+            "active": false
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 1,
+            "hiddenFires": 1,
+            "callbackMs": 0,
+            "pool": "storage",
+            "active": false
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 1,
+            "hiddenFires": 1,
+            "callbackMs": 0,
+            "pool": "storage",
+            "active": false
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 1,
+            "hiddenFires": 1,
+            "callbackMs": 0.2999999523162842,
+            "pool": "storage",
+            "active": false
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 1,
+            "hiddenFires": 1,
+            "callbackMs": 0,
+            "pool": "storage",
+            "active": false
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 1,
+            "hiddenFires": 1,
+            "callbackMs": 0,
+            "pool": "storage",
+            "active": false
+          }
+        ],
+        "protocolDeadlines": [],
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "heap": {
+          "usedBytes": 10000000,
+          "allocatedBytes": 10000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      }
+    },
+    "resume": {
+      "sampledMs": 61074.60000002384,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 2,
+      "mountedRows": 0,
+      "rowCache": 0,
+      "retainedMessages": 3,
+      "repeatingTimers": 2,
+      "timers": [
+        {
+          "owner": "scheduler.storage",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        },
+        {
+          "owner": "scheduler.ui",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        }
+      ],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.2999999523162842,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 1,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0.10000002384185791,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0.5,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        }
+      ],
+      "protocolDeadlines": [
+        {
+          "owner": "provider.reconcile",
+          "dueInMs": 129
+        }
+      ],
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      },
+      "heap": {
+        "usedBytes": 10000000,
+        "allocatedBytes": 10000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    }
+  },
+  "tests": {
+    "fullSuite": "847 tests across 182 files",
+    "focusedAfterFinalCadenceAdjustment": "28 tests across clock, rate timeline, provider events and provider activity",
+    "protocols": "Synthetic fixtures enforce heartbeat expiry and reviewed five-minute activity deadlines while hidden."
+  },
+  "limitations": [
+    "Owned native repeating intervals only; other browser/SDK/socket timers are not included.",
+    "Tracked provider configuration/reconcile/protocol/reviewed-activity deadlines are reported separately and may remain necessary while hidden.",
+    "Browser visibility boundary is synthetic; natural background throttling is not qualified.",
+    "No real authenticated provider session, CPU/GPU measurement, comparative heap proof or production deployment."
+  ]
+}

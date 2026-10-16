@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
+import { intervalSnapshot, deadlineSnapshot } from './resource-timers';
 import { ProviderEventClient } from './provider-events';
 import { providerDefaults, setProviderPreferences } from './provider-preferences';
 import { cosmeticBadges } from './cosmetics';
@@ -255,4 +256,37 @@ it('announces only the authenticated profile in a joined BTTV channel after the 
     { name: 'join_channel', data: { name: 'twitch:42' } },
     { name: 'broadcast_me', data: { provider: 'twitch', providerId: '42', channel: 'twitch:42' } },
   ]);
+});
+
+it('batches frames without idle pumping and keeps heartbeat failure enforced while hidden', async () => {
+  const { changed } = setup();
+  enable();
+  let hidden = false;
+  const visibility = vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  client!.start();
+  await vi.advanceTimersByTimeAsync(1);
+  const [bttv, seven] = Socket.all;
+  bttv!.open();
+  seven!.open();
+  seven!.message({ op: 1, d: { heartbeat_interval: 10000, subscription_limit: 80 } });
+  await vi.advanceTimersByTimeAsync(500);
+  const sent = Socket.all.map((s) => s.sent.length);
+  hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(intervalSnapshot()).toEqual([]);
+  expect(deadlineSnapshot().some((x) => x.owner === 'provider.protocol')).toBe(true);
+  const before = changed.mock.calls.length;
+  for (let i = 0; i < 10; i++)
+    bttv!.message({
+      name: 'lookup_user',
+      data: { providerId: '2', badge: { url: 'https://cdn.betterttv.net/badges/pro.svg' } },
+    });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(changed).toHaveBeenCalledTimes(before);
+  expect(Socket.all.map((s) => s.sent.length)).toEqual(sent);
+  await vi.advanceTimersByTimeAsync(25000);
+  expect(Socket.all.every((s) => s.readyState === 3)).toBe(true);
+  expect(deadlineSnapshot()).toEqual([]);
+  client!.stop();
+  visibility.mockRestore();
 });
