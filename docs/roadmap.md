@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `8b09e7e` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 13 open
-issues: 11 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 15, 2026 against main `3b87d3a` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 12 open
+issues: 10 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has eight open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has seven open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -160,17 +160,23 @@ The #139 data split merged in PR #156 and #139 is closed. Merged-main CI passed.
 The main entry is 151.21 kB gzip; full precache bytes increased while startup
 JavaScript parsing decreased. See [data-loading measurements](reference-data-loading.md).
 
-The #135 implementation shares visible UI/storage clocks, flushes once at hide,
+The #135 implementation merged in PR #157 and #135 is closed. It shares visible UI/storage clocks, flushes once at hide,
 removes provider polling and exposes protocol deadlines separately. Local tests
 and controlled browser visibility checks pass; natural background throttling and
 production resource measurements remain unqualified. The entry is 152.48 kB gzip.
-See [scheduling evidence](visibility-aware-scheduling.md). Pending review/merge;
-next is #136, then #131.
+See [scheduling evidence](visibility-aware-scheduling.md). Merged-main hosted CI
+was still pending at the last deployment readback.
+
+The #136 implementation pauses offscreen/hidden virtual rows and hidden picker
+images while preserving manual freeze, Hold+ and reader geometry. Local tests and
+controlled browser checks pass. External CPU/GPU qualification remains open; see
+[animation evidence](emote-animation.md). Pending review; next implementation is #131.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
-merge did not supply those measurements. No production deployment is claimed for
-these local lifecycle/data changes.
+merge did not supply those measurements. Merged main through #157 is now deployed;
+the [October 15 deployment receipt](deployment-2026-10-15.md) records runtime,
+source, worker-upgrade and rollback checks. The later #136 work is not deployed.
 
 ## Live acceptance track — independent of M6
 

@@ -1,4 +1,5 @@
 import type { Panel } from './shell/panels';
+import { emoteAnimationSnapshot } from './emote-animation';
 import { clockSnapshot } from './shell/clock';
 import { showPanel } from './shell/open-panel';
 import { intervalSnapshot, resetIntervalSamples, sampleIntervals, deadlineSnapshot } from './resource-timers';
@@ -109,6 +110,7 @@ export class ResourceReadout implements Panel {
       timers,
       scheduledTasks: clockSnapshot(),
       protocolDeadlines: deadlineSnapshot(),
+      animatedEmotes: emoteAnimationSnapshot(),
       longTasks: this.supported ? { ...this.longTasks } : 'unavailable',
       heap: heap
         ? { usedBytes: heap.usedJSHeapSize, allocatedBytes: heap.totalJSHeapSize, limitBytes: heap.jsHeapSizeLimit }

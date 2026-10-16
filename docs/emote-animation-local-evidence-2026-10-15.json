@@ -1,0 +1,608 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "3b87d3a016dd8c751ed5729e21bb1e0e41d8859c",
+  "fixture": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "initial": {
+      "counts": {
+        "playing": 120,
+        "paused": 80,
+        "withoutStatic": 0
+      },
+      "rows": 25,
+      "anchor": {
+        "key": "0",
+        "offset": 0
+      },
+      "top": 0,
+      "geometry": {
+        "sha256": "6837412527d37dbe51607908c8a06d534bc0911f2b697b83a02d749ee080635e",
+        "firstKey": "0",
+        "lastKey": "24",
+        "rowHeights": [
+          37
+        ],
+        "imageGeometries": [
+          "28,28,56 / 56"
+        ]
+      }
+    },
+    "hidden": {
+      "counts": {
+        "playing": 0,
+        "paused": 200,
+        "withoutStatic": 0
+      },
+      "rows": 25,
+      "anchor": {
+        "key": "0",
+        "offset": 0
+      },
+      "top": 0,
+      "geometry": {
+        "sha256": "6837412527d37dbe51607908c8a06d534bc0911f2b697b83a02d749ee080635e",
+        "firstKey": "0",
+        "lastKey": "24",
+        "rowHeights": [
+          37
+        ],
+        "imageGeometries": [
+          "28,28,56 / 56"
+        ]
+      }
+    },
+    "resumed": {
+      "counts": {
+        "playing": 120,
+        "paused": 80,
+        "withoutStatic": 0
+      },
+      "rows": 25,
+      "anchor": {
+        "key": "0",
+        "offset": 0
+      },
+      "top": 0,
+      "geometry": {
+        "sha256": "6837412527d37dbe51607908c8a06d534bc0911f2b697b83a02d749ee080635e",
+        "firstKey": "0",
+        "lastKey": "24",
+        "rowHeights": [
+          37
+        ],
+        "imageGeometries": [
+          "28,28,56 / 56"
+        ]
+      }
+    },
+    "history": {
+      "before": {
+        "counts": {
+          "playing": 159,
+          "paused": 145,
+          "withoutStatic": 0
+        },
+        "rows": 38,
+        "anchor": {
+          "key": "991",
+          "offset": 23
+        },
+        "top": 31961,
+        "geometry": {
+          "sha256": "2e76350aa227c9a70ee3a6447847ca4ebf9e9d63dc38439d77ed169eab2eb800",
+          "firstKey": "978",
+          "lastKey": "1015",
+          "rowHeights": [
+            37
+          ],
+          "imageGeometries": [
+            "56,28,112 / 56"
+          ]
+        }
+      },
+      "hidden": {
+        "counts": {
+          "playing": 0,
+          "paused": 304,
+          "withoutStatic": 0
+        },
+        "rows": 38,
+        "anchor": {
+          "key": "991",
+          "offset": 23
+        },
+        "top": 31961,
+        "geometry": {
+          "sha256": "2e76350aa227c9a70ee3a6447847ca4ebf9e9d63dc38439d77ed169eab2eb800",
+          "firstKey": "978",
+          "lastKey": "1015",
+          "rowHeights": [
+            37
+          ],
+          "imageGeometries": [
+            "56,28,112 / 56"
+          ]
+        }
+      },
+      "after": {
+        "counts": {
+          "playing": 159,
+          "paused": 145,
+          "withoutStatic": 0
+        },
+        "rows": 38,
+        "anchor": {
+          "key": "991",
+          "offset": 23
+        },
+        "top": 31961,
+        "geometry": {
+          "sha256": "2e76350aa227c9a70ee3a6447847ca4ebf9e9d63dc38439d77ed169eab2eb800",
+          "firstKey": "978",
+          "lastKey": "1015",
+          "rowHeights": [
+            37
+          ],
+          "imageGeometries": [
+            "56,28,112 / 56"
+          ]
+        }
+      },
+      "manualStill": true,
+      "identicalImage": true
+    }
+  },
+  "applicationSmoke": {
+    "build": [
+      "http://localhost:4181/assets/main-BCSWVD7J.js"
+    ],
+    "readout": {
+      "sampledMs": 6.300000011920929,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 0,
+      "mountedRows": 28,
+      "rowCache": 60,
+      "retainedMessages": 224,
+      "repeatingTimers": 2,
+      "timers": [
+        {
+          "owner": "scheduler.storage",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        },
+        {
+          "owner": "scheduler.ui",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        }
+      ],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "picker.refresh",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        }
+      ],
+      "protocolDeadlines": [],
+      "animatedEmotes": {
+        "playing": 64,
+        "paused": 6,
+        "withoutStatic": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      },
+      "heap": {
+        "usedBytes": 64000000,
+        "allocatedBytes": 116000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "animatedImages": 70
+  },
+  "applicationControlledHidden": {
+    "hidden": {
+      "sampledMs": 19433.30000001192,
+      "recording": true,
+      "hidden": true,
+      "visibilityChanges": 1,
+      "mountedRows": 26,
+      "rowCache": 109,
+      "retainedMessages": 273,
+      "repeatingTimers": 0,
+      "timers": [],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "picker.refresh",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 1750.800000011921,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 15.700000166893005,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 0.4999999403953552,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 7,
+          "hiddenFires": 1,
+          "callbackMs": 0.10000002384185791,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 3,
+          "hiddenFires": 1,
+          "callbackMs": 0.10000002384185791,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 1.699999988079071,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0.3999999761581421,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 1,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": false
+        }
+      ],
+      "protocolDeadlines": [],
+      "animatedEmotes": {
+        "playing": 0,
+        "paused": 74,
+        "withoutStatic": 0
+      },
+      "longTasks": {
+        "count": 15,
+        "totalMs": 1759,
+        "maxMs": 143
+      },
+      "heap": {
+        "usedBytes": 64000000,
+        "allocatedBytes": 116000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "resumed": {
+      "sampledMs": 19555.600000023842,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 2,
+      "mountedRows": 26,
+      "rowCache": 109,
+      "retainedMessages": 273,
+      "repeatingTimers": 2,
+      "timers": [
+        {
+          "owner": "scheduler.storage",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        },
+        {
+          "owner": "scheduler.ui",
+          "intervalMs": 1000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0
+        }
+      ],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.40000003576278687,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "picker.refresh",
+          "intervalMs": 1000,
+          "fires": 19,
+          "hiddenFires": 0,
+          "callbackMs": 1870.0000000596046,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 19,
+          "hiddenFires": 0,
+          "callbackMs": 17.000000178813934,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 19,
+          "hiddenFires": 0,
+          "callbackMs": 0.4999999403953552,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 8,
+          "hiddenFires": 1,
+          "callbackMs": 0.10000002384185791,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 4,
+          "hiddenFires": 1,
+          "callbackMs": 0.10000002384185791,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 3,
+          "hiddenFires": 1,
+          "callbackMs": 2.4999999403953552,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 3,
+          "hiddenFires": 1,
+          "callbackMs": 0.4999999403953552,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 2,
+          "hiddenFires": 1,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        }
+      ],
+      "protocolDeadlines": [],
+      "animatedEmotes": {
+        "playing": 72,
+        "paused": 2,
+        "withoutStatic": 0
+      },
+      "longTasks": {
+        "count": 15,
+        "totalMs": 1759,
+        "maxMs": 143
+      },
+      "heap": {
+        "usedBytes": 64000000,
+        "allocatedBytes": 116000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    }
+  },
+  "limits": [
+    "Visibility was overridden and visibilitychange dispatched in an isolated tab; natural background throttling was not measured.",
+    "CPU and GPU measurements unavailable; counts measure selected image sources, not decoder or GPU utilization.",
+    "Animated images without a distinct static variant retain existing behavior and are counted separately."
+  ],
+  "committedFixtureRecheck": {
+    "lazyRows": true,
+    "mountedRows": 25,
+    "visible": {
+      "playing": 120,
+      "paused": 80
+    },
+    "controlledHidden": {
+      "playing": 0,
+      "paused": 200
+    },
+    "resumed": {
+      "playing": 120,
+      "paused": 80
+    },
+    "reader": {
+      "key": "0",
+      "offset": 0
+    }
+  }
+}

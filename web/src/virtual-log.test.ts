@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import { VirtualLog, type LogItem } from './virtual-log';
+import { configureEmoteAnimation } from './emote-animation';
 function setup() {
   const log = document.createElement('main');
   document.body.append(log);
@@ -29,6 +30,91 @@ function items(count: number, start = 0): LogItem[] {
 afterEach(() => {
   document.body.replaceChildren();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+it('pauses overscan, hidden and evicted rows without replacing images or resuming manually frozen rows', () => {
+  let notify: IntersectionObserverCallback = () => {};
+  const observe = vi.fn(),
+    unobserve = vi.fn(),
+    disconnect = vi.fn();
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit) {
+        notify = callback;
+        expect(options.rootMargin).toBe('150px 0px');
+      }
+      observe = observe;
+      unobserve = unobserve;
+      disconnect = disconnect;
+    },
+  );
+  let hidden = false;
+  vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  const { view, log } = setup();
+  const rows = [false, true].map((frozen, i) => {
+    const row = document.createElement('article'),
+      image = document.createElement('img');
+    row.className = 'row';
+    row.append(image);
+    configureEmoteAnimation(
+      image,
+      {
+        code: 'Dance',
+        source: '7TV',
+        animated: true,
+        zeroWidth: false,
+        url: 'https://cdn.test/play',
+        staticUrl: 'https://cdn.test/still',
+      },
+      frozen,
+    );
+    return { key: String(i), render: () => row, row, image };
+  });
+  const enter = (row: HTMLElement, isIntersecting: boolean) =>
+    notify(
+      [
+        {
+          target: row,
+          isIntersecting,
+          boundingClientRect: new DOMRect(),
+          intersectionRatio: isIntersecting ? 1 : 0,
+          intersectionRect: new DOMRect(),
+          rootBounds: new DOMRect(),
+          time: 0,
+        },
+      ],
+      {} as IntersectionObserver,
+    );
+  view.set(rows, false);
+  expect(rows[0]!.image.src).toBe('https://cdn.test/still');
+  enter(rows[0]!.row, true);
+  enter(rows[1]!.row, true);
+  expect(rows[0]!.image.src).toBe('https://cdn.test/play');
+  expect(rows[1]!.image.src).toBe('https://cdn.test/still');
+  const top = log.scrollTop;
+  hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(rows[0]!.image.src).toBe('https://cdn.test/still');
+  enter(rows[0]!.row, false);
+  hidden = false;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(rows[0]!.image.src).toBe('https://cdn.test/still');
+  enter(rows[0]!.row, true);
+  expect(rows[0]!.image.src).toBe('https://cdn.test/play');
+  expect(log.scrollTop).toBe(top);
+  expect(log.querySelector('img')).toBe(rows[0]!.image);
+  expect(rows[0]!.row.style.contentVisibility).toBe('auto');
+  view.set([rows[1]!], false);
+  expect(rows[0]!.image.src).toBe('https://cdn.test/still');
+  expect(unobserve).toHaveBeenCalledWith(rows[0]!.row);
+  enter(rows[0]!.row, true);
+  expect(rows[0]!.image.src).toBe('https://cdn.test/still');
+  view.stop();
+  expect(disconnect).toHaveBeenCalled();
+  hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(rows[1]!.image.src).toBe('https://cdn.test/still');
 });
 it('unloads retained inline media when its row leaves the viewport or its pane closes', () => {
   const { log, view } = setup();

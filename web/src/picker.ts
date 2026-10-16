@@ -8,6 +8,12 @@ import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
 import { FloatingPanel } from './floating';
 import { PickerMotion } from './picker-motion';
 import {
+  configureEmoteAnimation,
+  fallbackEmoteAnimation,
+  freezeEmoteAnimation,
+  pauseEmoteAnimations,
+} from './emote-animation';
+import {
   PickerModel,
   pickerURL,
   pickerPreset,
@@ -47,6 +53,7 @@ export class EmotePicker {
   private emojiFailed = false;
   private emojiStatus = document.createElement('p');
   private emojiRetry = document.createElement('button');
+  private visibility = (): void => pauseEmoteAnimations(this.root, document.hidden || this.root.hidden);
   constructor(
     private readonly root: HTMLElement,
     private readonly trigger: HTMLButtonElement,
@@ -150,6 +157,7 @@ export class EmotePicker {
     root.addEventListener('click', this.click);
     document.addEventListener('displaypreset', this.preset);
     document.addEventListener('keydown', this.key, true);
+    document.addEventListener('visibilitychange', this.visibility);
     root.addEventListener('pointerenter', this.enter);
     root.addEventListener('pointerleave', this.leave);
     get(root, 'picker-reset-order', HTMLButtonElement).addEventListener('click', this.resetOrder);
@@ -400,13 +408,21 @@ export class EmotePicker {
       image.dataset.emoteCode = item.code;
       image.dataset.emoteSource = item.source;
       image.alt = item.code;
-      image.src = tone((this.model.options.frozen || this.borrowed) && emote.staticUrl ? emote.staticUrl : emote.url);
+      configureEmoteAnimation(
+        image,
+        { ...emote, url: tone(emote.url), staticUrl: tone(emote.staticUrl) },
+        this.model.options.frozen || this.borrowed,
+      );
       image.loading = 'lazy';
       image.decoding = 'async';
       image.dataset.playUrl = tone(emote.url);
       if (emote.staticUrl) image.dataset.stillUrl = tone(emote.staticUrl);
       let usedStatic = (this.model.options.frozen || this.borrowed) && !!emote.staticUrl;
       image.addEventListener('error', () => {
+        if (fallbackEmoteAnimation(image)) {
+          usedStatic = true;
+          return;
+        }
         if (emote.staticUrl && !usedStatic) {
           usedStatic = true;
           image.src = tone(emote.staticUrl);
@@ -462,6 +478,7 @@ export class EmotePicker {
   }
   showRail(open: boolean): void {
     this.root.hidden = !open;
+    this.visibility();
     this.syncTimer();
     this.trigger.setAttribute('aria-expanded', String(open));
     if (open) this.refresh(true);
@@ -487,6 +504,7 @@ export class EmotePicker {
   close(): void {
     this.motion.stop();
     this.root.hidden = true;
+    this.visibility();
     this.syncTimer();
     this.floating.closed();
     this.trigger.setAttribute('aria-expanded', 'false');
@@ -563,8 +581,10 @@ export class EmotePicker {
     if (on === this.borrowed) return;
     this.borrowed = on;
     this.root.dataset.holdFreeze = String(on);
-    for (const image of this.root.querySelectorAll<HTMLImageElement>('img[data-play-url]'))
-      image.src = (this.model.options.frozen || on ? image.dataset.stillUrl : undefined) || image.dataset.playUrl!;
+    for (const image of this.root.querySelectorAll<HTMLImageElement>('img[data-play-url]')) {
+      if (image.hasAttribute('data-emote-animation')) freezeEmoteAnimation(image, this.model.options.frozen || on);
+      else image.src = (this.model.options.frozen || on ? image.dataset.stillUrl : undefined) || image.dataset.playUrl!;
+    }
     this.temporaryFreeze(on);
   }
   private gridEnter = (): void => {
@@ -614,6 +634,8 @@ export class EmotePicker {
     this.trigger.removeEventListener('click', this.toggle);
     this.root.removeEventListener('click', this.click);
     document.removeEventListener('keydown', this.key, true);
+    document.removeEventListener('visibilitychange', this.visibility);
+    pauseEmoteAnimations(this.root, true);
     this.root.removeEventListener('pointerenter', this.enter);
     this.root.removeEventListener('pointerleave', this.leave);
     this.tabs.removeEventListener('change', this.change);
