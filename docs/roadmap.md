@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 15, 2026 against main `db8b36f` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 17 open
-issues: 15 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 15, 2026 against main `97699d1` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 14 open
+issues: 12 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has twelve open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has nine open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -150,17 +150,24 @@ local, hosted, merged and deployed results distinguishable.
 
 ## Current lifecycle progress
 
-The complete #130 implementation registers all 40 independent panel roots, with
-lazy templates/editors and separate startup runtime/settings owners. Context
-popovers, pane settings and the command palette also construct on intent. Header
-mirroring, global dialog patching and body-wide panel discovery are removed.
-The full conversion is pending review/merge; close #130 with that PR. See the
-[complete inventory and local evidence](panel-lifecycle-migration.md). Next in the
-queue after merge is #139, followed by #135; production resource qualification
-remains separate from local lifecycle acceptance.
-#142's formatter and #134's resource readout/first local baseline are merged.
-The resource baseline retains its unmeasured deployed, hidden-tab and CPU/GPU
-scenarios; merge did not complete those qualifications.
+The complete #130 implementation merged in PR #155 and #130 is closed. All 40
+independent panels use explicit lazy factories; contextual popovers, pane settings
+and the palette construct on intent. Header mirroring, global dialog patching and
+body-wide discovery are removed. Merged-main CI passed. See the
+[panel inventory and local evidence](panel-lifecycle-migration.md).
+
+The #139 implementation moves emoji metadata and resource tables to immutable
+JSON while preserving startup emoji recognition and saved style behavior. The
+local main entry is 151.21 kB gzip, below the 180 kB target. First-use, retry,
+classic-to-module worker upgrade and app-origin-unavailable data loading passed
+locally. Full precache bytes increased; this is reduced startup parsing, not a
+smaller installed download. See [data-loading measurements](reference-data-loading.md).
+The change is pending review/merge. Next is #135, then #136.
+
+#142's formatter and #134's resource readout/first local baseline are merged and
+closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
+merge did not supply those measurements. No production deployment is claimed for
+these local lifecycle/data changes.
 
 ## Live acceptance track — independent of M6
 

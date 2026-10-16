@@ -1,7 +1,7 @@
 import { parsePickerGeometry } from './picker-geometry';
 export { parsePickerGeometry } from './picker-geometry';
 import { ownedInterval, clearOwnedInterval } from './resource-timers';
-import { EMOJI_GROUPS, EMOJI_VERSION, emojiNode } from './emoji';
+import { EMOJI_GROUPS, EMOJI_VERSION, emojiNode, loadEmojiCatalog, emojiCatalogLoaded } from './emoji';
 import { profileKey } from './account-profiles';
 import { registerSettings } from './settings-bundle';
 import { AGE_SECONDS, ageLabel, crossedAges, missedAge } from './picker-order';
@@ -42,7 +42,11 @@ export class EmotePicker {
   private nextAgeRefresh = Infinity;
   private timer: ReturnType<typeof setInterval> | undefined;
   private readonly floating: FloatingPanel;
-  private saveTimer: ReturnType<typeof setInterval> | undefined;
+  private stopped = false;
+  private emojiPending = false;
+  private emojiFailed = false;
+  private emojiStatus = document.createElement('p');
+  private emojiRetry = document.createElement('button');
   constructor(
     private readonly root: HTMLElement,
     private readonly trigger: HTMLButtonElement,
@@ -115,6 +119,15 @@ export class EmotePicker {
     credit.textContent = 'Twemoji graphics by Twitter and contributors · CC BY 4.0';
     emojiNote.append(' ', credit);
     this.settings.append(emojiNote);
+    this.emojiStatus.setAttribute('role', 'status');
+    this.emojiRetry.type = 'button';
+    this.emojiRetry.textContent = 'Retry emoji data';
+    this.emojiRetry.hidden = true;
+    this.emojiRetry.addEventListener('click', () => {
+      this.emojiFailed = false;
+      this.refresh(true);
+    });
+    this.settings.append(this.emojiStatus, this.emojiRetry);
 
     for (const source of SOURCES) {
       const label = document.createElement('label');
@@ -181,6 +194,31 @@ export class EmotePicker {
       1000,
     );
   }
+  private ensureEmoji(): void {
+    if (emojiCatalogLoaded()) {
+      this.emojiStatus.textContent = '';
+      this.emojiRetry.hidden = true;
+      return;
+    }
+    if (!this.model.options.enabled.includes('Emoji') || this.emojiPending || this.emojiFailed) return;
+    this.emojiPending = true;
+    this.emojiStatus.textContent = 'Loading emoji names and search…';
+    this.emojiRetry.hidden = true;
+    void loadEmojiCatalog()
+      .then(() => {
+        if (this.stopped) return;
+        this.emojiPending = false;
+        this.emojiStatus.textContent = '';
+        if (!this.root.hidden) this.refresh(true);
+      })
+      .catch(() => {
+        if (this.stopped) return;
+        this.emojiPending = false;
+        this.emojiFailed = true;
+        this.emojiStatus.textContent = 'Emoji names and search could not load. Native emoji remain available.';
+        this.emojiRetry.hidden = false;
+      });
+  }
   refresh(force = false): void {
     if (!force) {
       this.dirty = true;
@@ -190,6 +228,7 @@ export class EmotePicker {
       this.dirty = true;
       return;
     }
+    this.ensureEmoji();
     this.dirty = false;
     const items = this.model.query(this.channel(), this.search.value);
     const displayed = items.slice(0, this.page);
@@ -558,6 +597,7 @@ export class EmotePicker {
     this.refresh(true);
   };
   stop(): void {
+    this.stopped = true;
     this.bundleDispose();
     this.motion.stop();
     get(this.root, 'picker-reset-order', HTMLButtonElement).removeEventListener('click', this.resetOrder);
@@ -568,7 +608,6 @@ export class EmotePicker {
     this.grid.removeEventListener('pointerenter', this.gridEnter);
     this.grid.removeEventListener('pointerleave', this.gridLeave);
     clearOwnedInterval(this.timer);
-    clearOwnedInterval(this.saveTimer);
     this.floating.stop();
     this.model.saveAll();
     this.trigger.removeEventListener('click', this.toggle);

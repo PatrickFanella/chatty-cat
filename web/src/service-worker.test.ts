@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
+import { REFERENCE_ASSETS } from './reference-assets';
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.resetModules();
@@ -143,6 +144,7 @@ it('precaches an unopened lazy panel and serves it when the network is offline',
   });
   await installation;
   expect(saved.has('/assets/lazy-panel.js')).toBe(true);
+  for (const path of REFERENCE_ASSETS) expect(saved.has(path)).toBe(true);
   fetcher.mockRejectedValue(new TypeError('offline'));
   let response: Promise<Response> | undefined;
   listeners.get('fetch')!({
@@ -152,6 +154,15 @@ it('precaches an unopened lazy panel and serves it when the network is offline',
     },
   });
   expect(await (await response)!.text()).toBe('lazy panel fixture');
+  for (const path of REFERENCE_ASSETS) {
+    listeners.get('fetch')!({
+      request: new Request('https://chat.subcult.tv' + path),
+      respondWith: (promise: Promise<Response>) => {
+        response = promise;
+      },
+    });
+    expect(await (await response)!.text()).toBe('lazy panel fixture');
+  }
 });
 
 it('keeps the previous offline shell when precaching a required build chunk fails', async () => {
@@ -227,6 +238,7 @@ it('retains every installed chunk when a lazy build exceeds 64 shell entries', a
   });
   await pending;
   saved.set('/assets/obsolete.js', new Response('old'));
+  saved.set('/data/obsolete.json', new Response('old'));
   listeners.get('fetch')!({
     request: new Request(origin + '/assets/part69.js'),
     respondWith: (value: Promise<unknown>) => {
@@ -235,6 +247,8 @@ it('retains every installed chunk when a lazy build exceeds 64 shell entries', a
   });
   await pending;
   expect(saved.has('/assets/obsolete.js')).toBe(false);
+  expect(saved.has('/data/obsolete.json')).toBe(false);
+  for (const path of REFERENCE_ASSETS) expect(saved.has(path)).toBe(true);
   for (let i = 0; i < 70; i++) expect(saved.has('/assets/part' + i + '.js')).toBe(true);
   expect(saved.has('/')).toBe(true);
   fetcher.mockRejectedValue(new TypeError('offline'));

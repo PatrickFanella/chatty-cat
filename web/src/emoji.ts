@@ -1,15 +1,59 @@
-import { EMOJI_CATALOG, EMOJI_VERSION } from './emoji-catalog';
-import { EMOJI_KW as legacyKeywords } from './emoji-legacy';
-export { EMOJI_CATALOG, EMOJI_VERSION };
-export const EMOJIS: readonly string[] = EMOJI_CATALOG.map((entry) => entry.code);
-export const EMOJI_GROUPS: readonly string[] = [...new Set(EMOJI_CATALOG.map((entry) => entry.group))];
-export const EMOJI_KW: Readonly<Record<string, string>> = Object.fromEntries(
-  EMOJI_CATALOG.map((entry) => [
-    entry.code,
-    [entry.name, entry.group, entry.subgroup, 'Unicode ' + entry.version, legacyKeywords[entry.code] ?? ''].join(' '),
-  ]),
-);
-const catalog = new Map(EMOJI_CATALOG.map((entry) => [entry.code, entry]));
+import { EMOJIS, EMOJI_GROUPS, EMOJI_VERSION, type CatalogEmoji } from './emoji-catalog';
+import { EMOJI_DATA_URL } from './emoji-data-source';
+import { referenceData } from './reference-data';
+export { EMOJIS, EMOJI_GROUPS, EMOJI_VERSION };
+export let EMOJI_CATALOG: readonly CatalogEmoji[] = [];
+export let EMOJI_KW: Readonly<Record<string, string>> = {};
+let catalog = new Map<string, CatalogEmoji>();
+export const loadEmojiCatalog = referenceData(EMOJI_DATA_URL, (value) => {
+  if (!value || typeof value !== 'object') throw new Error('Invalid emoji data');
+  const data = value as Record<string, unknown>;
+  if (data.version !== EMOJI_VERSION || !Array.isArray(data.entries) || data.entries.length !== EMOJIS.length)
+    throw new Error('Invalid emoji catalog');
+  const legacy =
+    data.legacyKeywords && typeof data.legacyKeywords === 'object'
+      ? (data.legacyKeywords as Record<string, unknown>)
+      : {};
+  const codes = new Set(EMOJIS);
+  const entries: CatalogEmoji[] = data.entries.map((raw: unknown) => {
+    if (!raw || typeof raw !== 'object') throw new Error('Invalid emoji entry');
+    const row = raw as Record<string, unknown>;
+    if (
+      typeof row.code !== 'string' ||
+      !codes.delete(row.code) ||
+      !['name', 'group', 'subgroup', 'version', 'asset'].every(
+        (key) => typeof row[key] === 'string' && (row[key] as string).length <= 300,
+      ) ||
+      !EMOJI_GROUPS.includes(row.group as string) ||
+      !/^[a-f0-9]+(?:-[a-f0-9]+)*\.svg$/.test(row.asset as string) ||
+      !Array.isArray(row.tones) ||
+      !row.tones.every((tone) => typeof tone === 'string' && /^1f3f[b-f]$/.test(tone))
+    )
+      throw new Error('Invalid emoji entry');
+    return row as unknown as CatalogEmoji;
+  });
+  const keywords = Object.fromEntries(
+    entries.map((entry) => [
+      entry.code,
+      [
+        entry.name,
+        entry.group,
+        entry.subgroup,
+        'Unicode ' + entry.version,
+        typeof legacy[entry.code] === 'string' ? legacy[entry.code] : '',
+      ].join(' '),
+    ]),
+  );
+  EMOJI_CATALOG = entries;
+  EMOJI_KW = keywords;
+  catalog = new Map(entries.map((entry) => [entry.code, entry]));
+  document.dispatchEvent(new Event('emojicatalogchange'));
+  if (style !== 'native') document.dispatchEvent(new Event('emojistylechange'));
+  return entries;
+});
+export function emojiCatalogLoaded(): boolean {
+  return catalog.size === EMOJIS.length;
+}
 export function emojiEntry(code: string) {
   return catalog.get(code);
 }
@@ -22,6 +66,10 @@ let style: EmojiStyle = 'native';
 export function setEmojiStyle(value: EmojiStyle): void {
   if (value !== style) {
     style = value;
+    if (style !== 'native')
+      void loadEmojiCatalog().catch(() => {
+        /* Native text remains available; picker offers retry. */
+      });
     document.dispatchEvent(new Event('emojistylechange'));
   }
 }

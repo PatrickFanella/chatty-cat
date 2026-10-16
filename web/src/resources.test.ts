@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it, vi } from 'vitest';
 import { Resources, resourceURL } from './resources';
-import { RESOURCE_TABS } from './resource-data';
+import { resourceFixture as RESOURCE_TABS } from '../test-support/reference-data';
 afterEach(() => {
   document.body.replaceChildren();
   localStorage.clear();
@@ -46,7 +46,7 @@ it('supports tab keyboard navigation, linked help actions and close focus restor
   const trigger = document.createElement('button');
   document.body.append(trigger, root);
   const action = vi.fn();
-  const panel = new Resources(root, trigger, action);
+  const panel = new Resources(root, trigger, action, RESOURCE_TABS);
   trigger.click();
   expect(root.hidden).toBe(false);
   const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];

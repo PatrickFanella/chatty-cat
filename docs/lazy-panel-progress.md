@@ -287,6 +287,5 @@ was performed. The large main-chunk warning remains.
 The remaining panels are converted together in the complete lifecycle change.
 Use the [final inventory and evidence](panel-lifecycle-migration.md) for current
 status. Earlier references to remaining eager panels and legacy adapters describe
-the state at each prior slice. Issue #130 is ready to close when the complete
-change merges; production deployment and broader performance qualification remain
+the state at each prior slice. The complete change merged in PR #155 and #130 is closed; production deployment and broader performance qualification remain
 separate.

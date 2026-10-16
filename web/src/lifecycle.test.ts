@@ -42,6 +42,7 @@ it('offers a waiting update and activates only after explicit selection', async 
   expect(serviceWorker.register).toHaveBeenCalledWith('/sw.js?build=%2Fassets%2Fapp-one.js', {
     scope: '/',
     updateViaCache: 'none',
+    type: 'module',
   });
   stop();
   stop = mountLifecycle(document.createElement('div'), update, '/assets/app-two.js');
@@ -49,5 +50,6 @@ it('offers a waiting update and activates only after explicit selection', async 
   expect(serviceWorker.register).toHaveBeenLastCalledWith('/sw.js?build=%2Fassets%2Fapp-two.js', {
     scope: '/',
     updateViaCache: 'none',
+    type: 'module',
   });
 });

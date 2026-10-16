@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
-import { beforeEach, expect, it } from 'vitest';
+import { beforeAll, beforeEach, expect, it } from 'vitest';
+import { loadEmojiFixture } from '../test-support/reference-data';
+beforeAll(loadEmojiFixture);
 import { EMOJIS } from './emoji';
 import { PickerModel, parseOptions } from './picker-model';
 import type { Emote } from './tokens';
