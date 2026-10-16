@@ -1,5 +1,6 @@
 import { getPresentation } from './presentation';
 import { privacyEnabled } from './privacy';
+import { pauseEmoteAnimations } from './emote-animation';
 export interface LogItem {
   key: string;
   channel?: string;
@@ -26,6 +27,11 @@ export class VirtualLog {
   private revision = -1;
   private stopped = false;
   private observer: ResizeObserver | undefined;
+  private intersection: IntersectionObserver | undefined;
+  private visibleRows = new Map<HTMLElement, boolean>();
+  private visibility = (): void => {
+    for (const [row, visible] of this.visibleRows) pauseEmoteAnimations(row, document.hidden || !visible);
+  };
   private following = false;
   private reverse = false;
   private allowFollow = false;
@@ -47,6 +53,20 @@ export class VirtualLog {
     private scope = 'default',
   ) {
     document.addEventListener('presentation-before-change', this.beforePresentation);
+    document.addEventListener('visibilitychange', this.visibility);
+    if (typeof IntersectionObserver !== 'undefined')
+      this.intersection = new IntersectionObserver(
+        (entries) => {
+          if (this.stopped) return;
+          for (const entry of entries) {
+            const row = entry.target as HTMLElement;
+            if (!this.visibleRows.has(row)) continue;
+            this.visibleRows.set(row, entry.isIntersecting);
+            pauseEmoteAnimations(row, document.hidden || !entry.isIntersecting);
+          }
+        },
+        { root: log, rootMargin: '150px 0px' },
+      );
     this.markerTrack.className = 'scroll-markers';
     this.markerTrack.setAttribute('aria-label', 'Highlight positions');
     document.body.append(this.markerTrack);
@@ -69,6 +89,7 @@ export class VirtualLog {
             entry.borderBoxSize[0]?.blockSize ?? node.getBoundingClientRect().height / getPresentation().uiScale;
           if (key && height > 0 && Math.abs((this.heights.get(key) ?? 32) - height) > 0.5) {
             this.heights.set(key, height);
+            node.style.containIntrinsicSize = `auto none auto ${height}px`;
             changed = true;
           }
         }
@@ -116,6 +137,7 @@ export class VirtualLog {
       const height = node.getBoundingClientRect().height / getPresentation().uiScale;
       if (height > 0 && Math.abs((this.heights.get(node.dataset.virtualKey) ?? 32) - height) > 0.5) {
         this.heights.set(node.dataset.virtualKey, height);
+        node.style.containIntrinsicSize = `auto none auto ${height}px`;
         measured = true;
       }
     }
@@ -341,6 +363,9 @@ export class VirtualLog {
   }
   private release(node: Node): void {
     if (!(node instanceof HTMLElement)) return;
+    this.intersection?.unobserve(node);
+    this.visibleRows.delete(node);
+    pauseEmoteAnimations(node, true);
     for (const media of node.querySelectorAll('video,audio'))
       if (media instanceof HTMLMediaElement) {
         media.pause();
@@ -371,6 +396,13 @@ export class VirtualLog {
       row.classList.toggle('last-message', i === (this.reverse ? 0 : this.items.length - 1));
       row.dataset.position = String(i + 1);
       row.style.setProperty('--row-parity', String(i % 2));
+      row.style.contentVisibility = 'auto';
+      row.style.containIntrinsicSize = `auto none auto ${this.heights.get(item.key) ?? 32}px`;
+      if (!this.visibleRows.has(row)) {
+        this.visibleRows.set(row, !this.intersection);
+        this.intersection?.observe(row);
+      }
+      pauseEmoteAnimations(row, document.hidden || !this.visibleRows.get(row));
       rows.push(row);
     }
     this.observer?.disconnect();
@@ -439,6 +471,7 @@ export class VirtualLog {
   stop(): void {
     this.stopped = true;
     document.removeEventListener('presentation-before-change', this.beforePresentation);
+    document.removeEventListener('visibilitychange', this.visibility);
     clearTimeout(this.hoverTimer);
     clearTimeout(this.smoothTimer);
     window.removeEventListener('keydown', this.modifier);
@@ -448,6 +481,8 @@ export class VirtualLog {
     for (const node of this.log.children) this.release(node);
     cancelAnimationFrame(this.frame);
     this.observer?.disconnect();
+    this.intersection?.disconnect();
+    this.visibleRows.clear();
     this.log.removeEventListener('mouseover', this.hover);
     this.log.removeEventListener('mouseleave', this.leave);
     this.log.removeEventListener('wheel', this.wheel);

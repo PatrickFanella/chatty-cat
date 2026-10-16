@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Animation qualification</title>
+    <style>
+      body{display:block!important;margin:20px}#log{height:400px;width:700px;overflow:auto;display:block}.row{padding:4px;border-bottom:1px solid gray}.emote{height:28px;width:auto;vertical-align:middle}
+    </style>
+  </head>
+  <body>
+    <main id="log"></main>
+    <script type="module">
+      import { VirtualLog } from '/src/virtual-log.ts';
+      import { configureEmoteAnimation,emoteAnimationSnapshot } from '/src/emote-animation.ts';
+      const urls={"play": "data:image/gif;base64,R0lGODlhcAA4AIEAAP8AAAAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh+QQACgAAACwAAAAAcAA4AAAIgQABCBxIsKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJkyhTqlzJsqXLlzBjypxJs6bNmzhz6tzJs6fPn0CDCh1KtKjRo0iTKl3KtKnTp1CjSp1KtarVq1izat3KtavXr2DDih1LtqzZs2jTql3Ltq3btzgDAgAh+QQBCgABACwAAAAAcAA4AIEAAP8AAAAAAAAAAAAIgQABCBxIsKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJkyhTqlzJsqXLlzBjypxJs6bNmzhz6tzJs6fPn0CDCh1KtKjRo0iTKl3KtKnTp1CjSp1KtarVq1izat3KtavXr2DDih1LtqzZs2jTql3Ltq3btzgDAgA7", "still": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAIAAAAn5KxJAAAAVElEQVR4nO3OQQkAIAAAMTW50a3g40CELcHm2OML63XglmhNtCZaE62J1kRrojXRmmhNtCZaE62J1kRrojXRmmhNtCZaE62J1kRrojXRmmhNtCZaO7e+APD/o+J3AAAAAElFTkSuQmCC"};
+      const log=document.querySelector('#log');
+      const emote={code:'Dance',source:'7TV',animated:true,zeroWidth:false,url:urls.play,staticUrl:urls.still};
+      const records = Array.from({ length: 2000 }, (_, i) => {
+        let row;
+        return {
+          key: String(i),
+          render: () => {
+            if (row) return row;
+            row = document.createElement('article');
+            row.className = 'row';
+            row.append('Row ' + i + ' ');
+            for (let n = 0; n < 8; n++) {
+              const image = document.createElement('img');
+              image.className = 'emote';
+              image.alt = 'Dance';
+              configureEmoteAnimation(image, emote, false);
+              row.append(image);
+            }
+            return row;
+          },
+        };
+      });
+      const view=new VirtualLog(log); view.set(records,false);
+      window.qa={log,view,records,urls,snapshot:()=>({top:log.scrollTop,anchor:view.readerPosition(),counts:emoteAnimationSnapshot(),rows:log.querySelectorAll('.row').length,geometry:[...log.querySelectorAll('.row')].map(r=>({key:r.dataset.virtualKey,height:r.getBoundingClientRect().height,images:[...r.querySelectorAll('img')].map(i=>({width:i.getBoundingClientRect().width,height:i.getBoundingClientRect().height,ratio:i.style.aspectRatio,paused:i.src===urls.still}))}))})};
+    </script>
+  </body>
+</html>

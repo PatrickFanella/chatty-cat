@@ -10,6 +10,7 @@ import { appendLinks, readableColor, observeUserColor } from './links';
 import type { ChatMessage } from './protocol';
 import type { ChannelMetadata } from './metadata';
 import { tokenize, stackCheerTokens, type Emote } from './tokens';
+import { configureEmoteAnimation, fallbackEmoteAnimation } from './emote-animation';
 
 function badgeImage(
   metadata: ChannelMetadata | undefined,
@@ -64,7 +65,7 @@ function emoteImage(emote: Emote, frozen: boolean): HTMLElement {
   img.className = 'emote';
   img.dataset.emoteCode = emote.code;
   img.dataset.emoteSource = emote.source;
-  img.src = (frozen || !prefs.animated) && emote.staticUrl ? emote.staticUrl : emote.url;
+  configureEmoteAnimation(img, emote, frozen || !prefs.animated);
   if (prefs.scaleEmotesByLineHeight) img.classList.add('line-scaled');
   if (prefs.scale !== 1) img.style.setProperty('--emote-scale', String(prefs.scale));
   img.alt = emote.code;
@@ -72,6 +73,7 @@ function emoteImage(emote: Emote, frozen: boolean): HTMLElement {
   img.loading = 'lazy';
   img.decoding = 'async';
   img.addEventListener('error', () => {
+    if (fallbackEmoteAnimation(img)) return;
     if (emote.staticUrl && img.src !== emote.staticUrl) img.src = emote.staticUrl;
     else img.replaceWith(document.createTextNode(emote.code));
   });

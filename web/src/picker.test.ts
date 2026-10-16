@@ -14,6 +14,7 @@ afterEach(() => {
   picker = undefined;
   document.body.replaceChildren();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 function setup(signedIn = true) {
   const root = document.createElement('section');
@@ -128,6 +129,27 @@ it('borrows animation freeze over the grid without saving it or replacing cells'
   grid.dispatchEvent(new Event('pointerleave'));
   expect(grid.querySelector('img')?.src).toBe('https://example.com/a.png');
   expect(new PickerModel().options.frozen).toBe(true);
+});
+it('keeps hidden picker images still through Hold+ release and restores them only when visible', () => {
+  let hidden = false;
+  vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  const { root, find, model } = setup();
+  find('kappa');
+  const grid = root.querySelector('#picker-grid')!,
+    image = grid.querySelector('img')!;
+  grid.dispatchEvent(new Event('pointerenter'));
+  hidden = true;
+  document.dispatchEvent(new Event('visibilitychange'));
+  grid.dispatchEvent(new Event('pointerleave'));
+  expect(image.src).toBe('https://example.com/a.png');
+  expect(model.options.frozen).toBe(false);
+  hidden = false;
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(image.src).toBe('https://example.com/a.gif');
+  picker!.close();
+  expect(image.src).toBe('https://example.com/a.png');
+  document.dispatchEvent(new Event('visibilitychange'));
+  expect(image.src).toBe('https://example.com/a.png');
 });
 it('validates shared picker geometry before fitting it to the viewport', async () => {
   const { parsePickerGeometry } = await import('./picker');
