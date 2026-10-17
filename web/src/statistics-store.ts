@@ -62,6 +62,12 @@ export async function writeStatisticsRecord(key: string, raw: string): Promise<v
     db.close();
   }
 }
+export async function writeStatisticsSnapshot(key: string, snapshot: unknown): Promise<void> {
+  if (!validKey(key)) throw new Error('Invalid statistics scope');
+  const raw = JSON.stringify(snapshot);
+  if (typeof raw !== 'string') throw new Error('Invalid statistics snapshot');
+  await writeStatisticsRecord(key, raw);
+}
 export async function copyStatisticsRecords(plan: StatisticsMove): Promise<void> {
   validateStatisticsMove(plan);
   const db = await database(),

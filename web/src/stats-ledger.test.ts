@@ -128,3 +128,12 @@ it('counts newly imported rows once at their historical time after bootstrap', (
   ledger.observe(message, message.timestamp);
   expect(ledger.buckets('hours', 'one', new Set(), message.timestamp)).toEqual([{ at: message.timestamp, count: 1 }]);
 });
+
+it('returns detached pending classification arrays for an asynchronous snapshot', () => {
+  const ledger = new StatsLedger(['one'], () => ({}));
+  ledger.observe(message);
+  const snapshot = ledger.snapshot() as { pending: [string, number, string[]][] };
+  snapshot.pending[0]![2].push('mutated snapshot');
+  const fresh = ledger.snapshot() as { pending: [string, number, string[]][] };
+  expect(fresh.pending[0]![2]).toEqual([]);
+});

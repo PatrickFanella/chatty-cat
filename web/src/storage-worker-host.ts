@@ -1,5 +1,10 @@
 import { RateStore } from './rate-store';
-import { readStatisticsRecord, writeStatisticsRecord, copyStatisticsRecords } from './statistics-store';
+import {
+  readStatisticsRecord,
+  writeStatisticsRecord,
+  writeStatisticsSnapshot,
+  copyStatisticsRecords,
+} from './statistics-store';
 import { ArchiveStore } from './archive-store';
 import { JournalStore } from './moderation-journal-store';
 import type { StorageProgress, StorageReply, StorageRequest } from './storage-worker-protocol';
@@ -78,6 +83,8 @@ export class StorageWorkerHost {
         return (this.rates ??= new RateStore()).read(...request.args);
       case 'rates.write':
         return (this.rates ??= new RateStore()).write(...request.args);
+      case 'statistics.snapshot':
+        return writeStatisticsSnapshot(...request.args);
       case 'statistics.read':
         return readStatisticsRecord(...request.args);
       case 'statistics.write':

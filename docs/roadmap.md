@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 16, 2026 against main `4f3f342` and the live Gitea issue inventory.
+Updated October 16, 2026 against main `b95b7fb` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -177,7 +177,7 @@ The #131 implementation merged in PR #159 and #131 is closed. It gives Display s
 units, retaining all raw option values and the 18 canonical preset definitions.
 The share-URL serializer is unchanged. The design system records the mapping;
 local tests and a 1280×800 browser check pass. PR-head hosted CI passed after a
-stranded frontend task was retried. These settings-label changes are not deployed.
+stranded frontend task was retried. These settings-label changes are included in the October 16 deployment.
 
 The #132 implementation merged in PR #160 and #132 is closed. It groups all six dense panels, preserves detailed copy in
 disclosures and keeps review/consent/recovery controls together. Each first
@@ -192,26 +192,26 @@ managed panels at narrow/portrait sizes. Local checks at 600×800 and 390×844
 retain readable chat, on-screen panels and drafts. Desktop geometry survives a
 viewport round trip; synthetic whispers/moderation and touch-event checks retain
 their provider/device qualification limits. See [compact panel evidence](compact-panels.md).
-All four PR-head hosted checks passed. These panel changes are not deployed.
+All four PR-head hosted checks passed. These panel changes are included in the
+October 16 deployment.
 
-The first five #137 migrations merged in PRs #162–#166: private journal,
-archive queries/appends/recovery/retention preview, and statistics IndexedDB
-persistence with verified recovery copies. Each final PR head passed all four
-hosted checks. The sixth stage moves rate snapshot reads/writes and 16-scope
-trimming to the worker, with a final-save drain before managed shutdown. All 895
-frontend tests passed locally. Native Chromium preserved exact counts/gaps/coverage
-across worker recreation, observed scheduled application saves and a controlled
-hide flush, and recorded zero guarded main-thread rate database opens. See the
-[staged worker plan and evidence](storage-worker-migration.md). The rate stage is
-pending review. #137 remains open: archive pruning/retention apply, statistics
-aggregation/serialization, rate computation and the 15-minute busy-channel
-qualification remain.
+The first six #137 migrations merged in PRs #162–#167: private journal,
+archive queries/appends/recovery/retention preview, statistics persistence and rate
+snapshot storage. Merged main `b95b7fb` passed both hosted checks and is deployed;
+see the [October 16 receipt](deployment-2026-10-16.md). The seventh stage moves
+statistics snapshot JSON encoding to the worker. All 899 frontend tests passed;
+native Chromium matched a 1,000-row encoded snapshot, preserved prior data after
+capacity rejection and saved an application snapshot with main-thread encoding
+blocked. See the [staged plan and evidence](storage-worker-migration.md). This
+serialization stage is pending review and is not deployed. #137 remains open for
+archive pruning/retention apply, statistics aggregation/snapshot construction,
+rate computation and the 15-minute busy-channel qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
-merge did not supply those measurements. Merged main through #157 is now deployed;
-the [October 15 deployment receipt](deployment-2026-10-15.md) records runtime,
-source, worker-upgrade and rollback checks. The later #136 work is not deployed.
+merge did not supply those measurements. Merged main through #167 is now deployed;
+the [October 16 deployment receipt](deployment-2026-10-16.md) records runtime,
+source, worker-upgrade and rollback checks. Later work remains separate.
 
 ## Live acceptance track — independent of M6
 

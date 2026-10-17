@@ -10,6 +10,7 @@ export interface StorageOperations {
   'rates.read': { args: [key: string]; result: unknown };
   'rates.write': { args: [key: string, snapshot: RateSnapshot]; result: void };
 
+  'statistics.snapshot': { args: [key: string, snapshot: unknown]; result: void };
   'statistics.read': { args: [key: string]; result: string | undefined };
   'statistics.write': { args: [key: string, raw: string]; result: void };
   'statistics.copy': { args: [plan: StatisticsMove]; result: void };

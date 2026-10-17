@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-16",
+  "issue": 137,
+  "baseCommit": "b95b7fb58547bf53c898cc69a7357e4ea050506f",
+  "scope": "Statistics snapshot JSON encoding in the worker",
+  "localChecks": {
+    "frontendFilesPassed": 187,
+    "frontendTestsPassed": 899,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "nativeChromium": {
+    "worker": "assets/storage-worker-Db8DcHV2.js",
+    "fixtureRows": 1000,
+    "serializedCharacters": 37988,
+    "byteEquivalent": true,
+    "capacityError": "Statistics capacity reached",
+    "previousPreserved": true,
+    "applicationSnapshotWrites": 2,
+    "controlledHideApplicationSaved": true,
+    "guardedMainStatisticsStringifies": 0,
+    "workerCached": true
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-IfJk4QzM.js",
+        "rawBytes": 523475,
+        "gzipBytes": 152288
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-Db8DcHV2.js",
+        "rawBytes": 91575,
+        "gzipBytes": 24734
+      }
+    }
+  },
+  "limits": [
+    "This stage is not deployed; production is b95b7fb through PR #167",
+    "Ledger aggregation, snapshot construction, restore parsing and legacy preview still run on main thread",
+    "Non-IndexedDB fallback still serializes to localStorage on main thread",
+    "Main-thread native stringify was used explicitly for the synthetic comparison baseline, outside the guarded application path",
+    "Visibility flush is controlled; no natural background or 15-minute performance qualification",
+    "Structured-clone and worker startup costs have not been benchmarked",
+    "Issue #137 remains open"
+  ]
+}
