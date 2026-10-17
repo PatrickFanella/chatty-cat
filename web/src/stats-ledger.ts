@@ -1,4 +1,4 @@
-import { readStatistics, writeStatistics } from './stats-storage';
+import { readStatistics, writeStatisticsSnapshot } from './stats-storage';
 import type { ChatMessage } from './protocol';
 import type { Emote } from './tokens';
 import { tokenize } from './tokens';
@@ -272,7 +272,7 @@ export class StatsLedger {
       since: this.since,
       limited: this.limited,
       seen: [...this.seen],
-      pending: [...this.pending].map(([key, value]) => [key, value.at, value.counted]),
+      pending: [...this.pending].map(([key, value]) => [key, value.at, [...value.counted]]),
       rows: [...this.data].map(([key, value]) => [JSON.parse(key), value.total, [...value.hours], [...value.days]]),
     };
   }
@@ -386,14 +386,16 @@ export class StatsLedger {
   async save(): Promise<void> {
     try {
       if (typeof indexedDB !== 'undefined') await this.ready;
-      const value = JSON.stringify(this.snapshot());
-      if (value.length > 6000000) {
-        this.storageFailed = true;
-        return;
-      }
-      if (typeof indexedDB === 'undefined') localStorage.setItem(this.storageKey, value);
-      else {
-        const write = this.writes.catch(() => {}).then(() => writeStatistics(this.storageKey, value));
+      const snapshot = this.snapshot();
+      if (typeof indexedDB === 'undefined') {
+        const value = JSON.stringify(snapshot);
+        if (value.length > 6000000) {
+          this.storageFailed = true;
+          return;
+        }
+        localStorage.setItem(this.storageKey, value);
+      } else {
+        const write = this.writes.catch(() => {}).then(() => writeStatisticsSnapshot(this.storageKey, snapshot));
         this.writes = write;
         await write;
       }

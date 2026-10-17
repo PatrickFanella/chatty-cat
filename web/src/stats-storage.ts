@@ -27,6 +27,10 @@ export async function writeStatistics(key: string, raw: string): Promise<void> {
   if (raw.length > MAX_CHARS) throw new Error('Statistics capacity reached');
   await inWorker('statistics.write', key, raw);
 }
+export async function writeStatisticsSnapshot(key: string, snapshot: unknown): Promise<void> {
+  if (!validKey(key)) throw new Error('Invalid statistics scope');
+  await inWorker('statistics.snapshot', key, snapshot);
+}
 export function previewStatisticsMove(): StatisticsMove {
   const entries: { key: string; raw: string }[] = [];
   let characters = 0;

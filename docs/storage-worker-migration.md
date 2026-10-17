@@ -5,8 +5,10 @@ bounded stages. The first stage moves the private moderation journal; the second
 moves archive reads and queries. The third moves appends and bounded recovery.
 The fourth moves read-only retention preview; the fifth moves statistics
 IndexedDB persistence and verified recovery copies. Pruning, reviewed retention
-apply, statistics aggregation/serialization and rate-series computation remain on
-their existing paths. The sixth stage moves rate snapshot persistence. These stages do not satisfy the issue's 15-minute busy-channel performance acceptance.
+apply, statistics aggregation and rate-series computation remain on their
+existing paths. The sixth stage moves rate snapshot persistence; the seventh
+moves statistics snapshot JSON encoding. These stages do not satisfy the issue's
+15-minute busy-channel performance acceptance.
 
 ## First stage: private journal
 
@@ -296,12 +298,48 @@ the saved native open after the guarded operations. The worker was in the shell
 cache; disconnected offline loading was not tested. See the
 [rate evidence](rate-worker-local-evidence-2026-10-16.json).
 
+## Seventh stage: statistics snapshot JSON encoding
+
+Rate persistence merged in PR #167 at main `b95b7fb`; both merged-main checks
+passed. That exact main is now deployed; see the
+[October 16 deployment receipt](deployment-2026-10-16.md). This seventh stage was
+prepared afterward and is not part of that release.
+
+The IndexedDB save path now sends a captured statistics snapshot to the worker,
+which JSON-encodes it, enforces the existing six-million-character limit and
+commits the raw string. Stored JSON remains byte-equivalent to the previous
+encoding. Saves stay serialized and each captures its own snapshot before joining
+the write queue; later observations do not change earlier queued values. Pending
+classification arrays are detached when a snapshot is built. Oversized or invalid
+serialization leaves the previously saved value in place.
+
+Aggregation, pruning, snapshot object construction and restore JSON parsing remain
+on the main thread. The non-IndexedDB compatibility branch still encodes and saves
+through localStorage, and the explicit legacy migration preview remains unchanged.
+This stage does not move all statistics computation or establish a measured
+performance reduction; structured-clone and worker startup costs still matter.
+
+All 899 frontend tests in 187 files passed, with TypeScript, production build,
+formatting and diff checks. New tests cover byte-equivalent encoding, ordered
+queued saves while observations arrive, detached snapshot arrays, capacity
+rejection preserving prior data, and invalid scope rejection. Existing failure,
+replay/deduplication and reviewed recovery-copy checks still pass.
+
+Native Chromium encoded a 1,000-row synthetic snapshot into the exact expected
+37,988-character JSON string. Capacity rejection retained that string. A Window
+guard rejected statistics-snapshot JSON encoding, while the actual application
+sent snapshot operations and a controlled hide flush saved a valid snapshot
+through the worker. The guard recorded zero attempts. The saved native stringify
+was used explicitly for the synthetic comparison baseline outside the application
+path. The worker was cached in the shell cache. See the
+[serialization evidence](statistics-serialization-local-evidence-2026-10-16.json).
+
 ## Remaining stages and release boundary
 
 1. Move archive pruning and retention ownership. Preserve
    localStorage policy rollback, exact retention review and quota recovery. Keep
    the main in-memory message store.
-2. Move statistics ledger aggregation and snapshot serialization while preserving
+2. Move statistics ledger aggregation and snapshot construction while preserving
    replay exclusions, scope keys and the reviewed localStorage migration boundary.
 3. Move rate retained-window computation into the worker, preserving
    coverage gaps, replay exclusions and visible graph behavior. Snapshot creation
@@ -310,7 +348,8 @@ cache; disconnected offline loading was not tested. See the
    15-minute busy-channel session with the resource readout. Attribute storage
    work separately from rendering and structured-clone costs before closing #137.
 
-These storage-worker stages are not deployed. Rolling source back leaves the original
+Stages one through six are deployed at `b95b7fb`; the seventh is not deployed.
+Rolling source back leaves the original
 database readable by the previous implementation. No schema reset or destructive
 data conversion is part of rollback. Do not treat a worker crash as permission to
 repeat an uncertain provider action.
