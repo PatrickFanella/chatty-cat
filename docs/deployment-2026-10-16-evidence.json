@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-16",
+  "commit": "b95b7fb58547bf53c898cc69a7357e4ea050506f",
+  "cleanSource": true,
+  "hostedMergedMainCI": "both checks passed",
+  "manifestFilesVerified": 4036,
+  "staging": "readiness and packaged binary/HTML/main/worker/source hashes passed",
+  "runtime": {
+    "image": "sha256:8f31931f83ab9298290990a56e711bb37c1045227cf0d5d4621de201df32e239",
+    "status": "running",
+    "health": "healthy",
+    "restarts": 0,
+    "current": "/srv/apps/projects/chatty-cat/releases/chatty-cat-b95b7fb-20261016",
+    "dataFiles": 2,
+    "retainedDataUnchanged": true,
+    "ready": 200
+  },
+  "browser": {
+    "responses": [
+      {
+        "path": "/api/ready",
+        "status": 200,
+        "bytes": 18,
+        "sha256": "31bf75f4c0a97cc1f7b60df824fa390b3be9ba014f29b63c87c698ba63d9a9fd"
+      },
+      {
+        "path": "/api/auth/session",
+        "status": 200,
+        "bytes": 91,
+        "sha256": "44dc186c19b9658b1edf5dee777a92df939649e27e78b499bb9838541468f992"
+      },
+      {
+        "path": "/assets/main-BXud-HSc.js",
+        "status": 200,
+        "bytes": 523518,
+        "sha256": "05334327453573070fc53e41402deb4e933a0e5866556629231487f7f31a8e22"
+      },
+      {
+        "path": "/assets/storage-worker-k2IiFgOD.js",
+        "status": 200,
+        "bytes": 91343,
+        "sha256": "3e83a655a293bafda32db8bb99cf1d1a37febc9cafdb8fe3bb26e99b9d451361"
+      },
+      {
+        "path": "/source.tar.gz?build=b95b7fb",
+        "status": 200,
+        "bytes": 3146173,
+        "sha256": "df5a4736ccd3df66facac50e0692b4495ac1ef809f8b453512d5a2424d4ef7b1"
+      },
+      {
+        "path": "/sw.js?build=%2Fassets%2Fmain-BXud-HSc.js",
+        "status": 200,
+        "bytes": 4314,
+        "sha256": "24dd524398243cc8a77ddf7b6de916d3d663a55568097944503e6b105bc240bb"
+      }
+    ],
+    "main": [
+      "/assets/main-BXud-HSc.js"
+    ],
+    "workers": [
+      {
+        "active": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-viS6fz2P.js",
+        "waiting": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-BXud-HSc.js"
+      }
+    ],
+    "updateButtons": [
+      "Update ready \u00b7 Reload"
+    ],
+    "connection": "Liveconnected"
+  },
+  "activatedBrowser": {
+    "main": [
+      "/assets/main-BXud-HSc.js"
+    ],
+    "controller": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-BXud-HSc.js",
+    "workers": [
+      {
+        "active": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-BXud-HSc.js"
+      }
+    ],
+    "workerCached": true,
+    "connection": "Liveconnected",
+    "ready": 200
+  },
+  "rollbackGuard": "passed without mutation",
+  "recovery": "/srv/apps/projects/chatty-cat/recovery/storage-b95b7fb-20261016",
+  "limits": [
+    "No real authenticated provider actions sent",
+    "No reboot, disconnected offline or CPU/GPU qualification",
+    "Actual rollback not exercised",
+    "In-memory OAuth sessions end on backend replacement"
+  ]
+}
