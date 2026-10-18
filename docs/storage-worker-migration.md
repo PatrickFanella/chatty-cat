@@ -7,8 +7,9 @@ Stage eight completes archive IndexedDB ownership with pruning and reviewed
 retention apply. The Window retains the small localStorage policy operation.
 Stage nine moves retained-row summary calculation into a worker. Stage ten
 moves persistent-ledger startup decoding, validation and pruning into the worker.
-Ongoing ledger aggregation, snapshot construction and rate-series computation remain
-on their existing paths. The 15-minute busy-channel acceptance is still open.
+Stage eleven completes ongoing ledger/rate computation and snapshot ownership.
+The 15-minute busy-session qualification is recorded with the Wave 5 closeout;
+review and deployment remain separate.
 
 ## First stage: private journal
 
@@ -487,19 +488,38 @@ Worker startup and cloning validated Maps/Sets also have costs. These local
 checks do not establish an overall latency improvement or satisfy the 15-minute
 busy-channel acceptance.
 
-## Remaining stages and release boundary
+## Eleventh stage: complete ledger and rate computation ownership
 
-1. Move statistics ledger aggregation and snapshot construction while preserving
-   replay exclusions, scope keys and reviewed localStorage migration.
-2. Move rate retained-window computation into the worker, preserving coverage
-   gaps, replay exclusions and visible graph behavior.
-3. Observe a 15-minute busy-channel session with the resource readout. Attribute
-   storage work separately from rendering, worker startup and structured-clone
-   costs before closing #137.
+Startup restoration merged in PR #171 at main `e690b02`; its final PR head and
+merged-main checks passed. StatsLedger and RateTimeline now use worker-owned
+models for ongoing observations, reconciliation, ranks, buckets, samples, peaks,
+comparisons, pruning and snapshot construction. Queries are asynchronous and
+panels discard obsolete filter/account/close results before painting.
 
-Stages one through six are deployed at `b95b7fb`; stages seven through ten are not
-deployed.
-Rolling source back leaves the original
-database readable by the previous implementation. No schema reset or destructive
-data conversion is part of rollback. Do not treat a worker crash as permission to
-repeat an uncertain provider action.
+The shared event queue serializes bounded batches and query/save barriers.
+Bootstrap crosses in chunks of at most 2,000 rows, with a final marker preserving
+first-bootstrap counting. The ledger reserves one metadata batch beyond its
+100,000-row bootstrap capacity. Observation overflow and transport loss fail
+closed instead of silently dropping data and later overwriting totals. Definite
+write errors keep previous snapshots and allow later saves. Shutdown captures a
+final save after preceding observations and drains before terminating the worker.
+Retained-row summary transfers also use 2,000-row chunks from a captured array.
+
+The Window retains its message store, DOM rendering, public preference/policy
+localStorage operations and the existing 1,000-row compatibility history cache.
+The no-IndexedDB ledger path now builds its raw JSON in the worker before the
+Window's bounded localStorage write. Private receipts, reviewed recovery copies,
+archive retention ordering and stored data formats are unchanged.
+
+The broader Wave 5 report covers this stage together with the dedicated OBS
+entry, exact artifact sizes, runtime receipts and remaining acceptance boundaries:
+[Wave 5 delivery](wave5-2026-10-18.md). Local, hosted, merged and deployed states
+remain separate. #137 stays open until its change and acceptance are reviewed.
+
+## Release boundary
+
+Stages one through six are deployed at `b95b7fb`; stages seven through eleven
+are not deployed. Rolling source back leaves the original database readable by
+the previous implementation. No schema reset or destructive data conversion is
+part of rollback. Do not treat a worker crash as permission to repeat an uncertain
+provider action.

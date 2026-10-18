@@ -20,7 +20,11 @@ export class StatisticsSummaryClient {
       undefined,
       'Retained statistics worker unavailable; reload to try again.',
     );
-    return this.client.request('statistics.summarize', { ...options, messages, catalogs });
+    const retained = messages.slice();
+    await this.client.request('summary.begin', { ...options, catalogs });
+    for (let i = 0; i < retained.length; i += 2000)
+      await this.client.request('summary.append', retained.slice(i, i + 2000));
+    return this.client.request('summary.finish');
   }
   async stop(): Promise<void> {
     this.stopped = true;

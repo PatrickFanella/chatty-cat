@@ -1,3 +1,11 @@
+import type { RateEvent } from './rate-worker';
+import type { RateSample } from './rate-series';
+import type { ObservationSpan } from './observation-coverage';
+import type { StreamSample } from './stream-history';
+import type { Comparison } from './comparison';
+import type { LedgerEvent, LedgerMeta } from './ledger-worker';
+import type { LedgerRank } from './stats-ledger';
+import type { StatKind } from './stats-ledger-state';
 import type { LedgerLoad } from './statistics-store';
 import type { StatisticsSummaryRequest, StatisticsSummaryReport } from './stats-summary';
 import type { RateSnapshot } from './rate-timeline';
@@ -9,6 +17,41 @@ import type { JournalEntry, JournalPlan, JournalPolicy, JournalState } from './m
 
 // Explicit operations only: no arbitrary method names, provider requests or automatic retries.
 export interface StorageOperations {
+  'summary.begin': { args: [request: Omit<StatisticsSummaryRequest, 'messages'>]; result: void };
+  'summary.append': { args: [messages: readonly ChatMessage[]]; result: void };
+  'summary.finish': { args: []; result: StatisticsSummaryReport };
+
+  'rate.open': { args: [channels: readonly string[], now: number, persist: boolean]; result: void };
+  'rate.batch': { args: [events: readonly RateEvent[]]; result: { from: number; to: number }[] };
+  'rate.samples': { args: [now: number, seconds: number, channel: string]; result: RateSample[] };
+  'rate.peaks': {
+    args: [now: number, channel: string, seconds: number, kind: 'rate' | 'glorps'];
+    result: RateSample[];
+  };
+  'rate.snapshot': { args: [now: number]; result: RateSnapshot };
+  'rate.coverage': { args: [now: number]; result: ObservationSpan[] };
+  'rate.comparison': {
+    args: [channels: readonly string[], from: number, to: number, streams: Record<string, StreamSample[]>, now: number];
+    result: Comparison;
+  };
+  'rate.save': { args: [now: number]; result: void };
+
+  'ledger.open': {
+    args: [channels: readonly string[], legacy: string | undefined, persist: boolean];
+    result: LedgerMeta;
+  };
+  'ledger.batch': { args: [events: readonly LedgerEvent[]]; result: LedgerMeta };
+  'ledger.ranks': {
+    args: [kind: StatKind, hours: number, channel: string, excluded: readonly string[], now: number, limit: number];
+    result: LedgerRank[];
+  };
+  'ledger.buckets': {
+    args: [unit: 'hours' | 'days', channel: string, excluded: readonly string[], now: number];
+    result: { at: number; count: number }[];
+  };
+  'ledger.snapshot': { args: [now: number]; result: unknown };
+  'ledger.save': { args: [now: number]; result: string | undefined };
+
   'statistics.loadLedger': { args: [channels: readonly string[], legacy: string | undefined]; result: LedgerLoad };
 
   'statistics.summarize': { args: [request: StatisticsSummaryRequest]; result: StatisticsSummaryReport };

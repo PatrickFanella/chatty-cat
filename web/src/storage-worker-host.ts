@@ -1,4 +1,6 @@
-import { statisticsSummary } from './stats-summary';
+import { RateWorker } from './rate-worker';
+import { LedgerWorker } from './ledger-worker';
+import { statisticsSummary, type StatisticsSummaryRequest } from './stats-summary';
 import type { ArchiveRetention } from './archive-retention';
 import { RateStore } from './rate-store';
 import {
@@ -19,10 +21,13 @@ export class StorageWorkerHost {
   }
   private archive: ArchiveStore | undefined;
   private rates: RateStore | undefined;
+  private ledger = new LedgerWorker();
+  private rateModel = new RateWorker();
   private controllers = new Map<number, AbortController>();
   private policies = new Map<number, { resolve: (policy: ArchiveRetention) => void; reject: (error: Error) => void }>();
   private pending = new Set<Promise<unknown>>();
   private closing = false;
+  private summary: StatisticsSummaryRequest | undefined;
   private stopped: Promise<void> | undefined;
   async handle(raw: unknown, progress: (value: StorageNotice) => void = () => {}): Promise<StorageReply | undefined> {
     if (
@@ -113,6 +118,53 @@ export class StorageWorkerHost {
   ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
+      case 'summary.begin':
+        if (this.summary) throw new Error('Summary already pending');
+        this.summary = { ...request.args[0], messages: [] };
+        return;
+      case 'summary.append':
+        if (
+          !this.summary ||
+          request.args[0].length > 2000 ||
+          this.summary.messages.length + request.args[0].length > 100000
+        )
+          throw new Error('Summary capacity exceeded');
+        (this.summary.messages as import('./protocol').ChatMessage[]).push(...request.args[0]);
+        return;
+      case 'summary.finish': {
+        if (!this.summary) throw new Error('Summary not initialized');
+        const summary = this.summary;
+        this.summary = undefined;
+        return statisticsSummary(summary);
+      }
+      case 'rate.open':
+        return this.rateModel.run(() => this.rateModel.open(...request.args));
+      case 'rate.batch':
+        return this.rateModel.run(() => this.rateModel.batch(...request.args));
+      case 'rate.samples':
+        return this.rateModel.run(() => this.rateModel.series.samples(...request.args));
+      case 'rate.peaks':
+        return this.rateModel.run(() => this.rateModel.series.peaks(...request.args));
+      case 'rate.snapshot':
+        return this.rateModel.run(() => this.rateModel.series.snapshot(...request.args));
+      case 'rate.coverage':
+        return this.rateModel.run(() => this.rateModel.series.coverage.snapshot(...request.args));
+      case 'rate.comparison':
+        return this.rateModel.run(() => this.rateModel.series.comparison(...request.args));
+      case 'rate.save':
+        return this.rateModel.run(() => this.rateModel.save(...request.args));
+      case 'ledger.open':
+        return this.ledger.run(() => this.ledger.open(...request.args));
+      case 'ledger.batch':
+        return this.ledger.run(() => this.ledger.batch(...request.args));
+      case 'ledger.ranks':
+        return this.ledger.run(() => this.ledger.ranks(...request.args));
+      case 'ledger.buckets':
+        return this.ledger.run(() => this.ledger.buckets(...request.args));
+      case 'ledger.snapshot':
+        return this.ledger.run(() => this.ledger.snapshot(...request.args));
+      case 'ledger.save':
+        return this.ledger.run(() => this.ledger.save(...request.args));
       case 'rates.read':
         return (this.rates ??= new RateStore()).read(...request.args);
       case 'rates.write':
@@ -186,6 +238,7 @@ export class StorageWorkerHost {
         await this.journalStore?.stop();
         await this.archive?.stop();
         await this.rates?.stop();
+        await this.rateModel.stop();
       });
     }
     return this.stopped;

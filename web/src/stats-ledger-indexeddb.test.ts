@@ -4,8 +4,7 @@ import { StorageWorkerShim } from '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { StatsLedger } from './stats-ledger';
 import * as storage from './stats-storage';
-import type { LedgerLoad } from './statistics-store';
-import { restoreLedgerState } from './stats-ledger-state';
+import * as store from './statistics-store';
 import type { ChatMessage } from './protocol';
 const key = 'chatthing:v1:stats:counts:one';
 const message: ChatMessage = {
@@ -41,40 +40,44 @@ it('saves and reloads counts without using full localStorage or recounting repla
   next.bootstrap([message]);
   next.observe(message);
   await next.ready;
-  expect(next.ranks('users', 0)).toEqual([{ name: 'alice', count: 1 }]);
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'alice', count: 1 }]);
 });
 it('replays incoming observations only after the stored deduplication IDs are loaded', async () => {
   const saved = new StatsLedger(['one'], () => ({}));
   await saved.ready;
   saved.observe(message);
-  const raw = JSON.stringify(saved.snapshot());
-  let resolve!: (load: LedgerLoad) => void;
-  vi.spyOn(storage, 'loadStatisticsLedger').mockReturnValue(
-    new Promise((done) => {
-      resolve = done;
-    }),
-  );
+  await saved.save();
+  let release!: () => void;
+  class DelayedOpen extends StorageWorkerShim {
+    override postMessage(value: unknown): void {
+      if ((value as { operation?: string }).operation === 'ledger.open') {
+        const copy = structuredClone(value);
+        release = () => super.postMessage(copy);
+      } else super.postMessage(value);
+    }
+  }
+  vi.stubGlobal('Worker', DelayedOpen);
   const next = new StatsLedger(['one'], () => ({}));
   next.bootstrap([message]);
   next.observe(message);
   next.observe({ ...message, id: 'new' });
-  resolve({ state: restoreLedgerState(JSON.parse(raw), ['one'], Date.now()), storageFailed: false });
+  release();
   await next.ready;
-  expect(next.ranks('users', 0)).toEqual([{ name: 'alice', count: 2 }]);
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'alice', count: 2 }]);
 });
 it('retains the legacy fallback and reports IndexedDB write refusal', async () => {
   const first = new StatsLedger(['one'], () => ({}));
   await first.ready;
   first.observe(message);
-  const raw = JSON.stringify(first.snapshot());
+  const raw = JSON.stringify(await first.snapshot());
   localStorage.setItem(key, raw);
   const next = new StatsLedger(['one'], () => ({}));
   await next.ready;
-  vi.spyOn(storage, 'writeStatisticsSnapshot').mockRejectedValue(new Error('denied'));
+  vi.spyOn(store, 'writeStatisticsSnapshot').mockRejectedValue(new Error('denied'));
   await next.save();
   expect(next.storageFailed).toBe(true);
   expect(localStorage.getItem(key)).toBe(raw);
-  expect(next.ranks('users', 0)).toEqual([{ name: 'alice', count: 1 }]);
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'alice', count: 1 }]);
 });
 
 it('stores byte-equivalent JSON through worker serialization', async () => {
@@ -83,50 +86,42 @@ it('stores byte-equivalent JSON through worker serialization', async () => {
   const ledger = new StatsLedger(['one'], () => ({}));
   await ledger.ready;
   ledger.observe({ ...message, text: 'Unicode 猫 🐈 \"quoted\"', tags: { badges: 'subscriber/12' } });
-  const expected = JSON.stringify(ledger.snapshot());
+  const expected = JSON.stringify(await ledger.snapshot());
   await ledger.save();
   expect(ledger.storageFailed).toBe(false);
   expect(await storage.readStatistics(key)).toBe(expected);
 });
-it('keeps queued snapshots at capture time when observations arrive during serialization', async () => {
-  let release: (() => void) | undefined,
-    held = false;
-  class Delayed extends StorageWorkerShim {
-    override postMessage(value: unknown): void {
-      if (!held && (value as { operation?: string }).operation === 'statistics.snapshot') {
-        held = true;
-        const captured = structuredClone(value);
-        release = () => super.postMessage(captured);
-      } else super.postMessage(value);
-    }
-  }
-  const native = Worker;
-  vi.stubGlobal('Worker', Delayed);
+it('captures saves in command order while observations arrive during persistence', async () => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const native = store.writeStatisticsSnapshot;
+  const writes: number[] = [];
+  vi.spyOn(store, 'writeStatisticsSnapshot').mockImplementation(async (key, snapshot) => {
+    const data = snapshot as { rows: [unknown, number, unknown, unknown][] };
+    writes.push(data.rows[0]![1]);
+    if (writes.length === 1) await held;
+    return native(key, snapshot);
+  });
   const ledger = new StatsLedger(['one'], () => ({}));
   await ledger.ready;
   ledger.observe(message);
   const first = ledger.save();
-  try {
-    await vi.waitFor(() => expect(release).toBeTypeOf('function'));
-    ledger.observe({ ...message, id: 'second' });
-    const second = ledger.save();
-    await Promise.resolve();
-    ledger.observe({ ...message, id: 'third' });
-    release?.();
-    release = undefined;
-    await Promise.all([first, second]);
-    const restored = new StatsLedger(['one'], () => ({}));
-    await restored.ready;
-    expect(restored.ranks('users', 0)).toEqual([{ name: 'alice', count: 2 }]);
-    await ledger.save();
-    const latest = new StatsLedger(['one'], () => ({}));
-    await latest.ready;
-    expect(latest.ranks('users', 0)).toEqual([{ name: 'alice', count: 3 }]);
-  } finally {
-    release?.();
-    await first;
-    vi.stubGlobal('Worker', native);
-  }
+  await vi.waitFor(() => expect(writes).toEqual([1]));
+  ledger.observe({ ...message, id: 'second' });
+  const second = ledger.save();
+  ledger.observe({ ...message, id: 'third' });
+  release();
+  await Promise.all([first, second]);
+  expect(writes).toEqual([1, 2]);
+  const restored = new StatsLedger(['one'], () => ({}));
+  await restored.ready;
+  expect(await restored.ranks('users', 0)).toEqual([{ name: 'alice', count: 2 }]);
+  await ledger.save();
+  expect(writes).toEqual([1, 2, 3]);
+  await ledger.stop();
+  await restored.stop();
 });
 it('retains the previous snapshot when worker JSON exceeds capacity', async () => {
   const snapshot = { version: 1, since: 0, rows: [], seen: [] };
@@ -152,7 +147,7 @@ it('adopts worker-validated Maps and Sets without calling Window restore or star
   next.observe(message);
   await next.ready;
   expect(next.storageFailed).toBe(false);
-  expect(next.ranks('users', 0)).toEqual([{ name: 'alice', count: 1 }]);
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'alice', count: 1 }]);
   expect(restore).not.toHaveBeenCalled();
   expect(prune).not.toHaveBeenCalled();
 });
@@ -163,7 +158,7 @@ it('keeps legacy totals when saved JSON is malformed and does not release the or
   const next = new StatsLedger(['one'], () => ({}));
   await next.ready;
   expect(next.storageFailed).toBe(true);
-  expect(next.ranks('users', 0)).toEqual([{ name: 'legacy', count: 4 }]);
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'legacy', count: 4 }]);
   expect(localStorage.getItem(key)).toBe(legacy);
   expect(await storage.readStatistics(key)).toBe('{invalid JSON');
 });
@@ -204,10 +199,10 @@ it('restores the newer IndexedDB state over legacy, prunes old buckets and recon
   next.reconcile('one');
   next.reconcile('one');
   await next.ready;
-  expect(next.ranks('users', 0)).toEqual([{ name: 'alice', count: 2 }]);
-  expect(next.ranks('emotes', 0)).toEqual([{ name: 'Kappa', count: 1 }]);
-  expect(next.buckets('hours', '', new Set(), now)).toEqual([{ at: hour * 3600000, count: 1 }]);
-  const snapshot = next.snapshot(now) as { rows: [unknown, number, [number, number][], [number, number][]][] };
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'alice', count: 2 }]);
+  expect(await next.ranks('emotes', 0)).toEqual([{ name: 'Kappa', count: 1 }]);
+  expect(await next.buckets('hours', '', new Set(), now)).toEqual([{ at: hour * 3600000, count: 1 }]);
+  const snapshot = (await next.snapshot(now)) as { rows: [unknown, number, [number, number][], [number, number][]][] };
   expect(snapshot.rows[0]![2]).toEqual([[hour, 1]]);
   expect(snapshot.rows[0]![3]).toEqual([[day, 1]]);
   expect(localStorage.getItem(key)).toBe(legacy);
@@ -248,6 +243,6 @@ it('returns validated legacy state when worker IndexedDB reads are refused', asy
   await next.ready;
   open.mockRestore();
   expect(next.storageFailed).toBe(true);
-  expect(next.ranks('users', 0)).toEqual([{ name: 'legacy', count: 3 }]);
+  expect(await next.ranks('users', 0)).toEqual([{ name: 'legacy', count: 3 }]);
   expect(localStorage.getItem(key)).toBe(raw);
 });
