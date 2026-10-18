@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 17, 2026 against main `cb2cf29` and the live Gitea issue inventory.
+Updated October 18, 2026 against main `ee5f1cb` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -195,9 +195,10 @@ their provider/device qualification limits. See [compact panel evidence](compact
 All four PR-head hosted checks passed. These panel changes are included in the
 October 16 deployment.
 
-The first seven #137 migrations merged in PRs #162–#168: private journal,
+The first eight #137 migrations merged in PRs #162–#169: private journal,
 archive queries/appends/recovery/preview, statistics persistence/encoding and rate
-snapshot storage. Each final PR head passed all four hosted checks. Production
+snapshot storage, plus archive pruning and reviewed retention apply. Each final
+PR head passed all four hosted checks. Production
 remains on `b95b7fb` through #167; see the
 [October 16 deployment receipt](deployment-2026-10-16.md). The eighth stage completes
 archive IndexedDB ownership with worker pruning and reviewed retention apply.
@@ -205,8 +206,13 @@ A bounded policy handshake preserves localStorage refusal and confirmed-abort
 rollback, and reports lost acknowledgements as uncertain. All 906 frontend tests
 passed; the actual browser panel applied reviewed reductions with zero guarded
 main-thread archive database calls. See the
-[staged plan and evidence](storage-worker-migration.md). This stage is pending
-review and is not deployed. #137 remains open for statistics aggregation/snapshot
+[staged plan and evidence](storage-worker-migration.md). The eighth stage is merged
+and is not deployed. The ninth stage moves the
+retained-row Stats summary into the worker, coalesces panel refreshes and ignores
+obsolete filter/closed-panel results. All 913 frontend tests pass; native Chromium
+verified expected summary/exclusion counts with zero guarded Window date-format
+calls and explicit worker-failure feedback. This ninth stage is pending review
+and is not deployed. #137 remains open for persistent ledger aggregation/snapshot
 construction, rate computation and the 15-minute busy-channel qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and

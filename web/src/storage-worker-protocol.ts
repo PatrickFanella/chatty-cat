@@ -1,3 +1,4 @@
+import type { StatisticsSummaryRequest, StatisticsSummaryReport } from './stats-summary';
 import type { RateSnapshot } from './rate-timeline';
 import type { StatisticsMove } from './statistics-records';
 import type { ArchiveRetention, RetentionPlan } from './archive-retention';
@@ -7,6 +8,8 @@ import type { JournalEntry, JournalPlan, JournalPolicy, JournalState } from './m
 
 // Explicit operations only: no arbitrary method names, provider requests or automatic retries.
 export interface StorageOperations {
+  'statistics.summarize': { args: [request: StatisticsSummaryRequest]; result: StatisticsSummaryReport };
+
   'rates.read': { args: [key: string]; result: unknown };
   'rates.write': { args: [key: string, snapshot: RateSnapshot]; result: void };
 

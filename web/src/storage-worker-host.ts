@@ -1,3 +1,4 @@
+import { statisticsSummary } from './stats-summary';
 import type { ArchiveRetention } from './archive-retention';
 import { RateStore } from './rate-store';
 import {
@@ -115,6 +116,8 @@ export class StorageWorkerHost {
         return (this.rates ??= new RateStore()).read(...request.args);
       case 'rates.write':
         return (this.rates ??= new RateStore()).write(...request.args);
+      case 'statistics.summarize':
+        return statisticsSummary(request.args[0]);
       case 'statistics.snapshot':
         return writeStatisticsSnapshot(...request.args);
       case 'statistics.read':

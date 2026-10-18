@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
-import { expect, it } from 'vitest';
+import '../test-support/storage-worker-shim';
+import { expect, it, vi } from 'vitest';
 import { StatsPanel, rateGraph, summarize } from './stats';
 import type { ChatMessage } from './protocol';
 const message: ChatMessage = {
@@ -131,7 +132,7 @@ it('persists independent ranking windows and channel scope, and uses provider se
   (document.querySelector('[data-stat-kind="emotes"]') as HTMLSelectElement).value = 'se';
   first.dialog.dispatchEvent(new Event('change'));
   first.panel.showRail(true);
-  expect(document.querySelector('#stats-lists')?.textContent).toContain('Kappa · 8');
+  await vi.waitFor(() => expect(document.querySelector('#stats-lists')?.textContent).toContain('Kappa · 8'));
   first.panel.stop();
   const next = setup();
   expect((document.querySelector('#stats-channel') as HTMLSelectElement).value).toBe('one');

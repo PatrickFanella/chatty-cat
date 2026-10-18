@@ -7,125 +7,13 @@ import { badgeGroups, renderBadgeReference } from './stats-badges';
 import type { ChannelMetadata } from './metadata';
 import { registerSettings } from './settings-bundle';
 import { type StatsLedger, type StatKind } from './stats-ledger';
-import { isGlorp, type RateSeries } from './rate-timeline';
+import type { RateSeries } from './rate-timeline';
 import type { StreamHistory } from './stream-history';
 import type { ChatMessage } from './protocol';
-import { findLinks } from './links';
-import { tokenize, type Emote } from './tokens';
-import { gapBuckets } from './chat-gaps';
-import { loudestBursts, type Burst } from './bursts';
-export interface Rank {
-  name: string;
-  count: number;
-}
-export interface Stats {
-  messages: number;
-  glorps: number;
-  glorpers: Rank[];
-  chatters: number;
-  perMinute: number;
-  peakPerMinute: number;
-  buckets: number[];
-  gaps: boolean[];
-  pageGaps: boolean[];
-  bursts: Burst[];
-  users: Rank[];
-  emotes: Rank[];
-  badges: Rank[];
-  links: Rank[];
-  hours: Rank[];
-  days: Rank[];
-}
-export function summarize(
-  messages: readonly ChatMessage[],
-  now: number,
-  windowMs: number,
-  channel: string,
-  excluded: ReadonlySet<string>,
-  emotes: (channel: string) => Record<string, Emote>,
-): Stats {
-  const maps = {
-    users: new Map<string, number>(),
-    glorpers: new Map<string, number>(),
-    emotes: new Map<string, number>(),
-    badges: new Map<string, number>(),
-    links: new Map<string, number>(),
-    hours: new Map<string, number>(),
-    days: new Map<string, number>(),
-  };
-  const buckets = Array<number>(60).fill(0);
-  const minute = new Map<number, number>();
-  const seen = new Set<string>();
-  let count = 0;
-  let glorps = 0;
-  const increment = <K>(map: Map<K, number>, key: K): void => {
-    map.set(key, (map.get(key) ?? 0) + 1);
-  };
-  const from = now - windowMs;
-  const included: ChatMessage[] = [];
-  for (const message of messages) {
-    if (
-      message.command !== 'PRIVMSG' ||
-      message.timestamp < from ||
-      message.timestamp > now ||
-      (channel && message.channel !== channel) ||
-      excluded.has(message.login.toLowerCase())
-    )
-      continue;
-    const key = message.channel + ':' + message.id;
-    if (message.id && seen.has(key)) continue;
-    if (message.id) seen.add(key);
-    included.push(message);
-    count++;
-    if (isGlorp(message)) {
-      glorps++;
-      increment(maps.glorpers, message.login);
-    }
-    increment(maps.users, message.login);
-    increment(minute, Math.floor(message.timestamp / 60000));
-    const bin = Math.min(59, Math.floor(((message.timestamp - from) / windowMs) * 60));
-    buckets[bin] = (buckets[bin] ?? 0) + 1;
-    for (const token of tokenize(
-      message.text,
-      message.tags.emotes ?? '',
-      emotes(message.channel),
-      false,
-      /^[1-9][0-9]*$/.test(message.tags.bits ?? ''),
-    ))
-      if (token.type === 'emote') increment(maps.emotes, token.emote.code);
-    for (const badge of (message.tags.badges ?? '').split(',')) {
-      const name = badge.split('/')[0];
-      if (name) increment(maps.badges, name);
-    }
-    for (const link of findLinks(message.text)) increment(maps.links, new URL(link.href).hostname);
-    const date = new Date(message.timestamp);
-    increment(maps.hours, String(date.getHours()).padStart(2, '0') + ':00');
-    increment(maps.days, date.toLocaleDateString());
-  }
-  const ranks = (map: Map<string, number>): Rank[] =>
-    [...map]
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
-      .slice(0, 50);
-  return {
-    messages: count,
-    glorps,
-    glorpers: ranks(maps.glorpers),
-    chatters: maps.users.size,
-    perMinute: count / (windowMs / 60000),
-    peakPerMinute: Math.max(0, ...minute.values()),
-    buckets,
-    gaps: gapBuckets(messages, now, windowMs),
-    pageGaps: gapBuckets(messages, now, windowMs, 60, 'page'),
-    bursts: loudestBursts(included, messages, now),
-    users: ranks(maps.users),
-    emotes: ranks(maps.emotes),
-    badges: ranks(maps.badges),
-    links: ranks(maps.links),
-    hours: ranks(maps.hours),
-    days: ranks(maps.days),
-  };
-}
+import type { Emote } from './tokens';
+import type { Stats } from './stats-summary';
+import { StatisticsSummaryClient } from './stats-summary-client';
+export { summarize, type Rank, type Stats } from './stats-summary';
 export function rateGraph(
   buckets: readonly number[],
   label: string,
@@ -174,6 +62,12 @@ export function rateGraph(
   return svg;
 }
 export class StatsPanel {
+  private summaryWorker = new StatisticsSummaryClient();
+  private revision = 0;
+  private calculating = false;
+  private repaint = false;
+  private stopped = false;
+  private channels: readonly string[];
   private bundleDispose: () => void;
   private storageControls: StatisticsStorageControls | undefined;
   private timer: ReturnType<typeof clockTask> | undefined;
@@ -194,6 +88,7 @@ export class StatsPanel {
     private streams?: StreamHistory,
     private badges: (channel: string) => ChannelMetadata['badges'] = () => ({}),
   ) {
+    this.channels = [...channels];
     if (ledger && typeof indexedDB !== 'undefined') this.storageControls = new StatisticsStorageControls(dialog);
     this.badgeOrder = dialog.querySelector<HTMLSelectElement>('#stats-badge-order')!;
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!;
@@ -288,24 +183,32 @@ export class StatsPanel {
   }
   showRail(open: boolean): void {
     if (open) {
+      this.revision++;
       if (this.dialog.open) this.dialog.close();
       this.dialog.setAttribute('open', '');
       this.paint();
-    } else this.dialog.close();
+    } else {
+      this.revision++;
+      this.dialog.close();
+    }
     this.syncTimer();
   }
   open = (): void => {
     if (privacyEnabled()) return;
+    this.revision++;
     showPanel(this.dialog);
     this.syncTimer();
     this.paint();
   };
   close = (): void => this.dialog.close();
   private closed = (): void => {
+    if (this.dialog.open) return;
+    this.revision++;
     this.syncTimer();
     this.trigger.focus();
   };
   private change = (): void => {
+    this.revision++;
     try {
       localStorage.setItem(
         profileKey('chatthing:v1:stats'),
@@ -328,6 +231,14 @@ export class StatsPanel {
     this.paint();
   };
   private paint = (): void => {
+    if (this.stopped) return;
+    const revision = this.revision;
+    if (this.calculating) {
+      this.repaint = true;
+      return;
+    }
+    const panel = this.dialog.open;
+    if (!panel && this.timeline) return;
     const now = Date.now();
     const excluded = new Set(
       this.exclusions.value
@@ -335,15 +246,50 @@ export class StatsPanel {
         .split(/[\s,]+/)
         .filter(Boolean),
     );
-    const stats = this.timeline ? undefined : summarize(this.messages(), now, 60000, '', excluded, this.emotes);
-    if (stats)
-      this.header.replaceChildren(
-        rateGraph(stats.buckets, `Last minute: ${stats.messages} messages from ${stats.chatters} chatters`),
-      );
-    if (stats) this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
-    if (!this.dialog.open) return;
+    this.calculating = true;
+    this.repaint = false;
+    if (panel) this.dialog.querySelector('#stats-lists')?.setAttribute('aria-busy', 'true');
+    void this.summaryWorker
+      .report(this.messages(), this.channels, this.emotes, {
+        now,
+        windowMs: Number(this.scope.value),
+        channel: this.channel.value,
+        excluded: [...excluded],
+        header: !this.timeline,
+        panel,
+      })
+      .then((report) => {
+        if (this.stopped || revision !== this.revision || panel !== this.dialog.open) return;
+        const stats = report.header;
+        if (stats) {
+          this.header.replaceChildren(
+            rateGraph(stats.buckets, `Last minute: ${stats.messages} messages from ${stats.chatters} chatters`),
+          );
+          this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
+        }
+        if (report.panel) this.render(now, excluded, report.panel);
+      })
+      .catch(() => {
+        if (this.stopped || revision !== this.revision || panel !== this.dialog.open) return;
+        if (!this.timeline) {
+          this.header.replaceChildren();
+          this.header.title = 'Retained statistics unavailable';
+        }
+        if (panel) {
+          this.dialog.querySelector('#stats-summary')!.textContent =
+            'Retained statistics unavailable. Reload to try again.';
+          this.dialog.querySelector('#stats-graph')!.replaceChildren();
+          this.dialog.querySelector('#stats-lists')!.replaceChildren();
+        }
+      })
+      .finally(() => {
+        this.calculating = false;
+        this.dialog.querySelector('#stats-lists')?.removeAttribute('aria-busy');
+        if (this.repaint && !this.stopped) this.paint();
+      });
+  };
+  private render(now: number, excluded: ReadonlySet<string>, data: Stats): void {
     const windowMs = Number(this.scope.value);
-    const data = summarize(this.messages(), now, windowMs, this.channel.value, excluded, this.emotes);
     const summary = this.dialog.querySelector<HTMLElement>('#stats-summary')!;
     summary.textContent = `${data.messages.toLocaleString()} messages · ${data.glorps.toLocaleString()} glorp/F · ${data.chatters.toLocaleString()} chatters · ${data.perMinute.toFixed(1)}/min · peak minute ${data.peakPerMinute}`;
     const graph = this.dialog.querySelector<HTMLElement>('#stats-graph')!;
@@ -583,8 +529,12 @@ export class StatsPanel {
       section.append(list);
       body.append(section);
     }
-  };
+  }
   stop(): void {
+    this.stopped = true;
+    this.revision++;
+    this.dialog.querySelector('#stats-lists')?.removeAttribute('aria-busy');
+    void this.summaryWorker.stop().catch(() => {});
     this.storageControls?.stop();
     this.bundleDispose();
     stopClockTask(this.timer);
