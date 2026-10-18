@@ -4,11 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && tsc -p tsconfig.sw.json && vite build",
+    "build": "tsc --noEmit && tsc -p tsconfig.sw.json && vite build && node ../scripts/check-overlay-bundle.mjs",
     "check": "tsc --noEmit && tsc -p tsconfig.sw.json",
     "test": "vitest run",
     "format": "prettier --write \"src/**/*.{ts,css}\" \"*.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"*.ts\""
+    "format:check": "prettier --check \"src/**/*.{ts,css}\" \"*.ts\"",
+    "check:overlay": "node ../scripts/check-overlay-bundle.mjs"
   },
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",
