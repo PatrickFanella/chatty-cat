@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-18",
+  "scope": "Local persistent-ledger startup restore checks; issue 137 remains open",
+  "base": {
+    "main": "a3b197dd5eadf66b76d8e5920ab0be8a1eb2040a",
+    "pr": 170,
+    "head": "db3451d980055f42b95ae0e0359ebe2dec3d9c69",
+    "prHeadChecks": "4 passed",
+    "mergedMainChecks": "2 passed"
+  },
+  "assets": {
+    "index.html": {
+      "file": "assets/main-Dh_x4Quz.js",
+      "bytes": 522769,
+      "gzipBytesPythonMtime0": 151978,
+      "sha256": "39eeb49e1e6329a55c79c8d14e7fad8006122d22f9d81b0bf99fd1eed05fd7d4"
+    },
+    "src/storage-worker.ts": {
+      "file": "assets/storage-worker-BnwTThDg.js",
+      "bytes": 102579,
+      "gzipBytesPythonMtime0": 27942,
+      "sha256": "5aa1e22e778c734a3726dbdb2627343e76ebdb57be6ca75f109736af3ca3f890"
+    },
+    "src/stats.ts": {
+      "file": "assets/stats-l_m10SBI.js",
+      "bytes": 20358,
+      "gzipBytesPythonMtime0": 6713,
+      "sha256": "88b569d60f865d72199cdd9b92c58372bc92bee0e73d00f03a2e367e514e82d2"
+    }
+  },
+  "validation": {
+    "frontendTests": 918,
+    "frontendFiles": 188,
+    "strictTypescript": "passed",
+    "build": "passed with existing large main chunk warning",
+    "format": "passed",
+    "diff": "passed"
+  },
+  "nativeChromium": {
+    "origin": "http://127.0.0.1:5197",
+    "profile": "owned incognito tab",
+    "guardedBuiltApplication": {
+      "method": "Temporary build HTML installs guards before importing the unchanged emitted main; no source instrumentation",
+      "originalInputKeys": 10000,
+      "originalRawChars": 798971,
+      "replyKeys": 10000,
+      "replySeen": 1,
+      "replyPending": 0,
+      "replyBucketsAfterPrune": 20000,
+      "replyStorageFailed": false,
+      "windowLedgerJsonParseAttempts": 0,
+      "windowStatisticsDatabaseOpens": 0,
+      "allTimeUserTotal": 123,
+      "replayIncrementedTotal": false,
+      "legacyCharsRetained": 67
+    },
+    "failedRestore": {
+      "simulation": "Throw from worker postMessage for statistics.loadLedger before sending; other worker operations remain available",
+      "panelReloadExplanationVisible": true,
+      "controlledPageHide": "statistics save attempted by application lifecycle but blocked before snapshot dispatch",
+      "snapshotWrites": 0,
+      "savedRawChars": 588987,
+      "savedRawSha256BeforeAndAfter": "c31054c81b6eb6736f8f4f27168dc820770798844cd625259319464556adfd14",
+      "savedRecordByteEquivalent": true,
+      "baselineNote": "Successful application had already saved its pruned state before this failure test",
+      "legacyCharsRetained": 67,
+      "windowLedgerJsonParseAttempts": 0,
+      "windowStatisticsDatabaseOpens": 0
+    },
+    "finalBuildRestore": {
+      "main": "assets/main-Dh_x4Quz.js",
+      "keys": 10000,
+      "buckets": 20000,
+      "windowLedgerJsonParseAttempts": 0,
+      "windowStatisticsDatabaseOpens": 0
+    },
+    "workerCached": "chatthing-shell-v1"
+  },
+  "production": {
+    "action": "read-only recovery guard check",
+    "result": "Rollback guards passed; no changes"
+  },
+  "limits": [
+    "Ongoing observation, reconciliation, rank/bucket queries, scheduled pruning and snapshot construction remain on Window",
+    "No-IndexedDB compatibility path still decodes legacy localStorage synchronously",
+    "Legacy storage reads remain on Window; explicit reviewed migration is unchanged",
+    "Map/Set structured cloning and worker startup still have costs",
+    "No disconnected offline, live provider, CPU/GPU, latency improvement or 15-minute busy-channel qualification",
+    "Not deployed; no issue closed"
+  ]
+}

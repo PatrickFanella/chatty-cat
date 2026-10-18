@@ -402,11 +402,15 @@ export class StatsPanel {
     if (this.ledger) {
       const note = document.createElement('p');
       note.textContent =
-        (this.ledger.storageLoading
-          ? 'Loading saved observed totals…'
-          : 'Observed totals since ' + new Date(this.ledger.since).toLocaleString()) +
+        (this.ledger.storageRestoreUnavailable
+          ? 'Saved totals could not be restored; showing this session only. Reload before saving counts.'
+          : this.ledger.storageLoading
+            ? 'Loading saved observed totals…'
+            : 'Observed totals since ' + new Date(this.ledger.since).toLocaleString()) +
         (this.ledger.limited ? ' · Aggregate capacity reached; some new keys or buckets were omitted' : '') +
-        (this.ledger.storageFailed ? ' · Counts could not be saved in this browser' : '');
+        (this.ledger.storageFailed && !this.ledger.storageRestoreUnavailable
+          ? ' · Counts could not be saved in this browser'
+          : '');
       body.append(note);
       for (const kind of ['users', 'emotes', 'badges', 'links'] as StatKind[]) {
         const control = this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="' + kind + '"]');
