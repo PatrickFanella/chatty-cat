@@ -1,4 +1,11 @@
-import type { ArchiveOperation, StorageOperation, StorageOperations, StorageReply } from './storage-worker-protocol';
+import type { ArchiveRetention } from './archive-retention';
+import type {
+  ArchiveOperation,
+  RetentionOperation,
+  StorageOperation,
+  StorageOperations,
+  StorageReply,
+} from './storage-worker-protocol';
 
 const UNAVAILABLE =
   'Private journal worker unavailable; reload and check retained receipts before another action. No automatic retry.';
@@ -13,6 +20,7 @@ export class StorageWorkerClient {
       resolve: (value: unknown) => void;
       reject: (error: Error) => void;
       clean: () => void;
+      policy?: (() => ArchiveRetention) | undefined;
       progress?: ((scanned: number) => void) | undefined;
     }
   >();
@@ -44,10 +52,21 @@ export class StorageWorkerClient {
   ): Promise<StorageOperations[K]['result']> {
     return this.enqueue(operation, args, options);
   }
+  retention<K extends RetentionOperation>(
+    operation: K,
+    args: StorageOperations[K]['args'],
+    policy: () => ArchiveRetention,
+  ): Promise<StorageOperations[K]['result']> {
+    return this.enqueue(operation, args, { policy });
+  }
   private enqueue<K extends StorageOperation>(
     operation: K,
     args: StorageOperations[K]['args'],
-    options: { signal?: AbortSignal | undefined; progress?: ((scanned: number) => void) | undefined } = {},
+    options: {
+      policy?: (() => ArchiveRetention) | undefined;
+      signal?: AbortSignal | undefined;
+      progress?: ((scanned: number) => void) | undefined;
+    } = {},
   ): Promise<StorageOperations[K]['result']> {
     if (options.signal?.aborted) return Promise.reject(new DOMException('Search cancelled', 'AbortError'));
     if (this.failed) return Promise.reject(this.failed);
@@ -76,6 +95,7 @@ export class StorageWorkerClient {
         reject,
         clean,
         progress: options.progress,
+        policy: options.policy,
       });
       options.signal?.addEventListener('abort', abort, { once: true });
       try {
@@ -87,6 +107,45 @@ export class StorageWorkerClient {
   }
   private message = (event: MessageEvent<unknown>): void => {
     const notice = event.data;
+    if (
+      notice &&
+      typeof notice === 'object' &&
+      'version' in notice &&
+      notice.version === 1 &&
+      'id' in notice &&
+      Number.isSafeInteger(notice.id) &&
+      'policy' in notice &&
+      notice.policy === true
+    ) {
+      const pending = this.pending.get(Number(notice.id));
+      if (!pending?.policy) {
+        this.fail();
+        return;
+      }
+      const policy = pending.policy;
+      pending.policy = undefined; // At most one localStorage operation per admitted request.
+      let reply: unknown;
+      try {
+        reply = { version: 1, policyReply: notice.id, ok: true, value: policy() };
+      } catch (error) {
+        reply = {
+          version: 1,
+          policyReply: notice.id,
+          ok: false,
+          error: {
+            name: error instanceof Error || error instanceof DOMException ? error.name : 'Error',
+            message:
+              error instanceof Error || error instanceof DOMException ? error.message : 'Retention policy unavailable',
+          },
+        };
+      }
+      try {
+        this.worker?.postMessage(reply);
+      } catch {
+        this.fail();
+      }
+      return;
+    }
     if (
       notice &&
       typeof notice === 'object' &&
@@ -135,7 +194,7 @@ export class StorageWorkerClient {
     this.fail();
   };
   private fail(): void {
-    this.failed ??= new Error(this.unavailable);
+    this.failed ??= Object.assign(new Error(this.unavailable), { name: 'StorageWorkerUnavailable' });
     for (const pending of this.pending.values()) {
       pending.clean();
       pending.reject(this.failed);

@@ -15,6 +15,9 @@ export interface StorageOperations {
   'statistics.write': { args: [key: string, raw: string]; result: void };
   'statistics.copy': { args: [plan: StatisticsMove]; result: void };
 
+  'archive.open': { args: []; result: void };
+  'archive.prune': { args: [cap: number]; result: void };
+  'archive.applyRetention': { args: [plan: RetentionPlan, cap: number]; result: void };
   'archive.retentionPreview': { args: [policy: ArchiveRetention, at: number, cap: number]; result: RetentionPlan };
   'archive.append': { args: [messages: readonly ChatMessage[]]; result: void };
   'archive.recover': {
@@ -51,7 +54,7 @@ export type StorageReply =
 
 export type ArchiveOperation = Exclude<
   Extract<StorageOperation, `archive.${string}`>,
-  'archive.append' | 'archive.retentionPreview'
+  'archive.append' | 'archive.retentionPreview' | 'archive.open' | 'archive.prune' | 'archive.applyRetention'
 >;
 export interface StorageProgress {
   version: 1;
@@ -60,3 +63,11 @@ export interface StorageProgress {
 }
 
 export type StatisticsOperation = Extract<StorageOperation, `statistics.${string}`>;
+
+export type RetentionOperation = 'archive.prune' | 'archive.applyRetention';
+export interface StoragePolicyNotice {
+  version: 1;
+  id: number;
+  policy: true;
+}
+export type StorageNotice = StorageProgress | StoragePolicyNotice;

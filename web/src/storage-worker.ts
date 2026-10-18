@@ -1,10 +1,10 @@
 import { StorageWorkerHost } from './storage-worker-host';
-import type { StorageReply, StorageProgress } from './storage-worker-protocol';
+import type { StorageReply, StorageNotice } from './storage-worker-protocol';
 
 // Dedicated worker entry. No window, localStorage, auth token or provider transport.
 const port = self as unknown as {
   onmessage: ((event: MessageEvent<unknown>) => void) | null;
-  postMessage(reply: StorageReply | StorageProgress): void;
+  postMessage(reply: StorageReply | StorageNotice): void;
 };
 const host = new StorageWorkerHost();
 port.onmessage = (event) => {

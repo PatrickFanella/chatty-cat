@@ -4,6 +4,148 @@ import type { ChatMessage } from './protocol';
 import { parseRetention, type ArchiveRetention, type RetentionPlan } from './archive-retention';
 
 export class ArchiveStore extends ArchiveReader {
+  constructor(private policyWaitMs = 5000) {
+    super();
+  }
+  async open(): Promise<void> {
+    await this.db;
+  }
+  // Keep the write transaction active only while the owning Window handles one
+  // small synchronous localStorage operation. Deletion stays inside IDB callbacks.
+  private withPolicy(
+    store: IDBObjectStore,
+    load: () => Promise<ArchiveRetention>,
+    use: (policy: ArchiveRetention) => void,
+    abort: (error: unknown) => void,
+  ): void {
+    const deadline = Date.now() + this.policyWaitMs;
+    let reply: { policy: ArchiveRetention } | { error: unknown } | undefined;
+    void Promise.resolve()
+      .then(load)
+      .then(
+        (policy) => {
+          reply = { policy };
+        },
+        (error) => {
+          reply = { error };
+        },
+      );
+    const hold = () => {
+      const request = store.getKey('');
+      request.onsuccess = () => {
+        if (reply) {
+          if ('error' in reply) abort(reply.error);
+          else {
+            try {
+              use(parseRetention(reply.policy));
+            } catch (error) {
+              abort(error);
+            }
+          }
+        } else if (Date.now() >= deadline) {
+          abort(new DOMException('Retention policy timed out; archive transaction aborted', 'TimeoutError'));
+        } else hold();
+      };
+    };
+    hold();
+  }
+  async prune(cap: number, policy: () => Promise<ArchiveRetention>): Promise<void> {
+    const db = await this.db,
+      tx = db.transaction('messages', 'readwrite'),
+      store = tx.objectStore('messages');
+    let failure: unknown;
+    return new Promise((resolve, reject) => {
+      const abort = (error: unknown) => {
+        failure = error;
+        tx.abort();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => {
+        failure ??= tx.error;
+      };
+      tx.onabort = () => reject(failure ?? tx.error ?? new Error('Archive prune aborted'));
+      const count = store.count();
+      count.onsuccess = () =>
+        this.withPolicy(
+          store,
+          policy,
+          (selected) => {
+            let remaining = count.result - Math.min(cap, selected.rows);
+            const cutoff = selected.days ? Date.now() - selected.days * 86400000 : 0;
+            if (remaining <= 0 && cutoff <= 0) return;
+            const cursor = store.index('timestamp').openCursor();
+            cursor.onsuccess = () => {
+              const row = cursor.result;
+              if (!row || (remaining <= 0 && Number(row.key) >= cutoff)) return;
+              row.delete();
+              remaining--;
+              row.continue();
+            };
+          },
+          abort,
+        );
+    });
+  }
+  async applyRetention(
+    expected: RetentionPlan,
+    capacity: number,
+    policy: () => Promise<ArchiveRetention>,
+  ): Promise<void> {
+    const selected = parseRetention(expected.policy),
+      at = expected.at;
+    const db = await this.db,
+      tx = db.transaction('messages', 'readwrite'),
+      store = tx.objectStore('messages');
+    const entries: { key: IDBValidKey; at: number }[] = [];
+    let failure: unknown;
+    return new Promise((resolve, reject) => {
+      const abort = (error: unknown) => {
+        failure = error;
+        tx.abort();
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => {
+        failure ??= tx.error;
+      };
+      tx.onabort = () => reject(failure ?? tx.error ?? new Error('Retention could not be applied'));
+      const cursor = store.index('timestamp').openKeyCursor();
+      cursor.onsuccess = () => {
+        const row = cursor.result;
+        if (row) {
+          if (typeof row.key === 'number') entries.push({ key: row.primaryKey, at: row.key });
+          row.continue();
+          return;
+        }
+        const cutoff = selected.days ? at - selected.days * 86400000 : 0;
+        const remove = Math.max(
+          entries.filter((e) => e.at < cutoff).length,
+          Math.max(0, entries.length - Math.min(capacity, selected.rows)),
+        );
+        let hash = 2166136261;
+        for (const e of entries)
+          for (const code of String(e.key) + ':' + e.at + ';') hash = Math.imul(hash ^ code.charCodeAt(0), 16777619);
+        if (
+          expected.signature !== entries.length + ':' + (hash >>> 0) ||
+          expected.remove !== remove ||
+          expected.policy.rows !== selected.rows ||
+          expected.policy.days !== selected.days
+        ) {
+          abort(new Error('Archive changed; preview retention again before applying'));
+          return;
+        }
+        this.withPolicy(
+          store,
+          policy,
+          (saved) => {
+            if (saved.rows !== selected.rows || saved.days !== selected.days)
+              throw new Error('Retention policy acknowledgement mismatch');
+            for (const entry of entries.slice(0, remove)) store.delete(entry.key);
+          },
+          abort,
+        );
+      };
+    });
+  }
   async retentionPreview(policy: ArchiveRetention, at: number, capacity: number): Promise<RetentionPlan> {
     policy = parseRetention(policy);
     const db = await this.db;

@@ -1,3 +1,4 @@
+import type { ArchiveRetention } from './archive-retention';
 import { RateStore } from './rate-store';
 import {
   readStatisticsRecord,
@@ -7,7 +8,7 @@ import {
 } from './statistics-store';
 import { ArchiveStore } from './archive-store';
 import { JournalStore } from './moderation-journal-store';
-import type { StorageProgress, StorageReply, StorageRequest } from './storage-worker-protocol';
+import type { StorageNotice, StorageReply, StorageRequest } from './storage-worker-protocol';
 
 export class StorageWorkerHost {
   private journalStore: JournalStore | undefined;
@@ -17,10 +18,32 @@ export class StorageWorkerHost {
   private archive: ArchiveStore | undefined;
   private rates: RateStore | undefined;
   private controllers = new Map<number, AbortController>();
+  private policies = new Map<number, { resolve: (policy: ArchiveRetention) => void; reject: (error: Error) => void }>();
   private pending = new Set<Promise<unknown>>();
   private closing = false;
   private stopped: Promise<void> | undefined;
-  async handle(raw: unknown, progress: (value: StorageProgress) => void = () => {}): Promise<StorageReply | undefined> {
+  async handle(raw: unknown, progress: (value: StorageNotice) => void = () => {}): Promise<StorageReply | undefined> {
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      'version' in raw &&
+      raw.version === 1 &&
+      'policyReply' in raw &&
+      Number.isSafeInteger(raw.policyReply)
+    ) {
+      const pending = this.policies.get(Number(raw.policyReply));
+      this.policies.delete(Number(raw.policyReply));
+      if ('ok' in raw && raw.ok === true && 'value' in raw) pending?.resolve(raw.value as ArchiveRetention);
+      else {
+        const detail = 'error' in raw ? (raw.error as { name?: string; message?: string }) : undefined;
+        pending?.reject(
+          Object.assign(new Error(detail?.message ?? 'Retention policy unavailable'), {
+            name: detail?.name ?? 'Error',
+          }),
+        );
+      }
+      return;
+    }
     if (
       raw &&
       typeof raw === 'object' &&
@@ -47,8 +70,15 @@ export class StorageWorkerHost {
       }
       const controller = new AbortController();
       this.controllers.set(id, controller);
-      const operation = this.execute(request, controller.signal, (scanned) =>
-        progress({ version: 1, id, progress: scanned }),
+      const operation = this.execute(
+        request,
+        controller.signal,
+        (scanned) => progress({ version: 1, id, progress: scanned }),
+        () =>
+          new Promise<ArchiveRetention>((resolve, reject) => {
+            this.policies.set(id, { resolve, reject });
+            progress({ version: 1, id, policy: true });
+          }),
       );
       this.pending.add(operation);
       try {
@@ -56,6 +86,7 @@ export class StorageWorkerHost {
       } finally {
         this.pending.delete(operation);
         this.controllers.delete(id);
+        this.policies.delete(id);
       }
     } catch (error) {
       return {
@@ -76,6 +107,7 @@ export class StorageWorkerHost {
     request: StorageRequest,
     signal: AbortSignal,
     progress: (scanned: number) => void,
+    policy: () => Promise<ArchiveRetention>,
   ): Promise<unknown> {
     const args = request.args;
     switch (request.operation) {
@@ -91,6 +123,12 @@ export class StorageWorkerHost {
         return writeStatisticsRecord(...request.args);
       case 'statistics.copy':
         return copyStatisticsRecords(...request.args);
+      case 'archive.open':
+        return (this.archive ??= new ArchiveStore()).open();
+      case 'archive.prune':
+        return (this.archive ??= new ArchiveStore()).prune(request.args[0], policy);
+      case 'archive.applyRetention':
+        return (this.archive ??= new ArchiveStore()).applyRetention(request.args[0], request.args[1], policy);
       case 'archive.retentionPreview':
         return (this.archive ??= new ArchiveStore()).retentionPreview(...request.args);
       case 'archive.append':

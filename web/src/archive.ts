@@ -18,21 +18,7 @@ import {
 import { StorageWorkerClient } from './storage-worker-client';
 export { PUBLIC_ARCHIVE_COMMANDS, archiveKey, matchesArchive } from './archive-records';
 export type { ArchiveQuery, ArchiveCursor, ArchiveBounds, ArchivePage } from './archive-records';
-function request<T>(req: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error('Archive request failed'));
-  });
-}
-function done(tx: IDBTransaction): Promise<void> {
-  return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onabort = () => reject(tx.error ?? new Error('Archive transaction aborted'));
-    tx.onerror = () => reject(tx.error ?? new Error('Archive transaction failed'));
-  });
-}
 export class MessageArchive {
-  private db: Promise<IDBDatabase>;
   private queue: ChatMessage[] = [];
   private flushing: Promise<void> | undefined;
   private stopped = false;
@@ -41,25 +27,9 @@ export class MessageArchive {
     private readonly failure: (message: string) => void = () => {},
     private readonly cap = MAX_ROWS,
   ) {
-    this.db = new Promise((resolve, reject) => {
-      if (typeof indexedDB === 'undefined') {
-        reject(new Error('IndexedDB unavailable'));
-        return;
-      }
-      const open = indexedDB.open('chatthing-archive', 1);
-      open.onupgradeneeded = () => {
-        const store = open.result.createObjectStore('messages', { keyPath: 'key' });
-        store.createIndex('timestamp', 'timestamp');
-        store.createIndex('channel-time', ['channel', 'timestamp']);
-      };
-      open.onsuccess = () => {
-        open.result.onversionchange = () => open.result.close();
-        resolve(open.result);
-      };
-      open.onerror = () => reject(open.error ?? new Error('Archive unavailable'));
-      open.onblocked = () => failure('Archive upgrade is blocked by another tab; close it and reload');
-    });
-    void this.db.catch(() => failure('Local archive unavailable; live chat continues'));
+    void this.storageWorker()
+      .request('archive.open')
+      .catch(() => failure('Local archive unavailable; live chat continues'));
     this.timer = clockTask(
       'storage.archive',
       () => {
@@ -102,113 +72,7 @@ export class MessageArchive {
     await this.prune();
   }
   private async prune(): Promise<void> {
-    const db = await this.db,
-      tx = db.transaction('messages', 'readwrite'),
-      store = tx.objectStore('messages');
-    const complete = done(tx);
-    const count = await request(store.count()),
-      policy = readRetention();
-    let remaining = count - Math.min(this.cap, policy.rows);
-    const cutoff = policy.days ? Date.now() - policy.days * 86400000 : 0;
-    if (remaining > 0 || cutoff > 0)
-      await new Promise<void>((resolve, reject) => {
-        const cursor = store.index('timestamp').openCursor();
-        cursor.onerror = () => reject(cursor.error);
-        cursor.onsuccess = () => {
-          const row = cursor.result;
-          if (!row || (remaining <= 0 && Number(row.key) >= cutoff)) {
-            resolve();
-            return;
-          }
-          row.delete();
-          remaining--;
-          row.continue();
-        };
-      });
-    await complete;
-  }
-  private async retentionTransaction(
-    policy: ArchiveRetention,
-    at: number,
-    apply: boolean,
-    expected?: RetentionPlan,
-  ): Promise<RetentionPlan> {
-    const db = await this.db,
-      tx = db.transaction('messages', apply ? 'readwrite' : 'readonly'),
-      store = tx.objectStore('messages');
-    const cap = Math.min(this.cap, policy.rows);
-    const cutoff = policy.days ? at - policy.days * 86400000 : 0;
-    const plan: RetentionPlan = { policy, at, rows: 0, remove: 0, oldest: null, newest: null, signature: '' };
-    const entries: { key: IDBValidKey; at: number }[] = [];
-    let failure: unknown,
-      oldPolicy: string | null = null,
-      written = false;
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve(plan);
-      tx.onerror = () => {
-        failure = tx.error;
-      };
-      tx.onabort = () => {
-        if (written) {
-          try {
-            if (localStorage.getItem(RETENTION_KEY) === JSON.stringify(policy)) {
-              if (oldPolicy === null) localStorage.removeItem(RETENTION_KEY);
-              else localStorage.setItem(RETENTION_KEY, oldPolicy);
-            }
-          } catch {
-            /* Report the transaction error; policy storage may have failed independently. */
-          }
-        }
-        reject(failure ?? tx.error ?? new Error('Retention could not be applied'));
-      };
-      const cursor = store.index('timestamp').openKeyCursor();
-      cursor.onerror = () => {
-        failure = cursor.error;
-        tx.abort();
-      };
-      cursor.onsuccess = () => {
-        const row = cursor.result;
-        if (row) {
-          if (typeof row.key === 'number') {
-            entries.push({ key: row.primaryKey, at: row.key });
-            plan.oldest ??= row.key;
-            plan.newest = row.key;
-          }
-          row.continue();
-          return;
-        }
-        plan.rows = entries.length;
-        const age = entries.filter((e) => e.at < cutoff).length;
-        plan.remove = Math.max(age, Math.max(0, entries.length - cap));
-        let hash = 2166136261;
-        for (const e of entries)
-          for (const code of String(e.key) + ':' + e.at + ';') hash = Math.imul(hash ^ code.charCodeAt(0), 16777619);
-        plan.signature = entries.length + ':' + (hash >>> 0);
-        if (!apply) return;
-        if (
-          expected &&
-          (plan.signature !== expected.signature ||
-            plan.remove !== expected.remove ||
-            expected.policy.rows !== policy.rows ||
-            expected.policy.days !== policy.days)
-        ) {
-          failure = new Error('Archive changed; preview retention again before applying');
-          tx.abort();
-          return;
-        }
-        try {
-          if (expected) {
-            oldPolicy = localStorage.getItem(RETENTION_KEY);
-            localStorage.setItem(RETENTION_KEY, JSON.stringify(policy));
-            written = true;
-          }
-          for (const e of entries.slice(0, plan.remove)) store.delete(e.key);
-        } catch (e) {
-          failure = e;
-          tx.abort();
-        }
-      };
-    });
+    await this.storageWorker().retention('archive.prune', [this.cap], () => readRetention());
   }
   async retentionPreview(policy: ArchiveRetention = readRetention()): Promise<RetentionPlan> {
     await this.flush();
@@ -216,7 +80,39 @@ export class MessageArchive {
   }
   async applyRetention(plan: RetentionPlan): Promise<void> {
     await this.flush();
-    await this.retentionTransaction(parseRetention(plan.policy), plan.at, true, plan);
+    const reviewed = structuredClone(plan),
+      policy = parseRetention(reviewed.policy),
+      encoded = JSON.stringify(policy);
+    let previous: string | null = null,
+      written = false;
+    try {
+      await this.queryWorker().retention('archive.applyRetention', [reviewed, this.cap], () => {
+        previous = localStorage.getItem(RETENTION_KEY);
+        localStorage.setItem(RETENTION_KEY, encoded);
+        written = true;
+        return policy;
+      });
+    } catch (error) {
+      if (written && error instanceof Error && error.name === 'StorageWorkerUnavailable') {
+        throw Object.assign(
+          new Error(
+            'Retention outcome uncertain; reload and inspect the archive before another reduction. The selected policy remains saved.',
+          ),
+          { name: error.name },
+        );
+      }
+      if (written) {
+        try {
+          if (localStorage.getItem(RETENTION_KEY) === encoded) {
+            if (previous === null) localStorage.removeItem(RETENTION_KEY);
+            else localStorage.setItem(RETENTION_KEY, previous);
+          }
+        } catch {
+          /* Policy storage may fail independently; report the transaction error. */
+        }
+      }
+      throw error;
+    }
   }
 
   private reader: StorageWorkerClient | undefined;
@@ -273,13 +169,12 @@ export class MessageArchive {
     return this.queryWorker().query('archive.searchPage', [query, after], { signal, progress });
   }
   stop(): void {
+    if (this.stopped) return;
     this.stopped = true;
     stopClockTask(this.timer);
     void this.flush()
-      .then(async () => {
-        await this.reader?.stop();
-        (await this.db).close();
-      })
+      .catch(() => {})
+      .then(() => this.reader?.stop())
       .catch(() => {});
   }
 }

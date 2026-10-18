@@ -143,3 +143,21 @@ it('routes progress and aborts before posting a pre-cancelled query', async () =
   port.reply(1, { messages: [], scanned: 250 });
   await expect(pending).resolves.toMatchObject({ scanned: 250 });
 });
+
+it('handles a correlated policy notice once before the final transaction reply', async () => {
+  const { port, value } = client();
+  const policy = vi.fn(() => ({ rows: 1000, days: 7 }));
+  const pending = value.retention('archive.prune', [100000], policy);
+  port.dispatchEvent(new MessageEvent('message', { data: { version: 1, id: 1, policy: true } }));
+  expect(policy).toHaveBeenCalledOnce();
+  expect(port.sent[1]).toEqual({ version: 1, policyReply: 1, ok: true, value: { rows: 1000, days: 7 } });
+  port.reply(1, undefined);
+  await pending;
+});
+it('refuses unsolicited policy notices without invoking any Window callback', async () => {
+  const { port, value } = client();
+  const pending = value.request('journal.list', '42');
+  port.dispatchEvent(new MessageEvent('message', { data: { version: 1, id: 1, policy: true } }));
+  await expect(pending).rejects.toHaveProperty('name', 'StorageWorkerUnavailable');
+  expect(port.sent).toHaveLength(1);
+});
