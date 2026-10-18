@@ -1,3 +1,5 @@
+import { isGlorp } from './glorp';
+export { isGlorp } from './glorp';
 import { StorageWorkerClient } from './storage-worker-client';
 import { clockTask, stopClockTask } from './shell/clock';
 import { ObservationCoverage, type ObservationSpan } from './observation-coverage';
@@ -27,13 +29,6 @@ export interface RateSnapshot {
   coverage?: ObservationSpan[];
 }
 const KEEP = 86400;
-export function isGlorp(message: Pick<ChatMessage, 'text' | 'login'>): boolean {
-  return (
-    /\b(?:glorp|florp)\b/i.test(message.text) ||
-    /^f$/i.test(message.text.trim()) ||
-    (message.login.toLowerCase() === 'fossabot' && /trigger is pulled.*bullet fired/i.test(message.text))
-  );
-}
 export class RateSeries {
   readonly coverage: ObservationCoverage;
   private rows = new Map<string, Map<number, Count>>();

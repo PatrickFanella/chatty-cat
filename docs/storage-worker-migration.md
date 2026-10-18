@@ -5,7 +5,8 @@ bounded stages. Stages one through seven moved private-journal and archive reads
 appends/recovery/preview, statistics persistence/encoding and rate persistence.
 Stage eight completes archive IndexedDB ownership with pruning and reviewed
 retention apply. The Window retains the small localStorage policy operation.
-Statistics aggregation, snapshot construction and rate-series computation remain
+Stage nine moves retained-row summary calculation into a worker. Persistent
+ledger aggregation, snapshot construction and rate-series computation remain
 on their existing paths. The 15-minute busy-channel acceptance is still open.
 
 ## First stage: private journal
@@ -387,6 +388,53 @@ disconnected offline or 15-minute performance claim follows from these checks.
 Exact results are in the
 [retention-worker evidence](archive-retention-worker-local-evidence-2026-10-17.json).
 
+## Ninth stage: retained-row statistics summaries
+
+Archive ownership merged in PR #169 at main `ee5f1cb`; all four final PR-head
+checks passed. The Stats panel now sends its retained message snapshot, channel
+catalogs, time window and exclusions to a dedicated worker connection. The worker
+runs the existing summary algorithm: replay deduplication, emote tokenization,
+link parsing, rankings, minute/hour/day bins, gap bands and burst detection. The
+optional retained-row header and open panel share one cloned request. The normal
+application's live rate header still uses RateSeries.
+
+The request admits at most the message store's existing 100,000-row and 24-channel
+limits. Capacity errors refuse the report instead of silently truncating it. One
+calculation may be active per panel; repeated refreshes request one follow-up.
+Filter changes invalidate older results, while ordinary clock ticks allow a slow
+valid result to paint before the follow-up. Closing or disposing a panel prevents
+late rendering. A close event queued before a reopen does not invalidate that new
+view. The list exposes `aria-busy` while a report is pending.
+
+Worker startup, transport and calculation failure display an unavailable message
+and clear old panel results. There is no page-thread summary fallback or automatic
+worker restart. Stopping the panel drains the admitted worker request and releases
+its connection. The report operation neither opens databases nor writes data or
+calls a provider. Existing persistence, migration review and ledger formats are
+unchanged.
+
+All 913 frontend tests in 188 files passed, with TypeScript, production build,
+formatting and diff checks. Seven new tests cover structured-clone summary parity,
+capacity refusal, coalesced filters, closed/disposed panels, worker failure and
+slow results across periodic refreshes, and delayed close events after reopening. Existing summary, burst, ledger, storage
+and provider-receipt tests remain green.
+
+Native Chromium exercised the actual built panel with 1,000 retained synthetic
+messages, then excluded one of two chatters and reported the expected 500 messages.
+A Window guard rejected `toLocaleDateString`, which the retained summary uses for
+every included row; it recorded zero calls. Simulating the panel worker's failure
+cleared old graph/list results and displayed the unavailable message. A direct
+10,000-row request returned the expected scoped/excluded counts, repeated emotes
+and link domains. The emitted worker was present in the shell cache. The final
+rebuilt application was also checked after the slow-refresh repair. See the
+[summary evidence](statistics-summary-worker-local-evidence-2026-10-18.json).
+
+This moves retained-row computation only. Persistent StatsLedger observation,
+reconciliation, ranks, buckets, pruning, snapshot construction and restore parsing
+still run on the Window. DOM rendering, structured cloning, catalog transfer and
+worker startup also have costs; the local checks do not establish an overall
+latency improvement or satisfy the 15-minute busy-channel acceptance.
+
 ## Remaining stages and release boundary
 
 1. Move statistics ledger aggregation and snapshot construction while preserving
@@ -397,7 +445,7 @@ Exact results are in the
    storage work separately from rendering, worker startup and structured-clone
    costs before closing #137.
 
-Stages one through six are deployed at `b95b7fb`; stages seven and eight are not
+Stages one through six are deployed at `b95b7fb`; stages seven through nine are not
 deployed.
 Rolling source back leaves the original
 database readable by the previous implementation. No schema reset or destructive

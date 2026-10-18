@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-18",
+  "scope": "Local synthetic retained-row statistics worker checks; issue 137 remains open",
+  "base": {
+    "main": "ee5f1cb24e66c369502aef6152e6c0031410de34",
+    "pullRequest": 169,
+    "finalHead": "ffd427f644b5c5f477045ce2f1b2df6f8e1b6d88",
+    "finalHeadChecks": "4 passed"
+  },
+  "assets": {
+    "index.html": {
+      "file": "assets/main-CG0r5MOx.js",
+      "bytes": 522073,
+      "gzipBytesPythonMtime0": 151645,
+      "sha256": "f83e7a98ab94960806f96e7ef2332ae0b9e51ec2068c27ce5c210efd13d1e040"
+    },
+    "src/storage-worker.ts": {
+      "file": "assets/storage-worker-CN7QktRt.js",
+      "bytes": 100138,
+      "gzipBytesPythonMtime0": 27196,
+      "sha256": "c4b876de627bfea0d9ec44517ed8a62267ac3a3f11130e3e105b545641c83ed2"
+    },
+    "src/stats.ts": {
+      "file": "assets/stats-BtARlpe-.js",
+      "bytes": 20186,
+      "gzipBytesPythonMtime0": 6652,
+      "sha256": "c7a7d82e5654042d1ec03e7433749675c9cf55ee2bd2e5cd2f9f13fb1020d405"
+    }
+  },
+  "validation": {
+    "frontendTests": 913,
+    "frontendFiles": 188,
+    "typescript": "passed",
+    "productionBuild": "passed; existing main chunk size warning",
+    "format": "passed",
+    "diff": "passed"
+  },
+  "nativeChromium": {
+    "origin": "http://127.0.0.1:5197",
+    "profile": "owned incognito tab",
+    "application": {
+      "retainedRows": 1000,
+      "messages": 1000,
+      "chatters": 2,
+      "excludedUser": "alice",
+      "afterExclusionMessages": 500,
+      "afterExclusionChatters": 1,
+      "windowDateFormatGuardAttempts": 0,
+      "failureSimulation": "Panel worker error followed by refresh",
+      "failureSummary": "Retained statistics unavailable. Reload to try again.",
+      "failureListChildren": 0,
+      "failureGraphChildren": 0,
+      "failureBusy": false
+    },
+    "directWorker": {
+      "inputRows": 10000,
+      "headerMessages": 6666,
+      "scopedMessages": 3333,
+      "scope": "one",
+      "excluded": [
+        "bob"
+      ],
+      "emotes": [
+        {
+          "name": "Kappa",
+          "count": 6666
+        }
+      ],
+      "links": [
+        {
+          "name": "example.com",
+          "count": 3333
+        }
+      ],
+      "elapsedMsSingleLocalObservation": 72,
+      "elapsedIncludes": "worker startup, structured clone, calculation, response, stop and cache lookup; not a benchmark"
+    },
+    "cache": "chatthing-shell-v1 contains emitted storage worker",
+    "finalBuildCheck": {
+      "main": "assets/main-CG0r5MOx.js",
+      "stats": "assets/stats-BtARlpe-.js",
+      "excludedSummaryMessages": 500,
+      "windowDateFormatGuardAttempts": 0,
+      "busy": false
+    }
+  },
+  "limits": [
+    "Persistent ledger observation/reconciliation/ranks/buckets/pruning/snapshot construction/restore remain on Window",
+    "RateSeries computation and DOM rendering remain on Window",
+    "Request cloning and full channel-catalog transfer still have costs",
+    "No disconnected offline, live provider, CPU/GPU or 15-minute busy-channel qualification",
+    "Not deployed; no issue closed"
+  ]
+}
