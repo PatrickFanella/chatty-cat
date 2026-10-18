@@ -1,3 +1,4 @@
+import type { LedgerLoad } from './statistics-store';
 import { StorageWorkerClient } from './storage-worker-client';
 import type { StatisticsOperation, StorageOperations } from './storage-worker-protocol';
 import { MAX_CHARS, validKey, validateStatisticsMove, type StatisticsMove } from './statistics-records';
@@ -30,6 +31,14 @@ export async function writeStatistics(key: string, raw: string): Promise<void> {
 export async function writeStatisticsSnapshot(key: string, snapshot: unknown): Promise<void> {
   if (!validKey(key)) throw new Error('Invalid statistics scope');
   await inWorker('statistics.snapshot', key, snapshot);
+}
+export async function loadStatisticsLedger(
+  channels: readonly string[],
+  legacy: string | undefined,
+): Promise<LedgerLoad> {
+  if (!validKey('chatthing:v1:stats:counts:' + channels.join(','))) throw new Error('Invalid statistics scope');
+  if (legacy !== undefined && legacy.length > MAX_CHARS) throw new Error('Statistics capacity reached');
+  return inWorker('statistics.loadLedger', channels, legacy);
 }
 export function previewStatisticsMove(): StatisticsMove {
   const entries: { key: string; raw: string }[] = [];

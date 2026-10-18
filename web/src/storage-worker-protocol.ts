@@ -1,3 +1,4 @@
+import type { LedgerLoad } from './statistics-store';
 import type { StatisticsSummaryRequest, StatisticsSummaryReport } from './stats-summary';
 import type { RateSnapshot } from './rate-timeline';
 import type { StatisticsMove } from './statistics-records';
@@ -8,6 +9,8 @@ import type { JournalEntry, JournalPlan, JournalPolicy, JournalState } from './m
 
 // Explicit operations only: no arbitrary method names, provider requests or automatic retries.
 export interface StorageOperations {
+  'statistics.loadLedger': { args: [channels: readonly string[], legacy: string | undefined]; result: LedgerLoad };
+
   'statistics.summarize': { args: [request: StatisticsSummaryRequest]; result: StatisticsSummaryReport };
 
   'rates.read': { args: [key: string]; result: unknown };

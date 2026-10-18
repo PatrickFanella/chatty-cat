@@ -1,3 +1,4 @@
+import { restoreLedgerState, type LedgerState } from './stats-ledger-state';
 import { MAX_CHARS, validKey, validateStatisticsMove, type StatisticsMove } from './statistics-records';
 const DATABASE = 'chatthing-statistics';
 async function database(): Promise<IDBDatabase> {
@@ -98,4 +99,34 @@ export async function copyStatisticsRecords(plan: StatisticsMove): Promise<void>
   } finally {
     db.close();
   }
+}
+
+export interface LedgerLoad {
+  state: LedgerState | undefined;
+  storageFailed: boolean;
+}
+export async function loadStatisticsLedger(
+  channels: readonly string[],
+  legacy: string | undefined,
+): Promise<LedgerLoad> {
+  const key = 'chatthing:v1:stats:counts:' + channels.join(',');
+  if (!validKey(key)) throw new Error('Invalid statistics scope');
+  const result: LedgerLoad = { state: undefined, storageFailed: false };
+  const restore = (raw: string): void => {
+    try {
+      if (raw.length > MAX_CHARS) throw new Error('Statistics capacity reached');
+      const state = restoreLedgerState(JSON.parse(raw), channels, Date.now());
+      if (state) result.state = state;
+    } catch {
+      result.storageFailed = true;
+    }
+  };
+  if (legacy !== undefined) restore(legacy);
+  try {
+    const raw = await readStatisticsRecord(key);
+    if (raw !== undefined) restore(raw);
+  } catch {
+    result.storageFailed = true;
+  }
+  return result;
 }

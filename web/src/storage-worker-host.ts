@@ -3,6 +3,7 @@ import type { ArchiveRetention } from './archive-retention';
 import { RateStore } from './rate-store';
 import {
   readStatisticsRecord,
+  loadStatisticsLedger,
   writeStatisticsRecord,
   writeStatisticsSnapshot,
   copyStatisticsRecords,
@@ -116,6 +117,8 @@ export class StorageWorkerHost {
         return (this.rates ??= new RateStore()).read(...request.args);
       case 'rates.write':
         return (this.rates ??= new RateStore()).write(...request.args);
+      case 'statistics.loadLedger':
+        return loadStatisticsLedger(...request.args);
       case 'statistics.summarize':
         return statisticsSummary(request.args[0]);
       case 'statistics.snapshot':

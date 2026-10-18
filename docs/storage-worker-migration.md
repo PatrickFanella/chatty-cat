@@ -5,8 +5,9 @@ bounded stages. Stages one through seven moved private-journal and archive reads
 appends/recovery/preview, statistics persistence/encoding and rate persistence.
 Stage eight completes archive IndexedDB ownership with pruning and reviewed
 retention apply. The Window retains the small localStorage policy operation.
-Stage nine moves retained-row summary calculation into a worker. Persistent
-ledger aggregation, snapshot construction and rate-series computation remain
+Stage nine moves retained-row summary calculation into a worker. Stage ten
+moves persistent-ledger startup decoding, validation and pruning into the worker.
+Ongoing ledger aggregation, snapshot construction and rate-series computation remain
 on their existing paths. The 15-minute busy-channel acceptance is still open.
 
 ## First stage: private journal
@@ -435,6 +436,57 @@ still run on the Window. DOM rendering, structured cloning, catalog transfer and
 worker startup also have costs; the local checks do not establish an overall
 latency improvement or satisfy the 15-minute busy-channel acceptance.
 
+## Tenth stage: persistent-ledger startup restoration
+
+Retained-row summaries merged in PR #170 at main `a3b197d`; all four final
+PR-head checks and both merged-main checks passed. StatsLedger now sends the
+bounded legacy raw string and its channel scope to the worker. The worker reads
+the current IndexedDB snapshot, parses the raw JSON, validates counters, links,
+buckets, replay IDs and unfinished emote classification, then prunes expired
+buckets. It returns structured-cloned Maps and Sets. The Window adopts those
+collections directly and only then replays its bounded queue of bootstrap,
+observation, attachment and reconciliation calls.
+
+The extracted validator keeps the existing version-one format, capacity limits,
+atomic rejection and pruning cutoffs. A valid IndexedDB record takes precedence
+over legacy counts. A malformed or unreadable record leaves a valid legacy state
+available; parse/read failures retain the existing storage-failure flag. Neither
+restore path changes the stored snapshot, releases a legacy slot or creates a
+recovery copy. The explicit reviewed storage-move flow is unchanged. Browsers
+without IndexedDB retain their existing synchronous localStorage compatibility
+path.
+
+If worker startup, transport or the restore acknowledgement fails, the Window
+cannot know the saved state. It continues collecting session observations but
+blocks statistics saves until reload, preserving the unknown saved record and
+legacy original. The panel explains that only this session is being shown and a
+reload is required before saving counts. There is no automatic restart, replay
+of the restore request or page-thread decoding fallback on this path.
+
+All 918 frontend tests in 188 files passed, with strict TypeScript, production
+build, formatting and diff checks. Five new checks cover direct adoption without
+Window restore/prune calls, malformed JSON retaining legacy state, IndexedDB
+precedence with bucket pruning/replay deduplication/late emote reconciliation,
+worker refusal blocking later saves, and legacy state after denied database reads.
+Existing validation, ordered-save, capacity, migration-copy and provider-receipt
+checks remain green.
+
+Native Chromium loaded 10,000 synthetic ledger keys from a 798,971-character
+record with Window ledger JSON parsing and statistics-database opens forbidden.
+The worker returned 10,000 keys, one replay ID and 20,000 unexpired buckets. The
+Stats panel displayed an all-time total of 123 without incrementing it for the
+retained replay message. The 67-character legacy original remained in place.
+A simulated restore transport failure displayed the reload explanation and sent
+no statistics save during a controlled page-hide flush. The existing saved record
+kept its exact hash. The emitted worker was checked in the shell cache. See the
+[restore evidence](statistics-restore-worker-local-evidence-2026-10-18.json).
+
+Ongoing ledger observation, reconciliation, rank/bucket queries, scheduled
+pruning, save snapshot construction and DOM rendering still run on the Window.
+Worker startup and cloning validated Maps/Sets also have costs. These local
+checks do not establish an overall latency improvement or satisfy the 15-minute
+busy-channel acceptance.
+
 ## Remaining stages and release boundary
 
 1. Move statistics ledger aggregation and snapshot construction while preserving
@@ -445,7 +497,7 @@ latency improvement or satisfy the 15-minute busy-channel acceptance.
    storage work separately from rendering, worker startup and structured-clone
    costs before closing #137.
 
-Stages one through six are deployed at `b95b7fb`; stages seven through nine are not
+Stages one through six are deployed at `b95b7fb`; stages seven through ten are not
 deployed.
 Rolling source back leaves the original
 database readable by the previous implementation. No schema reset or destructive

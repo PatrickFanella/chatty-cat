@@ -1,34 +1,39 @@
-import { readStatistics, writeStatisticsSnapshot } from './stats-storage';
+import { loadStatisticsLedger, writeStatisticsSnapshot } from './stats-storage';
 import type { ChatMessage } from './protocol';
 import type { Emote } from './tokens';
 import { tokenize } from './tokens';
 import { findLinks } from './links';
-export type StatKind = 'users' | 'emotes' | 'badges' | 'links';
-interface Counter {
-  total: number;
-  hours: Map<number, number>;
-  days: Map<number, number>;
-}
+import {
+  restoreLedgerState,
+  MAX_LEDGER_KEYS as MAX,
+  MAX_LEDGER_BUCKETS as MAX_BUCKETS,
+  type Counter,
+  type LedgerState,
+  type PendingClassification,
+  type StatKind,
+} from './stats-ledger-state';
+export type { StatKind } from './stats-ledger-state';
 export interface LedgerRank {
   name: string;
   count: number;
 }
-const KINDS: StatKind[] = ['users', 'emotes', 'badges', 'links'];
-const MAX = 20000,
-  MAX_BUCKETS = 200000;
 const HIDDEN_LINKS = new Set(['twitch.amazon.com/tp', 'linktr.ee/fearand', 'twitter.com/fearandpod']);
 export class StatsLedger {
   private data = new Map<string, Counter>();
   private seen = new Set<string>();
-  private pending = new Map<string, { message: ChatMessage | undefined; at: number; counted: string[] }>();
+  private pending = new Map<string, PendingClassification>();
   private storageKey: string;
   private initialized = false;
   private loading = false;
+  private restoreUnavailable = false;
   private queued: (() => void)[] = [];
   private writes: Promise<void> = Promise.resolve();
   readonly ready: Promise<void>;
   private bucketCount = 0;
   since = Date.now();
+  get storageRestoreUnavailable(): boolean {
+    return this.restoreUnavailable;
+  }
   get storageLoading(): boolean {
     return this.loading;
   }
@@ -39,25 +44,35 @@ export class StatsLedger {
     private emotes: (channel: string) => Record<string, Emote>,
   ) {
     this.storageKey = 'chatthing:v1:stats:counts:' + channels.join(',');
+    let legacy: string | undefined;
     try {
       const raw = localStorage.getItem(this.storageKey);
       if (raw) {
         if (raw.length > 6000000) this.storageFailed = true;
-        else this.restore(JSON.parse(raw));
+        else legacy = raw;
       }
     } catch {
       this.storageFailed = true;
     }
     if (typeof indexedDB === 'undefined') {
+      if (legacy) {
+        try {
+          this.restore(JSON.parse(legacy));
+        } catch {
+          this.storageFailed = true;
+        }
+      }
       this.ready = Promise.resolve();
       return;
     }
     this.loading = true;
-    this.ready = readStatistics(this.storageKey)
-      .then((raw) => {
-        if (raw !== undefined) this.restore(JSON.parse(raw));
+    this.ready = loadStatisticsLedger(this.channels, legacy)
+      .then(({ state, storageFailed }) => {
+        if (state) this.adopt(state);
+        this.storageFailed ||= storageFailed;
       })
       .catch(() => {
+        this.restoreUnavailable = true;
         this.storageFailed = true;
       })
       .then(() => {
@@ -277,115 +292,26 @@ export class StatsLedger {
     };
   }
   restore(value: unknown, now = Date.now()): void {
-    if (!value || typeof value !== 'object') return;
-    const data = value as Record<string, unknown>;
-    if (
-      data.version !== 1 ||
-      !Array.isArray(data.rows) ||
-      data.rows.length > MAX ||
-      typeof data.since !== 'number' ||
-      !Number.isSafeInteger(data.since) ||
-      data.since < 0 ||
-      data.since > now
-    )
-      return;
-    if (
-      data.seen !== undefined &&
-      (!Array.isArray(data.seen) ||
-        data.seen.length > 100000 ||
-        !data.seen.every(
-          (key: unknown) =>
-            typeof key === 'string' &&
-            key.length <= 256 &&
-            this.channels.some((channel) => key.startsWith(channel + ':')),
-        ))
-    )
-      return;
-    const restored = new Map<string, Counter>();
-    let buckets = 0;
-    for (const raw of data.rows) {
-      if (
-        !Array.isArray(raw) ||
-        raw.length !== 4 ||
-        !Array.isArray(raw[0]) ||
-        raw[0].length !== 3 ||
-        !raw[0].every((v: unknown) => typeof v === 'string') ||
-        !this.channels.includes(raw[0][0]!) ||
-        !KINDS.some((kind) => kind === raw[0][1]) ||
-        !raw[0][2] ||
-        raw[0][2].length > 2048 ||
-        !Number.isSafeInteger(raw[1]) ||
-        raw[1] < 0 ||
-        !Array.isArray(raw[2]) ||
-        raw[2].length > 170 ||
-        !Array.isArray(raw[3]) ||
-        raw[3].length > 33
-      )
-        return;
-      if (raw[0][1] === 'links') {
-        try {
-          const url = new URL(raw[0][2]);
-          if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password) return;
-        } catch {
-          return;
-        }
-      }
-      const maps: Map<number, number>[] = [];
-      for (const rows of [raw[2], raw[3]]) {
-        const map = new Map<number, number>();
-        for (const entry of rows) {
-          if (
-            !Array.isArray(entry) ||
-            entry.length !== 2 ||
-            !entry.every(Number.isSafeInteger) ||
-            entry[0] < 0 ||
-            entry[1] < 0 ||
-            entry[1] > raw[1]
-          )
-            return;
-          if (map.has(entry[0])) return;
-          map.set(entry[0], entry[1]);
-        }
-        buckets += map.size;
-        maps.push(map);
-      }
-      if (buckets > MAX_BUCKETS) return;
-      if (restored.has(JSON.stringify(raw[0]))) return;
-      restored.set(JSON.stringify(raw[0]), { total: raw[1], hours: maps[0]!, days: maps[1]! });
-    }
-    const pending = new Map<string, { message: ChatMessage | undefined; at: number; counted: string[] }>();
-    if (data.pending !== undefined) {
-      if (!Array.isArray(data.pending) || data.pending.length > 100000) return;
-      for (const raw of data.pending) {
-        if (
-          !Array.isArray(raw) ||
-          raw.length !== 3 ||
-          typeof raw[0] !== 'string' ||
-          raw[0].length > 300 ||
-          !this.channels.some((channel) => raw[0].startsWith(channel + ':')) ||
-          !Number.isSafeInteger(raw[1]) ||
-          raw[1] < 0 ||
-          raw[1] > now + 5000 ||
-          !Array.isArray(raw[2]) ||
-          raw[2].length > 500 ||
-          !raw[2].every((code: unknown) => typeof code === 'string' && code.length <= 100)
-        )
-          return;
-        pending.set(raw[0], { message: undefined, at: raw[1], counted: raw[2] });
-      }
-    }
-    this.pending = pending;
-    this.data = restored;
-    this.seen = new Set(Array.isArray(data.seen) ? data.seen : []);
-    this.bucketCount = buckets;
-    this.since = data.since;
-    this.limited = data.limited === true;
+    const state = restoreLedgerState(value, this.channels, now);
+    if (state) this.adopt(state);
+  }
+  private adopt(state: LedgerState): void {
+    this.pending = state.pending;
+    this.data = state.data;
+    this.seen = state.seen;
+    this.bucketCount = state.bucketCount;
+    this.since = state.since;
+    this.limited = state.limited;
     this.initialized = true;
-    this.prune(now);
   }
   async save(): Promise<void> {
     try {
       if (typeof indexedDB !== 'undefined') await this.ready;
+      // A lost restore response cannot authorize replacing unknown saved totals.
+      if (this.restoreUnavailable) {
+        this.storageFailed = true;
+        return;
+      }
       const snapshot = this.snapshot();
       if (typeof indexedDB === 'undefined') {
         const value = JSON.stringify(snapshot);
