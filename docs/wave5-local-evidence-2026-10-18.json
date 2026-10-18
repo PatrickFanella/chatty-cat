@@ -1,0 +1,500 @@
+{
+  "date": "2026-10-18",
+  "baseMain": "e690b028ecad3d21627ca00dd00ecf1ae6c9d57b",
+  "workerImplementationCommit": "ef56dc4",
+  "productionRelease": "b95b7fb",
+  "localChecks": {
+    "frontendTests": 924,
+    "frontendFiles": 190,
+    "strictTypecheck": "pass",
+    "format": "pass",
+    "goRace": "pass",
+    "goVet": "pass",
+    "overlay20KiBRegression": "rejected with exit 1 on a temporary copy"
+  },
+  "bundle": {
+    "main": {
+      "gzipBytes": 149765,
+      "files": [
+        "assets/main-Cik1bbev.js",
+        "assets/metadata-By0-Xtme.js",
+        "assets/emoji-data-source-9Nhgh7OK.js"
+      ],
+      "cssGzipBytes": 14863,
+      "cssFiles": [
+        "assets/main-MBc4eH0M.css",
+        "assets/metadata-BAyLrYnN.css"
+      ]
+    },
+    "overlay": {
+      "gzipBytes": 26764,
+      "files": [
+        "assets/overlay-BVB5R_Vg.js",
+        "assets/metadata-By0-Xtme.js"
+      ],
+      "cssGzipBytes": 10712,
+      "cssFiles": [
+        "assets/overlay-CCZ3Qy5J.css",
+        "assets/metadata-BAyLrYnN.css"
+      ]
+    },
+    "ratio": 0.1787066404032985,
+    "limit": 0.25
+  },
+  "artifacts": {
+    "web/dist/assets/main-Cik1bbev.js": {
+      "bytes": 437927,
+      "sha256": "7e037ba576b5e1f4361ac2f6ca63ef449d22c71c902b9c3cb2c85fa436e93553"
+    },
+    "web/dist/assets/storage-worker-Lb5EFQx7.js": {
+      "bytes": 120500,
+      "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+    },
+    "web/dist/assets/overlay-BVB5R_Vg.js": {
+      "bytes": 7270,
+      "sha256": "aa92137d9fbb1a3dd8eb8b7a55e96edfbe14acacefb0a6f3814e2f91ecadd1f3"
+    },
+    "web/dist/assets/metadata-By0-Xtme.js": {
+      "bytes": 74434,
+      "sha256": "ca3dc5e3e9a5e7cfc0c29699938b23806817c6a7f7259a98ffdf220ab10a9666"
+    },
+    "web/dist/assets/emoji-data-source-9Nhgh7OK.js": {
+      "bytes": 65,
+      "sha256": "1d06b7d4a47ed026e12587259ed8494d26b526017e5944ee5e727c61c2b1a62f"
+    }
+  },
+  "obsIdle": {
+    "OBS": "32.2.2",
+    "CEF": "151.0.7922.174",
+    "display": "isolated Xvnc :197",
+    "hardwareAcceleration": false,
+    "rendering": "Mesa llvmpipe software",
+    "loaded": {
+      "url": "http://127.0.0.1:5198/overlay.html?channel=idle&font=system",
+      "rows": 0,
+      "connected": "connected",
+      "width": 1280,
+      "height": 720,
+      "dialogs": 0
+    },
+    "appearance": {
+      "verifiedInPriorBusyRun": true,
+      "backgroundAlpha": 0.501961,
+      "foregroundOpacity": 1,
+      "shadow": "rgba(18,52,86,0.5) 2px 3px 4px"
+    },
+    "idle": {
+      "durationSeconds": 30.011435672990046,
+      "state": {
+        "intervals": 0,
+        "workers": 0,
+        "databases": 0,
+        "mutations": 0
+      },
+      "processCpu": [
+        {
+          "type": "browser",
+          "cpuSecondsDelta": 19.950000000000017,
+          "oneCorePercent": 66.4746605839813
+        },
+        {
+          "type": "renderer",
+          "cpuSecondsDelta": 0.0,
+          "oneCorePercent": 0.0
+        },
+        {
+          "type": "renderer",
+          "cpuSecondsDelta": 0.0,
+          "oneCorePercent": 0.0
+        },
+        {
+          "type": "GPU",
+          "cpuSecondsDelta": 0.0,
+          "oneCorePercent": 0.0
+        },
+        {
+          "type": "network.mojom.NetworkService",
+          "cpuSecondsDelta": 0.0,
+          "oneCorePercent": 0.0
+        },
+        {
+          "type": "storage.mojom.StorageService",
+          "cpuSecondsDelta": 0,
+          "oneCorePercent": 0.0
+        }
+      ]
+    },
+    "screenshot": "wave5-obs-source-2026-10-18.png",
+    "scope": "Synthetic public source, temporary profile; no host scene or production changes"
+  },
+  "obsBaseline": {
+    "OBS": "32.2.2",
+    "scope": "Temporary profile, isolated Xvnc software compositor, 1280x720 at 30fps; no streaming/recording",
+    "idleOverlay": {
+      "durationSeconds": 30.0292397539597,
+      "cpuUsageSamples": [
+        2.4969535058117733,
+        2.2371922821024617,
+        2.2500000000000004,
+        2.245508982035928,
+        2.2,
+        2.203925482368596
+      ],
+      "meanCpuUsage": 2.27226337538646,
+      "meanFrameRenderMs": 1.6455958333333334
+    },
+    "hiddenShutdownSourceBaseline": {
+      "durationSeconds": 30.02832041599322,
+      "cpuUsageSamples": [
+        0.7182320441988951,
+        0.7166666666666666,
+        0.7318695941450433,
+        0.725,
+        0.7152361942781105,
+        0.7083333333333334
+      ],
+      "meanCpuUsage": 0.7192229721036748,
+      "meanFrameRenderMs": 0.866282
+    },
+    "meanCpuUsageDifference": 1.5530404032827851,
+    "note": "OBS GetStats cpuUsage is reported unchanged; renderer-specific CPU is in the separate CEF receipt. A software compositor baseline is not browser-source work."
+  },
+  "scope": {
+    "providerWrites": 0,
+    "productionDeployment": false,
+    "hardwareAcceleratedOBS": "not qualified",
+    "nearZeroTotalOBSCPU": "not established",
+    "generalRenderingLongTasks": "remain; see busy-session observation"
+  },
+  "overlayImplementationCommit": "0047fecd2ac1481780be20549af82a53d8599ca0",
+  "qualificationIssueState": {
+    "137": "open; implementation and bounded rehearsal prepared for review, full long-task attribution remains distinct",
+    "138": "open; total OBS CPU gate not established by software-rendered observation"
+  },
+  "busySession": {
+    "startedAt": 1792360497398,
+    "durationMs": 900000,
+    "main": "assets/main-Cik1bbev.js",
+    "worker": "assets/storage-worker-Lb5EFQx7.js",
+    "operations": {
+      "rate.samples": 908,
+      "ledger.batch": 7906,
+      "summary.append": 6279,
+      "archive.prune": 303,
+      "rate.batch": 7559,
+      "summary.finish": 140,
+      "ledger.ranks": 560,
+      "ledger.buckets": 280,
+      "rate.peaks": 280,
+      "summary.begin": 140,
+      "archive.append": 302,
+      "ledger.save": 30,
+      "rate.save": 30
+    },
+    "maxPostMs": 2.200000047683716,
+    "slowPosts": [],
+    "guardAttempts": 0,
+    "errors": [],
+    "complete": true,
+    "initial": {
+      "sampledMs": 4.899999976158142,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 0,
+      "mountedRows": 45,
+      "rowCache": null,
+      "retainedMessages": 60940,
+      "repeatingTimers": 2,
+      "timers": [
+        {
+          "owner": "scheduler.storage",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 2
+        },
+        {
+          "owner": "scheduler.ui",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 1519.7000002861023
+        }
+      ],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.30000007152557373,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 0.20000004768371582,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 18,
+          "hiddenFires": 0,
+          "callbackMs": 0.7999999523162842,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "stats.paint",
+          "intervalMs": 5000,
+          "fires": 4,
+          "hiddenFires": 0,
+          "callbackMs": 0.6000000238418579,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 6,
+          "hiddenFires": 0,
+          "callbackMs": 1.0000001192092896,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 2,
+          "hiddenFires": 0,
+          "callbackMs": 0.09999990463256836,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.6000000238418579,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0.10000002384185791,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 1,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        }
+      ],
+      "protocolDeadlines": [],
+      "animatedEmotes": {
+        "playing": 0,
+        "paused": 0,
+        "withoutStatic": 0
+      },
+      "longTasks": {
+        "count": 0,
+        "totalMs": 0,
+        "maxMs": 0
+      },
+      "heap": {
+        "usedBytes": 39600000,
+        "allocatedBytes": 86400000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "final": {
+      "sampledMs": 900120.8000000715,
+      "recording": true,
+      "hidden": false,
+      "visibilityChanges": 0,
+      "mountedRows": 45,
+      "rowCache": null,
+      "retainedMessages": 100000,
+      "repeatingTimers": 2,
+      "timers": [
+        {
+          "owner": "scheduler.storage",
+          "intervalMs": 1000,
+          "fires": 918,
+          "hiddenFires": 0,
+          "callbackMs": 136.89999985694885
+        },
+        {
+          "owner": "scheduler.ui",
+          "intervalMs": 1000,
+          "fires": 918,
+          "hiddenFires": 0,
+          "callbackMs": 1576.0000003576279
+        }
+      ],
+      "scheduledTasks": [
+        {
+          "owner": "auth.refresh",
+          "intervalMs": 60000,
+          "fires": 16,
+          "hiddenFires": 0,
+          "callbackMs": 4,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "links.mirror",
+          "intervalMs": 900000,
+          "fires": 0,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "ui",
+          "active": false
+        },
+        {
+          "owner": "rate.timeline",
+          "intervalMs": 1000,
+          "fires": 918,
+          "hiddenFires": 0,
+          "callbackMs": 26.199999570846558,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "room.paint",
+          "intervalMs": 1000,
+          "fires": 918,
+          "hiddenFires": 0,
+          "callbackMs": 9.599999904632568,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "stats.paint",
+          "intervalMs": 5000,
+          "fires": 184,
+          "hiddenFires": 0,
+          "callbackMs": 5.899999976158142,
+          "pool": "ui",
+          "active": true
+        },
+        {
+          "owner": "storage.archive",
+          "intervalMs": 3000,
+          "fires": 306,
+          "hiddenFires": 0,
+          "callbackMs": 72.19999933242798,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.coverage",
+          "intervalMs": 10000,
+          "fires": 92,
+          "hiddenFires": 0,
+          "callbackMs": 2.6000001430511475,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.messages",
+          "intervalMs": 15000,
+          "fires": 61,
+          "hiddenFires": 0,
+          "callbackMs": 54.40000009536743,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.picker",
+          "intervalMs": 15000,
+          "fires": 61,
+          "hiddenFires": 0,
+          "callbackMs": 5.6000001430511475,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.rates",
+          "intervalMs": 30000,
+          "fires": 31,
+          "hiddenFires": 0,
+          "callbackMs": 0,
+          "pool": "storage",
+          "active": true
+        },
+        {
+          "owner": "storage.stats",
+          "intervalMs": 30000,
+          "fires": 31,
+          "hiddenFires": 0,
+          "callbackMs": 0.19999992847442627,
+          "pool": "storage",
+          "active": true
+        }
+      ],
+      "protocolDeadlines": [],
+      "animatedEmotes": {
+        "playing": 0,
+        "paused": 0,
+        "withoutStatic": 0
+      },
+      "longTasks": {
+        "count": 8708,
+        "totalMs": 857320,
+        "maxMs": 202
+      },
+      "heap": {
+        "usedBytes": 410000000,
+        "allocatedBytes": 521000000,
+        "limitBytes": 3760000000
+      },
+      "cpu": "external measurement required",
+      "gpu": "external measurement required"
+    },
+    "finishedAt": 1792361397519
+  },
+  "busySessionDeltas": {
+    "wallClockMs": 900121,
+    "storageCallbackMs": 134.89999985694885,
+    "attributionLimit": "Cumulative synchronous callback time and postMessage guards do not provide full async/rendering stack attribution. #137 acceptance remains open."
+  },
+  "fixtureFinalCounters": {
+    "messagesSentAcrossClients": 313730,
+    "providerWrites": 0
+  }
+}
