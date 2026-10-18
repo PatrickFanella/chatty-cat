@@ -1,0 +1,80 @@
+{
+  "date": "2026-10-17",
+  "issue": 137,
+  "baseCommit": "cb2cf29167fdf8f4ad47e8cc679d065fdde18682",
+  "scope": "Complete worker ownership of archive IndexedDB, including pruning and reviewed retention apply",
+  "localChecks": {
+    "frontendFilesPassed": 187,
+    "frontendTestsPassed": 906,
+    "typescript": "passed",
+    "productionBuild": "passed",
+    "format": "passed"
+  },
+  "nativeChromium": {
+    "policyRefusal": {
+      "rowsAfterPolicyRefusal": 10000,
+      "policyAfterRefusal": null,
+      "quotaShown": true,
+      "mainArchiveCalls": 0
+    },
+    "apply": {
+      "rowsAfterApply": 5000,
+      "policy": {
+        "rows": 5000,
+        "days": 7
+      },
+      "applyShown": true,
+      "mainArchiveCalls": 0
+    },
+    "prune": {
+      "rows": 5000,
+      "oldRemoved": true,
+      "newRetained": true,
+      "policyReads": 1,
+      "mainArchiveCalls": 0
+    },
+    "timeout": {
+      "missingPolicyError": "TimeoutError",
+      "elapsedMs": 5012.600000023842,
+      "rowsAfterTimeout": 5000,
+      "mainArchiveCalls": 0,
+      "worker": "assets/storage-worker-B7uRs4fC.js",
+      "workerCached": true
+    },
+    "finalBuild": {
+      "main": "assets/main-1mm39X_p.js",
+      "worker": "assets/storage-worker-B7uRs4fC.js",
+      "rows": 1000,
+      "policy": {
+        "rows": 1000,
+        "days": 7
+      },
+      "applyShown": true,
+      "guardedWindowCalls": 0
+    }
+  },
+  "bundles": {
+    "method": "Python gzip.compress, default compression, mtime=0",
+    "assets": {
+      "index.html": {
+        "file": "assets/main-1mm39X_p.js",
+        "rawBytes": 522073,
+        "gzipBytes": 151671
+      },
+      "src/storage-worker.ts": {
+        "file": "assets/storage-worker-B7uRs4fC.js",
+        "rawBytes": 94454,
+        "gzipBytes": 25622
+      }
+    }
+  },
+  "limits": [
+    "Five-second policy deadline uses non-mutating key requests to keep the worker write transaction active; other archive transactions can wait during that handshake",
+    "localStorage policy read/write/conditional rollback still run synchronously in the Window",
+    "Transport loss after policy write is uncertain: retain selected policy and require reload/inspection",
+    "No schema change or source rollback qualification beyond unchanged database format",
+    "No production deployment; deployed release remains b95b7fb",
+    "No 15-minute busy-channel, natural background, disconnected offline or CPU/GPU qualification",
+    "Statistics aggregation and rate computation remain on main thread; issue #137 stays open"
+  ]
+}

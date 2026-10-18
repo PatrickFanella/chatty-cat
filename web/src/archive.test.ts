@@ -419,3 +419,101 @@ it('returns an empty review plan and lets the existing apply transaction accept 
   await a.applyRetention(plan);
   expect(JSON.parse(localStorage.getItem('chatthing:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
 });
+
+it('rolls policy back only after a post-policy deletion failure is confirmed aborted', async () => {
+  const a = archive();
+  a.add({ ...message, timestamp: Date.now() - 10 * 86400000 });
+  const plan = await a.retentionPreview({ rows: 1000, days: 7 });
+  const remove = vi.spyOn(IDBObjectStore.prototype, 'delete').mockImplementation(() => {
+    throw new Error('delete denied');
+  });
+  await expect(a.applyRetention(plan)).rejects.toThrow('delete denied');
+  remove.mockRestore();
+  expect(localStorage.getItem('chatthing:v1:archive-retention')).toBeNull();
+  expect(await a.get('id', ['one'])).toBeDefined();
+});
+it('preserves a newer policy written elsewhere while a retention transaction aborts', async () => {
+  const a = archive(),
+    replacement = JSON.stringify({ rows: 2000, days: 30 });
+  a.add({ ...message, timestamp: Date.now() - 10 * 86400000 });
+  const plan = await a.retentionPreview({ rows: 1000, days: 7 });
+  const remove = vi.spyOn(IDBObjectStore.prototype, 'delete').mockImplementation(() => {
+    localStorage.setItem('chatthing:v1:archive-retention', replacement);
+    throw new Error('delete denied');
+  });
+  await expect(a.applyRetention(plan)).rejects.toThrow('delete denied');
+  remove.mockRestore();
+  expect(localStorage.getItem('chatthing:v1:archive-retention')).toBe(replacement);
+  expect(await a.get('id', ['one'])).toBeDefined();
+});
+it('aborts a retention transaction if its Window policy response never arrives', async () => {
+  const a = archive();
+  a.add({ ...message, timestamp: Date.now() - 10 * 86400000 });
+  const plan = await a.retentionPreview({ rows: 1000, days: 7 });
+  const { ArchiveStore } = await import('./archive-store');
+  const store = new ArchiveStore(1);
+  try {
+    await expect(store.applyRetention(plan, 100000, () => new Promise(() => {}))).rejects.toHaveProperty(
+      'name',
+      'TimeoutError',
+    );
+    expect(await a.get('id', ['one'])).toBeDefined();
+  } finally {
+    await store.stop();
+  }
+});
+it('retains the selected policy and reports uncertainty if the worker is lost after the policy write', async () => {
+  const { StorageWorkerShim } = await import('../test-support/storage-worker-shim');
+  const native = Worker;
+  class Lost extends StorageWorkerShim {
+    override postMessage(value: unknown): void {
+      const control = value as { version?: number; policyReply?: number; ok?: boolean };
+      if (control.policyReply && control.ok) {
+        // Model a dead worker without leaving the in-process fixture's DB transaction locked.
+        void this.host.handle({
+          version: 1,
+          policyReply: control.policyReply,
+          ok: false,
+          error: { name: 'AbortError', message: 'worker lost' },
+        });
+        this.dispatchEvent(new Event('error'));
+      } else super.postMessage(value);
+    }
+  }
+  vi.stubGlobal('Worker', Lost);
+  try {
+    const a = archive();
+    // No queued append: an apply-only request reaches the policy handoff.
+    const plan = await a.retentionPreview({ rows: 1000, days: 7 });
+    await expect(a.applyRetention(plan)).rejects.toThrow('outcome uncertain');
+    expect(JSON.parse(localStorage.getItem('chatthing:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
+    await expect(a.search({ text: '' })).rejects.toHaveProperty('name', 'StorageWorkerUnavailable');
+  } finally {
+    vi.stubGlobal('Worker', native);
+  }
+});
+
+it('terminates its worker after a failed final append instead of leaving the database open', async () => {
+  const { StorageWorkerShim } = await import('../test-support/storage-worker-shim');
+  const instances: InstanceType<typeof StorageWorkerShim>[] = [];
+  class Tracked extends StorageWorkerShim {
+    constructor() {
+      super();
+      instances.push(this);
+    }
+  }
+  const native = Worker;
+  vi.stubGlobal('Worker', Tracked);
+  const put = vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+    throw new DOMException('quota', 'QuotaExceededError');
+  });
+  try {
+    const a = archive();
+    a.add(message);
+    a.stop();
+    await vi.waitFor(() => expect(instances[0]?.terminated).toBe(true));
+  } finally {
+    put.mockRestore();
+    vi.stubGlobal('Worker', native);
+  }
+});

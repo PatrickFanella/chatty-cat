@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 16, 2026 against main `b95b7fb` and the live Gitea issue inventory.
+Updated October 17, 2026 against main `cb2cf29` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -195,17 +195,19 @@ their provider/device qualification limits. See [compact panel evidence](compact
 All four PR-head hosted checks passed. These panel changes are included in the
 October 16 deployment.
 
-The first six #137 migrations merged in PRs #162–#167: private journal,
-archive queries/appends/recovery/retention preview, statistics persistence and rate
-snapshot storage. Merged main `b95b7fb` passed both hosted checks and is deployed;
-see the [October 16 receipt](deployment-2026-10-16.md). The seventh stage moves
-statistics snapshot JSON encoding to the worker. All 899 frontend tests passed;
-native Chromium matched a 1,000-row encoded snapshot, preserved prior data after
-capacity rejection and saved an application snapshot with main-thread encoding
-blocked. See the [staged plan and evidence](storage-worker-migration.md). This
-serialization stage is pending review and is not deployed. #137 remains open for
-archive pruning/retention apply, statistics aggregation/snapshot construction,
-rate computation and the 15-minute busy-channel qualification.
+The first seven #137 migrations merged in PRs #162–#168: private journal,
+archive queries/appends/recovery/preview, statistics persistence/encoding and rate
+snapshot storage. Each final PR head passed all four hosted checks. Production
+remains on `b95b7fb` through #167; see the
+[October 16 deployment receipt](deployment-2026-10-16.md). The eighth stage completes
+archive IndexedDB ownership with worker pruning and reviewed retention apply.
+A bounded policy handshake preserves localStorage refusal and confirmed-abort
+rollback, and reports lost acknowledgements as uncertain. All 906 frontend tests
+passed; the actual browser panel applied reviewed reductions with zero guarded
+main-thread archive database calls. See the
+[staged plan and evidence](storage-worker-migration.md). This stage is pending
+review and is not deployed. #137 remains open for statistics aggregation/snapshot
+construction, rate computation and the 15-minute busy-channel qualification.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;

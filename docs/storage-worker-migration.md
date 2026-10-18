@@ -1,14 +1,12 @@
 # Storage worker migration
 
 Issue #137 moves persistence and retained-data queries off the main thread in
-bounded stages. The first stage moves the private moderation journal; the second
-moves archive reads and queries. The third moves appends and bounded recovery.
-The fourth moves read-only retention preview; the fifth moves statistics
-IndexedDB persistence and verified recovery copies. Pruning, reviewed retention
-apply, statistics aggregation and rate-series computation remain on their
-existing paths. The sixth stage moves rate snapshot persistence; the seventh
-moves statistics snapshot JSON encoding. These stages do not satisfy the issue's
-15-minute busy-channel performance acceptance.
+bounded stages. Stages one through seven moved private-journal and archive reads,
+appends/recovery/preview, statistics persistence/encoding and rate persistence.
+Stage eight completes archive IndexedDB ownership with pruning and reviewed
+retention apply. The Window retains the small localStorage policy operation.
+Statistics aggregation, snapshot construction and rate-series computation remain
+on their existing paths. The 15-minute busy-channel acceptance is still open.
 
 ## First stage: private journal
 
@@ -334,21 +332,73 @@ was used explicitly for the synthetic comparison baseline outside the applicatio
 path. The worker was cached in the shell cache. See the
 [serialization evidence](statistics-serialization-local-evidence-2026-10-16.json).
 
+## Eighth stage: archive pruning and reviewed retention apply
+
+Statistics encoding merged in PR #168 at main `cb2cf29`; all four PR-head checks
+passed. This next stage moves the remaining archive database operations to its
+worker. MessageArchive no longer opens IndexedDB or starts archive transactions
+in the Window. Its bounded queue, scheduler, public methods and retained database
+format are unchanged. Initialization also occurs in the worker. Shutdown closes
+the worker even if its final flush fails.
+
+A correlated policy handshake preserves the localStorage/IndexedDB ordering:
+
+1. The worker acquires the archive write transaction. For apply it scans and
+   validates the reviewed signature/removal count before requesting a policy
+   write. For automatic pruning it obtains the count before requesting the
+   current policy read.
+2. While waiting, non-mutating key requests keep that transaction active. The
+   deadline is five seconds; expiration aborts rather than deleting without a
+   policy response. Other archive transactions may wait during this bounded
+   coordination. No key arrays or arbitrary callbacks cross the transport.
+3. Only the Window callback registered for that admitted request can read or save
+   the policy. Its result/error returns through a typed control message; the
+   callback is removed after one use. Unsolicited policy notices fail closed.
+4. The worker continues pruning/deletion inside an IndexedDB request callback
+   after a successful response, then acknowledges commit or confirmed abort.
+   A policy-storage refusal aborts without deletion. A confirmed post-policy
+   abort conditionally restores the old policy only if its current value still
+   equals the proposed value, preserving the existing newer-policy guard.
+
+A lost acknowledgement or worker failure after the policy was saved is explicitly
+uncertain. The facade retains the selected policy, reports that inspection/reload
+is required and does not retry or fall back to main-thread deletion. It cannot
+safely infer whether the transaction committed. This extends the existing
+transport failure handling with a distinct error name; ordinary transaction and
+quota error names remain intact. No schema/version migration, destructive
+conversion or change to stored policy values is required.
+
+All 906 frontend tests in 187 files passed, with TypeScript, production build,
+formatting and diff checks. Seven new checks cover confirmed deletion rollback,
+a concurrently replaced policy, missing policy responses, transport loss after
+policy write, cleanup after failed final flush, correlated policy notices and
+unsolicited-notice refusal. Existing stale-review, quota, private-record,
+recovery/capacity and private provider-receipt checks still pass through the shim.
+
+Native Chromium ran the actual Export logs panel with Window archive opens and
+transactions blocked. A simulated policy quota refusal kept all 10,000 records
+and left the policy unset. A fresh reviewed apply then removed exactly 5,000 rows
+and saved the policy. Worker pruning enforced that policy after two new records.
+Withholding its policy response produced TimeoutError after about five seconds,
+kept all 5,000 rows and released the transaction so another query succeeded. The
+final build also applied a second reviewed reduction to 1,000 rows. Every guard
+recorded zero main-thread archive calls. The worker was in the shell cache; no
+disconnected offline or 15-minute performance claim follows from these checks.
+Exact results are in the
+[retention-worker evidence](archive-retention-worker-local-evidence-2026-10-17.json).
+
 ## Remaining stages and release boundary
 
-1. Move archive pruning and retention ownership. Preserve
-   localStorage policy rollback, exact retention review and quota recovery. Keep
-   the main in-memory message store.
-2. Move statistics ledger aggregation and snapshot construction while preserving
-   replay exclusions, scope keys and the reviewed localStorage migration boundary.
-3. Move rate retained-window computation into the worker, preserving
-   coverage gaps, replay exclusions and visible graph behavior. Snapshot creation
-   and queries still use the main-thread RateSeries.
-4. Run archive/statistics/storage suites through the worker shim and observe a
-   15-minute busy-channel session with the resource readout. Attribute storage
-   work separately from rendering and structured-clone costs before closing #137.
+1. Move statistics ledger aggregation and snapshot construction while preserving
+   replay exclusions, scope keys and reviewed localStorage migration.
+2. Move rate retained-window computation into the worker, preserving coverage
+   gaps, replay exclusions and visible graph behavior.
+3. Observe a 15-minute busy-channel session with the resource readout. Attribute
+   storage work separately from rendering, worker startup and structured-clone
+   costs before closing #137.
 
-Stages one through six are deployed at `b95b7fb`; the seventh is not deployed.
+Stages one through six are deployed at `b95b7fb`; stages seven and eight are not
+deployed.
 Rolling source back leaves the original
 database readable by the previous implementation. No schema reset or destructive
 data conversion is part of rollback. Do not treat a worker crash as permission to
