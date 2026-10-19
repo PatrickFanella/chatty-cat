@@ -1,8 +1,8 @@
 # Remaining-work roadmap
 
-Updated October 18, 2026 against main `e690b02` and the live Gitea issue inventory.
-This plan replaces the original implementation catalog. It contains all 9 open
-issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
+Updated October 19, 2026 against main `141e121` and the live Gitea issue inventory.
+This plan replaces the original implementation catalog. It contains all 8 open
+issues: 6 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
 
 [Roadmap issue #3](https://git.subcult.tv/subculture-collective/chatty-cat/issues/3)
@@ -17,7 +17,7 @@ Keep the chat shell minimal, with movable, resizable docked and floating panels.
 Prioritize low runtime resource use, then startup/package footprint, while
 preserving chat rendering, account isolation, public history and recovery.
 
-M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has four open
+M0–M3 are closed. M4 has one open delivery issue; M5 has two. M6 has three open
 delivery issues plus its planning issue. The shell (#129 / PR #144) is merged.
 Selected-font loading (#140 / PR #146) is merged and closed: system/bundled font
 choices no longer request the twelve-family Google stylesheet. Merge does not
@@ -208,7 +208,8 @@ snapshot construction, rate computation and comparisons into workers. Bootstrap
 and retained-row reports transfer at most 2,000 rows per request. It also adds a
 passive `/overlay.html` entry, legacy redirects and a build guard counting every
 statically imported JavaScript chunk. The overlay uses 26,764 gzip bytes versus
-149,765 for main (17.87%). These changes are prepared for review; see the
+149,765 for main (17.87%). These changes merged in PR #172, whose final head passed all four hosted checks;
+merged main `141e121` passed both push checks. See the
 [Wave 5 report](wave5-2026-10-18.md) for tests and runtime acceptance boundaries.
 
 #137’s 15-minute rehearsal completed at 100,000 retained rows with zero guarded
@@ -219,8 +220,14 @@ not supplied by the readout, so #137 remains open for acceptance review.
 On October 18 the owner accepted #138's renderer-specific idle result: zero
 measured renderer CPU and DOM mutations in native OBS. The software compositor's
 2.27% total OBS CPU versus a 0.72% baseline remains recorded; hardware-accelerated
-OBS qualification is no longer a closure prerequisite. #138 awaits merge of PR
-#172 under this accepted scope. Wave 6 #141 is next after review; live acceptance
+OBS qualification is no longer a closure prerequisite. #138 is closed after PR #172 merged under this accepted scope.
+The next #137 slice adds per-callback maxima and explicit synchronous render/worker
+boundaries before repeating its 15-minute gate. Its 60-second diagnostic sample
+identifies chat rendering (229.6 ms maximum) and the visible picker refresh
+(149.1 ms maximum); measured storage callbacks and worker dispatch/replies stay
+below 2 ms. See [attribution evidence](storage-task-attribution.md). This slice
+is pending review and does not close #137.
+Wave 6 #141 remains next in the implementation queue; live acceptance
 and #136's CPU/GPU qualification remain independent.
 
 Production remains on `b95b7fb` through #167; later stages and this branch are not

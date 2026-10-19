@@ -2,7 +2,13 @@ import type { Panel } from './shell/panels';
 import { emoteAnimationSnapshot } from './emote-animation';
 import { clockSnapshot } from './shell/clock';
 import { showPanel } from './shell/open-panel';
-import { intervalSnapshot, resetIntervalSamples, sampleIntervals, deadlineSnapshot } from './resource-timers';
+import {
+  intervalSnapshot,
+  resetIntervalSamples,
+  sampleIntervals,
+  deadlineSnapshot,
+  resourceWorkSnapshot,
+} from './resource-timers';
 
 interface LogMetrics {
   mountedRows: number;
@@ -27,7 +33,7 @@ export class ResourceReadout implements Panel {
     this.root.dataset.shellOwned = 'true';
     this.root.setAttribute('aria-label', 'Resource readout');
     this.root.innerHTML =
-      '<h2>Resource readout</h2><p>Local diagnostics. Native repeating timers, shared tasks and tracked provider deadlines. Other timeouts, socket work and async callback work are not counted. Heap is browser-dependent; CPU/GPU require external tools. Refresh manually to avoid a diagnostic polling timer.</p><button type="button" data-refresh>Refresh snapshot</button> <button type="button" data-reset>Reset sample</button> <button type="button" data-close>Stop and close</button>';
+      '<h2>Resource readout</h2><p>Local diagnostics. Native repeating timers, shared tasks and tracked provider deadlines. Callback maxima and explicit chat-render/worker dispatch/reply boundaries measure synchronous work only. Other timeouts, socket work, promise continuations and worker execution are not attributed. Heap is browser-dependent; CPU/GPU require external tools. Refresh manually to avoid a diagnostic polling timer.</p><button type="button" data-refresh>Refresh snapshot</button> <button type="button" data-reset>Reset sample</button> <button type="button" data-close>Stop and close</button>';
     this.root.append(this.output);
     this.root.querySelector('[data-refresh]')!.addEventListener('click', this.refresh);
     this.root.querySelector('[data-reset]')!.addEventListener('click', this.reset);
@@ -110,6 +116,7 @@ export class ResourceReadout implements Panel {
       timers,
       scheduledTasks: clockSnapshot(),
       protocolDeadlines: deadlineSnapshot(),
+      synchronousWork: resourceWorkSnapshot(),
       animatedEmotes: emoteAnimationSnapshot(),
       longTasks: this.supported ? { ...this.longTasks } : 'unavailable',
       heap: heap

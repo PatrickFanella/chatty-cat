@@ -1,3 +1,4 @@
+import { measureResourceWork } from './resource-timers';
 import type { ArchiveRetention } from './archive-retention';
 import type {
   ArchiveOperation,
@@ -99,13 +100,18 @@ export class StorageWorkerClient {
       });
       options.signal?.addEventListener('abort', abort, { once: true });
       try {
-        this.worker!.postMessage({ version: 1, id, operation, args });
+        measureResourceWork('storage.dispatch.' + operation, () =>
+          this.worker!.postMessage({ version: 1, id, operation, args }),
+        );
       } catch {
         this.fail();
       }
     });
   }
   private message = (event: MessageEvent<unknown>): void => {
+    measureResourceWork('storage.reply', () => this.receive(event));
+  };
+  private receive(event: MessageEvent<unknown>): void {
     const notice = event.data;
     if (
       notice &&
@@ -189,7 +195,7 @@ export class StorageWorkerClient {
       pending.reject(new Error(this.unavailable));
       this.fail();
     }
-  };
+  }
   private failure = (): void => {
     this.fail();
   };

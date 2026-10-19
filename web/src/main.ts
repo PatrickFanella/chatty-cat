@@ -1,3 +1,4 @@
+import { measureResourceWork } from './resource-timers';
 import { PassivePanelSettings } from './passive-panel-settings';
 import { mountPanel, panelAdapter, transientRoot } from './shell/static-panel';
 import type { ProviderPanel } from './provider-preferences-ui';
@@ -817,6 +818,9 @@ export async function startMain(): Promise<void> {
   let shell: Shell | undefined;
   let lazyPanels: LazyPanels | undefined;
   function render(): void {
+    measureResourceWork('chat.render', renderLog);
+  }
+  function renderLog(): void {
     renderQueued = false;
     configureRail(overlay ? 1 : display.options.split);
     document.documentElement.style.setProperty(
