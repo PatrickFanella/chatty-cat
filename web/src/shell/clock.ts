@@ -27,7 +27,15 @@ export class SharedClock {
   private hidden = document.hidden;
   subscribe(owner: string, callback: () => void, intervalMs: number, options: Options = {}): ClockStop {
     if (!Number.isFinite(intervalMs) || intervalMs < 1000) throw new Error('Invalid clock cadence');
-    const sample: TimerSample = { owner, intervalMs, fires: 0, hiddenFires: 0, callbackMs: 0 };
+    const sample: TimerSample = {
+      owner,
+      intervalMs,
+      fires: 0,
+      hiddenFires: 0,
+      callbackMs: 0,
+      maxCallbackMs: 0,
+      longCallbacks: 0,
+    };
     const task: Task = {
       sample,
       callback,

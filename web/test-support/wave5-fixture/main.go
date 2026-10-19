@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -19,6 +20,11 @@ import (
 var sent atomic.Int64
 
 func main() {
+	seed, err := strconv.Atoi(os.Getenv("CHATTY_FIXTURE_SEED"))
+	if os.Getenv("CHATTY_FIXTURE_SEED") != "" && (err != nil || seed < 0 || seed > 100000) {
+		log.Fatal("CHATTY_FIXTURE_SEED must be between 0 and 100000")
+	}
+
 	assets, _ := filepath.Abs("web/dist")
 	if len(os.Args) > 1 {
 		assets = os.Args[1]
@@ -55,6 +61,11 @@ func main() {
 			<-ctx.Done()
 			return
 		}
+		for i := 0; i < seed; i++ {
+			if err := wsjson.Write(ctx, c, map[string]any{"type": "message", "replay": true, "message": fixtureMessage(channel, time.Now())}); err != nil {
+				return
+			}
+		}
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
 		for {
@@ -63,8 +74,7 @@ func main() {
 				return
 			case now := <-ticker.C:
 				for i := 0; i < 10; i++ {
-					id := sent.Add(1)
-					m := map[string]any{"id": fmt.Sprintf("wave5-%d", id), "command": "PRIVMSG", "channel": channel, "login": fmt.Sprintf("viewer%d", id%2000), "text": "Synthetic public glorp message example.com/a", "timestamp": now.UnixMilli(), "tags": map[string]string{"badges": "subscriber/12"}}
+					m := fixtureMessage(channel, now)
 					if err := wsjson.Write(ctx, c, map[string]any{"type": "message", "replay": false, "message": m}); err != nil {
 						return
 					}
@@ -82,4 +92,9 @@ func main() {
 	})
 	log.Print("Synthetic wave fixture on 127.0.0.1:5198")
 	log.Fatal(http.ListenAndServe("127.0.0.1:5198", mux))
+}
+
+func fixtureMessage(channel string, now time.Time) map[string]any {
+	id := sent.Add(1)
+	return map[string]any{"id": fmt.Sprintf("wave5-%d", id), "command": "PRIVMSG", "channel": channel, "login": fmt.Sprintf("viewer%d", id%2000), "text": "Synthetic public glorp message example.com/a", "timestamp": now.UnixMilli(), "tags": map[string]string{"badges": "subscriber/12"}}
 }
