@@ -382,3 +382,34 @@ it('does not treat a queued programmatic scroll as manual when layout changes it
   expect(view.isFollowing()).toBe(false);
   view.stop();
 });
+
+it.each(['wheel', 'touchstart', 'pointerdown', 'keydown'])(
+  'keeps live intent through a layout clamp but honors subsequent %s input',
+  async (input) => {
+    const { log, view } = setup();
+    let extra = 0;
+    Object.defineProperty(log, 'scrollHeight', {
+      get: () =>
+        extra +
+        [...log.children].reduce(
+          (sum, node) =>
+            sum + (node.classList.contains('log-spacer') ? parseFloat((node as HTMLElement).style.height) : 32),
+          0,
+        ),
+    });
+    view.set(items(1000), true);
+    // Layout can first shrink/clamp the scroll offset, then grow before scroll delivery.
+    log.scrollTop -= 800;
+    extra = 100;
+    log.dispatchEvent(new Event('scroll'));
+    expect(view.isFollowing()).toBe(true);
+    await vi.waitFor(() => expect(log.scrollTop).toBe(log.scrollHeight - log.clientHeight));
+    // Real user intent still pauses even when content size changes concurrently.
+    log.dispatchEvent(input === 'keydown' ? new KeyboardEvent(input, { key: 'PageUp' }) : new Event(input));
+    log.scrollTop -= 300;
+    extra += 100;
+    log.dispatchEvent(new Event('scroll'));
+    expect(view.isFollowing()).toBe(false);
+    view.stop();
+  },
+);

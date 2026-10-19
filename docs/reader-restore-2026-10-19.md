@@ -37,7 +37,8 @@ Latest messages, call `__readerRestore.releaseHistory()`, and read
 live messages. Reload without choosing Latest messages to verify intentional
 paused restoration; `?mode=fresh` starts without saved readers.
 
-This repair is not yet merged or deployed. Production remains on `4a97004`.
-#177 stays open for merged/deployed qualification, including the normal update
-reload and startup paths. This does not close #137's performance acceptance gate
+This repair merged in #179 and is deployed at `2cb440e`; #177 is closed in the
+hosted issue tracker. The [deployment follow-up](deployment-2026-10-19-reader.md)
+records another lost-follow observation after ordinary reload. Startup scrolling
+remains unqualified despite the isolated delayed-reader regression passing. This does not close #137's performance acceptance gate
 or establish that all ResizeObserver callbacks are free of feedback.
