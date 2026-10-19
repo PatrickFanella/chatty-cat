@@ -29,7 +29,7 @@ def main():
     env = dict(os.environ, CGO_ENABLED='0', GOOS='linux', GOARCH='amd64')
     subprocess.run(['go', 'build', '-o', str(output / 'chatthing'), './cmd/chatthing'], cwd=root, env=env, check=True)
     sources = ['cmd', 'internal', 'web/src', 'web/public', 'web/index.html',
-               'web/package.json', 'web/package-lock.json', 'web/tsconfig.json',
+               'web/overlay.html', 'web/test-support', 'companion', 'web/package.json', 'web/package-lock.json', 'web/tsconfig.json',
                'web/tsconfig.sw.json', 'web/vite.config.ts', 'web/vitest.config.ts',
                'go.mod', 'go.sum', 'README.md', 'NOTICE.md', 'Dockerfile',
                'compose.yaml', '.dockerignore', '.go-version', 'scripts',

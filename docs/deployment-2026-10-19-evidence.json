@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-19",
+  "baseCommit": "bd2e2bf3957b14693f7383762aa1edf63fd7ef0b",
+  "release": "chatty-cat-bd2e2bf-source2-20261019",
+  "image": "sha256:95d8e88271900f9dabb245adbee959387e7049bbacb8036d10f7ade282f5081d",
+  "manifestFilesVerified": 4041,
+  "staging": "ready; packaged binary, HTML, main, worker and source hashes matched; staging container removed",
+  "mergedMainCI": "both push checks passed",
+  "runtime": {
+    "healthy": true,
+    "restarts": 0,
+    "readiness": 200,
+    "retainedDataFiles": 2,
+    "retainedDataUnchanged": true,
+    "browserAnonymousChat": "connected",
+    "activeServiceWorker": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-DCCp2Ngi.js",
+    "storageWorkerCached": true,
+    "legacyOverlayRedirect": "dedicated entry, query preserved"
+  },
+  "publicBrowserHashes": {
+    "index.html": {
+      "status": 200,
+      "bytes": 5747,
+      "sha256": "f7a722b16a9cc8ef1a5f4a1ddb91be29cf4f905eaa9639d91f5b19f5ab92ba07"
+    },
+    "assets/main-DCCp2Ngi.js": {
+      "status": 200,
+      "bytes": 438658,
+      "sha256": "fd6718792a1c54dbdfb44418e1ff81edc46ecf9dc40de821eebfbd76e4c3b4ae"
+    },
+    "assets/storage-worker-Lb5EFQx7.js": {
+      "status": 200,
+      "bytes": 120500,
+      "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+    },
+    "overlay.html": {
+      "status": 200,
+      "bytes": 608,
+      "sha256": "ece91f15fe3251ea3b3aa2ebab2edcde0d33edc64ffbb3b5467548f72ae2348a"
+    },
+    "assets/overlay-BVB5R_Vg.js": {
+      "status": 200,
+      "bytes": 7270,
+      "sha256": "aa92137d9fbb1a3dd8eb8b7a55e96edfbe14acacefb0a6f3814e2f91ecadd1f3"
+    },
+    "source.tar.gz": {
+      "status": 200,
+      "bytes": 3209290,
+      "sha256": "a2519756b3877c63d6e6cf02d522901ea17fe54eca860c85a951677ae129c474"
+    }
+  },
+  "packagingSupplement": {
+    "path": "web/overlay.html",
+    "sourceCommit": "bd2e2bf3957b14693f7383762aa1edf63fd7ef0b",
+    "reason": "Supply tracked Vite input, test shim and companion imports needed by strict TypeScript build",
+    "sha256": "01da4d4eb34e8236c7d1d4b5b5a0d3c0e54e6eb0ac193ef9b21fa1950633f278",
+    "paths": [
+      "web/overlay.html",
+      "web/test-support",
+      "companion"
+    ]
+  },
+  "sourceRebuild": "strict TypeScript and production build pass; selected HTML, main, storage-worker and overlay hashes match",
+  "recovery": {
+    "directory": "recovery/storage-bd2e2bf-source2-20261019",
+    "check": "pass; no changes",
+    "actualRollbackExercised": false,
+    "previousImage": "sha256:e40568f82a93368e16970e77e8205a940dc82d3916fed65c780c341d2cd6fbe5",
+    "olderApplicationImageRetained": "sha256:8f31931f83ab9298290990a56e711bb37c1045227cf0d5d4621de201df32e239"
+  },
+  "limits": [
+    "ResizeObserver repair not deployed",
+    "No authenticated provider writes",
+    "No reboot or disconnected offline check",
+    "Browser verification used a fresh profile, not a natural update-prompt transition",
+    "Generic Python edge request returned 403; browser asset responses were 200"
+  ],
+  "repositoryBuilderFixValidation": {
+    "actualReleaseBuilder": "pass",
+    "archiveContains": [
+      "web/overlay.html",
+      "web/test-support/storage-worker-shim.ts",
+      "companion/browser/core.js",
+      "web/test-support/floating-resize.html"
+    ],
+    "strictTypeScriptFromExtractedCorrectedArchive": "pass"
+  }
+}
