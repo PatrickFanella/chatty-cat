@@ -48,6 +48,7 @@ export class VirtualLog {
   private smoothTimer: ReturnType<typeof setTimeout> | undefined;
   private autoScrolling = false;
   private writtenScrollTop: number | undefined;
+  private writtenScrollHeight: number | undefined;
   private leading = this.spacer(0);
   private trailing = this.spacer(0);
   constructor(
@@ -79,6 +80,8 @@ export class VirtualLog {
     log.addEventListener('mouseleave', this.leave);
     log.addEventListener('wheel', this.wheel, { passive: false });
     log.addEventListener('touchstart', this.wheel, { passive: true });
+    log.addEventListener('pointerdown', this.scrollIntent, { passive: true });
+    log.addEventListener('keydown', this.scrollKey);
     log.addEventListener('scroll', this.scroll, { passive: true });
     window.addEventListener('resize', this.schedule);
     if (typeof ResizeObserver !== 'undefined')
@@ -243,16 +246,21 @@ export class VirtualLog {
     if (
       Math.abs(this.log.scrollTop - previous) > 0.5 ||
       (this.log.clientHeight > 0 && this.log.scrollHeight > this.log.clientHeight)
-    )
+    ) {
       this.writtenScrollTop = this.log.scrollTop;
+      this.writtenScrollHeight = this.log.scrollHeight;
+    }
   }
   // Scroll events from our own writes may arrive after row layout changes again.
+  // Layout can clamp the offset before growing again; input clears this guard.
   // Preserve live intent until the queued resize/paint settles at the new edge.
   isAdjustingScroll(): boolean {
     return (
       this.following &&
       (this.autoScrolling ||
-        (this.writtenScrollTop !== undefined && Math.abs(this.log.scrollTop - this.writtenScrollTop) < 1))
+        (this.writtenScrollTop !== undefined &&
+          (Math.abs(this.log.scrollTop - this.writtenScrollTop) < 1 ||
+            Math.abs(this.log.scrollHeight - (this.writtenScrollHeight ?? this.log.scrollHeight)) > 1)))
     );
   }
   private scroll = (): void => {
@@ -261,6 +269,7 @@ export class VirtualLog {
       return;
     }
     this.writtenScrollTop = undefined;
+    this.writtenScrollHeight = undefined;
     if (!this.autoScrolling && !this.pausedByHover())
       this.manuallyPaused = !(this.reverse
         ? this.log.scrollTop < 48
@@ -318,11 +327,18 @@ export class VirtualLog {
     this.modifierHeld = false;
     this.leave();
   };
-  private wheel = (event: Event): void => {
-    this.wheelDuringHold = true;
+  private scrollIntent = (): void => {
     this.writtenScrollTop = undefined;
+    this.writtenScrollHeight = undefined;
     this.autoScrolling = false;
     clearTimeout(this.smoothTimer);
+  };
+  private scrollKey = (event: KeyboardEvent): void => {
+    if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) this.scrollIntent();
+  };
+  private wheel = (event: Event): void => {
+    this.wheelDuringHold = true;
+    this.scrollIntent();
     if (!(event instanceof WheelEvent) || event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
     const p = getPresentation();
     if (p.scrollMultiplier === 1 && !p.smoothScroll) return;
@@ -531,6 +547,8 @@ export class VirtualLog {
     this.log.removeEventListener('mouseleave', this.leave);
     this.log.removeEventListener('wheel', this.wheel);
     this.log.removeEventListener('touchstart', this.wheel);
+    this.log.removeEventListener('pointerdown', this.scrollIntent);
+    this.log.removeEventListener('keydown', this.scrollKey);
     this.log.removeEventListener('scroll', this.scroll);
     window.removeEventListener('resize', this.schedule);
   }

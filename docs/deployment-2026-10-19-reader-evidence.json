@@ -1,0 +1,204 @@
+{
+  "date": "2026-10-19",
+  "baseCommit": "2cb440e01df13317c59403cbdbe5e94d120de1f4",
+  "includedPR": 179,
+  "release": "chatty-cat-2cb440e-20261019",
+  "image": "sha256:8a8718fe8b0de0cfd111b892da72e34c715a870a771a2b7afee7097fe8b68ebb",
+  "manifestFilesVerified": 4041,
+  "mergedMainCI": "both push checks passed",
+  "staging": "readiness and selected binary/HTML/main/worker/source hashes passed; temporary container removed",
+  "sourceRebuild": "five selected HTML/main/worker/overlay hashes reproduced",
+  "runtime": {
+    "health": "healthy",
+    "restarts": 0,
+    "readiness": 200,
+    "retainedDataFiles": 2,
+    "retainedDataUnchanged": true
+  },
+  "recovery": {
+    "directory": "recovery/storage-2cb440e-20261019",
+    "guardCheck": "passed without mutation",
+    "rollbackImage": "sha256:8b02849126f2d00f48d71f6162d7697412ad6047d9f056d0b2c44026c01d1b5c",
+    "rollbackExercised": false
+  },
+  "browser": {
+    "public": {
+      "hashes": {
+        "index.html": {
+          "status": 200,
+          "bytes": 5747,
+          "sha256": "30b73b2115b36c6389aae363a2424d7c999f5a8cdb8f64cd1ccec9a7d315c814"
+        },
+        "assets/main-B7OoFs5M.js": {
+          "status": 200,
+          "bytes": 439043,
+          "sha256": "ad03336fdf0c72596d731555c70fd1cb08f30ee64b05f3163bfb7cd0c82f5e4c"
+        },
+        "assets/storage-worker-Lb5EFQx7.js": {
+          "status": 200,
+          "bytes": 120500,
+          "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+        },
+        "overlay.html": {
+          "status": 200,
+          "bytes": 608,
+          "sha256": "7e04be6346f59e87ad6643eda9da5ea27d5226975576083ccbbb1d7442d67e19"
+        },
+        "assets/overlay-BqhujeTw.js": {
+          "status": 200,
+          "bytes": 7270,
+          "sha256": "2c0b82d1408aa6779035c8055f74a77da98615df86dfba103e26a24b8a5729e5"
+        },
+        "source.tar.gz": {
+          "status": 200,
+          "bytes": 3214368,
+          "sha256": "60b71ea81376b0aafaf8c15b289cf8b3280f80003d24579fa7645926841a5656"
+        }
+      },
+      "serviceWorker": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-B7OoFs5M.js",
+      "ready": 200
+    },
+    "reload": {
+      "main": [
+        "https://chat.subcult.tv/assets/main-B7OoFs5M.js"
+      ],
+      "latestHidden": false,
+      "gap": 14750,
+      "banner": false
+    },
+    "layoutClampBefore": {
+      "state": {
+        "count": "1,050 messages",
+        "gap": 738,
+        "latestHidden": false,
+        "errors": [],
+        "released": true
+      },
+      "scrolls": [
+        {
+          "following": false,
+          "allowFollow": true,
+          "manuallyPaused": true,
+          "adjusting": false,
+          "written": 32059,
+          "top": 32059,
+          "height": 33432,
+          "viewport": 635
+        },
+        {
+          "following": false,
+          "allowFollow": true,
+          "manuallyPaused": true,
+          "adjusting": false,
+          "written": 32059,
+          "top": 32059,
+          "height": 33432,
+          "viewport": 635
+        },
+        {
+          "following": false,
+          "allowFollow": false,
+          "manuallyPaused": true,
+          "adjusting": false,
+          "written": 32059,
+          "top": 32059,
+          "height": 33432,
+          "viewport": 635
+        },
+        {
+          "following": false,
+          "allowFollow": false,
+          "manuallyPaused": true,
+          "adjusting": false,
+          "written": 32059,
+          "top": 32059,
+          "height": 33432,
+          "viewport": 635
+        }
+      ]
+    },
+    "layoutClampAfter": {
+      "state": {
+        "count": "1,000 messages",
+        "gap": 0,
+        "latestHidden": true,
+        "errors": [],
+        "released": true
+      },
+      "scrolls": [
+        {
+          "following": true,
+          "allowFollow": true,
+          "manuallyPaused": false,
+          "adjusting": true,
+          "written": 31272.5,
+          "top": 31259,
+          "height": 31900,
+          "viewport": 641
+        },
+        {
+          "following": true,
+          "allowFollow": true,
+          "manuallyPaused": false,
+          "adjusting": true,
+          "written": 31272.5,
+          "top": 31259,
+          "height": 31900,
+          "viewport": 641
+        },
+        {
+          "following": true,
+          "allowFollow": true,
+          "manuallyPaused": false,
+          "adjusting": true,
+          "written": 31259,
+          "top": 30459,
+          "height": 32000,
+          "viewport": 641
+        },
+        {
+          "following": true,
+          "allowFollow": true,
+          "manuallyPaused": false,
+          "adjusting": true,
+          "written": 31259,
+          "top": 30459,
+          "height": 32000,
+          "viewport": 641
+        },
+        {
+          "following": true,
+          "allowFollow": true,
+          "manuallyPaused": false,
+          "adjusting": true,
+          "written": 31259,
+          "top": 31259,
+          "height": 31900,
+          "viewport": 641
+        },
+        {
+          "following": true,
+          "allowFollow": true,
+          "manuallyPaused": false,
+          "adjusting": true,
+          "written": 31259,
+          "top": 31259,
+          "height": 31900,
+          "viewport": 641
+        }
+      ]
+    },
+    "afterLatestSummary": {
+      "samples": 122,
+      "maxGap": 171,
+      "allFollowing": true,
+      "errors": []
+    }
+  },
+  "limits": [
+    "Ordinary reload adopted new bundle but lost live follow; startup is not qualified",
+    "Update ready button was not offered; no button transition claimed",
+    "Local clamp/grow fixture models another failure; not proof of the exact production event sequence",
+    "No authenticated provider writes, reboot, disconnected offline or 15-minute performance qualification"
+  ]
+}

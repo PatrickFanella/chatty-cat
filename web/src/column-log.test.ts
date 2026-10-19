@@ -164,7 +164,7 @@ it('keeps rail modes 4–6 in one chat column on desktop and portrait screens', 
   expect(root.querySelectorAll('.log-column')).toHaveLength(0);
 });
 
-it('keeps global follow intent for its child log layout-adjustment scrolls', () => {
+it('keeps global follow intent for its child log layout-adjustment scrolls', async () => {
   const root = setup();
   let extra = 0;
   Object.defineProperty(root, 'scrollHeight', {
@@ -180,6 +180,8 @@ it('keeps global follow intent for its child log layout-adjustment scrolls', () 
   extra = 120;
   expect(view!.trackScroll(root, true)).toBe(true);
   expect(view!.hasManualPause()).toBe(false);
+  root.dispatchEvent(new Event('scroll'));
+  await vi.waitFor(() => expect(root.scrollTop).toBe(root.scrollHeight - root.clientHeight));
   root.scrollTop -= 300;
   expect(view!.trackScroll(root, true)).toBe(false);
   expect(view!.hasManualPause()).toBe(true);

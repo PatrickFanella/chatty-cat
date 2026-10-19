@@ -33,6 +33,17 @@
       const { WorkspaceStore } = await import('../src/workspaces.ts');
       const { defaultDisplay } = await import('../src/display.ts');
       const { MessageArchive } = await import('../src/archive.ts');
+      const { VirtualLog } = await import('../src/virtual-log.ts');
+      state.scrolls = [];
+      const adjusting = VirtualLog.prototype.isAdjustingScroll;
+      VirtualLog.prototype.isAdjustingScroll = function () {
+        const result = adjusting.call(this);
+        state.scrolls.push({ following: this.following, allowFollow: this.allowFollow,
+          manuallyPaused: this.manuallyPaused, adjusting: result, written: this.writtenScrollTop,
+          top: this.log.scrollTop, height: this.log.scrollHeight, viewport: this.log.clientHeight });
+        if (state.scrolls.length > 100) state.scrolls.shift();
+        return result;
+      };
       const mode = new URL(location.href).searchParams.get('mode') ?? 'saved';
       // The disposable local origin owns this fixture's workspace and settings.
       localStorage.clear();
@@ -52,6 +63,14 @@
       state.read = () => {
         const log = document.querySelector('#log');
         return { count: document.querySelector('#count').textContent, gap: log.scrollHeight - log.clientHeight - log.scrollTop, latestHidden: document.querySelector('#latest').hidden, errors: state.errors, released: state.released };
+      };
+      state.clampLayout = () => {
+        const log = document.querySelector('#log'), spacer = log.querySelector('.log-spacer');
+        const height = parseFloat(spacer.style.height), before = state.read();
+        spacer.style.height = (height - 800) + 'px';
+        const clamped = log.scrollTop;
+        spacer.style.height = (height + 100) + 'px';
+        return { before, clamped, immediate: state.read() };
       };
       await (await import('../src/main.ts')).startMain();
       state.ready = true;
