@@ -236,6 +236,10 @@ records the image, public hashes, retained data and rollback guards. An initial
 production observation still lost live follow; later resize checks after resuming
 stayed current. Startup restoration and resize need separate reproduction before
 calling the reported scroll problem resolved; see [#177](https://git.subcult.tv/subculture-collective/chatty-cat/issues/177).
+The [delayed-reader investigation](reader-restore-2026-10-19.md) now reproduces
+a saved position overriding Latest messages when history arrives later. Its
+repair and regression controls pass locally; merge and production qualification
+remain pending.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
