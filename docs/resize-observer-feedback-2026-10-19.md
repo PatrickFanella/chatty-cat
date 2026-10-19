@@ -37,8 +37,8 @@ without observer errors. See the [raw receipt](resize-observer-feedback-2026-10-
 ## Production follow-up: live chat losing its position
 
 The owner confirmed the repeated error and scroll jump occur on production.
-Production still runs merged main `bd2e2bf`; PR #174 has not merged, so its repair
-has not reached that release. The original floating-panel fixture alone did not
+Production still runs merged main `bd2e2bf`; PR #174 merged during this investigation as `e2ec4e7`, containing the floating
+repair but not the subsequent virtual-log repair. The original floating-panel fixture alone did not
 cover this newly reported chat-log behavior.
 
 A separate real VirtualLog fixture with 1,000 wrapped rows reproduced lost live
@@ -67,7 +67,7 @@ captured errors or runtime-error banner. The viewport also changed between
 observer deferral/coalescing, held-reader remeasurement, queued scroll events and
 parent-column follow intent. Deliberate scroll-away behavior remains covered.
 
-These are local receipts, not a production fix claim. Both the floating-panel
-and chat-log repairs await PR #174 merge and deployment. The virtual-log fixture
+These are local receipts, not a production fix claim. The floating repair is merged in PR #174. The separate virtual-log repair is
+submitted in PR #175; its production deployment remains a separate step. The virtual-log fixture
 did not independently emit the observer error before repair; it reproduced the
 lost-follow symptom. The earlier floating fixture reproduced the exact error.
