@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 19, 2026 against main `bd2e2bf` and the live Gitea issue inventory.
+Updated October 19, 2026 against main `e2ec4e7` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 8 open
 issues: 6 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -230,16 +230,16 @@ merged in PR #173 and does not close #137.
 Wave 6 #141 remains next in the implementation queue; live acceptance
 and #136's CPU/GPU qualification remain independent.
 
-Production now runs merged main `bd2e2bf` through #173, including all eleven
-storage-worker stages, the dedicated overlay and attribution counters. The
-[October 19 deployment receipt](deployment-2026-10-19.md) records the exact image,
-source-complete package, public/browser hashes, retained data and rollback guards.
-The floating-panel ResizeObserver repair prepared afterward remains separate.
+Production now runs merged main `e2ec4e7` through #174, including the zoomed
+floating-panel repair and complete source packaging. The
+[resize deployment receipt](deployment-2026-10-19-resize.md) records the image,
+public/browser hashes, retained data and rollback guards. The separate chat-log
+live-follow repair in PR #175 is not deployed.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
-merge did not supply those measurements. Merged main through #173 is deployed;
-the [October 19 deployment receipt](deployment-2026-10-19.md) records the current
+merge did not supply those measurements. Merged main through #174 is deployed;
+the [resize deployment receipt](deployment-2026-10-19-resize.md) records the current
 runtime, public source and guarded rollback boundary. Later repairs remain separate.
 
 ## Live acceptance track — independent of M6
