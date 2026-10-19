@@ -50,9 +50,9 @@ recovery check passed read-only on October 19.
 The 60,235 ms diagnostic sample held 100,000 retained rows, a visible picker and
 27 mounted chat rows. `chat.render` ran 444 times, each exceeding 50 ms, with a
 229.6 ms maximum. `picker.refresh` ran 60 times, each exceeding 50 ms, with a
-149.1 ms maximum. These two instrumented UI paths account for 53,637 ms of
-synchronous work; the overall observer recorded 504 long tasks totaling 56,876 ms
-with a 242 ms maximum. This identifies expensive UI boundaries; it does not yet
+149.1 ms maximum. The overall observer recorded 504 long tasks totaling 56,876 ms
+with a 242 ms maximum. The boundary totals are reported individually; nesting
+and observer delivery prevent equating their sum with overall long-task time. This identifies expensive UI boundaries; it does not yet
 localize the individual functions inside them or claim a measured improvement.
 
 The storage scheduler's maximum callback was 1.8 ms. All individual storage tasks
