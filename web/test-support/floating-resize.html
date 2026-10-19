@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Floating resize regression fixture</title>
+<style>:root { zoom: 1.25 } * { box-sizing: border-box } #fixture { position: fixed; left: 20px; top: 20px; width: 300px; height: 220px; border: 1px solid }</style>
+<script>window.__floatingResize = { errors: [] }; addEventListener('error', event => window.__floatingResize.errors.push(event.message));</script>
+</head><body><section id="fixture"><button id="handle">Drag</button><button id="pin">Pin</button></section>
+<script type="module">
+import { FloatingPanel } from '../src/floating.ts';
+const key = 'chatty-cat:test:floating-resize';
+localStorage.removeItem(key);
+window.__floatingResize.panel = new FloatingPanel(document.querySelector('#fixture'), document.querySelector('#handle'), document.querySelector('#pin'), key);
+</script></body></html>

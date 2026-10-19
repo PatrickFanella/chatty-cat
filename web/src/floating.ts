@@ -14,6 +14,14 @@ export function fitBox(box: Box, width: number, height: number): Box {
     top: Math.max(16, Math.min(box.top, height - h - 16)),
   };
 }
+function viewportScale(): number {
+  const scale = Number.parseFloat(getComputedStyle(document.documentElement).zoom);
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+function fitFloatingBox(box: Box): Box {
+  const scale = viewportScale();
+  return fitBox(box, innerWidth / scale, innerHeight / scale);
+}
 export interface FloatingState {
   box?: Box;
   pinned: boolean;
@@ -25,6 +33,7 @@ export class FloatingPanel {
   private box: Box | undefined;
   private drag: { pointer: number; x: number; y: number; box: Box } | undefined;
   private observer: ResizeObserver;
+  private resizeFrame = 0;
   constructor(
     private root: HTMLElement,
     private handle: HTMLElement,
@@ -39,7 +48,7 @@ export class FloatingPanel {
         this.reopen = this.pinned && d.open === true;
         if (['left', 'top', 'width', 'height'].every((k) => typeof d[k] === 'number' && Number.isFinite(d[k]))) {
           const b = d as unknown as Box;
-          if (b.width >= 260 && b.height >= 200) this.box = fitBox(b, innerWidth, innerHeight);
+          if (b.width >= 260 && b.height >= 200) this.box = fitFloatingBox(b);
         }
       }
     } catch {
@@ -55,11 +64,14 @@ export class FloatingPanel {
     this.pin.addEventListener('click', this.togglePin);
     window.addEventListener('resize', this.resize);
     this.observer = new ResizeObserver(() => {
-      if (!root.hidden && root.dataset.rail !== 'true') {
+      if (this.resizeFrame) return;
+      this.resizeFrame = requestAnimationFrame(() => {
+        this.resizeFrame = 0;
+        if (root.hidden || root.dataset.rail === 'true') return;
         this.capture();
         this.apply();
         this.save();
-      }
+      });
     });
     this.observer.observe(root);
   }
@@ -83,11 +95,12 @@ export class FloatingPanel {
         Number(raw.height) > 10000
       )
         return false;
-      box = fitBox(
-        { left: Number(raw.left), top: Number(raw.top), width: Number(raw.width), height: Number(raw.height) },
-        innerWidth,
-        innerHeight,
-      );
+      box = fitFloatingBox({
+        left: Number(raw.left),
+        top: Number(raw.top),
+        width: Number(raw.width),
+        height: Number(raw.height),
+      });
     }
     this.box = box;
     this.pinned = data.pinned;
@@ -105,7 +118,7 @@ export class FloatingPanel {
     return this.box ? { ...this.box } : undefined;
   }
   configure(box: Box, pinned: boolean): void {
-    this.box = fitBox(box, innerWidth, innerHeight);
+    this.box = fitFloatingBox(box);
     this.pinned = pinned;
     this.apply();
     this.updatePin();
@@ -124,11 +137,19 @@ export class FloatingPanel {
   }
   private capture(): void {
     const r = this.root.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0) this.box = fitBox(r, innerWidth, innerHeight);
+    if (r.width > 0 && r.height > 0) {
+      const scale = viewportScale();
+      this.box = fitFloatingBox({
+        left: r.left / scale,
+        top: r.top / scale,
+        width: r.width / scale,
+        height: r.height / scale,
+      });
+    }
   }
   private apply(): void {
     if (this.box) {
-      this.box = fitBox(this.box, innerWidth, innerHeight);
+      this.box = fitFloatingBox(this.box);
       this.root.style.width = this.box.width + 'px';
       this.root.style.height = this.box.height + 'px';
     }
@@ -173,11 +194,12 @@ export class FloatingPanel {
     const d = this.drag;
     if (!d || e.pointerId !== d.pointer) return;
     this.pinned = true;
-    this.box = fitBox(
-      { ...d.box, left: d.box.left + e.clientX - d.x, top: d.box.top + e.clientY - d.y },
-      innerWidth,
-      innerHeight,
-    );
+    const scale = viewportScale();
+    this.box = fitFloatingBox({
+      ...d.box,
+      left: d.box.left + (e.clientX - d.x) / scale,
+      top: d.box.top + (e.clientY - d.y) / scale,
+    });
     this.apply();
     this.updatePin();
   };
@@ -201,11 +223,11 @@ export class FloatingPanel {
     if (!this.box) return;
     const step = e.shiftKey ? 40 : 10;
     this.pinned = true;
-    this.box = fitBox(
-      { ...this.box, left: this.box.left + move[0] * step, top: this.box.top + move[1] * step },
-      innerWidth,
-      innerHeight,
-    );
+    this.box = fitFloatingBox({
+      ...this.box,
+      left: this.box.left + move[0] * step,
+      top: this.box.top + move[1] * step,
+    });
     this.apply();
     this.updatePin();
     this.save();
@@ -218,6 +240,8 @@ export class FloatingPanel {
   stop(): void {
     this.save();
     this.observer.disconnect();
+    cancelAnimationFrame(this.resizeFrame);
+    this.resizeFrame = 0;
     window.removeEventListener('resize', this.resize);
     this.handle.removeEventListener('pointerdown', this.down);
     this.handle.removeEventListener('pointermove', this.move);

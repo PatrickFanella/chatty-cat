@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-19",
+  "baseMain": "bd2e2bf3957b14693f7383762aa1edf63fd7ef0b",
+  "browser": "T3 collaborative Chromium",
+  "fixture": {
+    "uiScale": 1.25,
+    "initialCssBox": {
+      "left": 20,
+      "top": 20,
+      "width": 300,
+      "height": 220
+    },
+    "providerTransport": false
+  },
+  "before": {
+    "exactError": "ResizeObserver loop completed with undelivered notifications.",
+    "errorCount": 7,
+    "screenBox": {
+      "left": 25,
+      "top": 25,
+      "width": 1570,
+      "height": 960
+    },
+    "writtenCssSize": {
+      "width": 1256,
+      "height": 768
+    }
+  },
+  "after": {
+    "errors": [],
+    "logicalBox": {
+      "left": 20,
+      "top": 20,
+      "width": 300,
+      "height": 220
+    },
+    "screenBox": {
+      "left": 25,
+      "top": 25,
+      "width": 375,
+      "height": 275
+    },
+    "pinAndKeyboard": {
+      "errors": [],
+      "logicalLeftAfterRightArrow": 30
+    }
+  },
+  "narrowAfter": {
+    "errors": [],
+    "geometry": {
+      "width": 288,
+      "height": 220,
+      "left": 12,
+      "top": 20
+    },
+    "rect": {
+      "x": 15,
+      "y": 25,
+      "width": 360,
+      "height": 275,
+      "top": 25,
+      "right": 375,
+      "bottom": 300,
+      "left": 15
+    },
+    "viewport": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "checks": {
+    "frontendTests": 930,
+    "frontendFiles": 190,
+    "strictBuild": "pass",
+    "format": "pass",
+    "zoomedPointerMovement": "pass"
+  },
+  "scope": {
+    "repairDeployed": false,
+    "allObserverPathsQualified": false,
+    "reproducer": "real FloatingPanel class in isolated synthetic fixture"
+  }
+}
