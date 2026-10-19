@@ -213,7 +213,19 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/users/{login}", s.userProfile)
 	mux.HandleFunc("GET /api/channels/{channel}/vod/{id}", s.verifyVod)
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "unknown API route", http.StatusNotFound) })
-	mux.Handle("/", http.FileServer(http.Dir(s.cfg.Assets)))
+	files := http.FileServer(http.Dir(s.cfg.Assets))
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" && r.URL.Query().Has("overlay") && r.URL.Query().Get("overlay") != "0" && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
+			target := "/overlay.html"
+			if r.URL.RawQuery != "" {
+				target += "?" + r.URL.RawQuery
+			}
+			w.Header().Set("Cache-Control", "no-store")
+			http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+			return
+		}
+		files.ServeHTTP(w, r)
+	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")

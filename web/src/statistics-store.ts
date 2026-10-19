@@ -108,6 +108,7 @@ export interface LedgerLoad {
 export async function loadStatisticsLedger(
   channels: readonly string[],
   legacy: string | undefined,
+  readDatabase = true,
 ): Promise<LedgerLoad> {
   const key = 'chatthing:v1:stats:counts:' + channels.join(',');
   if (!validKey(key)) throw new Error('Invalid statistics scope');
@@ -122,6 +123,7 @@ export async function loadStatisticsLedger(
     }
   };
   if (legacy !== undefined) restore(legacy);
+  if (!readDatabase) return result;
   try {
     const raw = await readStatisticsRecord(key);
     if (raw !== undefined) restore(raw);

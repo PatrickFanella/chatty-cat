@@ -1,7 +1,24 @@
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { defineConfig } from 'vite';
 
+function redirectOverlay(request: IncomingMessage, response: ServerResponse, next: () => void): void {
+  const url = new URL(request.url ?? '/', 'http://localhost');
+  if (url.pathname === '/' && url.searchParams.has('overlay') && url.searchParams.get('overlay') !== '0') {
+    response.writeHead(307, { Location: '/overlay.html' + url.search, 'Cache-Control': 'no-store' });
+    response.end();
+  } else next();
+}
 export default defineConfig({
   plugins: [
+    {
+      name: 'overlay-entry-redirect',
+      configureServer(server) {
+        server.middlewares.use(redirectOverlay);
+      },
+      configurePreviewServer(server) {
+        server.middlewares.use(redirectOverlay);
+      },
+    },
     {
       name: 'storage-worker-manifest',
       generateBundle: {
@@ -29,7 +46,7 @@ export default defineConfig({
   build: {
     manifest: 'asset-manifest.json',
     rollupOptions: {
-      input: { main: 'index.html', sw: 'src/service-worker.ts' },
+      input: { main: 'index.html', overlay: 'overlay.html', sw: 'src/service-worker.ts' },
       output: { entryFileNames: (chunk) => (chunk.name === 'sw' ? 'sw.js' : 'assets/[name]-[hash].js') },
     },
   },

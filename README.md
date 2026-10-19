@@ -18,6 +18,8 @@ Requires Go 1.26+ and Node 22.12+.
 ```sh
 npm --prefix web ci
 npm --prefix web run build
+# Recheck the complete overlay JavaScript closure against main:
+npm --prefix web run check:overlay
 go build -o bin/chatthing ./cmd/chatthing
 ./bin/chatthing
 ```
@@ -79,6 +81,12 @@ public profile/emote/link cards, explicit media loading, stream video and PWA
 history/update behavior are available. Feature-family parity gates remain open
 until the remaining controls and live acceptance checks are complete.
 
+For an OBS browser source, use `/overlay.html?channel=yourchannel`. Legacy
+`/?channel=yourchannel&overlay=1` URLs redirect with their parameters intact.
+Configure appearance in the normal app within the same OBS browser-source
+profile. The overlay has no panels, account session, history persistence or
+storage clocks. See [appearance and qualification](docs/overlay-appearance-demo.md).
+
 ## Verify
 
 ```sh
@@ -87,6 +95,8 @@ go vet ./...
 golangci-lint run
 npm --prefix web test
 npm --prefix web run build
+# Recheck the complete overlay JavaScript closure against main:
+npm --prefix web run check:overlay
 ```
 
 Use the local browser preview for layout and live anonymous chat checks.

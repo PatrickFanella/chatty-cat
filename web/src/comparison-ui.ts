@@ -1,6 +1,6 @@
 import { showPanel } from './shell/open-panel';
 import type { Panel } from './shell/panels';
-import { buildComparison, comparisonExport, raidMark, type Comparison, type ComparisonMark } from './comparison';
+import { comparisonExport, raidMark, type Comparison, type ComparisonMark } from './comparison';
 import type { RateTimeline } from './rate-timeline';
 import type { StreamHistory } from './stream-history';
 import type { MessageArchive } from './archive';
@@ -27,7 +27,10 @@ export class ComparisonPanel implements Panel {
   private account: string | undefined;
   constructor(
     channels: readonly string[],
-    private timeline: Pick<RateTimeline, 'series' | 'ready'>,
+    private timeline: {
+      series: Pick<RateTimeline['series'], 'comparison'> | Pick<import('./rate-series').RateSeries, 'comparison'>;
+      ready: Promise<void>;
+    },
     private streams: Pick<StreamHistory, 'samples'>,
     private archive: Pick<MessageArchive, 'scanChannel' | 'search'>,
     private chat: (message: ChatMessage) => void,
@@ -192,7 +195,13 @@ export class ComparisonPanel implements Panel {
       await this.timeline.ready;
       if (generation !== this.generation || privacyEnabled()) return;
       // Validate before scanning; aggregate generation does not fetch remote history.
-      const initial = buildComparison(channels, from, to, this.timeline.series, this.streams, []);
+      const initial = await this.timeline.series.comparison(
+        channels,
+        from,
+        to,
+        Object.fromEntries(channels.map((channel) => [channel, this.streams.samples(channel, from - 90000)])),
+      );
+      if (generation !== this.generation || privacyEnabled()) return;
       this.status.textContent = 'Reading retained public raid notices…';
       const raids: ComparisonMark[] = [];
       const seen = new Set<string>();

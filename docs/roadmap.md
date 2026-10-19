@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 18, 2026 against main `a3b197d` and the live Gitea issue inventory.
+Updated October 18, 2026 against main `e690b02` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 9 open
 issues: 7 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -195,25 +195,35 @@ their provider/device qualification limits. See [compact panel evidence](compact
 All four PR-head hosted checks passed. These panel changes are included in the
 October 16 deployment.
 
-The first nine #137 migrations merged in PRs #162–#170. They move private-journal
-storage, all archive database operations, statistics persistence/encoding,
+The first ten #137 migrations merged in PRs #162–#171. They move private-journal
+storage, archive database operations, statistics persistence/encoding/restoration,
 rate snapshot storage and retained-row statistics summaries into workers. Each
-final PR head passed all four hosted checks; the latest merged main `a3b197d`
-also passed both push checks. Archive retention keeps its coordinated policy
-write, rollback and uncertain-acknowledgement handling. Retained-row summaries
-coalesce refreshes and reject obsolete filter/closed-panel results. See the
+final PR head passed all four hosted checks; merged main `e690b02` passed both
+push checks. Archive retention preserves its coordinated policy write, rollback
+and uncertain-acknowledgement handling. See the
 [staged plan and evidence](storage-worker-migration.md).
 
-The tenth stage moves ledger startup decoding, validation and bucket pruning into
-the worker. It adopts validated Maps/Sets before replaying queued observations
-and blocks saves after an uncertain restore. All 918 frontend tests pass; a
-native 10,000-key restore recorded zero guarded Window parses/database opens,
-retained replay deduplication and preserved the saved record after transport
-failure. This stage is pending review. #137 remains open for ongoing ledger
-aggregation/snapshot construction, rate computation and the 15-minute busy-channel
-qualification.
+Wave 5's final implementation moves ongoing ledger aggregation, ranks, buckets,
+snapshot construction, rate computation and comparisons into workers. Bootstrap
+and retained-row reports transfer at most 2,000 rows per request. It also adds a
+passive `/overlay.html` entry, legacy redirects and a build guard counting every
+statically imported JavaScript chunk. The overlay uses 26,764 gzip bytes versus
+149,765 for main (17.87%). These changes are prepared for review; see the
+[Wave 5 report](wave5-2026-10-18.md) for tests and runtime acceptance boundaries.
 
-Production remains on `b95b7fb` through #167; stages seven through ten are not
+#137’s 15-minute rehearsal completed at 100,000 retained rows with zero guarded
+Window storage/encoding calls, no runtime errors and a maximum worker dispatch
+of 2.2 ms. Overall long tasks remain; complete storage attribution is
+not supplied by the readout, so #137 remains open for acceptance review.
+
+On October 18 the owner accepted #138's renderer-specific idle result: zero
+measured renderer CPU and DOM mutations in native OBS. The software compositor's
+2.27% total OBS CPU versus a 0.72% baseline remains recorded; hardware-accelerated
+OBS qualification is no longer a closure prerequisite. #138 awaits merge of PR
+#172 under this accepted scope. Wave 6 #141 is next after review; live acceptance
+and #136's CPU/GPU qualification remain independent.
+
+Production remains on `b95b7fb` through #167; later stages and this branch are not
 deployed. The [October 16 deployment receipt](deployment-2026-10-16.md) records the
 current release boundary. The recovery guard passed again on October 18 without
 changes.

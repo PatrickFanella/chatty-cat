@@ -7,7 +7,7 @@ import { badgeGroups, renderBadgeReference } from './stats-badges';
 import type { ChannelMetadata } from './metadata';
 import { registerSettings } from './settings-bundle';
 import { type StatsLedger, type StatKind } from './stats-ledger';
-import type { RateSeries } from './rate-timeline';
+import type { RateSample } from './rate-timeline';
 import type { StreamHistory } from './stream-history';
 import type { ChatMessage } from './protocol';
 import type { Emote } from './tokens';
@@ -82,7 +82,14 @@ export class StatsPanel {
     private messages: () => readonly ChatMessage[],
     private emotes: (channel: string) => Record<string, Emote>,
     channels: string[],
-    private timeline?: RateSeries,
+    private timeline?: {
+      peaks: (
+        now: number,
+        channel: string,
+        seconds: number,
+        kind: 'rate' | 'glorps',
+      ) => RateSample[] | Promise<RateSample[]>;
+    },
     private ledger?: StatsLedger,
     private seeds: (channel: string) => Record<string, number> = () => ({}),
     private streams?: StreamHistory,
@@ -258,7 +265,7 @@ export class StatsPanel {
         header: !this.timeline,
         panel,
       })
-      .then((report) => {
+      .then(async (report) => {
         if (this.stopped || revision !== this.revision || panel !== this.dialog.open) return;
         const stats = report.header;
         if (stats) {
@@ -267,7 +274,43 @@ export class StatsPanel {
           );
           this.header.title = `${stats.messages}/min · ${stats.chatters} chatters`;
         }
-        if (report.panel) this.render(now, excluded, report.panel);
+        if (report.panel) {
+          const ledger = this.ledger;
+          const ranks: Record<string, { name: string; count: number }[]> = {};
+          const buckets: Record<string, { at: number; count: number }[]> = {};
+          if (ledger && !ledger.storageRestoreUnavailable) {
+            await Promise.all(
+              (['users', 'emotes', 'badges', 'links'] as StatKind[]).map(async (kind) => {
+                const raw = Number(
+                  this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="' + kind + '"]')?.value ??
+                    (kind === 'users' ? 24 : 3),
+                );
+                ranks[kind] = await ledger.ranks(
+                  kind,
+                  Number.isFinite(raw) ? raw : 0,
+                  this.channel.value,
+                  new Set([...excluded, 'fossabot', 'blammobot']),
+                  now,
+                  kind === 'badges' ? 20000 : 50,
+                );
+              }),
+            );
+            await Promise.all(
+              (['hours', 'days'] as const).map(async (unit) => {
+                buckets[unit] = await ledger.buckets(unit, this.channel.value, excluded, now);
+              }),
+            );
+          }
+          if (this.stopped || revision !== this.revision || panel !== this.dialog.open) return;
+          const peaks = this.timeline
+            ? {
+                rate: await this.timeline.peaks(now, this.channel.value, 86400, 'rate'),
+                glorps: await this.timeline.peaks(now, this.channel.value, 86400, 'glorps'),
+              }
+            : {};
+          if (this.stopped || revision !== this.revision || !this.dialog.open) return;
+          this.render(now, report.panel, ranks, buckets, peaks);
+        }
       })
       .catch(() => {
         if (this.stopped || revision !== this.revision || panel !== this.dialog.open) return;
@@ -288,7 +331,13 @@ export class StatsPanel {
         if (this.repaint && !this.stopped) this.paint();
       });
   };
-  private render(now: number, excluded: ReadonlySet<string>, data: Stats): void {
+  private render(
+    now: number,
+    data: Stats,
+    ranks: Record<string, { name: string; count: number }[]>,
+    buckets: Record<string, { at: number; count: number }[]>,
+    peaks: Partial<Record<'rate' | 'glorps', RateSample[]>>,
+  ): void {
     const windowMs = Number(this.scope.value);
     const summary = this.dialog.querySelector<HTMLElement>('#stats-summary')!;
     summary.textContent = `${data.messages.toLocaleString()} messages · ${data.glorps.toLocaleString()} glorp/F · ${data.chatters.toLocaleString()} chatters · ${data.perMinute.toFixed(1)}/min · peak minute ${data.peakPerMinute}`;
@@ -369,7 +418,7 @@ export class StatsPanel {
           kind === 'rate' ? 'Observed message bursts (last 24 hours)' : 'Observed glorp/F spikes (last 24 hours)';
         section.append(heading);
         const list = document.createElement('ol');
-        for (const peak of this.timeline.peaks(now, this.channel.value, 86400, kind)) {
+        for (const peak of peaks[kind] ?? []) {
           const item = document.createElement('li'),
             time = document.createElement('span');
           time.textContent = new Date(peak.second * 1000).toLocaleString();
@@ -414,14 +463,7 @@ export class StatsPanel {
       body.append(note);
       for (const kind of ['users', 'emotes', 'badges', 'links'] as StatKind[]) {
         const control = this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="' + kind + '"]');
-        const hours = Number(control?.value ?? (kind === 'users' ? '24' : '3'));
-        let rows = this.ledger.ranks(
-          kind,
-          Number.isFinite(hours) ? hours : 0,
-          this.channel.value,
-          new Set([...excluded, 'fossabot', 'blammobot']),
-          now,
-        );
+        let rows = (ranks[kind] ?? []).slice(0, 50);
         if (kind === 'emotes' && control?.value === 'se') {
           const totals = new Map<string, number>();
           for (const channel of this.channel.value
@@ -472,7 +514,7 @@ export class StatsPanel {
         heading.textContent = unit === 'hours' ? 'Hourly messages (7 days, UTC)' : 'Daily messages (31 days, UTC)';
         section.append(heading);
         const list = document.createElement('ol');
-        for (const row of this.ledger.buckets(unit, this.channel.value, excluded, now)) {
+        for (const row of buckets[unit] ?? []) {
           const item = document.createElement('li');
           item.textContent =
             new Date(row.at).toISOString().slice(0, unit === 'hours' ? 13 : 10) +
@@ -493,19 +535,11 @@ export class StatsPanel {
     const badgeChannels = this.channel.value
       ? [this.channel.value]
       : [...this.channel.options].map((option) => option.value).filter(Boolean);
-    const badgeHours = Number(this.dialog.querySelector<HTMLSelectElement>('[data-stat-kind="badges"]')?.value ?? 3);
     body.append(
       renderBadgeReference(
         badgeGroups(
           badgeChannels.map((channel) => this.badges(channel)),
-          this.ledger?.ranks(
-            'badges',
-            Number.isFinite(badgeHours) ? badgeHours : 0,
-            this.channel.value,
-            excluded,
-            now,
-            20000,
-          ) ?? [],
+          ranks.badges ?? [],
           this.badgeOrder.value === 'name' ? 'name' : 'versions',
         ),
         expanded,

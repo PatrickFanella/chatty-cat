@@ -415,3 +415,22 @@ func TestReadiness(t *testing.T) {
 	check("/api/ready", http.StatusServiceUnavailable)
 	check("/api/health", http.StatusOK)
 }
+
+func TestLegacyOverlayRedirect(t *testing.T) {
+	s := New(Config{Assets: t.TempDir()})
+	defer s.Close()
+	for _, query := range []string{"overlay=1&channel=one%2Ctwo&theme=nightshade&size=19", "channel=one&overlay=", "overlay=true&channel=one"} {
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/?"+query, nil))
+		if w.Code != http.StatusTemporaryRedirect || w.Header().Get("Location") != "/overlay.html?"+query {
+			t.Fatalf("redirect %d %q", w.Code, w.Header().Get("Location"))
+		}
+	}
+	for _, path := range []string{"/?overlay=0", "/?channel=one", "/overlay.html?overlay=1"} {
+		w := httptest.NewRecorder()
+		s.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code == http.StatusTemporaryRedirect {
+			t.Fatalf("unexpected redirect: %s", path)
+		}
+	}
+}

@@ -99,7 +99,7 @@ function delayReports() {
   let requests = 0;
   class Delayed extends StorageWorkerShim {
     override postMessage(value: unknown): void {
-      if ((value as { operation?: string }).operation === 'statistics.summarize') {
+      if ((value as { operation?: string }).operation === 'summary.begin') {
         requests++;
         const captured = structuredClone(value);
         releases.push(() => super.postMessage(captured));
@@ -152,7 +152,7 @@ it('does not paint a closed or disposed panel when a delayed result arrives', as
 it('shows worker failure instead of retaining a misleading old result or falling back to page calculation', async () => {
   class Failed extends StorageWorkerShim {
     override postMessage(value: unknown): void {
-      if ((value as { operation?: string }).operation === 'statistics.summarize')
+      if ((value as { operation?: string }).operation === 'summary.begin')
         queueMicrotask(() => this.dispatchEvent(new Event('error')));
       else super.postMessage(value);
     }

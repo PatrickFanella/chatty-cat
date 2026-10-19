@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import '../test-support/storage-worker-shim';
 import { expect, it, vi } from 'vitest';
 import { RateSeries, RateTimeline, isGlorp, timelineGraph } from './rate-timeline';
 import type { ChatMessage } from './protocol';
@@ -161,14 +162,15 @@ it('stops graph rebuilds while hidden or detached and refreshes once on return w
     expect(paint).not.toHaveBeenCalled();
     hidden = false;
     document.dispatchEvent(new Event('visibilitychange'));
+    await vi.advanceTimersByTimeAsync(0);
     expect(paint).toHaveBeenCalledOnce();
-    expect(timeline.series.snapshot().rows.length).toBeGreaterThan(0);
+    expect((await timeline.series.snapshot()).rows.length).toBeGreaterThan(0);
     header.remove();
     paint.mockClear();
     await vi.advanceTimersByTimeAsync(5000);
     expect(paint).not.toHaveBeenCalled();
   } finally {
-    timeline.stop();
+    await timeline.stop();
     header.remove();
     visibility.mockRestore();
     vi.useRealTimers();

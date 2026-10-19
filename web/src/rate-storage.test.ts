@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
-import { StorageWorkerShim } from '../test-support/storage-worker-shim';
+import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { RateSeries, RateTimeline } from './rate-timeline';
+import { RateStore } from './rate-store';
 import { StorageWorkerClient } from './storage-worker-client';
 import type { ChatMessage } from './protocol';
 const timelines: RateTimeline[] = [],
@@ -53,26 +54,26 @@ it('restores committed counts and source coverage, marks closed time and exclude
   vi.setSystemTime(110000);
   const restored = timeline();
   await restored.ready;
-  expect(restored.series.samples(110000, 11)[0]?.rate).toBe(0.2);
-  expect(restored.series.samples(110000, 11)[6]?.gap).toBe('page closed');
-  expect(restored.series.coverage.snapshot(110000)).toEqual([{ channel: 'one', from: 100, to: 104 }]);
+  expect((await restored.series.samples(110000, 11))[0]?.rate).toBe(0.2);
+  expect((await restored.series.samples(110000, 11))[6]?.gap).toBe('page closed');
+  expect(await restored.series.coverage.snapshot(110000)).toEqual([{ channel: 'one', from: 100, to: 104 }]);
   restored.series.observe(message, false);
-  expect(restored.series.snapshot().rows.reduce((n, row) => n + row[2], 0)).toBe(1);
+  expect((await restored.series.snapshot()).rows.reduce((n, row) => n + row[2], 0)).toBe(1);
 });
 it('drains an in-flight periodic save and writes later observations before terminating', async () => {
   clock(100000);
   let release: (() => void) | undefined,
     held = false;
-  class Delayed extends StorageWorkerShim {
-    override postMessage(value: unknown): void {
-      if (!held && (value as { operation?: string }).operation === 'rates.write') {
-        held = true;
-        const captured = structuredClone(value);
-        release = () => super.postMessage(captured);
-      } else super.postMessage(value);
+  const native = RateStore.prototype.write;
+  vi.spyOn(RateStore.prototype, 'write').mockImplementation(async function (this: RateStore, key, snapshot) {
+    if (!held) {
+      held = true;
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
     }
-  }
-  vi.stubGlobal('Worker', Delayed);
+    return native.call(this, key, snapshot);
+  });
   const value = timeline();
   await value.ready;
   value.series.observe(message, true);
@@ -126,7 +127,7 @@ it('keeps the previous snapshot after an aborted write and leaves storage usable
   spy.mockRestore();
   expect(await storage.request('rates.read', 'one')).toEqual(snapshot);
 });
-it('continues live observations when the worker cannot start without opening a main-thread database', async () => {
+it('reports unavailable computation without opening a main-thread database when the worker is denied', async () => {
   vi.stubGlobal(
     'Worker',
     class {
@@ -139,7 +140,7 @@ it('continues live observations when the worker cannot start without opening a m
   const value = timeline();
   await value.ready;
   value.series.observe({ ...message, timestamp: Date.now() }, true);
-  expect(value.series.snapshot().rows.reduce((n, row) => n + row[2], 0)).toBe(1);
+  await expect(value.series.snapshot()).rejects.toThrow('unavailable');
   await value.stop();
   expect(open).not.toHaveBeenCalled();
 });

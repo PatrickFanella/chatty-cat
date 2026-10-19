@@ -1814,7 +1814,7 @@ export async function startMain(): Promise<void> {
     pickerLighting?.stop();
     document.removeEventListener('share-settings', sharePicker);
     archive.stop();
-    statsLedger.save();
+    void statsLedger.stop();
     rateTimeline.stop();
     display.stop();
     attention.stop();
