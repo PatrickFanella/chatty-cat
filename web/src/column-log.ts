@@ -263,6 +263,7 @@ export class ColumnLog {
   // Scroll events in page layouts hold their own column while transport stays live.
   trackScroll(target: EventTarget | null, following: boolean): boolean {
     if (this.count === 1) {
+      if (this.views[0]!.isAdjustingScroll()) return following;
       const live = this.isAtLive(target);
       if (live) {
         this.manual.delete(0);
@@ -271,7 +272,7 @@ export class ColumnLog {
       return live;
     }
     const index = this.columnAt(target);
-    if (index < 0 || !following) return following;
+    if (index < 0 || !following || this.views[index]?.isAdjustingScroll()) return following;
     if (this.isAtLive(target)) {
       const wasHeld = this.manual.delete(index);
       if (wasHeld) {

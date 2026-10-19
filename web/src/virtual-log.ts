@@ -27,6 +27,7 @@ export class VirtualLog {
   private revision = -1;
   private stopped = false;
   private observer: ResizeObserver | undefined;
+  private pendingHeights = new Map<HTMLElement, { key: string; height: number; revision: number }>();
   private intersection: IntersectionObserver | undefined;
   private visibleRows = new Map<HTMLElement, boolean>();
   private visibility = (): void => {
@@ -46,6 +47,7 @@ export class VirtualLog {
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   private smoothTimer: ReturnType<typeof setTimeout> | undefined;
   private autoScrolling = false;
+  private writtenScrollTop: number | undefined;
   private leading = this.spacer(0);
   private trailing = this.spacer(0);
   constructor(
@@ -81,28 +83,43 @@ export class VirtualLog {
     window.addEventListener('resize', this.schedule);
     if (typeof ResizeObserver !== 'undefined')
       this.observer = new ResizeObserver((entries) => {
-        let changed = false;
+        if (this.stopped) return;
         for (const entry of entries) {
           const node = entry.target as HTMLElement,
             key = node.dataset.virtualKey;
           const height =
-            entry.borderBoxSize[0]?.blockSize ?? node.getBoundingClientRect().height / getPresentation().uiScale;
-          if (key && height > 0 && Math.abs((this.heights.get(key) ?? 32) - height) > 0.5) {
-            this.heights.set(key, height);
-            node.style.containIntrinsicSize = `auto none auto ${height}px`;
-            changed = true;
-          }
+            entry.borderBoxSize?.[0]?.blockSize ?? node.getBoundingClientRect().height / getPresentation().uiScale;
+          if (key && Number.isFinite(height) && height > 0 && Math.abs((this.heights.get(key) ?? 32) - height) > 0.5)
+            this.pendingHeights.set(node, { key, height, revision: this.revision });
         }
-        if (changed) {
-          const anchor = this.anchor();
-          this.pendingAnchor = anchor;
-          this.prefix();
-          this.restore(anchor);
-          this.schedule();
-          this.log.dispatchEvent(new Event('logmetrics', { bubbles: true }));
-        }
+        if (this.pendingHeights.size) this.schedule();
       });
   }
+  private applyMeasurements(): boolean {
+    const anchor = this.pendingAnchor ?? (this.following ? undefined : this.anchor());
+    let changed = false;
+    for (const [node, measurement] of this.pendingHeights) {
+      const { key, height, revision } = measurement;
+      if (
+        revision !== this.revision ||
+        node.parentElement !== this.log ||
+        node.dataset.virtualKey !== key ||
+        !this.indexes.has(key)
+      )
+        continue;
+      if (Math.abs((this.heights.get(key) ?? 32) - height) <= 0.5) continue;
+      this.heights.set(key, height);
+      changed = true;
+    }
+    this.pendingHeights.clear();
+    if (changed) {
+      this.pendingAnchor = anchor;
+      this.prefix();
+      this.restore(anchor);
+    }
+    return changed;
+  }
+
   set(items: readonly LogItem[], following: boolean, revision = 0, reverse = false, pauseOnText = false): void {
     const anchor = this.pendingAnchor ?? this.anchor();
     this.pendingAnchor = undefined;
@@ -117,6 +134,7 @@ export class VirtualLog {
     this.following = following && !this.manuallyPaused && !this.hoverHeld && !this.modifierHeld;
     if (revision !== this.revision) {
       this.heights.clear();
+      this.pendingHeights.clear();
       this.revision = revision;
     }
     this.items = items;
@@ -154,7 +172,8 @@ export class VirtualLog {
       if (row instanceof HTMLElement) {
         const rect = row.getBoundingClientRect(),
           edge = this.log.getBoundingClientRect().top;
-        if (rect.height > 0) this.log.scrollTop += (anchor.offset - (edge - rect.top)) / getPresentation().uiScale;
+        if (rect.height > 0)
+          this.writeScrollTop(this.log.scrollTop + (anchor.offset - (edge - rect.top)) / getPresentation().uiScale);
       }
     }
   }
@@ -198,29 +217,50 @@ export class VirtualLog {
   }
   private restore(anchor: { key: string; offset: number } | undefined, alignDOM = false): void {
     if (this.following) {
-      const target = this.reverse ? 0 : Math.max(0, (this.offsets.at(-1) ?? 0) - this.log.clientHeight);
-      if (!this.canSmooth(target)) this.log.scrollTop = target;
+      const target = this.reverse ? 0 : Math.max(0, this.log.scrollHeight - this.log.clientHeight);
+      if (!this.canSmooth(target)) this.writeScrollTop(target);
     } else if (anchor) {
       const index = this.indexes.get(anchor.key);
       if (index !== undefined) {
-        this.log.scrollTop = (this.offsets[index] ?? 0) + anchor.offset / getPresentation().uiScale;
+        this.writeScrollTop((this.offsets[index] ?? 0) + anchor.offset / getPresentation().uiScale);
         if (alignDOM) {
           const row = [...this.log.children].find(
             (node) => node instanceof HTMLElement && node.dataset.virtualKey === anchor.key,
           );
           if (row && row.getBoundingClientRect().height > 0)
-            this.log.scrollTop +=
-              (anchor.offset - (this.log.getBoundingClientRect().top - row.getBoundingClientRect().top)) /
-              getPresentation().uiScale;
+            this.writeScrollTop(
+              this.log.scrollTop +
+                (anchor.offset - (this.log.getBoundingClientRect().top - row.getBoundingClientRect().top)) /
+                  getPresentation().uiScale,
+            );
         }
       }
     }
   }
+  private writeScrollTop(top: number): void {
+    const previous = this.log.scrollTop;
+    this.log.scrollTop = top;
+    if (
+      Math.abs(this.log.scrollTop - previous) > 0.5 ||
+      (this.log.clientHeight > 0 && this.log.scrollHeight > this.log.clientHeight)
+    )
+      this.writtenScrollTop = this.log.scrollTop;
+  }
+  // Scroll events from our own writes may arrive after row layout changes again.
+  // Preserve live intent until the queued resize/paint settles at the new edge.
+  isAdjustingScroll(): boolean {
+    return (
+      this.following &&
+      (this.autoScrolling ||
+        (this.writtenScrollTop !== undefined && Math.abs(this.log.scrollTop - this.writtenScrollTop) < 1))
+    );
+  }
   private scroll = (): void => {
-    if (this.autoScrolling) {
+    if (this.isAdjustingScroll()) {
       this.schedule();
       return;
     }
+    this.writtenScrollTop = undefined;
     if (!this.autoScrolling && !this.pausedByHover())
       this.manuallyPaused = !(this.reverse
         ? this.log.scrollTop < 48
@@ -280,6 +320,7 @@ export class VirtualLog {
   };
   private wheel = (event: Event): void => {
     this.wheelDuringHold = true;
+    this.writtenScrollTop = undefined;
     this.autoScrolling = false;
     clearTimeout(this.smoothTimer);
     if (!(event instanceof WheelEvent) || event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
@@ -351,7 +392,9 @@ export class VirtualLog {
     if (!this.frame && !this.stopped)
       this.frame = requestAnimationFrame(() => {
         this.frame = 0;
+        const changed = this.applyMeasurements();
         this.paint();
+        if (changed) this.log.dispatchEvent(new Event('logmetrics', { bubbles: true }));
       });
   };
   private spacer(height: number): HTMLElement {
@@ -432,7 +475,7 @@ export class VirtualLog {
             this.schedule();
           }, 350);
         }
-      } else if (!this.autoScrolling) this.log.scrollTop = target;
+      } else if (!this.autoScrolling) this.writeScrollTop(target);
     }
     this.paintMarkers();
     if (this.pendingAnchor) {
@@ -464,7 +507,7 @@ export class VirtualLog {
     this.manuallyPaused = true;
     this.following = false;
     this.allowFollow = false;
-    this.log.scrollTop = Math.max(0, (this.offsets[index] ?? 0) - this.log.clientHeight / 2);
+    this.writeScrollTop(Math.max(0, (this.offsets[index] ?? 0) - this.log.clientHeight / 2));
     this.paint();
     return true;
   }
@@ -481,6 +524,7 @@ export class VirtualLog {
     for (const node of this.log.children) this.release(node);
     cancelAnimationFrame(this.frame);
     this.observer?.disconnect();
+    this.pendingHeights.clear();
     this.intersection?.disconnect();
     this.visibleRows.clear();
     this.log.removeEventListener('mouseover', this.hover);

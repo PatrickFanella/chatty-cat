@@ -7,6 +7,7 @@ function setup() {
   document.body.append(log);
   Object.defineProperty(log, 'clientHeight', { value: 640 });
   Object.defineProperty(log, 'scrollHeight', {
+    configurable: true,
     get: () =>
       [...log.children].reduce(
         (sum, node) =>
@@ -266,4 +267,118 @@ it('restores a paused reader by stable key and pixel offset after rebuilding the
   expect(next.isFollowing()).toBe(false);
   expect(next.restoreReader({ key: 'missing', offset: 0 })).toBe(false);
   next.stop();
+});
+
+it('keeps live following at the actual DOM edge when row heights differ from prefix estimates', () => {
+  const { log, view } = setup();
+  Object.defineProperty(log, 'scrollHeight', {
+    get: () =>
+      [...log.children].reduce(
+        (sum, node) =>
+          sum + (node.classList.contains('log-spacer') ? parseFloat((node as HTMLElement).style.height) : 64),
+        0,
+      ),
+  });
+  view.set(items(1000), true);
+  expect(log.scrollTop).toBe(log.scrollHeight - log.clientHeight);
+  log.dispatchEvent(new Event('scroll'));
+  expect(view.isFollowing()).toBe(true);
+  view.set(items(1010), true);
+  expect(log.scrollTop).toBe(log.scrollHeight - log.clientHeight);
+  view.stop();
+});
+it('defers resize measurements and DOM work until a frame, coalescing deliveries', () => {
+  let notify: ResizeObserverCallback | undefined;
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: ResizeObserverCallback) {
+        notify = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  const frames: FrameRequestCallback[] = [];
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frames.push(callback);
+    return frames.length;
+  });
+  const { log, view } = setup();
+  view.set(items(1000), true);
+  const row = log.querySelector<HTMLElement>('[data-virtual-key]')!;
+  const oldStyle = row.getAttribute('style'),
+    oldTop = log.scrollTop;
+  const metrics = vi.fn();
+  log.addEventListener('logmetrics', metrics);
+  const deliver = (height: number) =>
+    notify!(
+      [{ target: row, borderBoxSize: [{ blockSize: height }] } as unknown as ResizeObserverEntry],
+      {} as ResizeObserver,
+    );
+  deliver(48);
+  deliver(64);
+  expect(row.getAttribute('style')).toBe(oldStyle);
+  expect(log.scrollTop).toBe(oldTop);
+  expect(view.measuredHeight(row.dataset.virtualKey!)).toBeUndefined();
+  expect(frames).toHaveLength(1);
+  frames[0]!(0);
+  expect(view.measuredHeight(row.dataset.virtualKey!)).toBe(64);
+  expect(log.scrollTop).toBe(log.scrollHeight - log.clientHeight);
+  expect(metrics).toHaveBeenCalledOnce();
+  view.stop();
+});
+it('preserves a paused anchor when an earlier mounted row is remeasured', () => {
+  let notify: ResizeObserverCallback | undefined;
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: ResizeObserverCallback) {
+        notify = callback;
+      }
+      observe() {}
+      disconnect() {}
+    },
+  );
+  let frame: FrameRequestCallback | undefined;
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frame = callback;
+    return 1;
+  });
+  const { log, view } = setup();
+  view.set(items(1000), false);
+  view.reveal('500');
+  const oldTop = log.scrollTop,
+    row = log.querySelector<HTMLElement>('[data-virtual-key]')!;
+  notify!(
+    [{ target: row, borderBoxSize: [{ blockSize: 48 }] } as unknown as ResizeObserverEntry],
+    {} as ResizeObserver,
+  );
+  frame!(0);
+  expect(log.scrollTop).toBe(oldTop + 16);
+  expect(view.isFollowing()).toBe(false);
+  view.stop();
+});
+
+it('does not treat a queued programmatic scroll as manual when layout changes its live gap', async () => {
+  const { log, view } = setup();
+  let extra = 0;
+  Object.defineProperty(log, 'scrollHeight', {
+    get: () =>
+      extra +
+      [...log.children].reduce(
+        (sum, node) =>
+          sum + (node.classList.contains('log-spacer') ? parseFloat((node as HTMLElement).style.height) : 32),
+        0,
+      ),
+  });
+  view.set(items(1000), true);
+  extra = 120;
+  log.dispatchEvent(new Event('scroll'));
+  expect(view.isFollowing()).toBe(true);
+  await vi.waitFor(() => expect(log.scrollTop).toBe(log.scrollHeight - log.clientHeight));
+  log.scrollTop -= 300;
+  log.dispatchEvent(new Event('scroll'));
+  expect(view.isFollowing()).toBe(false);
+  view.stop();
 });

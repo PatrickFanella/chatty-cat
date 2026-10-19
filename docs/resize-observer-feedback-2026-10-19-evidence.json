@@ -69,7 +69,7 @@
     }
   },
   "checks": {
-    "frontendTests": 930,
+    "frontendTests": 935,
     "frontendFiles": 190,
     "strictBuild": "pass",
     "format": "pass",
@@ -78,6 +78,299 @@
   "scope": {
     "repairDeployed": false,
     "allObserverPathsQualified": false,
-    "reproducer": "real FloatingPanel class in isolated synthetic fixture"
+    "reproducer": "real FloatingPanel class in isolated synthetic fixture",
+    "productionConfirmedByOwner": true,
+    "productionStillOn": "bd2e2bf",
+    "virtualLogFixtureObserverErrorBeforeRepair": false
+  },
+  "liveFollow": {
+    "before": {
+      "errors": [],
+      "following": false,
+      "top": 31976,
+      "gap": 1216,
+      "scrolls": [
+        {
+          "top": 31976,
+          "gap": 171,
+          "following": false
+        }
+      ]
+    },
+    "after": {
+      "states": [
+        {
+          "width": 400,
+          "following": true,
+          "gap": 0
+        },
+        {
+          "width": 180,
+          "following": true,
+          "gap": 0
+        },
+        {
+          "width": 400,
+          "following": true,
+          "gap": 0
+        },
+        {
+          "width": 180,
+          "following": true,
+          "gap": 0
+        },
+        {
+          "width": 400,
+          "following": true,
+          "gap": 0
+        },
+        {
+          "append": true,
+          "following": true,
+          "gap": 0
+        }
+      ],
+      "errors": []
+    },
+    "full": {
+      "run": {
+        "startedAt": 1792436944477,
+        "samples": [
+          {
+            "at": 1792436944477,
+            "messages": "14,230 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436945477,
+            "messages": "14,330 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436946574,
+            "messages": "14,431 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436947477,
+            "messages": "14,530 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436948477,
+            "messages": "14,630 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436949477,
+            "messages": "14,730 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436950477,
+            "messages": "14,830 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436951477,
+            "messages": "14,930 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436952477,
+            "messages": "15,030 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436953532,
+            "messages": "15,131 messages",
+            "gap": -0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436954477,
+            "messages": "15,230 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436955477,
+            "messages": "15,330 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436956477,
+            "messages": "15,430 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436957477,
+            "messages": "15,530 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436958477,
+            "messages": "15,630 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436959477,
+            "messages": "15,730 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436960477,
+            "messages": "15,830 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436961477,
+            "messages": "15,930 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436962477,
+            "messages": "16,030 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436963477,
+            "messages": "16,130 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436964477,
+            "messages": "16,230 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436965477,
+            "messages": "16,330 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436966477,
+            "messages": "16,430 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436967477,
+            "messages": "16,530 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436968477,
+            "messages": "16,630 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436969477,
+            "messages": "16,730 messages",
+            "gap": 0,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436970477,
+            "messages": "16,830 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436971477,
+            "messages": "16,930 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436972477,
+            "messages": "17,030 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436973477,
+            "messages": "17,130 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          },
+          {
+            "at": 1792436974477,
+            "messages": "17,230 messages",
+            "gap": 0.5,
+            "latestHidden": true,
+            "errorHidden": true
+          }
+        ],
+        "errors": [],
+        "complete": true,
+        "finishedAt": 1792436974477
+      },
+      "scripts": [
+        "http://localhost:5198/assets/main-B8zWGMlH.js"
+      ],
+      "final": {
+        "messages": "18,730 messages",
+        "gap": 0,
+        "latestHidden": true,
+        "errorHidden": true
+      },
+      "artifacts": {
+        "assets/main-B8zWGMlH.js": "7bce0de3646de0436d7eec7122bd05e5477d74d3bf6bd6f961e52e8a411bc086",
+        "assets/overlay-BqhujeTw.js": "2c0b82d1408aa6779035c8055f74a77da98615df86dfba103e26a24b8a5729e5"
+      }
+    }
   }
 }
