@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-19",
+  "baseCommit": "e2ec4e798ad83c154fa8d85e03604c2239a240b3",
+  "includedPR": 174,
+  "excludedPR": 175,
+  "release": "chatty-cat-e2ec4e7-20261019",
+  "image": "sha256:a8ea94dbf5fa05f26637e30c84607fc159335613f92d2932b6427d09f7873079",
+  "manifestFilesVerified": 4041,
+  "staging": "readiness and packaged hashes passed; temporary container removed",
+  "mergedMainCI": "success; both push checks",
+  "runtime": {
+    "healthy": true,
+    "restarts": 0,
+    "readiness": 200,
+    "retainedDataFiles": 2,
+    "retainedDataUnchanged": true,
+    "anonymousChat": "connected",
+    "main": "assets/main-1GbpM8zh.js",
+    "serviceWorker": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-1GbpM8zh.js"
+  },
+  "publicBrowserHashes": {
+    "index.html": {
+      "status": 200,
+      "bytes": 5747,
+      "sha256": "28ec0fb71e87f10f328d48a37b90a7532f35c24f62431c2651a86d418035f0ef"
+    },
+    "assets/main-1GbpM8zh.js": {
+      "status": 200,
+      "bytes": 438951,
+      "sha256": "45dc3c5ac0cb1d675bb27ae3ee10b0f09a60a25369ee66c3c725b769da806e8a"
+    },
+    "assets/storage-worker-Lb5EFQx7.js": {
+      "status": 200,
+      "bytes": 120500,
+      "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+    },
+    "overlay.html": {
+      "status": 200,
+      "bytes": 608,
+      "sha256": "ece91f15fe3251ea3b3aa2ebab2edcde0d33edc64ffbb3b5467548f72ae2348a"
+    },
+    "assets/overlay-BVB5R_Vg.js": {
+      "status": 200,
+      "bytes": 7270,
+      "sha256": "aa92137d9fbb1a3dd8eb8b7a55e96edfbe14acacefb0a6f3814e2f91ecadd1f3"
+    },
+    "source.tar.gz": {
+      "status": 200,
+      "bytes": 3209819,
+      "sha256": "5a2e4758a70ad1347fa33c8254526ba7a0ddce359be68d465d22dabd9f6d3736"
+    }
+  },
+  "sourceRebuild": "strict build passes and reproduces selected main/worker/HTML/overlay hashes without source supplements",
+  "recovery": {
+    "directory": "recovery/storage-e2ec4e7-20261019",
+    "guardCheck": "passed without mutation",
+    "rollbackImage": "sha256:95d8e88271900f9dabb245adbee959387e7049bbacb8036d10f7ade282f5081d",
+    "rollbackExercised": false
+  },
+  "limits": [
+    "Virtual-log live-follow repair in PR #175 is not included",
+    "No claim that all observer paths are qualified",
+    "No authenticated provider writes, reboot or disconnected offline qualification"
+  ]
+}
