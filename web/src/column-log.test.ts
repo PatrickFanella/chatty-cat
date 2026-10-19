@@ -163,3 +163,24 @@ it('keeps rail modes 4–6 in one chat column on desktop and portrait screens', 
   view!.set(records(100), true, 0, false, 4);
   expect(root.querySelectorAll('.log-column')).toHaveLength(0);
 });
+
+it('keeps global follow intent for its child log layout-adjustment scrolls', () => {
+  const root = setup();
+  let extra = 0;
+  Object.defineProperty(root, 'scrollHeight', {
+    get: () =>
+      extra +
+      [...root.children].reduce(
+        (sum, node) =>
+          sum + (node.classList.contains('log-spacer') ? parseFloat((node as HTMLElement).style.height) : 32),
+        0,
+      ),
+  });
+  view!.set(records(1000), true);
+  extra = 120;
+  expect(view!.trackScroll(root, true)).toBe(true);
+  expect(view!.hasManualPause()).toBe(false);
+  root.scrollTop -= 300;
+  expect(view!.trackScroll(root, true)).toBe(false);
+  expect(view!.hasManualPause()).toBe(true);
+});

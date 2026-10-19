@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Virtual log resize fixture</title>
+    <style>
+      body{margin:0}#log{height:240px;width:400px;overflow:auto}.row{box-sizing:border-box;line-height:24px;padding:4px;border-bottom:1px solid;overflow-wrap:anywhere}.log-spacer{flex:none}
+    </style>
+    <script>
+      window.__logResize={errors:[],scrolls:[]};addEventListener('error',e=>__logResize.errors.push(e.message));
+    </script>
+  </head>
+  <body>
+    <main id="log"></main>
+    <script type="module">
+      import {VirtualLog} from '../src/virtual-log.ts';
+      const root=document.querySelector('#log');const view=new VirtualLog(root);const rows=Array.from({length:1000},(_,i)=>{const row=document.createElement('article');row.className='row';row.textContent=i+' '+('message with wrapped text '.repeat(i%4+1));return{key:String(i),render:()=>row}});view.set(rows,true);Object.assign(__logResize,{view,root,rows});root.addEventListener('scroll',()=>{__logResize.scrolls.push({top:root.scrollTop,gap:root.scrollHeight-root.clientHeight-root.scrollTop,following:view.isFollowing()});if(__logResize.scrolls.length>20)__logResize.scrolls.shift()});
+    </script>
+  </body>
+</html>
