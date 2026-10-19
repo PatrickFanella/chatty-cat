@@ -44,3 +44,8 @@ mutations, intervals, workers or database opens and zero measured renderer CPU.
 Total OBS CPU on the software compositor averaged 2.27%, compared with 0.72% for
 a hidden, shut-down source. This does not establish near-zero total OBS CPU or
 hardware-accelerated behavior. See the [Wave 5 report](wave5-2026-10-18.md).
+
+On October 18, the owner accepted the renderer-specific idle result for #138.
+The accepted gate is zero measured idle renderer CPU and DOM work; total OBS CPU
+and hardware-accelerated behavior remain separate observations and are no longer
+closure prerequisites. #138 awaits merge of PR #172.

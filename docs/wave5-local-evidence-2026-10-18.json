@@ -169,7 +169,7 @@
   "overlayImplementationCommit": "0047fecd2ac1481780be20549af82a53d8599ca0",
   "qualificationIssueState": {
     "137": "open; implementation and bounded rehearsal prepared for review, full long-task attribution remains distinct",
-    "138": "open; total OBS CPU gate not established by software-rendered observation"
+    "138": "owner accepted renderer-specific idle result on 2026-10-18; awaits PR #172 merge"
   },
   "busySession": {
     "startedAt": 1792360497398,
@@ -496,5 +496,13 @@
   "fixtureFinalCounters": {
     "messagesSentAcrossClients": 313730,
     "providerWrites": 0
+  },
+  "ownerAcceptance": {
+    "date": "2026-10-18",
+    "issue": 138,
+    "decision": "Accept the renderer-specific idle result",
+    "acceptedGate": "Zero measured idle OBS renderer CPU and DOM work",
+    "hardwareAcceleratedQualificationRequiredForClosure": false,
+    "totalOBSCPUClaim": "not qualified; software compositor measurements retained"
   }
 }

@@ -216,12 +216,12 @@ Window storage/encoding calls, no runtime errors and a maximum worker dispatch
 of 2.2 ms. Overall long tasks remain; complete storage attribution is
 not supplied by the readout, so #137 remains open for acceptance review.
 
-#138 remains open for its near-zero total OBS idle CPU gate. The software-rendered
-native OBS rehearsal measured zero renderer CPU and DOM mutations, but OBS's
-reported CPU averaged 2.27% versus a 0.72% blank-scene baseline. Hardware-accelerated
-qualification or an explicitly accepted scope change is still required. Wave 6
-#141 is next after this review; live acceptance and #136's CPU/GPU qualification
-remain independent.
+On October 18 the owner accepted #138's renderer-specific idle result: zero
+measured renderer CPU and DOM mutations in native OBS. The software compositor's
+2.27% total OBS CPU versus a 0.72% baseline remains recorded; hardware-accelerated
+OBS qualification is no longer a closure prerequisite. #138 awaits merge of PR
+#172 under this accepted scope. Wave 6 #141 is next after review; live acceptance
+and #136's CPU/GPU qualification remain independent.
 
 Production remains on `b95b7fb` through #167; later stages and this branch are not
 deployed. The [October 16 deployment receipt](deployment-2026-10-16.md) records the
