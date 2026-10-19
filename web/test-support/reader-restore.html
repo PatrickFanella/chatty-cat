@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Delayed reader restoration fixture</title></head>
+  <body>
+    <script type="module">
+      // Local Vite fixture only. All transport/API responses are synthetic.
+      const state = window.__readerRestore = { errors: [], released: false };
+      addEventListener('error', (event) => state.errors.push(event.message));
+      const nativeFetch = window.fetch.bind(window);
+      const html = await (await nativeFetch('/index.html')).text();
+      const shell = new DOMParser().parseFromString(html, 'text/html');
+      shell.querySelectorAll('script').forEach((script) => script.remove());
+      document.body.innerHTML = shell.body.innerHTML;
+      window.fetch = async (input, init) => {
+        const url = new URL(String(input), location.href);
+        if (!url.pathname.startsWith('/api/')) return nativeFetch(input, init);
+        if (url.pathname === '/api/public-config') return Response.json({});
+        if (url.pathname === '/api/auth/session')
+          return Response.json({ enabled: false, authenticated: false, loginURL: '/api/auth/login' });
+        if (url.pathname.startsWith('/api/channels/'))
+          return Response.json({ channel: 'one', emotes: {}, badges: {}, emoteUse: {}, errors: [], stream: { uptime: 'offline', viewers: '', title: '' } });
+        return Response.json({}, { status: 404 });
+      };
+      const message = (i) => ({ id: i === 10 ? 'saved' : String(i), command: 'PRIVMSG', channel: 'one', login: 'fixture', text: 'Synthetic message ' + i + ' wrapped text '.repeat(i % 5 + 1), timestamp: Date.now() - (1000 - i) * 1000, tags: {} });
+      window.WebSocket = class {
+        static OPEN = 1;
+        readyState = 1;
+        constructor(url) {
+          if (new URL(url).pathname === '/api/chat') state.socket = this;
+        }
+        close() { this.readyState = 3; }
+      };
+      const { WorkspaceStore } = await import('../src/workspaces.ts');
+      const { defaultDisplay } = await import('../src/display.ts');
+      const { MessageArchive } = await import('../src/archive.ts');
+      const mode = new URL(location.href).searchParams.get('mode') ?? 'saved';
+      // The disposable local origin owns this fixture's workspace and settings.
+      localStorage.clear();
+      const workspaces = new WorkspaceStore();
+      const workspace = workspaces.create('Delayed fixture', {
+        channels: ['one'], target: 'one', focus: 'log',
+        settings: { version: 1, display: { ...defaultDisplay(), split: 1, font: 'system' }, extras: {} },
+        readers: mode === 'fresh' ? [] : [{ column: 0, key: 'one:saved', offset: 12 }],
+      });
+      workspaces.activate(workspace.id);
+      let release;
+      const pending = new Promise((resolve) => { release = resolve; });
+      MessageArchive.prototype.recent = () => pending;
+      state.releaseHistory = () => { state.released = true; release(Array.from({ length: 1000 }, (_, i) => message(i))); };
+      let next = 1000;
+      state.append = () => state.socket.onmessage?.({ data: JSON.stringify({ type: 'message', replay: false, message: message(next++) }) });
+      state.read = () => {
+        const log = document.querySelector('#log');
+        return { count: document.querySelector('#count').textContent, gap: log.scrollHeight - log.clientHeight - log.scrollTop, latestHidden: document.querySelector('#latest').hidden, errors: state.errors, released: state.released };
+      };
+      await (await import('../src/main.ts')).startMain();
+      state.ready = true;
+    </script>
+  </body>
+</html>

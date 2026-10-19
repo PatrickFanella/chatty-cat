@@ -1747,6 +1747,8 @@ export async function startMain(): Promise<void> {
     { capture: true },
   );
   latest.addEventListener('click', () => {
+    // Explicit live intent supersedes a saved position still waiting for history.
+    pendingReaders = undefined;
     archiveGeneration++;
     archiveView = undefined;
     paneArchive = undefined;

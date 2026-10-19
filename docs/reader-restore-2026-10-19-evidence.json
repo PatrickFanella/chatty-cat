@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-19",
+  "baselineCommit": "2e0ae349cf5a0a87deb7281ae16b6596e9462164",
+  "fixture": "web/test-support/reader-restore.html",
+  "scenario": "Saved reader, delayed history, Latest messages before history resolves",
+  "baseline": {
+    "count": "1,000 messages",
+    "gap": 31171,
+    "latestHidden": false,
+    "errors": [],
+    "released": true
+  },
+  "repaired": {
+    "count": "1,000 messages",
+    "gap": 0,
+    "latestHidden": true,
+    "errors": [],
+    "released": true
+  },
+  "repairedAfter20MessagesAt600px": {
+    "count": "1,020 messages",
+    "gap": 0,
+    "latestHidden": true,
+    "errors": [],
+    "released": true
+  },
+  "tests": {
+    "baseline": "resume-before-history case failed; fresh-live and saved-reader controls passed",
+    "repaired": "938 tests across 191 files passed; strict production build and formatting passed"
+  },
+  "limits": [
+    "Local real-application fixture with synthetic API, transport and delayed archive response",
+    "No production deployment or natural Update ready transition qualified",
+    "Does not prove this race caused the earlier production observation or eliminate every scroll/observer path"
+  ]
+}
