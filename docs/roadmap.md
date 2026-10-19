@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 19, 2026 against main `e2ec4e7` and the live Gitea issue inventory.
+Updated October 19, 2026 against main `4a97004` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 8 open
 issues: 6 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -230,17 +230,18 @@ merged in PR #173 and does not close #137.
 Wave 6 #141 remains next in the implementation queue; live acceptance
 and #136's CPU/GPU qualification remain independent.
 
-Production now runs merged main `e2ec4e7` through #174, including the zoomed
-floating-panel repair and complete source packaging. The
-[resize deployment receipt](deployment-2026-10-19-resize.md) records the image,
-public/browser hashes, retained data and rollback guards. The separate chat-log
-live-follow repair in PR #175 is not deployed.
+Production now runs merged main `4a97004` through #175, including the floating-panel
+and virtual-log repairs. The [live-follow deployment receipt](deployment-2026-10-19-live-follow.md)
+records the image, public hashes, retained data and rollback guards. An initial
+production observation still lost live follow; later resize checks after resuming
+stayed current. Startup restoration and resize need separate reproduction before
+calling the reported scroll problem resolved; see [#177](https://git.subcult.tv/subculture-collective/chatty-cat/issues/177).
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
-merge did not supply those measurements. Merged main through #174 is deployed;
-the [resize deployment receipt](deployment-2026-10-19-resize.md) records the current
-runtime, public source and guarded rollback boundary. Later repairs remain separate.
+merge did not supply those measurements. Merged main through #175 is deployed;
+the [live-follow deployment receipt](deployment-2026-10-19-live-follow.md) records
+the current runtime, public source and guarded rollback boundary.
 
 ## Live acceptance track — independent of M6
 
