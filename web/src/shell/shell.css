@@ -227,6 +227,11 @@ html[data-shell] body {
     white-space: nowrap;
   }
   #topbar #login {
+    min-width: 0;
+    max-width: 100%;
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 11px;
   }
