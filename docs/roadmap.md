@@ -1,6 +1,6 @@
 # Remaining-work roadmap
 
-Updated October 19, 2026 against main `2cb440e` and the live Gitea issue inventory.
+Updated October 19, 2026 against main `1f64fb9` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 8 open
 issues: 6 delivery issues and the two planning issues, #3 and #143. Dates are
 checkpoints, not delivery promises.
@@ -240,20 +240,18 @@ diagnostics; each final head passed four hosted checks. Live provider acceptance
 and #136's external CPU/GPU qualification remain independent.
 
 Production now runs merged main `1f64fb9` through #180. The
-[layout deployment receipt](deployment-2026-10-19-layout.md) records its guards
-and successful ordinary/fresh reload viewport checks. The following reader
-receipt preserves the earlier #179 observation. The
-[reader deployment receipt](deployment-2026-10-19-reader.md) records the image,
-public hashes, data and rollback guards. Ordinary reload adopted the new bundle
-but still lost live follow in a popout without saved workspace readers.
-The delayed-reader repair is deployed; startup scrolling remains unqualified.
-The separate clamp/grow reproduction led to #180's content-height guard. It is
-now deployed and passed the recorded viewport round trips.
+[layout deployment receipt](deployment-2026-10-19-layout.md) records public hashes,
+retained data and rollback guards. Both a fresh public popout and an existing tab
+reloaded onto the new bundle stayed current through narrow/wide layouts: 120
+half-second samples had at most a 0.5-pixel gap, with no captured errors or runtime
+banner. This is bounded production verification, not exhaustive startup or #137
+performance acceptance.
+
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
 merge did not supply those measurements. Merged main through #180 is deployed;
-the [reader deployment receipt](deployment-2026-10-19-reader.md) records
+the [layout deployment receipt](deployment-2026-10-19-layout.md) records
 the current runtime, public source and guarded rollback boundary.
 
 ## Live acceptance track — independent of M6

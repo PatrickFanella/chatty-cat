@@ -1,0 +1,1054 @@
+{
+  "date": "2026-10-19",
+  "baseCommit": "1f64fb9792dd08462abc722f48bb930bb7981ebe",
+  "includedPR": 180,
+  "release": "chatty-cat-1f64fb9-20261019",
+  "image": "sha256:d5ec9332c63d5f70f3cc1a11bb32e1bfecab1587f055a53b4f47641543948c91",
+  "manifestFilesVerified": 4041,
+  "mergedMainCI": "both push checks passed",
+  "staging": "readiness and packaged hashes passed; temporary container removed",
+  "sourceRebuild": "five selected HTML/main/worker/overlay hashes reproduced",
+  "runtime": {
+    "health": "healthy",
+    "restarts": 0,
+    "readiness": 200,
+    "retainedDataFiles": 2,
+    "retainedDataUnchanged": true
+  },
+  "recovery": {
+    "directory": "recovery/storage-1f64fb9-20261019",
+    "guardCheck": "passed without mutation",
+    "rollbackImage": "sha256:8a8718fe8b0de0cfd111b892da72e34c715a870a771a2b7afee7097fe8b68ebb",
+    "rollbackExercised": false
+  },
+  "browser": {
+    "public": {
+      "hashes": {
+        "index.html": {
+          "status": 200,
+          "bytes": 5747,
+          "sha256": "a195e3cb1a2a2809fbe9999acaeac8ea0dbb9d6f51cdbf1f81d62073e4a73aee"
+        },
+        "assets/main-CHPFZrq4.js": {
+          "status": 200,
+          "bytes": 439043,
+          "sha256": "76efa4acfdffa2724ea1d3c1af9a09adb52d283d2803909387207bdae6b9e32c"
+        },
+        "assets/storage-worker-Lb5EFQx7.js": {
+          "status": 200,
+          "bytes": 120500,
+          "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+        },
+        "overlay.html": {
+          "status": 200,
+          "bytes": 608,
+          "sha256": "79976188fb3f913935960c6ee5861e828a2ea4f37aba8f156d1bc03017ecc515"
+        },
+        "assets/overlay-DYQcb1Vv.js": {
+          "status": 200,
+          "bytes": 7270,
+          "sha256": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+        },
+        "source.tar.gz": {
+          "status": 200,
+          "bytes": 3215410,
+          "sha256": "e301418ddf904e1d3022bcfd9377f410811dff9f78ea05dc8a4cba8cabaabb13"
+        }
+      },
+      "serviceWorker": "https://chat.subcult.tv/sw.js?build=%2Fassets%2Fmain-B7OoFs5M.js",
+      "ready": 200
+    },
+    "reload": {
+      "errors": [],
+      "samples": [
+        {
+          "at": 1792461651156,
+          "width": 1280,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "221 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461651656,
+          "width": 1280,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "221 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461652156,
+          "width": 1280,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "221 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461652656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "222 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461653156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461653656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461654156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461654656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461655156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461655656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461656156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461656656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461657156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461657656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "224 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461658156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461658656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461659156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461659656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461660156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461660656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461661156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461661656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461662156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "225 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461662656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "226 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461663156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "227 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461663656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "227 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461664156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "227 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461664656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "227 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461665156,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461665656,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461666156,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461666656,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461667156,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461667656,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461668156,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461668656,
+          "width": 600,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "228 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461669156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "229 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461669656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461670156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461670656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461671156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461671656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461672156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461672656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461673156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461673656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461674156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461674656,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "230 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461675156,
+          "width": 600,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "231 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461675656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "232 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461676156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "232 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461676656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "232 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461677156,
+          "width": 1280,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "234 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461677656,
+          "width": 1280,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "234 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461678156,
+          "width": 1280,
+          "gap": 0.5,
+          "latestHidden": true,
+          "count": "234 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461678656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "236 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461679156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "236 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461679656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "236 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461680156,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "236 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461680656,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "238 messages",
+          "banner": false
+        }
+      ],
+      "final": {
+        "at": 1792461681073,
+        "width": 1280,
+        "gap": 0,
+        "latestHidden": true,
+        "count": "238 messages",
+        "banner": false
+      }
+    },
+    "fresh": {
+      "errors": [],
+      "samples": [
+        {
+          "at": 1792461651188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "203 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461651688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "203 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461652188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "203 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461652688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "204 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461653188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461653688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461654188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461654688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461655188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461655688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461656188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461656688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461657188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461657688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "206 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461658188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461658688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461659188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461659688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461660188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461660688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461661188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461661688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461662188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "207 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461662688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "208 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461663188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "209 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461663688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "209 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461664188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "209 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461664688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "209 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461665188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461665688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461666188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461666688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461667188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461667688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461668188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461668688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "210 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461669188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "211 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461669688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461670188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461670688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461671188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461671688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461672188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461672688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461673188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461673688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461674188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461674688,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "212 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461675188,
+          "width": 390,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "214 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461675688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "214 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461676188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "214 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461676688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "214 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461677188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "216 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461677688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "216 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461678188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "216 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461678688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "218 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461679188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "218 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461679688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "218 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461680188,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "218 messages",
+          "banner": false
+        },
+        {
+          "at": 1792461680688,
+          "width": 1280,
+          "gap": 0,
+          "latestHidden": true,
+          "count": "220 messages",
+          "banner": false
+        }
+      ],
+      "final": {
+        "at": 1792461681087,
+        "width": 1280,
+        "gap": 0,
+        "latestHidden": true,
+        "count": "220 messages",
+        "banner": false
+      }
+    }
+  },
+  "limits": [
+    "Two roughly 30-second public popout observations, not exhaustive startup or provider qualification",
+    "Error listeners attached after startup; visible runtime banner checked in each sample",
+    "Ordinary reload verified; no Update ready button transition claimed",
+    "No authenticated writes, reboot, disconnected offline or 15-minute performance qualification"
+  ]
+}
