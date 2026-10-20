@@ -1,8 +1,9 @@
 // Family stems and age thresholds match the original picker.
+const familyCollator = new Intl.Collator('en', { sensitivity: 'base' });
 export function familyCompare(a: string, b: string): number {
   const stem = (s: string): string =>
     (s.match(/^[a-z]+|^[A-Z](?![a-z])[A-Z]*|^[A-Z][a-z]+|^[0-9]+/)?.[0] ?? s).toLowerCase();
-  const compare = (x: string, y: string): number => x.localeCompare(y, 'en', { sensitivity: 'base' });
+  const compare = familyCollator.compare;
   return compare(stem(a), stem(b)) || compare(a, b);
 }
 export const AGE_SECONDS = [
