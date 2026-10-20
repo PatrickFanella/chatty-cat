@@ -1,0 +1,2168 @@
+{
+  "baselineCommit": "655eff6bac0d03d9b1d46df22ab050b7bff78980",
+  "candidateCodeCommit": "5205b6d",
+  "environment": {
+    "viewport": [
+      1280,
+      800
+    ],
+    "retained": 100000,
+    "messagesPerSecond": 100,
+    "panels": [
+      "picker",
+      "Stats",
+      "resource readout"
+    ],
+    "node": "24.18.0",
+    "providerWrites": 0
+  },
+  "observations": {
+    "baseline2": {
+      "startedAt": 1792466299599,
+      "scripts": [
+        "http://127.0.0.1:5198/assets/main-D3HIvF30.js"
+      ],
+      "initial": {
+        "sampledMs": 0.10000002384185791,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 20,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "done": true,
+      "final": {
+        "sampledMs": 60736.60000002384,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 22,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 20.299999833106995,
+            "maxCallbackMs": 3.5,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1216.4999996423721,
+            "maxCallbackMs": 31.399999976158142,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 1,
+            "hiddenFires": 0,
+            "callbackMs": 0.19999992847442627,
+            "maxCallbackMs": 0.19999992847442627,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 59,
+            "hiddenFires": 0,
+            "callbackMs": 1208.2000004053116,
+            "maxCallbackMs": 31.399999976158142,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 5.599999785423279,
+            "maxCallbackMs": 1.2000000476837158,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1.0999999046325684,
+            "maxCallbackMs": 0.20000004768371582,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 12,
+            "hiddenFires": 0,
+            "callbackMs": 0.10000002384185791,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 20,
+            "hiddenFires": 0,
+            "callbackMs": 16.299999833106995,
+            "maxCallbackMs": 3.5,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 7,
+            "hiddenFires": 0,
+            "callbackMs": 0.3999999761581421,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 4,
+            "hiddenFires": 0,
+            "callbackMs": 2.899999976158142,
+            "maxCallbackMs": 0.8999999761581421,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 4,
+            "hiddenFires": 0,
+            "callbackMs": 0.30000007152557373,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 2,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 2,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [
+          {
+            "owner": "chat.contexts",
+            "calls": 367,
+            "totalMs": 0.6000001430511475,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "chat.items",
+            "calls": 367,
+            "totalMs": 29405.999998807907,
+            "maxMs": 191.60000002384186,
+            "longCalls": 367
+          },
+          {
+            "owner": "chat.render",
+            "calls": 367,
+            "totalMs": 47153.59999847412,
+            "maxMs": 250.29999995231628,
+            "longCalls": 367
+          },
+          {
+            "owner": "chat.virtualLog",
+            "calls": 367,
+            "totalMs": 17701.80000078678,
+            "maxMs": 85.80000007152557,
+            "longCalls": 111
+          },
+          {
+            "owner": "picker.query",
+            "calls": 59,
+            "totalMs": 402,
+            "maxMs": 10.5,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.append",
+            "calls": 20,
+            "totalMs": 15.999999761581421,
+            "maxMs": 3.5,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.prune",
+            "calls": 20,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.batch",
+            "calls": 306,
+            "totalMs": 70.19999969005585,
+            "maxMs": 1.5,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.buckets",
+            "calls": 10,
+            "totalMs": 0.40000009536743164,
+            "maxMs": 0.30000007152557373,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.ranks",
+            "calls": 20,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.save",
+            "calls": 2,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.batch",
+            "calls": 275,
+            "totalMs": 68.00000011920929,
+            "maxMs": 1.5,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.peaks",
+            "calls": 11,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.samples",
+            "calls": 55,
+            "totalMs": 0.9000002145767212,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.save",
+            "calls": 2,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.append",
+            "calls": 253,
+            "totalMs": 275.89999973773956,
+            "maxMs": 1.899999976158142,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.begin",
+            "calls": 6,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.finish",
+            "calls": 5,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.reply",
+            "calls": 1006,
+            "totalMs": 19.000000476837158,
+            "maxMs": 0.20000004768371582,
+            "longCalls": 0
+          }
+        ],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 367,
+          "totalMs": 50313,
+          "maxMs": 261
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "finishedAt": 1792466360336,
+      "errors": []
+    },
+    "candidate1": {
+      "startedAt": 1792466045044,
+      "scripts": [
+        "http://127.0.0.1:5198/assets/main-CoeP5bWV.js"
+      ],
+      "initial": {
+        "sampledMs": 0,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 20,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "done": true,
+      "final": {
+        "sampledMs": 60614.39999997616,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 22,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 23.9000004529953,
+            "maxCallbackMs": 2,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1240.2999997138977,
+            "maxCallbackMs": 29.700000047683716,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 1,
+            "hiddenFires": 0,
+            "callbackMs": 0.2999999523162842,
+            "maxCallbackMs": 0.2999999523162842,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 57,
+            "hiddenFires": 0,
+            "callbackMs": 1229.9999995231628,
+            "maxCallbackMs": 29.600000023841858,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 5.900000095367432,
+            "maxCallbackMs": 1.100000023841858,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1.8000000715255737,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 13,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 21,
+            "hiddenFires": 0,
+            "callbackMs": 18.200000286102295,
+            "maxCallbackMs": 1.7000000476837158,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 7,
+            "hiddenFires": 0,
+            "callbackMs": 0.5999999046325684,
+            "maxCallbackMs": 0.19999992847442627,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 5,
+            "hiddenFires": 0,
+            "callbackMs": 3.5000001192092896,
+            "maxCallbackMs": 1.1999999284744263,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 5,
+            "hiddenFires": 0,
+            "callbackMs": 0.5,
+            "maxCallbackMs": 0.19999992847442627,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 3,
+            "hiddenFires": 0,
+            "callbackMs": 0.10000002384185791,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 3,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [
+          {
+            "owner": "chat.contexts",
+            "calls": 494,
+            "totalMs": 1.500000238418579,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "chat.items",
+            "calls": 494,
+            "totalMs": 27364.500000476837,
+            "maxMs": 119.29999995231628,
+            "longCalls": 336
+          },
+          {
+            "owner": "chat.render",
+            "calls": 494,
+            "totalMs": 38896.40000104904,
+            "maxMs": 150.60000002384186,
+            "longCalls": 494
+          },
+          {
+            "owner": "chat.virtualLog",
+            "calls": 494,
+            "totalMs": 11457.699999332428,
+            "maxMs": 96.60000002384186,
+            "longCalls": 2
+          },
+          {
+            "owner": "picker.query",
+            "calls": 57,
+            "totalMs": 392.2000004053116,
+            "maxMs": 11.100000023841858,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.append",
+            "calls": 21,
+            "totalMs": 17.00000011920929,
+            "maxMs": 1.600000023841858,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.prune",
+            "calls": 21,
+            "totalMs": 0.5000001192092896,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.batch",
+            "calls": 394,
+            "totalMs": 94.59999990463257,
+            "maxMs": 2.200000047683716,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.buckets",
+            "calls": 14,
+            "totalMs": 0.20000004768371582,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.ranks",
+            "calls": 28,
+            "totalMs": 0.6000001430511475,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.save",
+            "calls": 3,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.batch",
+            "calls": 370,
+            "totalMs": 91.99999988079071,
+            "maxMs": 2.200000047683716,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.peaks",
+            "calls": 14,
+            "totalMs": 0.19999992847442627,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.samples",
+            "calls": 58,
+            "totalMs": 1.1999999284744263,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.save",
+            "calls": 3,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.append",
+            "calls": 307,
+            "totalMs": 385.29999935626984,
+            "maxMs": 2.399999976158142,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.begin",
+            "calls": 7,
+            "totalMs": 0.20000004768371582,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.finish",
+            "calls": 6,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.reply",
+            "calls": 1267,
+            "totalMs": 27.399998784065247,
+            "maxMs": 0.20000004768371582,
+            "longCalls": 0
+          }
+        ],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 494,
+          "totalMs": 43533,
+          "maxMs": 160
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "finishedAt": 1792466105659,
+      "errors": []
+    },
+    "candidate2": {
+      "startedAt": 1792466192185,
+      "scripts": [
+        "http://127.0.0.1:5198/assets/main-CoeP5bWV.js"
+      ],
+      "initial": {
+        "sampledMs": 0.19999992847442627,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 20,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "done": true,
+      "final": {
+        "sampledMs": 60613.5,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 22,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 15.300000309944153,
+            "maxCallbackMs": 1.600000023841858,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1307.8000004291534,
+            "maxCallbackMs": 43.299999952316284,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 1,
+            "hiddenFires": 0,
+            "callbackMs": 0.3999999761581421,
+            "maxCallbackMs": 0.3999999761581421,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 57,
+            "hiddenFires": 0,
+            "callbackMs": 1296.6999998092651,
+            "maxCallbackMs": 43.10000002384186,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 7.800000429153442,
+            "maxCallbackMs": 1.100000023841858,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 0.7999999523162842,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 12,
+            "hiddenFires": 0,
+            "callbackMs": 0.10000002384185791,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 20,
+            "hiddenFires": 0,
+            "callbackMs": 10.700000166893005,
+            "maxCallbackMs": 1.5,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 6,
+            "hiddenFires": 0,
+            "callbackMs": 0.19999992847442627,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 4,
+            "hiddenFires": 0,
+            "callbackMs": 3.600000023841858,
+            "maxCallbackMs": 1.2000000476837158,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 4,
+            "hiddenFires": 0,
+            "callbackMs": 0.30000007152557373,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 2,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 2,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [
+          {
+            "owner": "chat.contexts",
+            "calls": 611,
+            "totalMs": 1.399999976158142,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "chat.items",
+            "calls": 611,
+            "totalMs": 31177.999998688698,
+            "maxMs": 123.80000007152557,
+            "longCalls": 225
+          },
+          {
+            "owner": "chat.render",
+            "calls": 611,
+            "totalMs": 45070.49999892712,
+            "maxMs": 149.70000004768372,
+            "longCalls": 611
+          },
+          {
+            "owner": "chat.virtualLog",
+            "calls": 611,
+            "totalMs": 13804.50000166893,
+            "maxMs": 76,
+            "longCalls": 2
+          },
+          {
+            "owner": "picker.query",
+            "calls": 57,
+            "totalMs": 430.7999999523163,
+            "maxMs": 12.399999976158142,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.append",
+            "calls": 20,
+            "totalMs": 10.300000071525574,
+            "maxMs": 1.399999976158142,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.prune",
+            "calls": 20,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.batch",
+            "calls": 540,
+            "totalMs": 74.00000047683716,
+            "maxMs": 1.6999999284744263,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.buckets",
+            "calls": 16,
+            "totalMs": 0.3999999761581421,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.ranks",
+            "calls": 32,
+            "totalMs": 0.5999999046325684,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.save",
+            "calls": 2,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.batch",
+            "calls": 514,
+            "totalMs": 69.60000014305115,
+            "maxMs": 2.200000047683716,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.peaks",
+            "calls": 16,
+            "totalMs": 0.20000004768371582,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.samples",
+            "calls": 61,
+            "totalMs": 1.0999999046325684,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.save",
+            "calls": 2,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.append",
+            "calls": 441,
+            "totalMs": 543.8999993801117,
+            "maxMs": 2.9000000953674316,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.begin",
+            "calls": 8,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.finish",
+            "calls": 8,
+            "totalMs": 0.20000004768371582,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.reply",
+            "calls": 1700,
+            "totalMs": 35.00000011920929,
+            "maxMs": 0.20000004768371582,
+            "longCalls": 0
+          }
+        ],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 611,
+          "totalMs": 50679,
+          "maxMs": 164
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "finishedAt": 1792466252798
+    },
+    "baseline1": {
+      "startedAt": 1792465606603,
+      "initial": {
+        "sampledMs": 0.10000002384185791,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 22,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "done": true,
+      "final": {
+        "sampledMs": 60679.299999952316,
+        "recording": true,
+        "hidden": false,
+        "visibilityChanges": 0,
+        "mountedRows": 22,
+        "rowCache": 2048,
+        "retainedMessages": 100000,
+        "repeatingTimers": 2,
+        "timers": [
+          {
+            "owner": "scheduler.storage",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 9.199999690055847,
+            "maxCallbackMs": 1.2999999523162842,
+            "longCallbacks": 0
+          },
+          {
+            "owner": "scheduler.ui",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1058.5000005960464,
+            "maxCallbackMs": 40.5,
+            "longCallbacks": 0
+          }
+        ],
+        "scheduledTasks": [
+          {
+            "owner": "auth.refresh",
+            "intervalMs": 60000,
+            "fires": 1,
+            "hiddenFires": 0,
+            "callbackMs": 0.30000007152557373,
+            "maxCallbackMs": 0.30000007152557373,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "links.mirror",
+            "intervalMs": 900000,
+            "fires": 0,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": false
+          },
+          {
+            "owner": "picker.refresh",
+            "intervalMs": 1000,
+            "fires": 60,
+            "hiddenFires": 0,
+            "callbackMs": 1055.1000003814697,
+            "maxCallbackMs": 40.40000009536743,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "rate.timeline",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 1.0000001192092896,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "room.paint",
+            "intervalMs": 1000,
+            "fires": 61,
+            "hiddenFires": 0,
+            "callbackMs": 0.2999999523162842,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "stats.paint",
+            "intervalMs": 5000,
+            "fires": 12,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "ui",
+            "active": true
+          },
+          {
+            "owner": "storage.archive",
+            "intervalMs": 3000,
+            "fires": 20,
+            "hiddenFires": 0,
+            "callbackMs": 5.399999618530273,
+            "maxCallbackMs": 0.3999999761581421,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.coverage",
+            "intervalMs": 10000,
+            "fires": 6,
+            "hiddenFires": 0,
+            "callbackMs": 0.20000004768371582,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.messages",
+            "intervalMs": 15000,
+            "fires": 4,
+            "hiddenFires": 0,
+            "callbackMs": 3.299999952316284,
+            "maxCallbackMs": 0.8999999761581421,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.picker",
+            "intervalMs": 15000,
+            "fires": 4,
+            "hiddenFires": 0,
+            "callbackMs": 0.10000002384185791,
+            "maxCallbackMs": 0.10000002384185791,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.rates",
+            "intervalMs": 30000,
+            "fires": 2,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          },
+          {
+            "owner": "storage.stats",
+            "intervalMs": 30000,
+            "fires": 2,
+            "hiddenFires": 0,
+            "callbackMs": 0,
+            "maxCallbackMs": 0,
+            "longCallbacks": 0,
+            "pool": "storage",
+            "active": true
+          }
+        ],
+        "protocolDeadlines": [],
+        "synchronousWork": [
+          {
+            "owner": "chat.contexts",
+            "calls": 481,
+            "totalMs": 1.100000262260437,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "chat.items",
+            "calls": 481,
+            "totalMs": 32873.59999883175,
+            "maxMs": 118.90000009536743,
+            "longCalls": 481
+          },
+          {
+            "owner": "chat.render",
+            "calls": 481,
+            "totalMs": 53632.69999957085,
+            "maxMs": 159.39999997615814,
+            "longCalls": 481
+          },
+          {
+            "owner": "chat.virtualLog",
+            "calls": 481,
+            "totalMs": 20708.400000214577,
+            "maxMs": 80.09999990463257,
+            "longCalls": 19
+          },
+          {
+            "owner": "picker.query",
+            "calls": 60,
+            "totalMs": 347.90000009536743,
+            "maxMs": 8.899999976158142,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.append",
+            "calls": 20,
+            "totalMs": 5.199999690055847,
+            "maxMs": 0.3999999761581421,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.archive.prune",
+            "calls": 20,
+            "totalMs": 0.19999992847442627,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.batch",
+            "calls": 436,
+            "totalMs": 4.399999380111694,
+            "maxMs": 0.19999992847442627,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.buckets",
+            "calls": 14,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.ranks",
+            "calls": 28,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.ledger.save",
+            "calls": 2,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.batch",
+            "calls": 401,
+            "totalMs": 10.199999809265137,
+            "maxMs": 0.20000004768371582,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.peaks",
+            "calls": 16,
+            "totalMs": 0.10000002384185791,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.samples",
+            "calls": 61,
+            "totalMs": 0.7999999523162842,
+            "maxMs": 0.10000002384185791,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.rate.save",
+            "calls": 2,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.append",
+            "calls": 371,
+            "totalMs": 398.7999995946884,
+            "maxMs": 1.7999999523162842,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.begin",
+            "calls": 8,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.dispatch.summary.finish",
+            "calls": 7,
+            "totalMs": 0,
+            "maxMs": 0,
+            "longCalls": 0
+          },
+          {
+            "owner": "storage.reply",
+            "calls": 1405,
+            "totalMs": 17.49999988079071,
+            "maxMs": 0.20000004768371582,
+            "longCalls": 0
+          }
+        ],
+        "animatedEmotes": {
+          "playing": 0,
+          "paused": 0,
+          "withoutStatic": 0
+        },
+        "longTasks": {
+          "count": 481,
+          "totalMs": 57074,
+          "maxMs": 169
+        },
+        "heap": {
+          "usedBytes": 212000000,
+          "allocatedBytes": 662000000,
+          "limitBytes": 3760000000
+        },
+        "cpu": "external measurement required",
+        "gpu": "external measurement required"
+      },
+      "finishedAt": 1792465667282,
+      "errors": [],
+      "build": "655eff6bac0d03d9b1d46df22ab050b7bff78980"
+    }
+  },
+  "limits": [
+    "two sequential warm samples per build on a shared host",
+    "candidate2 reused its warm document; loaded bundle identities are recorded",
+    "browser transport command latency and scheduler cadence vary",
+    "synchronous nested boundaries overlap; no external CPU/GPU or provider qualification"
+  ],
+  "candidateMainSourceSHA256": "cb02ce0f82e491a36856fc6b4bbd3ee27b62151463d7e4b74a51abaa46d820ed",
+  "candidateMainAssetSHA256": "3b58fac6c7db98b14199bfb9b178f37385fdf569ecd6b78267ddca0a42c9329e",
+  "summary": {
+    "baseline2": {
+      "chat.contexts": {
+        "calls": 367,
+        "averageMs": 0.0016348777739813283,
+        "maxMs": 0.10000002384185791,
+        "longCalls": 0
+      },
+      "chat.items": {
+        "calls": 367,
+        "averageMs": 80.12534059620683,
+        "maxMs": 191.60000002384186,
+        "longCalls": 367
+      },
+      "chat.render": {
+        "calls": 367,
+        "averageMs": 128.48392370156435,
+        "maxMs": 250.29999995231628,
+        "longCalls": 367
+      },
+      "chat.virtualLog": {
+        "calls": 367,
+        "averageMs": 48.233787468083875,
+        "maxMs": 85.80000007152557,
+        "longCalls": 111
+      }
+    },
+    "candidate1": {
+      "chat.contexts": {
+        "calls": 494,
+        "averageMs": 0.0030364377295922654,
+        "maxMs": 0.10000002384185791,
+        "longCalls": 0
+      },
+      "chat.items": {
+        "calls": 494,
+        "averageMs": 55.39372469732153,
+        "maxMs": 119.29999995231628,
+        "longCalls": 336
+      },
+      "chat.render": {
+        "calls": 494,
+        "averageMs": 78.73765182398591,
+        "maxMs": 150.60000002384186,
+        "longCalls": 494
+      },
+      "chat.virtualLog": {
+        "calls": 494,
+        "averageMs": 23.193724695004914,
+        "maxMs": 96.60000002384186,
+        "longCalls": 2
+      }
+    },
+    "candidate2": {
+      "chat.contexts": {
+        "calls": 611,
+        "averageMs": 0.0022913256565599708,
+        "maxMs": 0.10000002384185791,
+        "longCalls": 0
+      },
+      "chat.items": {
+        "calls": 611,
+        "averageMs": 51.02782323844304,
+        "maxMs": 123.80000007152557,
+        "longCalls": 225
+      },
+      "chat.render": {
+        "calls": 611,
+        "averageMs": 73.765139114447,
+        "maxMs": 149.70000004768372,
+        "longCalls": 611
+      },
+      "chat.virtualLog": {
+        "calls": 611,
+        "averageMs": 22.593289691765843,
+        "maxMs": 76,
+        "longCalls": 2
+      }
+    },
+    "baseline1": {
+      "chat.contexts": {
+        "calls": 481,
+        "averageMs": 0.002286902832142281,
+        "maxMs": 0.10000002384185791,
+        "longCalls": 0
+      },
+      "chat.items": {
+        "calls": 481,
+        "averageMs": 68.34428274185395,
+        "maxMs": 118.90000009536743,
+        "longCalls": 481
+      },
+      "chat.render": {
+        "calls": 481,
+        "averageMs": 111.5024948016026,
+        "maxMs": 159.39999997615814,
+        "longCalls": 481
+      },
+      "chat.virtualLog": {
+        "calls": 481,
+        "averageMs": 43.05280665325276,
+        "maxMs": 80.09999990463257,
+        "longCalls": 19
+      }
+    }
+  }
+}

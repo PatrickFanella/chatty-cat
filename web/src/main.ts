@@ -833,6 +833,9 @@ export async function startMain(): Promise<void> {
       : virtualLog.layout.enabled
         ? store.messages
         : (archiveView ?? store.messages);
+    // An empty engine cannot match any global or pane rule. Avoid its per-row
+    // cache lookups across the full retained history and marker scan.
+    const ruleEngine = rulePanel?.engine.rules.length ? rulePanel.engine : undefined;
     const makeItems = (messages: readonly ChatMessage[], isArchive = false): LogItem[] => {
       const cleared = new Map<string, number>();
       const deleted = new Set<string>();
@@ -857,7 +860,7 @@ export async function startMain(): Promise<void> {
         )
           continue;
         const visibility = messageVisibility(message, display.options, selfLogin);
-        const rule = rulePanel?.engine.evaluate(message),
+        const rule = ruleEngine?.evaluate(message),
           similar = rulePanel?.similarity.classify(message, selfLogin) ?? false;
         if (rule?.hidden || (similar && rulePanel?.similarity.options.behavior === 'hide')) continue;
         if (visibility.blocked || (visibility.hiddenUser && display.options.hideMode === 'vanish')) continue;
@@ -907,9 +910,9 @@ export async function startMain(): Promise<void> {
           channel: message.channel,
           text: message.text,
           highlight: (scope) =>
-            (visibility.highlight || !!rulePanel?.engine.evaluate(message, virtualLog.ruleIDs(scope)).highlight) &&
+            (visibility.highlight || !!ruleEngine?.evaluate(message, virtualLog.ruleIDs(scope)).highlight) &&
             (!similar || !!rulePanel?.similarity.options.highlightSimilar),
-          visible: (ids) => !rulePanel?.engine.evaluate(message, ids).hidden,
+          visible: (ids) => !ruleEngine?.evaluate(message, ids).hidden,
           render: (scope = 'default') => {
             const row = rowsByMessage.get(message, scope, visualRevision * 2 + (removed ? 1 : 0), () => {
               const row = messageRow(
@@ -923,7 +926,7 @@ export async function startMain(): Promise<void> {
               if (message.command === 'PRIVMSG') loadRowPronouns(row, message.login, (login) => pronouns.get(login));
               return row;
             });
-            const decision = rulePanel?.engine.evaluate(message, virtualLog.ruleIDs(scope));
+            const decision = ruleEngine?.evaluate(message, virtualLog.ruleIDs(scope));
             const highlight =
               (visibility.highlight || !!decision?.highlight) &&
               (!similar || !!rulePanel?.similarity.options.highlightSimilar);
