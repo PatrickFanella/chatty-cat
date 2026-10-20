@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && tsc -p tsconfig.sw.json && vite build && node ../scripts/check-overlay-bundle.mjs",
+    "build": "tsc --noEmit && tsc -p tsconfig.sw.json && vite build && node ../scripts/check-overlay-bundle.mjs && node ../scripts/check-bundle-budgets.mjs",
     "check": "tsc --noEmit && tsc -p tsconfig.sw.json",
     "test": "vitest run",
     "format": "prettier --write \"src/**/*.{ts,css}\" \"*.ts\"",
