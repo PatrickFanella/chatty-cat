@@ -227,21 +227,32 @@ identifies chat rendering (229.6 ms maximum) and the visible picker refresh
 (149.1 ms maximum); measured storage callbacks and worker dispatch/replies stay
 below 2 ms. See [attribution evidence](storage-task-attribution.md). This slice
 merged in PR #173 and does not close #137.
-Wave 6 #141 remains next in the implementation queue; live acceptance
-and #136's CPU/GPU qualification remain independent.
+Wave 6 #141 is closed after PR #182 merged: all four exact-head checks and
+both merged-main checks passed. Its hosted frontend job emitted the committed
+gzip budgets and passed the deliberate 20 KiB regression test.
 
-Production now runs merged main `2cb440e` through #179. The
+The new [15-minute storage receipt](storage-acceptance-2026-10-19.md) records
+100,000 retained rows and active Stats queries. No measured storage callback,
+worker dispatch or reply handler exceeded 50 ms; the worker-shim suites passed
+122 tests. Overall chat/picker long tasks remain separate findings. PR #183
+merged the reusable picker collator, and #184 merged nested render-phase
+diagnostics; each final head passed four hosted checks. Live provider acceptance
+and #136's external CPU/GPU qualification remain independent.
+
+Production now runs merged main `1f64fb9` through #180. The
+[layout deployment receipt](deployment-2026-10-19-layout.md) records its guards
+and successful ordinary/fresh reload viewport checks. The following reader
+receipt preserves the earlier #179 observation. The
 [reader deployment receipt](deployment-2026-10-19-reader.md) records the image,
 public hashes, data and rollback guards. Ordinary reload adopted the new bundle
 but still lost live follow in a popout without saved workspace readers.
 The delayed-reader repair is deployed; startup scrolling remains unqualified.
-A separate local clamp/grow reproduction loses follow when layout changes an
-already-written scroll offset. Its content-height guard and user-input controls
-pass locally, with merge/deployment of that follow-up still pending.
+The separate clamp/grow reproduction led to #180's content-height guard. It is
+now deployed and passed the recorded viewport round trips.
 
 #142's formatter and #134's resource readout/first local baseline are merged and
 closed. Broader production, hidden-tab and CPU/GPU qualification remains separate;
-merge did not supply those measurements. Merged main through #179 is deployed;
+merge did not supply those measurements. Merged main through #180 is deployed;
 the [reader deployment receipt](deployment-2026-10-19-reader.md) records
 the current runtime, public source and guarded rollback boundary.
 
