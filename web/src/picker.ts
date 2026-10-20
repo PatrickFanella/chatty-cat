@@ -1,4 +1,5 @@
 import { parsePickerGeometry } from './picker-geometry';
+import { measureResourceWork } from './resource-timers';
 export { parsePickerGeometry } from './picker-geometry';
 import { clockTask, stopClockTask } from './shell/clock';
 import { EMOJI_GROUPS, EMOJI_VERSION, emojiNode, loadEmojiCatalog, emojiCatalogLoaded } from './emoji';
@@ -239,7 +240,7 @@ export class EmotePicker {
     }
     this.ensureEmoji();
     this.dirty = false;
-    const items = this.model.query(this.channel(), this.search.value);
+    const items = measureResourceWork('picker.query', () => this.model.query(this.channel(), this.search.value));
     const displayed = items.slice(0, this.page);
     const oldTop = this.grid.scrollTop;
     const regions = [this.grid, this.recent];

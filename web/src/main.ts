@@ -940,27 +940,33 @@ export async function startMain(): Promise<void> {
       }
       return items;
     };
-    const items = makeItems(messages, !!archiveView && !virtualLog.layout.enabled);
+    const items = measureResourceWork('chat.items', () =>
+      makeItems(messages, !!archiveView && !virtualLog.layout.enabled),
+    );
     if (virtualLog.layout.enabled && archiveView && archiveView !== paneArchive) {
       paneArchive = archiveView;
       for (const message of archiveView) paneArchiveMessages.set(messageKey(message), message);
       const context = makeItems(archiveView, true);
       virtualLog.showContext(display.options.rev ? context.reverse() : context, archiveView.map(messageKey));
     }
-    virtualLog.refreshContexts((keys) => {
-      const messages = keys
-        .map((key) => paneArchiveMessages.get(key))
-        .filter((message): message is ChatMessage => !!message);
-      const context = makeItems(messages, true);
-      return display.options.rev ? context.reverse() : context;
-    });
-    virtualLog.set(
-      display.options.rev ? items.reverse() : items,
-      follow,
-      visualRevision,
-      display.options.rev,
-      overlay ? 1 : display.options.split,
-      display.options.pause,
+    measureResourceWork('chat.contexts', () =>
+      virtualLog.refreshContexts((keys) => {
+        const messages = keys
+          .map((key) => paneArchiveMessages.get(key))
+          .filter((message): message is ChatMessage => !!message);
+        const context = makeItems(messages, true);
+        return display.options.rev ? context.reverse() : context;
+      }),
+    );
+    measureResourceWork('chat.virtualLog', () =>
+      virtualLog.set(
+        display.options.rev ? items.reverse() : items,
+        follow,
+        visualRevision,
+        display.options.rev,
+        overlay ? 1 : display.options.split,
+        display.options.pause,
+      ),
     );
     if (paneArchiveMessages.size) {
       const keys = virtualLog.contextKeys();

@@ -66,7 +66,13 @@ it('boots twelve channels, reuses duplicate pane sources and releases the last c
       return new Response('{}', { status: 404 });
     }),
   );
+  const diagnostics = await import('./resource-timers');
+  diagnostics.sampleIntervals(true);
   await (await import('./main')).startMain();
+  expect(diagnostics.resourceWorkSnapshot().map((sample) => sample.owner)).toEqual(
+    expect.arrayContaining(['chat.render', 'chat.items', 'chat.contexts', 'chat.virtualLog']),
+  );
+  diagnostics.sampleIntervals(false);
   await vi.waitFor(() => expect(document.querySelectorAll('.split-pane')).toHaveLength(2));
   expect(Socket.all).toHaveLength(1);
   expect(Socket.all[0]?.url.searchParams.get('channels')?.split(',')).toHaveLength(12);
