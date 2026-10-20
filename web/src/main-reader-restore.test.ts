@@ -72,6 +72,8 @@ it.each(['fresh live', 'saved reader', 'resume before history'] as const)(
     const { SplitLog } = await import('./split-log');
     const restore = vi.spyOn(SplitLog.prototype, 'restoreReaders');
     const render = vi.spyOn(SplitLog.prototype, 'set');
+    const { RuleEngine } = await import('./rules');
+    const evaluate = vi.spyOn(RuleEngine.prototype, 'evaluate');
     await (await import('./main')).startMain();
     const latest = document.querySelector<HTMLButtonElement>('#latest')!;
     if (scenario !== 'fresh live') expect(restore).toHaveBeenCalled();
@@ -98,6 +100,43 @@ it.each(['fresh live', 'saved reader', 'resume before history'] as const)(
     } else {
       expect(restore).not.toHaveBeenCalled();
       expect(latest.hidden).toBe(true);
+    }
+    if (scenario === 'fresh live') {
+      evaluate.mockClear();
+      latest.click();
+      expect(evaluate).not.toHaveBeenCalled();
+      const { profileKey } = await import('./account-profiles');
+      const key = profileKey('chatthing:v1:rules');
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key,
+          newValue: JSON.stringify({
+            rules: [
+              {
+                id: 'hide',
+                name: 'Hide fixture history',
+                enabled: true,
+                field: 'phrase',
+                pattern: 'Delayed history',
+                regex: false,
+                caseSensitive: false,
+                action: 'ignore',
+                color: '#aabbcc',
+                sound: false,
+                notify: false,
+                inbox: false,
+                scope: 'global',
+              },
+            ],
+          }),
+        }),
+      );
+      await vi.waitFor(() => expect(render.mock.calls.at(-1)![0]).toHaveLength(0));
+      expect(evaluate).toHaveBeenCalled();
+      evaluate.mockClear();
+      window.dispatchEvent(new StorageEvent('storage', { key, newValue: JSON.stringify({ rules: [] }) }));
+      await vi.waitFor(() => expect(render.mock.calls.at(-1)![0]).toHaveLength(60));
+      expect(evaluate).not.toHaveBeenCalled();
     }
   },
 );
