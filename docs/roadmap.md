@@ -254,7 +254,9 @@ The current render investigation is documented in
 [empty-rule rendering](empty-rule-rendering.md); its local measurements are
 limited to synthetic warm-session timings and separate from the completed
 storage gate. The public deployment check found a 6-pixel account-button
-overflow at 390 pixels; its compact-header repair is the next bounded slice.
+overflow at 390 pixels. The [compact-header repair](compact-account-header.md)
+fits the local signed-out/long-account visual states at 320/390/600/1280 pixels
+and retains keyboard access; merge and deployment remain pending.
 
 ## Live acceptance track — independent of M6
 

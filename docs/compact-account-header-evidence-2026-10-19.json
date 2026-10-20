@@ -1,0 +1,252 @@
+{
+  "base": "549ee0279f3fd507276d2702775f77c72dabbe96",
+  "change": "compact button min-width0, max-width100%, no flex shrinking against account label, hidden overflow and ellipsis below700px",
+  "scope": "local production bundle, synthetic visual labels; no provider authentication action",
+  "browser": {
+    "samples": [
+      {
+        "state": "signed out",
+        "width": 320,
+        "height": 700,
+        "scrollWidth": 320,
+        "button": {
+          "left": 219.734375,
+          "right": 312,
+          "width": 92.265625,
+          "height": 26,
+          "label": "Log in with Twitch",
+          "disabled": false,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "flexShrink": "0",
+          "overflow": "hidden",
+          "textOverflow": "ellipsis",
+          "clipped": true
+        },
+        "accountGroup": {
+          "left": 219.734375,
+          "right": 312,
+          "width": 92.265625
+        },
+        "errors": []
+      },
+      {
+        "state": "signed in",
+        "width": 320,
+        "height": 700,
+        "scrollWidth": 320,
+        "button": {
+          "left": 241.015625,
+          "right": 312,
+          "width": 70.984375,
+          "height": 26,
+          "label": "Sign out",
+          "disabled": false,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "flexShrink": "0",
+          "overflow": "hidden",
+          "textOverflow": "ellipsis",
+          "clipped": false
+        },
+        "accountGroup": {
+          "left": 198.8203125,
+          "right": 312,
+          "width": 113.1796875
+        },
+        "errors": []
+      },
+      {
+        "state": "signed out",
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "button": {
+          "left": 247.484375,
+          "right": 382,
+          "width": 134.515625,
+          "height": 26,
+          "label": "Log in with Twitch",
+          "disabled": false,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "flexShrink": "0",
+          "overflow": "hidden",
+          "textOverflow": "ellipsis",
+          "clipped": true
+        },
+        "accountGroup": {
+          "left": 247.484375,
+          "right": 382,
+          "width": 134.515625
+        },
+        "errors": []
+      },
+      {
+        "state": "signed in",
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "button": {
+          "left": 311.015625,
+          "right": 382,
+          "width": 70.984375,
+          "height": 26,
+          "label": "Sign out",
+          "disabled": false,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "flexShrink": "0",
+          "overflow": "hidden",
+          "textOverflow": "ellipsis",
+          "clipped": false
+        },
+        "accountGroup": {
+          "left": 216.9921875,
+          "right": 382,
+          "width": 165.0078125
+        },
+        "errors": []
+      },
+      {
+        "state": "signed out",
+        "width": 600,
+        "height": 800,
+        "scrollWidth": 600,
+        "button": {
+          "left": 454.7890625,
+          "right": 592,
+          "width": 137.2109375,
+          "height": 26,
+          "label": "Log in with Twitch",
+          "disabled": false,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "flexShrink": "0",
+          "overflow": "hidden",
+          "textOverflow": "ellipsis",
+          "clipped": false
+        },
+        "accountGroup": {
+          "left": 454.7890625,
+          "right": 592,
+          "width": 137.2109375
+        },
+        "errors": []
+      },
+      {
+        "state": "signed in",
+        "width": 600,
+        "height": 800,
+        "scrollWidth": 600,
+        "button": {
+          "left": 521.015625,
+          "right": 592,
+          "width": 70.984375,
+          "height": 26,
+          "label": "Sign out",
+          "disabled": false,
+          "minWidth": "0px",
+          "maxWidth": "100%",
+          "flexShrink": "0",
+          "overflow": "hidden",
+          "textOverflow": "ellipsis",
+          "clipped": false
+        },
+        "accountGroup": {
+          "left": 335.015625,
+          "right": 592,
+          "width": 256.984375
+        },
+        "errors": []
+      },
+      {
+        "state": "signed out",
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "button": {
+          "left": 1123.953125,
+          "right": 1272,
+          "width": 148.046875,
+          "height": 26,
+          "label": "Log in with Twitch",
+          "disabled": false,
+          "minWidth": "auto",
+          "maxWidth": "none",
+          "flexShrink": "1",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clipped": false
+        },
+        "accountGroup": {
+          "left": 1123.953125,
+          "right": 1272,
+          "width": 148.046875
+        },
+        "errors": []
+      },
+      {
+        "state": "signed in",
+        "width": 1280,
+        "height": 800,
+        "scrollWidth": 1280,
+        "button": {
+          "left": 1196.203125,
+          "right": 1272,
+          "width": 75.796875,
+          "height": 26,
+          "label": "Sign out",
+          "disabled": false,
+          "minWidth": "auto",
+          "maxWidth": "none",
+          "flexShrink": "1",
+          "overflow": "visible",
+          "textOverflow": "clip",
+          "clipped": false
+        },
+        "accountGroup": {
+          "left": 1010.203125,
+          "right": 1272,
+          "width": 261.796875
+        },
+        "errors": []
+      }
+    ],
+    "errors": [],
+    "loadedMain": "assets/main-DnQ-GnE2.js",
+    "prototypeStyleAbsent": true
+  },
+  "keyboard": {
+    "focused": "login",
+    "buttonDisabled": false,
+    "fullLabel": "Log in with Twitch",
+    "errors": []
+  },
+  "checks": {
+    "node": "24.18.0",
+    "focusedTestFiles": 3,
+    "focusedTests": 7,
+    "strictTypeScript": "passed",
+    "format": "passed",
+    "bundleEntries": 56,
+    "overlayGuard": "passed"
+  },
+  "limits": [
+    "DOM labels and enabled button state were set only to exercise signed-out/signed-in layouts on a fixture with provider authentication disabled",
+    "keyboard Tab reached the button; no login or logout was submitted",
+    "production deployment and hosted CI are separate"
+  ],
+  "artifacts": {
+    "assets/main-DnQ-GnE2.js": {
+      "sha256": "a02d3918365304ef679d5ef997afa4d5022d588c8bd548110c27d7c0049790bd"
+    },
+    "assets/main-C5KiTjF2.css": {
+      "sha256": "b99971fe32f12c92969421932fa2fd3708ab32b8a4d7b91d5475653e4e4ef18a"
+    }
+  },
+  "budgets": {
+    "jsGzipBytes": 150741,
+    "cssGzipBytes": 14876
+  }
+}
