@@ -1,0 +1,82 @@
+{
+  "sourceCommit": "f0f84e89eeb2389fea060113e43d3710fe757734",
+  "mergedMain": "dccc9cd12b7df0e9e48bbb5bb8234131aa183a5a",
+  "sourceTreeIdentical": true,
+  "mainCI": {
+    "run": 16091,
+    "goJob": 29541,
+    "frontendJob": 29542,
+    "bothPassedBeforeActivation": true
+  },
+  "runtime": {
+    "image": "sha256:aff5b8236795948716fcb44614439e170a417f07dec5f5a0600d5e3099569db7",
+    "health": "healthy",
+    "restarts": 0,
+    "startedAt": "2026-10-20T04:27:47.717465841Z",
+    "retainedDataUnchanged": true,
+    "retainedFileCount": 2
+  },
+  "publicArtifacts": [
+    {
+      "url": "/assets/main-DnQ-GnE2.js",
+      "status": 200,
+      "bytes": 439160,
+      "sha256": "a02d3918365304ef679d5ef997afa4d5022d588c8bd548110c27d7c0049790bd"
+    },
+    {
+      "url": "/assets/main-C5KiTjF2.css",
+      "status": 200,
+      "bytes": 19338,
+      "sha256": "b99971fe32f12c92969421932fa2fd3708ab32b8a4d7b91d5475653e4e4ef18a"
+    },
+    {
+      "url": "/assets/storage-worker-Lb5EFQx7.js",
+      "status": 200,
+      "bytes": 120500,
+      "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+    },
+    {
+      "url": "/assets/overlay-DYQcb1Vv.js",
+      "status": 200,
+      "bytes": 7270,
+      "sha256": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+    },
+    {
+      "url": "/source.tar.gz?build=%2Fassets%2Fmain-DnQ-GnE2.js",
+      "status": 200,
+      "bytes": 3220193,
+      "sha256": "1dbadf5582e288f5c741ede534ed6fd3532f53a648da862c9653cb8019f89f50"
+    },
+    {
+      "url": "/api/ready",
+      "status": 200,
+      "bytes": 18,
+      "sha256": "31bf75f4c0a97cc1f7b60df824fa390b3be9ba014f29b63c87c698ba63d9a9fd"
+    }
+  ],
+  "publicLayout": [
+    {
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "loginRight": 382,
+      "loginWidth": 122.8125
+    },
+    {
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "loginRight": 312,
+      "loginWidth": 84.2421875
+    }
+  ],
+  "ordinaryReloadAdoptedRelease": true,
+  "capturedRuntimeErrors": [],
+  "rollbackGuardsPassed": true,
+  "remainingAcceptance": [
+    136,
+    32,
+    36,
+    38
+  ]
+}

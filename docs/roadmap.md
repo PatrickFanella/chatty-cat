@@ -240,9 +240,9 @@ merged the reusable picker collator, and #184 merged nested render-phase
 diagnostics; each final head passed four hosted checks. Live provider acceptance
 and #136's external CPU/GPU qualification remain independent.
 
-Production runs source `c6f91f6`, the approved #187 head with the same tree as
-merged main `e4c65ee`. The
-[current deployment receipt](deployment-2026-10-19-empty-rules.md) records staging,
+Production runs source `f0f84e8`, the approved #189 head with the same tree as
+merged main `dccc9cd`. The
+[current deployment receipt](deployment-2026-10-19-compact-header.md) records staging,
 public hashes, independent source rebuild, retained data and rollback guards.
 #180's earlier [layout receipt](deployment-2026-10-19-layout.md) preserves the
 passing fresh/reloaded popout viewport checks. These bounded observations do not
@@ -256,7 +256,9 @@ limited to synthetic warm-session timings and separate from the completed
 storage gate. The public deployment check found a 6-pixel account-button
 overflow at 390 pixels. The [compact-header repair](compact-account-header.md)
 fits the local signed-out/long-account visual states at 320/390/600/1280 pixels
-and retains keyboard access; merge and deployment remain pending.
+and retains keyboard access. It merged in #189 and is deployed; the public
+signed-out login fits at 320 and 390 pixels without document overflow. The
+deployment receipt preserves the narrower scope of the public check.
 
 ## Live acceptance track — independent of M6
 
