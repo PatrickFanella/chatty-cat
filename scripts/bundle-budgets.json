@@ -1,0 +1,456 @@
+{
+  "version": 1,
+  "baselineCommit": "1f64fb9792dd08462abc722f48bb930bb7981ebe",
+  "baseline": {
+    "index.html": {
+      "jsGzipBytes": 150652,
+      "cssGzipBytes": 14863
+    },
+    "overlay.html": {
+      "jsGzipBytes": 27127,
+      "cssGzipBytes": 10712
+    },
+    "src/account-profiles-ui.ts": {
+      "jsGzipBytes": 151948,
+      "cssGzipBytes": 14863
+    },
+    "src/archive-ui.ts": {
+      "jsGzipBytes": 156922,
+      "cssGzipBytes": 14863
+    },
+    "src/bookmarks-ui.ts": {
+      "jsGzipBytes": 155334,
+      "cssGzipBytes": 14863
+    },
+    "src/browser-companion-ui.ts": {
+      "jsGzipBytes": 155467,
+      "cssGzipBytes": 14863
+    },
+    "src/chat-context-ui.ts": {
+      "jsGzipBytes": 154605,
+      "cssGzipBytes": 14863
+    },
+    "src/chatterino-import-ui.ts": {
+      "jsGzipBytes": 156052,
+      "cssGzipBytes": 14863
+    },
+    "src/commands-ui.ts": {
+      "jsGzipBytes": 152854,
+      "cssGzipBytes": 14863
+    },
+    "src/comparison-ui.ts": {
+      "jsGzipBytes": 155202,
+      "cssGzipBytes": 14863
+    },
+    "src/completion-preferences-ui.ts": {
+      "jsGzipBytes": 153305,
+      "cssGzipBytes": 14863
+    },
+    "src/custom-theme-ui.ts": {
+      "jsGzipBytes": 152866,
+      "cssGzipBytes": 14863
+    },
+    "src/desktop-companion-ui.ts": {
+      "jsGzipBytes": 157395,
+      "cssGzipBytes": 14863
+    },
+    "src/device-sync-ui.ts": {
+      "jsGzipBytes": 156205,
+      "cssGzipBytes": 14863
+    },
+    "src/discovery.ts": {
+      "jsGzipBytes": 153513,
+      "cssGzipBytes": 14863
+    },
+    "src/display-ui.ts": {
+      "jsGzipBytes": 153886,
+      "cssGzipBytes": 14863
+    },
+    "src/extensions-ui.ts": {
+      "jsGzipBytes": 154902,
+      "cssGzipBytes": 14863
+    },
+    "src/history-import.ts": {
+      "jsGzipBytes": 26548,
+      "cssGzipBytes": 10544
+    },
+    "src/image-uploads.ts": {
+      "jsGzipBytes": 153928,
+      "cssGzipBytes": 14863
+    },
+    "src/inbox-ui.ts": {
+      "jsGzipBytes": 152785,
+      "cssGzipBytes": 14863
+    },
+    "src/inspector.ts": {
+      "jsGzipBytes": 152950,
+      "cssGzipBytes": 14863
+    },
+    "src/irc-relay-ui.ts": {
+      "jsGzipBytes": 157757,
+      "cssGzipBytes": 14863
+    },
+    "src/link-preferences-ui.ts": {
+      "jsGzipBytes": 152672,
+      "cssGzipBytes": 14863
+    },
+    "src/local-help-ui.ts": {
+      "jsGzipBytes": 151426,
+      "cssGzipBytes": 14863
+    },
+    "src/moderation-ui.ts": {
+      "jsGzipBytes": 175217,
+      "cssGzipBytes": 14863
+    },
+    "src/panel-templates/archive-search.html?raw": {
+      "jsGzipBytes": 695,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/display-panel.html?raw": {
+      "jsGzipBytes": 1131,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/emote-picker.html?raw": {
+      "jsGzipBytes": 786,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/resources-panel.html?raw": {
+      "jsGzipBytes": 271,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/stats-panel.html?raw": {
+      "jsGzipBytes": 716,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/user-inspector.html?raw": {
+      "jsGzipBytes": 329,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/video-panel.html?raw": {
+      "jsGzipBytes": 330,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/whisper-panel.html?raw": {
+      "jsGzipBytes": 332,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/workspace-panel.html?raw": {
+      "jsGzipBytes": 586,
+      "cssGzipBytes": 0
+    },
+    "src/picker.ts": {
+      "jsGzipBytes": 156456,
+      "cssGzipBytes": 14863
+    },
+    "src/portable-logs-ui.ts": {
+      "jsGzipBytes": 157481,
+      "cssGzipBytes": 14863
+    },
+    "src/presentation-ui.ts": {
+      "jsGzipBytes": 153280,
+      "cssGzipBytes": 14863
+    },
+    "src/privacy-settings-ui.ts": {
+      "jsGzipBytes": 151411,
+      "cssGzipBytes": 14863
+    },
+    "src/provider-activity-ui.ts": {
+      "jsGzipBytes": 154039,
+      "cssGzipBytes": 14863
+    },
+    "src/provider-preferences-ui.ts": {
+      "jsGzipBytes": 153722,
+      "cssGzipBytes": 14863
+    },
+    "src/resource-data-loader.ts": {
+      "jsGzipBytes": 151039,
+      "cssGzipBytes": 14863
+    },
+    "src/resource-readout.ts": {
+      "jsGzipBytes": 152171,
+      "cssGzipBytes": 14863
+    },
+    "src/resources.ts": {
+      "jsGzipBytes": 156212,
+      "cssGzipBytes": 14863
+    },
+    "src/rules-ui.ts": {
+      "jsGzipBytes": 153729,
+      "cssGzipBytes": 14863
+    },
+    "src/service-worker.ts": {
+      "jsGzipBytes": 1889,
+      "cssGzipBytes": 0
+    },
+    "src/shortcuts-ui.ts": {
+      "jsGzipBytes": 152192,
+      "cssGzipBytes": 14863
+    },
+    "src/split-settings-ui.ts": {
+      "jsGzipBytes": 151885,
+      "cssGzipBytes": 14863
+    },
+    "src/stats.ts": {
+      "jsGzipBytes": 158183,
+      "cssGzipBytes": 14863
+    },
+    "src/threads-ui.ts": {
+      "jsGzipBytes": 153573,
+      "cssGzipBytes": 14863
+    },
+    "src/user-holds.ts": {
+      "jsGzipBytes": 153120,
+      "cssGzipBytes": 14863
+    },
+    "src/user-notes-ui.ts": {
+      "jsGzipBytes": 153834,
+      "cssGzipBytes": 14863
+    },
+    "src/video.ts": {
+      "jsGzipBytes": 153060,
+      "cssGzipBytes": 14863
+    },
+    "src/vod-context-ui.ts": {
+      "jsGzipBytes": 27197,
+      "cssGzipBytes": 10544
+    },
+    "src/whispers-ui.ts": {
+      "jsGzipBytes": 151619,
+      "cssGzipBytes": 14863
+    },
+    "src/workspaces-ui.ts": {
+      "jsGzipBytes": 152705,
+      "cssGzipBytes": 14863
+    },
+    "src/storage-worker.ts": {
+      "jsGzipBytes": 34362,
+      "cssGzipBytes": 0
+    }
+  },
+  "entries": {
+    "index.html": {
+      "jsGzipBytes": 154748,
+      "cssGzipBytes": 15887
+    },
+    "overlay.html": {
+      "jsGzipBytes": 28484,
+      "cssGzipBytes": 11736
+    },
+    "src/account-profiles-ui.ts": {
+      "jsGzipBytes": 156044,
+      "cssGzipBytes": 15887
+    },
+    "src/archive-ui.ts": {
+      "jsGzipBytes": 161018,
+      "cssGzipBytes": 15887
+    },
+    "src/bookmarks-ui.ts": {
+      "jsGzipBytes": 159430,
+      "cssGzipBytes": 15887
+    },
+    "src/browser-companion-ui.ts": {
+      "jsGzipBytes": 159563,
+      "cssGzipBytes": 15887
+    },
+    "src/chat-context-ui.ts": {
+      "jsGzipBytes": 158701,
+      "cssGzipBytes": 15887
+    },
+    "src/chatterino-import-ui.ts": {
+      "jsGzipBytes": 160148,
+      "cssGzipBytes": 15887
+    },
+    "src/commands-ui.ts": {
+      "jsGzipBytes": 156950,
+      "cssGzipBytes": 15887
+    },
+    "src/comparison-ui.ts": {
+      "jsGzipBytes": 159298,
+      "cssGzipBytes": 15887
+    },
+    "src/completion-preferences-ui.ts": {
+      "jsGzipBytes": 157401,
+      "cssGzipBytes": 15887
+    },
+    "src/custom-theme-ui.ts": {
+      "jsGzipBytes": 156962,
+      "cssGzipBytes": 15887
+    },
+    "src/desktop-companion-ui.ts": {
+      "jsGzipBytes": 161491,
+      "cssGzipBytes": 15887
+    },
+    "src/device-sync-ui.ts": {
+      "jsGzipBytes": 160301,
+      "cssGzipBytes": 15887
+    },
+    "src/discovery.ts": {
+      "jsGzipBytes": 157609,
+      "cssGzipBytes": 15887
+    },
+    "src/display-ui.ts": {
+      "jsGzipBytes": 157982,
+      "cssGzipBytes": 15887
+    },
+    "src/extensions-ui.ts": {
+      "jsGzipBytes": 158998,
+      "cssGzipBytes": 15887
+    },
+    "src/history-import.ts": {
+      "jsGzipBytes": 27876,
+      "cssGzipBytes": 11568
+    },
+    "src/image-uploads.ts": {
+      "jsGzipBytes": 158024,
+      "cssGzipBytes": 15887
+    },
+    "src/inbox-ui.ts": {
+      "jsGzipBytes": 156881,
+      "cssGzipBytes": 15887
+    },
+    "src/inspector.ts": {
+      "jsGzipBytes": 157046,
+      "cssGzipBytes": 15887
+    },
+    "src/irc-relay-ui.ts": {
+      "jsGzipBytes": 161853,
+      "cssGzipBytes": 15887
+    },
+    "src/link-preferences-ui.ts": {
+      "jsGzipBytes": 156768,
+      "cssGzipBytes": 15887
+    },
+    "src/local-help-ui.ts": {
+      "jsGzipBytes": 155522,
+      "cssGzipBytes": 15887
+    },
+    "src/moderation-ui.ts": {
+      "jsGzipBytes": 179313,
+      "cssGzipBytes": 15887
+    },
+    "src/panel-templates/archive-search.html?raw": {
+      "jsGzipBytes": 1719,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/display-panel.html?raw": {
+      "jsGzipBytes": 2155,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/emote-picker.html?raw": {
+      "jsGzipBytes": 1810,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/resources-panel.html?raw": {
+      "jsGzipBytes": 1295,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/stats-panel.html?raw": {
+      "jsGzipBytes": 1740,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/user-inspector.html?raw": {
+      "jsGzipBytes": 1353,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/video-panel.html?raw": {
+      "jsGzipBytes": 1354,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/whisper-panel.html?raw": {
+      "jsGzipBytes": 1356,
+      "cssGzipBytes": 0
+    },
+    "src/panel-templates/workspace-panel.html?raw": {
+      "jsGzipBytes": 1610,
+      "cssGzipBytes": 0
+    },
+    "src/picker.ts": {
+      "jsGzipBytes": 160552,
+      "cssGzipBytes": 15887
+    },
+    "src/portable-logs-ui.ts": {
+      "jsGzipBytes": 161577,
+      "cssGzipBytes": 15887
+    },
+    "src/presentation-ui.ts": {
+      "jsGzipBytes": 157376,
+      "cssGzipBytes": 15887
+    },
+    "src/privacy-settings-ui.ts": {
+      "jsGzipBytes": 155507,
+      "cssGzipBytes": 15887
+    },
+    "src/provider-activity-ui.ts": {
+      "jsGzipBytes": 158135,
+      "cssGzipBytes": 15887
+    },
+    "src/provider-preferences-ui.ts": {
+      "jsGzipBytes": 157818,
+      "cssGzipBytes": 15887
+    },
+    "src/resource-data-loader.ts": {
+      "jsGzipBytes": 155135,
+      "cssGzipBytes": 15887
+    },
+    "src/resource-readout.ts": {
+      "jsGzipBytes": 156267,
+      "cssGzipBytes": 15887
+    },
+    "src/resources.ts": {
+      "jsGzipBytes": 160308,
+      "cssGzipBytes": 15887
+    },
+    "src/rules-ui.ts": {
+      "jsGzipBytes": 157825,
+      "cssGzipBytes": 15887
+    },
+    "src/service-worker.ts": {
+      "jsGzipBytes": 2913,
+      "cssGzipBytes": 0
+    },
+    "src/shortcuts-ui.ts": {
+      "jsGzipBytes": 156288,
+      "cssGzipBytes": 15887
+    },
+    "src/split-settings-ui.ts": {
+      "jsGzipBytes": 155981,
+      "cssGzipBytes": 15887
+    },
+    "src/stats.ts": {
+      "jsGzipBytes": 162279,
+      "cssGzipBytes": 15887
+    },
+    "src/threads-ui.ts": {
+      "jsGzipBytes": 157669,
+      "cssGzipBytes": 15887
+    },
+    "src/user-holds.ts": {
+      "jsGzipBytes": 157216,
+      "cssGzipBytes": 15887
+    },
+    "src/user-notes-ui.ts": {
+      "jsGzipBytes": 157930,
+      "cssGzipBytes": 15887
+    },
+    "src/video.ts": {
+      "jsGzipBytes": 157156,
+      "cssGzipBytes": 15887
+    },
+    "src/vod-context-ui.ts": {
+      "jsGzipBytes": 28557,
+      "cssGzipBytes": 11568
+    },
+    "src/whispers-ui.ts": {
+      "jsGzipBytes": 155715,
+      "cssGzipBytes": 15887
+    },
+    "src/workspaces-ui.ts": {
+      "jsGzipBytes": 156801,
+      "cssGzipBytes": 15887
+    },
+    "src/storage-worker.ts": {
+      "jsGzipBytes": 36081,
+      "cssGzipBytes": 0
+    }
+  }
+}
