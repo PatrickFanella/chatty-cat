@@ -1,0 +1,32 @@
+{
+  "node": "v24.18.0",
+  "items": 3958,
+  "orderEqual": true,
+  "runs": {
+    "baseline": [
+      63.40599300000001,
+      63.38968300000002,
+      66.48767700000002,
+      62.802606000000026,
+      63.83600099999995,
+      64.57671699999997,
+      65.12515399999995,
+      64.27459899999997
+    ],
+    "candidate": [
+      6.394665999999972,
+      5.396710999999982,
+      6.390196000000003,
+      5.423140999999987,
+      5.925958000000037,
+      5.365031999999985,
+      5.715449999999919,
+      5.241692000000057
+    ]
+  },
+  "context": "Kvant Linux, Node 24.18.0, 3958 emoji and mixed emote codes, eight alternating pairs; concurrent browser storage qualification and local checks; local sorting microbenchmark only",
+  "mediansMs": {
+    "baseline": 64.05529999999996,
+    "candidate": 5.569295499999953
+  }
+}
