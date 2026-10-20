@@ -1,0 +1,58 @@
+{
+  "baseCommit": "655eff6bac0d03d9b1d46df22ab050b7bff78980",
+  "sourceIncludesUncommittedChanges": false,
+  "image": "sha256:7dd95fb279554acdf5032b65ce0a2059933904c363f58dd492f879a18fe47cd1",
+  "previousImage": "sha256:d5ec9332c63d5f70f3cc1a11bb32e1bfecab1587f055a53b4f47641543948c91",
+  "recovery": "/srv/apps/projects/chatty-cat/recovery/storage-655eff6-20261019",
+  "runtime": {
+    "healthy": true,
+    "restarts": 0,
+    "startedAt": "2026-10-20T03:05:31.942106433Z",
+    "retainedDataFiles": 2,
+    "dataChanged": false
+  },
+  "public": {
+    "scripts": [
+      "https://chat.subcult.tv/assets/main-D3HIvF30.js"
+    ],
+    "ready": 200,
+    "assets": {
+      "assets/main-D3HIvF30.js": {
+        "status": 200,
+        "sha256": "5c7b5fdd3cf97d85c532bab57ba62f7f8ffd15b02af824cde220d88d17b22aa7"
+      },
+      "assets/storage-worker-Lb5EFQx7.js": {
+        "status": 200,
+        "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+      },
+      "assets/overlay-DYQcb1Vv.js": {
+        "status": 200,
+        "sha256": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+      },
+      "source.tar.gz": {
+        "status": 200,
+        "sha256": "e301418ddf904e1d3022bcfd9377f410811dff9f78ea05dc8a4cba8cabaabb13"
+      }
+    },
+    "banner": false,
+    "sourceLink": {
+      "url": "https://chat.subcult.tv/source.tar.gz?build=%2Fassets%2Fmain-D3HIvF30.js",
+      "status": 200,
+      "bytes": 3219646,
+      "sha256": "44d19f16a7324cf3d389201a9c341045ac820f2555dc583f0b596c0a1a0f1b91"
+    }
+  },
+  "sourceRebuild": {
+    "index.html": "85efabe6cce83067d8f781499d19ccf9e888ab28508f0e69de0ee0f090c93694",
+    "overlay.html": "79976188fb3f913935960c6ee5861e828a2ea4f37aba8f156d1bc03017ecc515",
+    "assets/main-D3HIvF30.js": "5c7b5fdd3cf97d85c532bab57ba62f7f8ffd15b02af824cde220d88d17b22aa7",
+    "assets/storage-worker-Lb5EFQx7.js": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931",
+    "assets/overlay-DYQcb1Vv.js": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+  },
+  "mergedMainCI": "success",
+  "limits": [
+    "brief 502 while container recreated; next navigation succeeded",
+    "bare source.tar.gz had an older Cloudflare cache HIT; the actual build-qualified app link matched current source",
+    "bounded public smoke, not performance or provider qualification"
+  ]
+}
