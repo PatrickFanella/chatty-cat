@@ -1,0 +1,180 @@
+{
+  "sourceCommit": "c6f91f6aa3e25c8f56c307840d1df73892f24334",
+  "mergedAs": "e4c65ee83f8ab745da025f80339c635636656512",
+  "sharedTree": "4b2fa1d60296f6b21494b4cd1ea115cee0b109f5",
+  "sourceIncludesUncommittedChanges": false,
+  "runtime": {
+    "image": "sha256:0a1c9309ce982ccfb7d9ca5c75bae0e360be32092997f265c57d8a1f87ecf67e",
+    "health": "healthy",
+    "restarts": 0,
+    "startedAt": "2026-10-20T03:41:21.310781053Z"
+  },
+  "data": {
+    "retainedDataFiles": 2,
+    "changed": []
+  },
+  "previousImage": "sha256:7dd95fb279554acdf5032b65ce0a2059933904c363f58dd492f879a18fe47cd1",
+  "recovery": "/srv/apps/projects/chatty-cat/recovery/storage-c6f91f6-20261019",
+  "stagingFilesVerified": 4042,
+  "sourceRebuild": {
+    "index.html": "8e3d989f00f35555bff41d914be2f1ecb4116aff63d646313068fe5cad9a53db",
+    "overlay.html": "79976188fb3f913935960c6ee5861e828a2ea4f37aba8f156d1bc03017ecc515",
+    "assets/main-CoeP5bWV.js": "3b58fac6c7db98b14199bfb9b178f37385fdf569ecd6b78267ddca0a42c9329e",
+    "assets/storage-worker-Lb5EFQx7.js": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931",
+    "assets/overlay-DYQcb1Vv.js": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+  },
+  "ci": {
+    "prHead": [
+      {
+        "context": "Verify / Go race and vet (pull_request)",
+        "status": "success",
+        "target_url": "/subculture-collective/chatty-cat/actions/runs/16046/jobs/29470"
+      },
+      {
+        "context": "Verify / Frontend tests and build (push)",
+        "status": "success",
+        "target_url": "/subculture-collective/chatty-cat/actions/runs/16045/jobs/29469"
+      },
+      {
+        "context": "Verify / Frontend tests and build (pull_request)",
+        "status": "success",
+        "target_url": "/subculture-collective/chatty-cat/actions/runs/16046/jobs/29471"
+      },
+      {
+        "context": "Verify / Go race and vet (push)",
+        "status": "success",
+        "target_url": "/subculture-collective/chatty-cat/actions/runs/16045/jobs/29468"
+      }
+    ],
+    "mergedMain": [
+      {
+        "context": "Verify / Go race and vet (push)",
+        "status": "success",
+        "target_url": "/subculture-collective/chatty-cat/actions/runs/16058/jobs/29485"
+      },
+      {
+        "context": "Verify / Frontend tests and build (push)",
+        "status": "success",
+        "target_url": "/subculture-collective/chatty-cat/actions/runs/16058/jobs/29486"
+      }
+    ]
+  },
+  "public": {
+    "scripts": [
+      "https://chat.subcult.tv/assets/main-CoeP5bWV.js"
+    ],
+    "assets": {
+      "/assets/main-CoeP5bWV.js": {
+        "status": 200,
+        "bytes": 439160,
+        "sha256": "3b58fac6c7db98b14199bfb9b178f37385fdf569ecd6b78267ddca0a42c9329e"
+      },
+      "/assets/storage-worker-Lb5EFQx7.js": {
+        "status": 200,
+        "bytes": 120500,
+        "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+      },
+      "/assets/overlay-DYQcb1Vv.js": {
+        "status": 200,
+        "bytes": 7270,
+        "sha256": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+      },
+      "https://chat.subcult.tv/source.tar.gz?build=%2Fassets%2Fmain-CoeP5bWV.js": {
+        "status": 200,
+        "bytes": 3220237,
+        "sha256": "4cb95cb842bab596c4766fa8f5ffaba098c55182d208957180fda4102a19b2ea"
+      }
+    },
+    "sourceLink": "https://chat.subcult.tv/source.tar.gz?build=%2Fassets%2Fmain-CoeP5bWV.js",
+    "ready": 200,
+    "banner": false,
+    "shellReady": true,
+    "errors": []
+  },
+  "publicLayouts": {
+    "layouts": [
+      {
+        "at": 1792467773984,
+        "width": 600,
+        "height": 800,
+        "panelOpen": true,
+        "panel": {
+          "x": 0,
+          "y": 450.578125,
+          "width": 600,
+          "height": 298.921875
+        },
+        "bodyOverflow": false,
+        "banner": false,
+        "errors": []
+      },
+      {
+        "at": 1792467774030,
+        "width": 390,
+        "height": 844,
+        "panelOpen": true,
+        "panel": {
+          "x": 0,
+          "y": 473.4609375,
+          "width": 390,
+          "height": 320.0390625
+        },
+        "bodyOverflow": true,
+        "banner": false,
+        "errors": []
+      },
+      {
+        "at": 1792467774146,
+        "width": 1280,
+        "height": 800,
+        "panelOpen": true,
+        "panel": {
+          "x": 240,
+          "y": 16,
+          "width": 800,
+          "height": 768
+        },
+        "bodyOverflow": false,
+        "banner": false,
+        "errors": []
+      },
+      {
+        "at": 1792467792798,
+        "width": 390,
+        "height": 844,
+        "panelOpen": true,
+        "panel": {
+          "x": 0,
+          "y": 473.4609375,
+          "width": 390,
+          "height": 320.0390625
+        },
+        "bodyOverflow": true,
+        "banner": false,
+        "errors": []
+      }
+    ],
+    "login": {
+      "label": "Log in with Twitch",
+      "html": "<button id=\"login\" type=\"button\">Log in with Twitch</button>"
+    },
+    "errors": []
+  },
+  "localBusyLayoutSmoke": {
+    "samples": 80,
+    "widths": [
+      390,
+      600,
+      1280
+    ],
+    "allLatestHidden": true,
+    "maxScrollGap": 75,
+    "errors": []
+  },
+  "limits": [
+    "PR-head source artifact has the same tree as merged main; commit identities differ",
+    "busy local scroll gaps include pending render work; this does not prove zero lag",
+    "public 390px account button overflow of about6px remains a follow-up defect",
+    "no provider or external CPU/GPU qualification"
+  ]
+}
