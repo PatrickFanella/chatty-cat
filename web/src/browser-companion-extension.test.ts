@@ -32,8 +32,32 @@ it('requires one-use pairing, exact sender origin/tab/account and an active hear
   expect(sendWatched(state, 'https://www.twitch.tv/one', 101004).channel).toBe('one');
   expect(external(state, poll, sender, 102004).watched).toEqual({ channel: 'one', seq: 1 });
   expect(external(state, poll, sender, 102005).ok).toBe(false);
-  expect(external(state, poll, sender, 140000).ok).toBe(false);
-  expect(() => sendWatched(state, 'https://www.twitch.tv/one', 140001)).toThrow('pair');
+  expect(external(state, poll, sender, 222005).ok).toBe(false);
+  expect(() => sendWatched(state, 'https://www.twitch.tv/one', 222006)).toThrow('pair');
+});
+it('keeps pairing across background timer delays while browsing Twitch channels', () => {
+  const state: BridgeState = {};
+  const code = pairingCode(state, 100000);
+  const receipt = external(state, { version: 1, kind: 'pair', account: '42', code }, sender, 100001);
+  const poll = { version: 1, kind: 'poll', account: '42', token: receipt.token };
+  expect(sendWatched(state, 'https://www.twitch.tv/patrick__eff', 101000).channel).toBe('patrick__eff');
+  // A hidden app's chained timer can be checked only once per minute.
+  expect(sendWatched(state, 'https://www.twitch.tv/another_channel', 165001).channel).toBe('another_channel');
+  expect(external(state, poll, sender, 166001).watched).toEqual({ channel: 'another_channel', seq: 2 });
+  expect(external(state, poll, sender, 231001).ok).toBe(true);
+  expect(sendWatched(state, 'https://www.twitch.tv/patrick__eff', 296001).channel).toBe('patrick__eff');
+});
+it('popup sends do not renew the app heartbeat or extend the eight-hour pairing limit', () => {
+  const state: BridgeState = {};
+  const code = pairingCode(state, 100000);
+  external(state, { version: 1, kind: 'pair', account: '42', code }, sender, 100001);
+  sendWatched(state, 'https://www.twitch.tv/one', 160001);
+  expect(() => sendWatched(state, 'https://www.twitch.tv/two', 220002)).toThrow('pair');
+  expect(state.session).toBeNull();
+  const code2 = pairingCode(state, 300000);
+  external(state, { version: 1, kind: 'pair', account: '42', code: code2 }, sender, 300001);
+  state.session!.lastSeen = 300001 + 8 * 3600000;
+  expect(() => sendWatched(state, 'https://www.twitch.tv/one', 300002 + 8 * 3600000)).toThrow('pair');
 });
 it('unpair removes capability and never returns cookies or private app fields', () => {
   const state: BridgeState = {};
