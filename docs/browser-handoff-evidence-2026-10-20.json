@@ -1,0 +1,32 @@
+{
+  "scope": "Synthetic extension protocol, real web controller and real browser navigation; not installed extension or Twitch acceptance",
+  "trace": [
+    "pair:ok",
+    "poll:ok",
+    "send:patrick__eff",
+    "poll:ok",
+    "poll:ok",
+    "handoff:ok",
+    "navigate:one",
+    "resume:ok",
+    "poll:ok",
+    "send:another_channel",
+    "poll:ok",
+    "poll:ok",
+    "poll:ok",
+    "poll:ok",
+    "handoff:ok",
+    "navigate:two",
+    "resume:ok",
+    "poll:ok",
+    "poll:ok",
+    "poll:ok",
+    "poll:ok",
+    "poll:ok",
+    "poll:ok"
+  ],
+  "url": "http://127.0.0.1:5187/test-support/browser-handoff.html?workspace=two",
+  "status": "Browser pairing resumed after opening the reviewed channel",
+  "handoffConsumed": true,
+  "ordinaryReloadObservedUnpair": true
+}

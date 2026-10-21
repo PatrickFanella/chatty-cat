@@ -20,8 +20,20 @@ export function external(state,message,sender,now=Date.now()){
   const token=random();state.pending=null;state.session={account:message.account,tab:sender.tab.id,token,expires:now+8*3600000,lastSeen:now,lastPoll:0,seq:0,watched:null};return {ok:true,version:1,account:message.account,token};
  }
  const s=state.session;if(!s||now>s.expires||now-s.lastSeen>heartbeatLeaseMs){state.session=null;return {ok:false,error:'pairing expired or app disconnected'};}
+ if(message.kind==='resume'){
+  const h=s.handoff;
+  if(!h||now>h.expires||s.tab!==sender.tab.id||s.account!==message.account||h.code!==message.code||new URL(sender.url).searchParams.get('workspace')!==h.workspace)return {ok:false,error:'navigation handoff refused'};
+  s.token=random();s.handoff=null;s.lastSeen=now;s.lastPoll=0;
+  return {ok:true,version:1,account:s.account,token:s.token};
+ }
  if(s.tab!==sender.tab.id||s.account!==message.account||s.token!==message.token)return {ok:false,error:'paired tab/account refused'};
  if(message.kind==='unpair'){state.session=null;return {ok:true,version:1};}
+ if(message.kind==='handoff'){
+  if(typeof message.code!=='string'||!capability.test(message.code)||typeof message.workspace!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(message.workspace))return {ok:false,error:'invalid navigation handoff'};
+  s.handoff={code:message.code,workspace:message.workspace,expires:now+30000};s.lastSeen=now;s.watched=null;
+  return {ok:true,version:1,account:s.account};
+ }
+ if(message.kind==='cancel-handoff'){s.handoff=null;return {ok:true,version:1,account:s.account};}
  if(message.kind!=='poll')return {ok:false,error:'unsupported request'};
  if(now-s.lastPoll<1000)return {ok:false,error:'poll cooldown'};s.lastPoll=now;s.lastSeen=now;
  if(s.watched&&now>s.watched.expires)s.watched=null;

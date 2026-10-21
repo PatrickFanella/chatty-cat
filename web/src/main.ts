@@ -8,6 +8,7 @@ import type { ExtensionsPanel } from './extensions-ui';
 import { extensionActions } from './extension-actions';
 import { watchedWorkspace } from './watched-workspace';
 import type { BrowserCompanionPanel } from './browser-companion-ui';
+import { clearBrowserHandoff, readBrowserHandoff } from './browser-companion-handoff';
 import type { DesktopPlaybackPanel } from './desktop-companion-ui';
 import type { ChatContextPanel } from './chat-context-ui';
 import type { DeviceSyncPanel } from './device-sync-ui';
@@ -478,6 +479,13 @@ export async function startMain(): Promise<void> {
     deviceSyncPanel?.authChanged();
     desktopPlayback?.authChanged();
     browserCompanion?.authChanged();
+    if (auth?.authenticated && readBrowserHandoff() && !privacyEnabled()) {
+      void lazyPanels?.perform(
+        'browser-companion-panel',
+        () => browserCompanion?.resumeNavigation(currentWorkspaceID),
+        false,
+      );
+    } else if (auth && (!auth.authenticated || privacyEnabled())) clearBrowserHandoff();
     extensionsPanel?.authChanged();
     ircRelayPanel?.authChanged();
     portableLogs?.setAccount(auth === undefined ? undefined : auth.authenticated ? auth.userID : 'anonymous');

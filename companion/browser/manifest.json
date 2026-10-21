@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chatty Cat watched-channel companion",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Explicitly send the active Twitch channel to a paired Chatty Cat tab.",
   "permissions": ["activeTab", "storage"],
   "background": {"service_worker": "background.js", "type": "module"},

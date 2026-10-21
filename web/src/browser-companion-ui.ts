@@ -24,6 +24,7 @@ export class BrowserCompanionPanel implements Panel {
     | undefined;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private generation = 0;
+  private pollVersion = 0;
   private seq = 0;
   private received = 0;
   private busy = false;
@@ -46,7 +47,7 @@ export class BrowserCompanionPanel implements Panel {
     h.textContent = 'Watched-channel browser companion';
     const help = document.createElement('p');
     help.textContent =
-      'Install the opt-in Chromium extension, generate a one-use code in its popup, and enter its extension ID/code here. The popup reads the active Twitch channel only when you click Send watched channel. Pairing does not change your workspace. Received channels need a separate review and confirmation here. No Twitch cookies/tokens, private messages, or player identity are shared. Reload, account/session change, privacy, unpair or extension removal ends this bridge.';
+      'Pair the installed Chromium companion with its extension ID and one-use code. Send watched channel stages a channel for review here. Confirmed workspace opening resumes pairing in this tab with companion 0.1.2 or newer. Ordinary reload, account/session change, privacy, unpair or removal disconnects. No Twitch cookies/tokens or private messages are shared.';
     this.extension.setAttribute('aria-label', 'Installed Chromium extension ID');
     this.extension.maxLength = 32;
     this.code.type = 'password';
@@ -157,11 +158,12 @@ export class BrowserCompanionPanel implements Panel {
     }
   }
   private poll(): void {
-    const generation = this.generation;
+    const generation = this.generation,
+      version = this.pollVersion;
     void this.client
       .poll()
       .then((row) => {
-        if (generation !== this.generation) return;
+        if (generation !== this.generation || version !== this.pollVersion) return;
         if (row && row.seq > this.seq) {
           this.seq = row.seq;
           this.pending = row;
@@ -178,7 +180,7 @@ export class BrowserCompanionPanel implements Panel {
         this.timer = setTimeout(() => this.poll(), 5000);
       })
       .catch((error) => {
-        if (generation === this.generation)
+        if (generation === this.generation && version === this.pollVersion)
           this.disconnect(error instanceof Error ? error.message : 'Browser companion disconnected');
       });
   }
@@ -210,38 +212,69 @@ export class BrowserCompanionPanel implements Panel {
       ' This may reload the chat view; no chat message is sent. Review expires in 60 seconds.';
     this.confirm.disabled = false;
   }
-  private commit(): void {
+  private async commit(): Promise<void> {
     const p = this.reviewed;
-    if (
-      !p ||
-      !this.connected ||
-      Date.now() > p.expires ||
-      Date.now() - this.received > 120000 ||
-      p.account !== this.auth()?.userID ||
-      p.workspace !== this.workspace.value ||
-      p.switching !== this.switchWorkspace.checked ||
-      p.row.seq !== this.pending?.seq ||
-      this.workspaces().find((w) => w.id === p.workspace)?.revision !== p.revision
-    )
-      throw new Error('Watched-channel review changed or expired');
-    this.clearReview();
-    this.apply(p.workspace, p.row.channel, p.revision, p.switching);
-    this.pending = undefined;
-    this.status.textContent = 'Reviewed channel opened';
+    const validate = (): void => {
+      if (
+        !p ||
+        p !== this.reviewed ||
+        !this.connected ||
+        Date.now() > p.expires ||
+        Date.now() - this.received > 120000 ||
+        p.account !== this.auth()?.userID ||
+        p.workspace !== this.workspace.value ||
+        p.switching !== this.switchWorkspace.checked ||
+        p.row.seq !== this.pending?.seq ||
+        this.workspaces().find((w) => w.id === p.workspace)?.revision !== p.revision
+      )
+        throw new Error('Watched-channel review changed or expired');
+    };
+    validate();
+    if (!p) return;
+    this.pollVersion++;
+    clearTimeout(this.timer);
+    let prepared = false;
+    try {
+      await this.client.prepareNavigation(p.workspace);
+      prepared = true;
+      validate();
+      this.apply(p.workspace, p.row.channel, p.revision, p.switching);
+      this.client.navigationStarted();
+      this.clearReview();
+      this.pending = undefined;
+      this.status.textContent = 'Opening reviewed channel; browser pairing will resume in this tab';
+    } catch (error) {
+      if (prepared) this.client.cancelNavigation();
+      if (this.connected) this.timer = setTimeout(() => this.poll(), 5000);
+      throw error;
+    }
+  }
+  resumeNavigation(workspace: string): void {
+    void this.act(async () => {
+      const extension = await this.client.resumeNavigation(workspace);
+      if (!extension) return;
+      this.extension.value = extension;
+      this.connected = true;
+      this.title = 'Browser bridge active';
+      document.dispatchEvent(new Event('panelstatechange'));
+      this.status.textContent = 'Browser pairing resumed after opening the reviewed channel';
+      this.poll();
+    });
   }
   private clearReview(): void {
     this.reviewed = undefined;
     this.preview.textContent = '';
     this.confirm.disabled = true;
   }
-  private disconnect(detail: string): void {
+  private disconnect(detail: string, stopping = false): void {
     this.generation++;
     this.connected = false;
     this.title = 'Browser companion';
     document.dispatchEvent(new Event('panelstatechange'));
     this.busy = false;
     clearTimeout(this.timer);
-    this.client.disconnect();
+    if (stopping) this.client.stop();
+    else this.client.disconnect();
     this.pending = undefined;
     this.seq = 0;
     this.code.value = '';
@@ -349,7 +382,7 @@ export class BrowserCompanionPanel implements Panel {
     this.root.close();
   }
   stop(): void {
-    this.disconnect('Closed');
+    this.disconnect('Closed', true);
     this.root.removeEventListener('close', this.closed);
     this.root.removeEventListener('change', this.edited);
     this.registered.removeEventListener('change', this.selectRegistered);
