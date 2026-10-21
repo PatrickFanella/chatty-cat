@@ -2,6 +2,9 @@
 const appOrigin='https://chat.subcult.tv';
 const id=/^[1-9][0-9]{0,19}$/;
 const capability=/^[a-f0-9]{64}$/;
+// Hidden Chromium pages may run chained timers only once per minute. Allow
+// scheduling jitter without letting popup activity replace the app heartbeat.
+const heartbeatLeaseMs=120000;
 const record=v=>!!v&&typeof v==='object'&&!Array.isArray(v);
 function random(){const bytes=crypto.getRandomValues(new Uint8Array(32));return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');}
 export function watchedChannel(value){
@@ -16,7 +19,7 @@ export function external(state,message,sender,now=Date.now()){
   if(typeof message.code!=='string'||!capability.test(message.code)||p.code!==message.code)return {ok:false,error:'pairing refused'};
   const token=random();state.pending=null;state.session={account:message.account,tab:sender.tab.id,token,expires:now+8*3600000,lastSeen:now,lastPoll:0,seq:0,watched:null};return {ok:true,version:1,account:message.account,token};
  }
- const s=state.session;if(!s||now>s.expires||now-s.lastSeen>30000){state.session=null;return {ok:false,error:'pairing expired or app disconnected'};}
+ const s=state.session;if(!s||now>s.expires||now-s.lastSeen>heartbeatLeaseMs){state.session=null;return {ok:false,error:'pairing expired or app disconnected'};}
  if(s.tab!==sender.tab.id||s.account!==message.account||s.token!==message.token)return {ok:false,error:'paired tab/account refused'};
  if(message.kind==='unpair'){state.session=null;return {ok:true,version:1};}
  if(message.kind!=='poll')return {ok:false,error:'unsupported request'};
@@ -25,5 +28,5 @@ export function external(state,message,sender,now=Date.now()){
  return {ok:true,version:1,account:s.account,watched:s.watched?{channel:s.watched.channel,seq:s.watched.seq}:null};
 }
 export function sendWatched(state,url,now=Date.now()){
- const s=state.session,channel=watchedChannel(url);if(!s||now>s.expires||now-s.lastSeen>30000){state.session=null;throw new Error('Open and pair a connected Chatty Cat tab first');}if(!channel)throw new Error('Use the extension on a Twitch channel page');if(s.seq>=1000000)throw new Error('Pair again');s.seq++;s.watched={channel,seq:s.seq,expires:now+120000};return {tab:s.tab,channel};
+ const s=state.session,channel=watchedChannel(url);if(!s||now>s.expires||now-s.lastSeen>heartbeatLeaseMs){state.session=null;throw new Error('Open and pair a connected Chatty Cat tab first');}if(!channel)throw new Error('Use the extension on a Twitch channel page');if(s.seq>=1000000)throw new Error('Pair again');s.seq++;s.watched={channel,seq:s.seq,expires:now+120000};return {tab:s.tab,channel};
 }
