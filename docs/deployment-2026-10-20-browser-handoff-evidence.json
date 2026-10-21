@@ -1,0 +1,122 @@
+{
+  "sourceCommit": "2cb8deacfb945beef2d31503fe758b199abd4055",
+  "mergedMain": "62c30521c299965d17f4fb7efc8fe504201b88c4",
+  "sourceTreeIdentical": true,
+  "mainCI": [
+    {
+      "id": 30191,
+      "head_sha": "62c30521c299965d17f4fb7efc8fe504201b88c4",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-21T01:41:09Z",
+      "completed_at": "2026-10-21T01:42:13Z"
+    },
+    {
+      "id": 30192,
+      "head_sha": "62c30521c299965d17f4fb7efc8fe504201b88c4",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-21T01:41:19Z",
+      "completed_at": "2026-10-21T01:42:24Z"
+    }
+  ],
+  "runtime": {
+    "image": "sha256:ed23e75bfba8ecd685cc6929d60d6f1d436d7056d074d4b837a0147430787be0",
+    "health": "healthy",
+    "restarts": 0,
+    "startedAt": "2026-10-21T01:47:04.560529911Z",
+    "retainedDataUnchanged": true,
+    "retainedFileCount": 2
+  },
+  "public": {
+    "ordinaryReloadAdopted": "assets/main-BZ-GPIf6.js",
+    "publicHashes": {
+      "/assets/main-BZ-GPIf6.js": "51e931dd6932e07562977e5b567f3b7f9eedeec05992b69541f19df20531adcb",
+      "/assets/main-C5KiTjF2.css": "b99971fe32f12c92969421932fa2fd3708ab32b8a4d7b91d5475653e4e4ef18a",
+      "/assets/browser-companion-ui-CkYBNOS7.js": "0c47ea2bebb38fb16c4714f291206b57738e42b8bd1907666b9cf2e81c9b64b0",
+      "/assets/storage-worker-Lb5EFQx7.js": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931",
+      "/assets/overlay-DYQcb1Vv.js": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9",
+      "/source.tar.gz?build=%2Fassets%2Fmain-BZ-GPIf6.js": "ad730954e7a42eec02158039e587c32ef71ba13b6614272cd6ff021370e063f5"
+    },
+    "allArtifactsReturned200": true,
+    "readiness": 200,
+    "supportLink": {
+      "text": "Support SUBCULT",
+      "href": "https://subcult.tv/support"
+    },
+    "layouts": [
+      {
+        "width": 390,
+        "documentWidth": 390,
+        "loginRight": 382,
+        "runtimeBanner": false,
+        "errors": []
+      },
+      {
+        "width": 320,
+        "documentWidth": 320,
+        "loginRight": 312,
+        "runtimeBanner": false,
+        "errors": []
+      }
+    ],
+    "companionPanel": {
+      "constructed": true,
+      "open": true,
+      "newHandoffCopy": true,
+      "versionCopy": "0.1.2",
+      "paired": false
+    },
+    "capturedErrors": [],
+    "runtimeBanner": false
+  },
+  "sourceRebuild": {
+    "source": "2cb8deacfb945beef2d31503fe758b199abd4055",
+    "independentSourceRebuildIdentical": [
+      {
+        "file": "index.html",
+        "sha256": "402046c537e2d928b0a64856a74fb07ca63225d734677e80dbcf908e7939fe25"
+      },
+      {
+        "file": "overlay.html",
+        "sha256": "79976188fb3f913935960c6ee5861e828a2ea4f37aba8f156d1bc03017ecc515"
+      },
+      {
+        "file": "assets/main-BZ-GPIf6.js",
+        "sha256": "51e931dd6932e07562977e5b567f3b7f9eedeec05992b69541f19df20531adcb"
+      },
+      {
+        "file": "assets/main-C5KiTjF2.css",
+        "sha256": "b99971fe32f12c92969421932fa2fd3708ab32b8a4d7b91d5475653e4e4ef18a"
+      },
+      {
+        "file": "assets/browser-companion-ui-CkYBNOS7.js",
+        "sha256": "0c47ea2bebb38fb16c4714f291206b57738e42b8bd1907666b9cf2e81c9b64b0"
+      },
+      {
+        "file": "assets/storage-worker-Lb5EFQx7.js",
+        "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+      },
+      {
+        "file": "assets/overlay-DYQcb1Vv.js",
+        "sha256": "8ba6b9b0b4cca3fe485b003287607643e9cb376bf57e09c587527a7d4cb8ddd9"
+      }
+    ]
+  },
+  "filesVerified": 4042,
+  "stagingPassed": true,
+  "rollbackGuardsPassed": true,
+  "previousImage": "sha256:8c24db1f99c68eeaa8542a2f037bdb87b495c5ee5fdf541e00550081354bf93b",
+  "previousRelease": "support-seo-1d368d6-20261020",
+  "extension": {
+    "version": "0.1.2",
+    "zipSHA256": "c34613c1393b25cf5235e5111a7c0c5a34e513c5507fb811f8d90f4ec5146000"
+  },
+  "installedExtensionAcceptance": "pending owner repeated-send/navigation/focus/revocation retest",
+  "remainingAcceptance": [
+    136,
+    32,
+    36,
+    38
+  ]
+}
