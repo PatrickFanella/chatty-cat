@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Browser companion navigation fixture</title>
+<button id="commands-open">Commands</button>
+<p>Synthetic account, extension and workspace navigation. No Twitch or installed-extension acceptance is implied.</p>
+<script type="module">
+import { BrowserCompanionPanel } from '/src/browser-companion-ui.ts';
+import { readBrowserHandoff } from '/src/browser-companion-handoff.ts';
+import { setProfileScope } from '/src/account-profiles.ts';
+import { external, pairingCode, sendWatched } from '../../companion/browser/core.js';
+const stateKey = 'fixture:companion-state';
+const traceKey = 'fixture:companion-trace';
+const state = () => JSON.parse(localStorage.getItem(stateKey) || '{}');
+const save = value => localStorage.setItem(stateKey, JSON.stringify(value));
+const trace = kind => {
+  const rows = JSON.parse(localStorage.getItem(traceKey) || '[]');
+  rows.push(kind);
+  localStorage.setItem(traceKey, JSON.stringify(rows.slice(-100)));
+};
+const workspace = new URL(location.href).searchParams.get('workspace') || 'one';
+const sender = { origin: 'https://chat.subcult.tv', url: 'https://chat.subcult.tv/?workspace=' + workspace, frameId: 0, tab: { id: 7 } };
+window.chrome = { runtime: { sendMessage: (_id, message, callback) => {
+  const current = state();
+  const response = external(current, message, sender);
+  save(current);
+  trace(message.kind + ':' + (response.ok ? 'ok' : 'refused'));
+  queueMicrotask(() => callback(response));
+} } };
+setProfileScope('42');
+const auth = { enabled: true, authenticated: true, userID: '42', csrf: 'synthetic-session-only', loginURL: '/fixture-login' };
+const panel = new BrowserCompanionPanel(
+  () => auth,
+  () => ['one', 'two'].map(id => ({ id, name: id, channels: [], revision: id })),
+  () => workspace,
+  id => { trace('navigate:' + id); location.assign(location.pathname + '?workspace=' + id); },
+);
+window.fixturePanel = panel;
+window.fixtureSend = channel => {
+  const current = state();
+  const result = sendWatched(current, 'https://www.twitch.tv/' + channel);
+  save(current);
+  trace('send:' + channel);
+  return result.channel;
+};
+window.fixtureTrace = () => JSON.parse(localStorage.getItem(traceKey) || '[]');
+window.addEventListener('pagehide', () => panel.stop());
+if (readBrowserHandoff()) panel.resumeNavigation(workspace);
+else {
+  const current = state();
+  const code = pairingCode(current);
+  save(current);
+  panel.root.querySelector('[aria-label="Installed Chromium extension ID"]').value = 'a'.repeat(32);
+  panel.root.querySelector('[aria-label="Browser companion pairing code"]').value = code;
+}
+panel.open();
+</script>

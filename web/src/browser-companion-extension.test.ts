@@ -68,3 +68,47 @@ it('unpair removes capability and never returns cookies or private app fields', 
   expect(state.session).toBeNull();
   expect(JSON.stringify(result)).not.toMatch(/cookie|csrf|login|workspace|token/);
 });
+it('resumes one confirmed navigation in the same tab/account/workspace with a rotated token', () => {
+  const state: BridgeState = {};
+  const code = pairingCode(state, 100000);
+  const paired = external(state, { version: 1, kind: 'pair', account: '42', code }, sender, 100001);
+  const auth = { version: 1, account: '42', token: paired.token };
+  const next = { ...sender, url: 'https://chat.subcult.tv/?workspace=next&channel=two' };
+  const resume = { version: 1, kind: 'resume', account: '42', code: 'd'.repeat(64) };
+  expect(external(state, resume, next, 101000).ok).toBe(false);
+  expect(external(state, { ...auth, kind: 'handoff', code: resume.code, workspace: 'next' }, sender, 102000).ok).toBe(
+    true,
+  );
+  expect(external(state, resume, { ...next, tab: { id: 2 } }, 103000).ok).toBe(false);
+  expect(external(state, { ...resume, account: '43' }, next, 103001).ok).toBe(false);
+  expect(external(state, resume, sender, 103002).ok).toBe(false);
+  expect(external(state, { ...resume, code: 'e'.repeat(64) }, next, 103003).ok).toBe(false);
+  const resumed = external(state, resume, next, 104000);
+  expect(resumed.ok).toBe(true);
+  expect(resumed.token).not.toBe(paired.token);
+  expect(external(state, resume, next, 105000).ok).toBe(false);
+  expect(external(state, { ...auth, kind: 'unpair' }, sender, 105001).ok).toBe(false);
+  sendWatched(state, 'https://www.twitch.tv/two', 105002);
+  expect(external(state, { ...auth, token: resumed.token, kind: 'poll' }, next, 105003).watched).toEqual({
+    channel: 'two',
+    seq: 1,
+  });
+  expect(state.session?.expires).toBe(100001 + 8 * 3600000);
+});
+it('expires or cancels navigation handoff and still honors explicit unpair', () => {
+  const state: BridgeState = {};
+  const code = pairingCode(state, 100000);
+  const paired = external(state, { version: 1, kind: 'pair', account: '42', code }, sender, 100001);
+  const auth = { version: 1, account: '42', token: paired.token };
+  const handoff = { ...auth, kind: 'handoff', code: 'd'.repeat(64), workspace: 'next' };
+  const resume = { version: 1, account: '42', kind: 'resume', code: handoff.code };
+  const next = { ...sender, url: 'https://chat.subcult.tv/?workspace=next' };
+  external(state, handoff, sender, 101000);
+  expect(external(state, resume, next, 131001).ok).toBe(false);
+  external(state, handoff, sender, 132000);
+  expect(external(state, { ...auth, kind: 'cancel-handoff' }, sender, 133000).ok).toBe(true);
+  expect(external(state, resume, next, 134000).ok).toBe(false);
+  external(state, handoff, sender, 135000);
+  external(state, { ...auth, kind: 'unpair' }, sender, 136000);
+  expect(external(state, resume, next, 137000).ok).toBe(false);
+});
