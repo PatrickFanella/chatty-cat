@@ -240,9 +240,9 @@ merged the reusable picker collator, and #184 merged nested render-phase
 diagnostics; each final head passed four hosted checks. Live provider acceptance
 and #136's external CPU/GPU qualification remain independent.
 
-Production runs source `f0f84e8`, the approved #189 head with the same tree as
-merged main `dccc9cd`. The
-[current deployment receipt](deployment-2026-10-19-compact-header.md) records staging,
+Production runs source `2cb8dea`, the approved #193 head with the same tree as
+merged main `62c3052`. The
+[current deployment receipt](deployment-2026-10-20-browser-handoff.md) records staging,
 public hashes, independent source rebuild, retained data and rollback guards.
 #180's earlier [layout receipt](deployment-2026-10-19-layout.md) preserves the
 passing fresh/reloaded popout viewport checks. These bounded observations do not
@@ -270,7 +270,10 @@ deployment receipt preserves the narrower scope of the public check.
   [Public context](eventsub-public-context-demo.md) and
   [private feedback](user-message-feedback-demo.md) retain fixture boundaries.
 - [#36 — Installed browser companion](https://git.subcult.tv/subculture-collective/chatty-cat/issues/36)
-  remains in M5. Complete watched-channel delivery, reviewed workspace/focus
+  remains in M5. The owner confirmed delivery and review with 0.1.1; its
+  confirmation reload ended pairing. #193's confirmed-navigation handoff is
+  deployed and requires companion 0.1.2. Complete repeated sends after confirmed
+  navigation, reviewed workspace/focus
   choices and revocation/removal in the installed Chromium extension. Pairing
   alone is insufficient. Verify origin/account boundaries and no cookie/token
   forwarding. Prerequisite: the owner's installed extension and manual popup
