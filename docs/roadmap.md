@@ -270,14 +270,14 @@ deployment receipt preserves the narrower scope of the public check.
   [Public context](eventsub-public-context-demo.md) and
   [private feedback](user-message-feedback-demo.md) retain fixture boundaries.
 - [#36 — Installed browser companion](https://git.subcult.tv/subculture-collective/chatty-cat/issues/36)
-  remains in M5. The owner confirmed delivery and review with 0.1.1; its
-  confirmation reload ended pairing. #193's confirmed-navigation handoff is
-  deployed and requires companion 0.1.2. Complete repeated sends after confirmed
-  navigation, reviewed workspace/focus
-  choices and revocation/removal in the installed Chromium extension. Pairing
-  alone is insufficient. Verify origin/account boundaries and no cookie/token
-  forwarding. Prerequisite: the owner's installed extension and manual popup
-  actions where automation cannot reach them. [Companion evidence](browser-companion-demo.md).
+  remains in M5. #193's confirmed-navigation handoff is deployed and requires
+  companion 0.1.2. On October 25 the owner confirmed repeated channel sends after
+  confirmation with one pairing, and refusal after explicit Unpair. Complete
+  the remaining destination-workspace/focus, account-change and extension-removal
+  checks in the installed Chromium extension. Manual refresh still disconnects
+  as documented. Verify origin/account boundaries and no cookie/token forwarding.
+  Prerequisite: the owner's installed extension and manual popup actions where
+  automation cannot reach them. [Confirmed results and remaining steps](browser-companion-demo.md#owner-acceptance-october-25-2026).
 - [#38 — Approved IRC network](https://git.subcult.tv/subculture-collective/chatty-cat/issues/38)
   remains in M5. Obtain an approved TLS endpoint, identity, channels and
   server-held credentials through the existing private configuration process.

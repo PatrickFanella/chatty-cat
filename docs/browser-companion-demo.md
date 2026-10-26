@@ -24,7 +24,44 @@ Companion **0.1.2 or newer** resumes pairing after that explicit confirmation. B
 
 Regression tests exercise the actual extension protocol and web controller/UI: exact origin/tab/account binding, one-use code, pairing/heartbeat expiry, poll cooldown, URL rejection, no secret forwarding, no mutation on pair/poll/review, stale-destination refusal, privacy/session revocation, channel-capacity refusal and layout/reader preservation. Registry tests additionally cover eight-ID/size limits, strict ID/name-only records, account isolation, stale edits, selection without requests, paired-field locking and active-selection retention. The extension worker serializes session-storage changes across popup and external messages. Only the latest watched channel is retained for two minutes, with a bounded sequence number.
 
-The automated browser-runtime fixture is synthetic. An installed-extension repeated-send round trip after confirmed navigation, browser removal and tab-focus behavior still need owner acceptance in Chromium. The owner reached delivery and review with 0.1.1; its confirmation reload ended pairing. Firefox and Safari are unavailable for this initial `externally_connectable` adaptation; no cross-browser claim is made. Installing an extension does not make the embedded Twitch player share the app's OAuth account. Chat and native playback work without the extension.
+The automated browser-runtime fixture is synthetic. The installed-extension
+owner checks below are separate evidence. The owner reached delivery and review
+with 0.1.1; its confirmation reload ended pairing. PR #193's deployed handoff
+addresses that reload path with companion 0.1.2. Firefox and Safari are
+unavailable for this initial `externally_connectable` adaptation; no cross-browser
+claim is made. Installing an extension does not make the embedded Twitch player
+share the app's OAuth account. Chat and native playback work without the extension.
+
+### Owner acceptance, October 25, 2026
+
+After receiving the deployed app and companion 0.1.2 retest instructions, the
+owner explicitly confirmed two installed-browser outcomes in
+[#36 comment 38918](https://git.subcult.tv/subculture-collective/chatty-cat/issues/36#issuecomment-38918):
+
+- **Repeated confirmed sends passed:** send and confirm a first channel, then
+  successfully send a second channel without generating another pairing code.
+- **Explicit Unpair passed:** click Unpair in Chatty Cat, then observe the
+  extension refuse the next send.
+
+These are owner-reported results. The browser/version, extension manifest and
+network traffic were not independently captured during this retest. Manual
+refresh still requires pairing again, matching the documented lifecycle; the
+confirmed-navigation handoff does not provide general refresh persistence.
+
+Keep #36 open for these remaining installed-browser checks:
+
+| Check | Action | Expected result |
+| --- | --- | --- |
+| Destination workspace | Select a different saved workspace and try review with switching disabled; then explicitly enable switching and confirm. | The first review refuses the switch. Confirmation after enabling it opens the selected workspace, preserves its existing channels and receives a later send without pairing again. |
+| Focus preference | Send once with **Focus paired Chatty Cat tab after sending** off, then once with it on. | Off leaves focus on Twitch. On selects the paired Chatty Cat tab. Both sends still require in-app review. |
+| Account/session revocation | Pair, keep the panel open, then sign out or switch accounts and try sending from the extension. | The bridge disconnects and cannot deliver to the previous account or mutate a workspace. |
+| Extension removal | Pair, keep the panel open, then remove the companion in the browser's extension manager. | The app detects removal on its next poll and reports disconnection; no reviewed action remains enabled. |
+
+Re-pairing after an intentional unpair, logout or removal is expected. No
+passwords, pairing codes, capabilities or private message bodies belong in the
+acceptance record. Record the observed result and browser/version when available.
+
+### Synthetic regression evidence
 
 The navigation fixture at `http://127.0.0.1:5187/test-support/browser-handoff.html` uses the real web controller/panel and pure extension protocol, with synthetic extension state held in fixture-local storage across actual page navigation. Pair once, stage a channel with `window.fixtureSend('patrick__eff')`, review/confirm, then stage another channel after the page resumes. `window.fixtureTrace()` records request kinds and navigation destinations without credentials. The fixture does not contact Twitch or an installed extension.
 
