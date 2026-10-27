@@ -1,6 +1,6 @@
-# Go + TypeScript chat conversion
+# Chatty Cat
 
-This repository rebuilds [HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org)
+Chatty Cat rebuilds [HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org)
 and its [Twitch relay](https://github.com/mxmilkiib/twitch-chat-relay) as one
 self-hosted Go service with a TypeScript frontend. The intended origin is
 `https://chat.subcult.tv`. Full feature parity is required before cutover.
