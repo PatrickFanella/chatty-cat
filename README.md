@@ -1,5 +1,7 @@
 # Chatty Cat
 
+![Chatty Cat repository banner](assets/brand/banner.png)
+
 Chatty Cat rebuilds [HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org)
 and its [Twitch relay](https://github.com/mxmilkiib/twitch-chat-relay) as one
 self-hosted Go service with a TypeScript frontend. The intended origin is
@@ -118,3 +120,7 @@ python3 scripts/port-resources.py /path/to/original/index.html
 AGPL-3.0. See [LICENSE](LICENSE) and [attribution](NOTICE.md). Retained assets keep
 their applicable upstream licenses. Provide corresponding source when operating
 a modified version for remote users as required by the license.
+
+## Repository artwork
+
+[Brand assets and usage](assets/brand/README.md).
