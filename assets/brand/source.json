@@ -1,0 +1,45 @@
+{
+  "brand": "Chatty Cat",
+  "source_repository": "subculture-collective/subcult-tv",
+  "source_revision": "aa83c8feea9cf4afb7aea38b8c77e73892e3a711",
+  "generator": "studio/brand-tools/repository_identity.py",
+  "scope": "Repository README and avatar only",
+  "assets": [
+    {
+      "source": "brands/chatty-cat/repository/banner.svg",
+      "destination": "assets/brand/banner.svg",
+      "sha256": "e986dd9741afdb2e78407b33696accd0372c74a22a0ef4aed7f1f2652ab0b1c0",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "brands/chatty-cat/repository/banner.png",
+      "destination": "assets/brand/banner.png",
+      "sha256": "e39fc9335ed3c7ce439b37de07e9f832e7963a959ef2ec689fa5e1e90e39638f",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "brands/chatty-cat/repository/avatar.svg",
+      "destination": "assets/brand/avatar.svg",
+      "sha256": "4ee6583ce2df07cde361ca96c74b691f55cdbbc4c1f69b2618b3415265c95ea6",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "brands/chatty-cat/repository/avatar.png",
+      "destination": "assets/brand/avatar.png",
+      "sha256": "96e8c81c5d20ffad902e1fa6299f39152a598b49d7a3f0672d72210e8bb44ac3",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "brand-tools/fonts/cascadiamono-OFL.txt",
+      "destination": "assets/brand/licenses/cascadiamono-OFL.txt",
+      "sha256": "51882cd3cdba4e16f220f44ddb08a635c38c44ea6e0975db2574f4be6f958238",
+      "transform": "unchanged copy"
+    },
+    {
+      "source": "brand-tools/fonts/publicsans-OFL.txt",
+      "destination": "assets/brand/licenses/publicsans-OFL.txt",
+      "sha256": "157a9e77f7580246e97c769490e2e977ae94399f9d30f4556015c41fe8c28bac",
+      "transform": "unchanged copy"
+    }
+  ]
+}
