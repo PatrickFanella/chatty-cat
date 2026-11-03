@@ -83,7 +83,6 @@ One file per store, each exporting its `SettingDef[]`:
 | `links.ts` | `getLinkPreferences` / `setLinkPreferences` |
 | `completion.ts` | `getCompletionPreferences` / `setCompletionPreferences` |
 | `providers.ts` | `getProviderPreferences` / `setProviderPreferences` |
-| `privacy.ts` | `readPrivacy` / `savePrivacy` |
 | `notifications.ts` | display `notify` plus `Attention.permission` and `Attention.test` |
 
 Writes always go through the store's parse function. Labels use the display option label
@@ -148,13 +147,18 @@ Stored keys in parentheses; sections in this order.
   A row links to Highlights › Message rules for rule-based hiding.
 - **Hotkeys**: shortcuts (custom section, `shortcuts-ui`); username right-click,
   modified right-click and its modifier.
-- **Moderation**: moderation presets (custom section, `moderation-presets-ui`).
-- **Notifications**: desktop alerts (`notify`) with a test button and status; muted
-  channels.
+- **Moderation**: a built-in section explaining that moderation presets are edited in
+  the Moderation workspace, with an "Open moderation workspace" button. The presets
+  editor stages actions into that workspace, so it stays there.
+- **Notifications**: desktop alerts (`notify`, which requests permission when turned
+  on); a built-in section with the alert test button and its status; muted channels.
 - **Integrations**: Providers and badges section (provider enablement, live updates,
-  badge categories, cosmetics, FFZ artwork, bits stacking); custom sections for web
+  badge categories, cosmetics, FFZ artwork, bits stacking), with a built-in row for
+  "Reload provider metadata" and the live-update and cosmetics status; custom sections for web
   extensions, browser companion, desktop playback, device sync and Chatterino import.
-- **Privacy**: privacy mode, allowed workspaces, panic.
+- **Privacy**: visible workspaces while privacy mode is on (custom section,
+  `privacy-settings`). Privacy mode itself and panic stay on their existing toggle and
+  Alt+Shift+P.
 - **About**: version, source code link (AGPL-3.0), credits, local command help,
   resource readout.
 
@@ -176,12 +180,14 @@ Every key of each source store is either placed above or listed under "Exclusion
 
 ## Compatibility
 
-- Removed panels: `display-panel`, `presentation-panel`, `link-preferences-panel`,
-  `completion-preferences-panel`, `provider-preferences-panel`, `privacy-settings`,
-  `shortcut-settings`, `custom-theme-panel`, `account-profiles`, `user-hold-panel`,
-  `commands-panel`, `rules-panel`, `extensions-panel`, `browser-companion-panel`,
-  `desktop-playback-panel`, `device-sync-panel`, `chatterino-import-panel`,
-  `local-command-help`, `resource-readout`.
+- Panel UIs deleted (their settings come from sources): `display-panel`,
+  `presentation-panel`, `link-preferences-panel`, `completion-preferences-panel`,
+  `provider-preferences-panel`.
+- Panels kept as modules but embedded as custom sections and removed from the menu:
+  `privacy-settings`, `shortcut-settings`, `custom-theme-panel`, `account-profiles`,
+  `user-hold-panel`, `commands-panel`, `rules-panel`, `extensions-panel`,
+  `browser-companion-panel`, `desktop-playback-panel`, `device-sync-panel`,
+  `chatterino-import-panel`, `local-command-help`, `resource-readout`.
 - Their `panel:<id>` commands, saved workbench layouts that reference them, help-tab URL
   actions (`display-open`, `stats-open` mapping) and hotkey actions open the Settings
   window at the matching page or section instead. Saved layouts drop the removed ids
