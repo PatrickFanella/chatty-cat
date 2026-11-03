@@ -66,5 +66,5 @@ automatic pausing disabled. When the tab is hidden, CPU falls to about 13% of th
 live level and GPU busy time to about zero, mostly because Chromium stops
 compositing. In history, CPU falls 31% with the feature and 16% without it. History
 GPU busy time did not fall consistently, and reader position held in every
-history phase. The history GPU expectation remains for the owner to accept or
-waive.
+history phase. The owner accepted the CPU result and waived the history GPU
+expectation, so #136 is closed.
