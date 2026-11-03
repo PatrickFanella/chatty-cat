@@ -138,18 +138,20 @@ export function presentationSettings(host: SettingsHost): SettingDef[] {
           const sample = presentationDefaults[key];
           const next = typeof sample === 'number' ? Number(value) : value;
           const completion = getCompletionPreferences();
-          host.presentation.persist(
-            parsePresentation({
-              ...host.presentation.saved,
-              [key]: next,
-              showTimestamps: true,
-              timestampFormat: 'legacy',
-              separators: 'legacy',
-              alternating: 'legacy',
-              mentionAt: completion.mentionAt,
-              mentionComma: completion.mentionComma,
-            }),
-          );
+          const parsed = parsePresentation({
+            ...host.presentation.saved,
+            [key]: next,
+            showTimestamps: true,
+            timestampFormat: 'legacy',
+            separators: 'legacy',
+            alternating: 'legacy',
+            mentionAt: completion.mentionAt,
+            mentionComma: completion.mentionComma,
+          });
+          // The parser falls back to the default for rejected text; refuse it instead of saving that.
+          if (key === 'mutedChannels' && parsed.mutedChannels !== normalizeChannels(String(value)))
+            throw new Error('Not a valid value');
+          host.presentation.persist(parsed);
           host.rerender();
         },
       };
@@ -158,4 +160,16 @@ export function presentationSettings(host: SettingsHost): SettingDef[] {
     }
   }
   return defs;
+}
+
+/** The same normalisation parsePresentation applies to an accepted channel list. */
+function normalizeChannels(text: string): string {
+  return [
+    ...new Set(
+      text
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .filter(Boolean),
+    ),
+  ].join(',');
 }

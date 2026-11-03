@@ -4,7 +4,9 @@ import { DisplayRuntime } from '../display';
 import { PresentationRuntime } from '../presentation-runtime';
 import type { SettingsHost } from './host';
 import type { CustomSection } from './registry';
-import { startSettings } from './index';
+import { Workbench } from '../shell/workbench';
+import { dock, emptyLayout, float, setClosed } from '../shell/layout';
+import { RETIRED_PANELS, forgetRetiredPanels, retiredTarget, startSettings } from './index';
 
 let display: DisplayRuntime;
 let presentation: PresentationRuntime;
@@ -38,6 +40,8 @@ function host(privacy = false): SettingsHost {
     providersChanged: vi.fn(),
     reloadProviders: () => true,
     providerStatus: () => '',
+    reconnectProviders: vi.fn(),
+    readChatters: async () => '',
     attention: { permission: vi.fn(async () => 'granted'), test: vi.fn(async () => '') },
     openPanel: vi.fn(),
     overlay: false,
@@ -120,4 +124,50 @@ it('the About section omits the version line without a version meta tag', async 
   const el = document.createElement('div');
   if (about?.type === 'custom') await about.def.mount(el);
   expect(el.textContent).not.toContain('Version');
+});
+
+it('retired panel ids redirect to their settings page', async () => {
+  const settings = start();
+  const pages: Record<string, string> = {
+    'display-panel': 'General',
+    'presentation-panel': 'General',
+    'link-preferences-panel': 'General',
+    'completion-preferences-panel': 'Commands',
+    'provider-preferences-panel': 'Integrations',
+  };
+  expect(Object.keys(RETIRED_PANELS).sort()).toEqual(Object.keys(pages).sort());
+  for (const [id, title] of Object.entries(pages)) {
+    settings.open(retiredTarget(id));
+    await vi.waitFor(() =>
+      expect(document.querySelector('.settings-nav [aria-current="page"]')?.textContent).toBe(title),
+    );
+  }
+  // The help tab's display action and htab=config open the former display panel's page.
+  expect(retiredTarget('display-open')).toEqual(RETIRED_PANELS['display-panel']);
+  expect(retiredTarget('stats-open')).toBeUndefined();
+  expect(retiredTarget('stats-panel')).toBeUndefined();
+});
+
+it('startup releases retired ids from a saved layout', () => {
+  let layout = dock(emptyLayout(), 'presentation-panel', 'right');
+  layout = dock(layout, 'stats-panel', 'right');
+  layout = dock(layout, 'display-panel', 'bottom');
+  layout = float(
+    layout,
+    'link-preferences-panel',
+    { left: 10, top: 10, width: 300, height: 200 },
+    { width: 1280, height: 800 },
+  );
+  layout = setClosed(dock(layout, 'provider-preferences-panel', 'left'), 'provider-preferences-panel', true);
+  localStorage.setItem('chatthing:v1:workbench', JSON.stringify(layout));
+  const workbench = new Workbench({ titleFor: (root) => root.id, exclude: () => false, centre: 'main#log' });
+  stops.push(() => workbench.stop());
+  expect(workbench.wantsPanel('presentation-panel')).toBe(true);
+  forgetRetiredPanels(workbench);
+  const saved = localStorage.getItem('chatthing:v1:workbench')!;
+  for (const id of Object.keys(RETIRED_PANELS)) {
+    expect(saved).not.toContain(id);
+    expect(workbench.wantsPanel(id)).toBe(false);
+  }
+  expect(workbench.wantsPanel('stats-panel')).toBe(true);
 });

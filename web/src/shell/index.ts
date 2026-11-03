@@ -109,6 +109,8 @@ export function startShell(options: ShellOptions): Shell {
       group: 'view',
       keywords: 'preferences options configure',
       hint: navigator.platform.includes('Mac') ? '⌘,' : 'Ctrl+,',
+      // Privacy mode keeps Settings closed, as it does the palette.
+      available: () => !privacyEnabled(),
       run: openSettings,
     });
   const workbench = new Workbench({
@@ -183,7 +185,7 @@ export function startShell(options: ShellOptions): Shell {
     ) {
       event.preventDefault();
       event.stopPropagation();
-      openSettings();
+      if (!privacyEnabled()) openSettings();
       return;
     }
     if (event.key === 'Escape') closeMenus();

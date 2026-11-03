@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { DisplayRuntime, defaultDisplay, firstVisitDisplay } from '../../display';
+import { DisplayRuntime, defaultDisplay, displayFromURL, firstVisitDisplay } from '../../display';
+import { PRESETS } from '../../display-data';
 import type { SettingsHost } from '../host';
 import type { SettingDef } from '../registry';
 import { DISPLAY_EXCLUDED, displaySettings } from './display';
@@ -70,4 +71,46 @@ it('turning notify on requests permission once', () => {
   get('display.notify').write(false);
   expect(permission).toHaveBeenCalledTimes(1);
   expect(runtime.options.notify).toBe(false);
+});
+
+// Moved from display-ui.test.ts.
+it('preserves every canonical preset key and its resulting display preferences', () => {
+  const keys = Object.keys(PRESETS);
+  expect(keys).toHaveLength(18);
+  const preset = get('display.preset');
+  expect(preset.control.kind === 'choice' && preset.control.options.map((o) => o.value)).toEqual(keys);
+  const announced: unknown[] = [];
+  const listen = (event: Event) => announced.push((event as CustomEvent).detail);
+  document.addEventListener('displaypreset', listen);
+  for (const key of keys) {
+    const expected = displayFromURL(runtime.options, new URLSearchParams({ theme: key }));
+    preset.write(key);
+    expect(runtime.options).toEqual(expected);
+  }
+  document.removeEventListener('displaypreset', listen);
+  // The emote picker applies its matching preset from this event.
+  expect(announced).toEqual(keys);
+});
+
+// Moved from display-ui.test.ts.
+it('explains every display option while keeping exact values and order', () => {
+  const options = (id: string) => {
+    const control = get(id).control;
+    return control.kind === 'choice' ? control.options.map((o) => [o.value, o.label]) : [];
+  };
+  expect(options('display.bauto')).toEqual([
+    [0, 'Always visible'],
+    [1, 'Fade until hovered or focused'],
+    [2, 'Collapse until hovered or focused'],
+  ]);
+  expect(options('display.sub').find(([value]) => value === 'num-left')?.[1]).toBe('Number on the left');
+  expect(options('display.hpfs').find(([value]) => value === -2)?.[1]).toBe('Two size steps smaller than chat');
+  expect(options('display.rbw')[0]?.[1]).toBe('Sweep');
+  for (const def of defs)
+    if (def.control.kind === 'choice')
+      for (const { label } of def.control.options) {
+        expect(label.trim()).toBeTruthy();
+        expect(label).not.toMatch(/^-?\d+(\.\d+)?$/);
+        expect(label).not.toMatch(/^(num-left|num-right|bauto|mirc|sourcesans)$/);
+      }
 });

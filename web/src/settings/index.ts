@@ -9,6 +9,8 @@ import { linkSettings } from './sources/links';
 import { providerSettings } from './sources/providers';
 import { builtinSections } from './sources/builtin';
 
+export { RETIRED_PANELS, forgetRetiredPanels, retiredTarget } from './retired';
+
 export interface SettingsTarget {
   page?: PageId;
   setting?: string;

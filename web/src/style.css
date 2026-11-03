@@ -689,22 +689,6 @@ html[data-privacy='true'] .bookmark-message {
   opacity: 0.4;
   text-decoration: line-through;
 }
-#display-panel form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin: 12px 0;
-}
-#display-panel label {
-  display: flex;
-  flex-direction: column;
-}
-#display-panel input[type='checkbox'] {
-  width: auto;
-}
-#display-url {
-  width: 100%;
-  margin-top: 12px;
-}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1860,7 +1844,6 @@ html[data-privacy='true'] #composer,
 html[data-privacy='true'] #user-inspector,
 html[data-privacy='true'] #identity-preview,
 html[data-privacy='true'] #link-preview,
-html[data-privacy='true'] #display-panel,
 html[data-privacy='true'] #resources-panel,
 html[data-privacy='true'] #workspace-panel,
 html[data-privacy='true'] #archive-search,
@@ -1936,21 +1919,6 @@ html[data-privacy='true'] #inbox-open {
 
 :root {
   zoom: var(--presentation-scale, 1);
-}
-#presentation-panel {
-  max-width: 760px;
-  max-height: 85vh;
-}
-#presentation-panel label {
-  display: block;
-  margin: 0.45rem 0;
-}
-#presentation-panel label[hidden] {
-  display: none;
-}
-#presentation-panel input,
-#presentation-panel select {
-  max-width: 100%;
 }
 [data-presentation-show-timestamps='false'] .row time,
 [data-presentation-hide-reply-context='true'] .row blockquote,

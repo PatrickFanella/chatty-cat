@@ -1151,51 +1151,6 @@ html[data-shell] dialog :is(td, th) {
   border-bottom: 1px solid var(--line);
   text-align: left;
 }
-html[data-shell] #display-panel {
-  width: min(960px, calc(100vw - 24px));
-}
-html[data-shell] #display-panel > input[type='search'] {
-  flex: 1 1 280px;
-}
-html[data-shell] #display-panel label:has(> input[type='checkbox']) {
-  flex-direction: row;
-  align-items: center;
-}
-html[data-shell] #display-panel form {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 0;
-}
-html[data-shell] #display-panel form {
-  align-items: flex-start;
-}
-html[data-shell] #display-panel form fieldset {
-  flex: 1 1 300px;
-  display: flex;
-  flex-wrap: wrap;
-  align-content: flex-start;
-  gap: 6px 12px;
-}
-html[data-shell] #display-panel form fieldset legend {
-  padding: 0 6px;
-}
-html[data-shell] #display-panel form fieldset > label {
-  flex: 1 1 140px;
-}
-html[data-shell] #display-panel form fieldset > label:has(> input[type='checkbox']) {
-  flex: 1 1 180px;
-}
-html[data-shell] #display-panel [aria-label='Saved display settings'] {
-  display: inline-flex;
-  gap: 6px;
-  flex-basis: auto;
-}
-html[data-shell] #display-url {
-  flex-basis: 100%;
-  margin: 0;
-}
 html[data-shell] #stats-panel {
   width: min(1000px, calc(100vw - 24px));
 }

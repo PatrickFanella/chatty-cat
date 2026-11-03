@@ -1,8 +1,19 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { completionDefaults, getLocalNickname, setCompletionPreferences } from '../../completion-preferences';
+import {
+  completionDefaults,
+  getCompletionPreferences,
+  getLocalNickname,
+  setCompletionPreferences,
+} from '../../completion-preferences';
+import { setProfileScope } from '../../account-profiles';
 import { getLinkPreferences, linkDefaults, setLinkPreferences } from '../../link-preferences';
-import { getProviderPreferences, providerDefaults, setProviderPreferences } from '../../provider-preferences';
+import {
+  ProviderPreferenceStore,
+  getProviderPreferences,
+  providerDefaults,
+  setProviderPreferences,
+} from '../../provider-preferences';
 import type { SettingsHost } from '../host';
 import type { SettingDef } from '../registry';
 import { COMPLETION_EXCLUDED, completionSettings } from './completion';
@@ -22,6 +33,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
+  setProfileScope('anonymous');
   localStorage.clear();
   setLinkPreferences(linkDefaults);
   setCompletionPreferences(completionDefaults);
@@ -101,4 +114,39 @@ it('provider placement splits emote display from integrations', () => {
   expect(find(defs, 'providers.badges.vanity').page).toBe('integrations');
   find(defs, 'providers.tooltipScale').write('1.5');
   expect(getProviderPreferences().tooltipScale).toBe(1.5);
+});
+
+// Moved from completion-preferences-ui.test.ts.
+it('completion writes save for the current account and keep the active value on failed storage', () => {
+  setProfileScope('42');
+  const aliases = find(completionSettings(host), 'completion.aliases');
+  aliases.write('alice=Friend');
+  expect(getCompletionPreferences().aliases).toEqual([{ login: 'alice', alias: 'Friend' }]);
+  expect(localStorage.getItem('chatthing:v1:profile:42:completion-preferences')).toContain('alice');
+  const raw = localStorage.getItem('chatthing:v1:profile:42:completion-preferences');
+  vi.stubGlobal('localStorage', {
+    getItem: () => raw,
+    setItem: () => {
+      throw new Error('quota');
+    },
+  });
+  expect(() => aliases.write('bob=Other')).toThrow('quota');
+  expect(getCompletionPreferences().aliases).toEqual([{ login: 'alice', alias: 'Friend' }]);
+});
+
+// Moved from link-preferences.test.ts: remote fetches stay off until a write saves them.
+it('link writes enable remote fetches only once saved', () => {
+  expect(getLinkPreferences().enabled).toBe(false);
+  const defs = linkSettings(host);
+  find(defs, 'links.enabled').write(true);
+  find(defs, 'links.thumbnails').write(true);
+  const saved = JSON.parse(localStorage.getItem('chatthing:v1:link-preferences')!);
+  expect(saved).toMatchObject({ enabled: true, thumbnails: true });
+  expect(getLinkPreferences().enabled).toBe(true);
+});
+
+// Moved from provider-preferences.test.ts: a provider write persists to the provider store.
+it('provider writes persist to the provider store', () => {
+  find(providerSettings(host), 'providers.providers.FFZ.channel').write(false);
+  expect(new ProviderPreferenceStore().read().providers.FFZ.channel).toBe(false);
 });

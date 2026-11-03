@@ -212,6 +212,8 @@ export function displaySettings(host: SettingsHost): SettingDef[] {
     defaultValue: () => 'nightshade',
     write(value) {
       host.display.setOptions(displayFromURL(host.display.options, new URLSearchParams({ theme: String(value) })));
+      // The emote picker applies its matching preset.
+      document.dispatchEvent(new CustomEvent('displaypreset', { detail: String(value) }));
     },
   });
   return defs;

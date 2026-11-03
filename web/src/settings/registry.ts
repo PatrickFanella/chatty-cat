@@ -31,6 +31,7 @@ export const PAGES: readonly PageDef[] = [
       'Composer',
       'Layout',
       'Motion',
+      'Saved settings',
       'Overlay',
     ],
   },

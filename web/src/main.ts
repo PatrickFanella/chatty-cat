@@ -1,7 +1,6 @@
 import { measureResourceWork } from './resource-timers';
 import { PassivePanelSettings } from './passive-panel-settings';
 import { mountPanel, panelAdapter, transientRoot } from './shell/static-panel';
-import type { ProviderPanel } from './provider-preferences-ui';
 import { clockTask, stopClockTask } from './shell/clock';
 import type { IRCRelayPanel } from './irc-relay-ui';
 import type { ExtensionsPanel } from './extensions-ui';
@@ -101,6 +100,7 @@ import './shell/shell.css';
 import { startShell, type Shell } from './shell';
 import { LazyPanels } from './shell/panels';
 import type { Settings, SettingsTarget } from './settings/index';
+import { forgetRetiredPanels, retiredTarget } from './settings/retired';
 import { mountAuth } from './auth';
 import { Composer } from './composer';
 import { PickerModel } from './picker-model';
@@ -1516,7 +1516,6 @@ export async function startMain(): Promise<void> {
     },
     (_providers, detail) => {
       providerCosmeticNotice = detail;
-      providerPanel?.cosmeticsStatus(detail);
     },
   );
 
@@ -1533,11 +1532,9 @@ export async function startMain(): Promise<void> {
     (provider, channel) => metadataClient.requestProviderRefresh(provider, channel),
     (detail) => {
       providerEventsNotice = detail;
-      providerPanel?.eventsStatus(detail);
     },
   );
 
-  let providerPanel: ProviderPanel | undefined;
   let providerEventsNotice = '',
     providerCosmeticNotice = '';
   function providersChanged(): void {
@@ -1566,6 +1563,9 @@ export async function startMain(): Promise<void> {
             providersChanged,
             reloadProviders: reloadProviderMetadata,
             providerStatus: () => [providerEventsNotice, providerCosmeticNotice].filter(Boolean).join(' · '),
+            reconnectProviders: () => providerEvents?.reconnect(),
+            readChatters: () =>
+              completionChatters ? completionChatters.read() : Promise.reject(new Error('Chatter read unavailable')),
             attention: { permission: () => attention.permission(), test: () => attention.test() },
             openPanel: (id) => {
               // Workbench panels open behind the modal window otherwise.
@@ -1948,6 +1948,8 @@ export async function startMain(): Promise<void> {
       },
     );
     if (!settingsReadonly) lazyPanels.setSettingsOpener((target) => openSettings(target));
+    // Layouts saved before Settings replaced these panels still name them.
+    forgetRetiredPanels(shell.workbench);
     lazyPanels.register({
       id: 'irc-relay-panel',
       title: 'IRC conversations',
@@ -1974,30 +1976,6 @@ export async function startMain(): Promise<void> {
           ({ ChatterinoImportPanel }) =>
             () =>
               new ChatterinoImportPanel(workspaceStore, captureWorkspace),
-        ),
-    });
-    lazyPanels.register({
-      id: 'completion-preferences-panel',
-      title: 'Completion',
-      group: 'moderation',
-      keywords: 'nicknames spellcheck suggestions',
-      load: () =>
-        import('./completion-preferences-ui').then(
-          ({ CompletionPreferencesPanel }) =>
-            () =>
-              new CompletionPreferencesPanel(undefined, false, () => completionChatters!.read()),
-        ),
-    });
-    lazyPanels.register({
-      id: 'link-preferences-panel',
-      title: 'Link preferences',
-      group: 'moderation',
-      keywords: 'preview thumbnails search double click',
-      load: () =>
-        import('./link-preferences-ui').then(
-          ({ LinkPreferencesPanel }) =>
-            () =>
-              new LinkPreferencesPanel(),
         ),
     });
     lazyPanels.register({
@@ -2224,17 +2202,6 @@ export async function startMain(): Promise<void> {
         ),
     });
     lazyPanels.register({
-      id: 'presentation-panel',
-      title: 'Presentation',
-      group: 'view',
-      load: () =>
-        import('./presentation-ui').then(
-          ({ PresentationPanel }) =>
-            () =>
-              new PresentationPanel(presentationRuntime),
-        ),
-    });
-    lazyPanels.register({
       id: 'commands-panel',
       title: 'Commands',
       group: 'moderation',
@@ -2322,23 +2289,6 @@ export async function startMain(): Promise<void> {
             accountAuth === undefined ? undefined : accountAuth.authenticated ? accountAuth.userID : 'anonymous',
           );
           return bookmarksPanel;
-        }),
-    });
-    lazyPanels.register({
-      id: 'provider-preferences-panel',
-      title: 'Provider and badge preferences',
-      group: 'providers',
-      load: () =>
-        import('./provider-preferences-ui').then(({ ProviderPanel }) => () => {
-          providerPanel = new ProviderPanel(
-            providersChanged,
-            reloadProviderMetadata,
-            !!panePopout || ephemeralPopout || overlay,
-            () => providerEvents?.reconnect(),
-          );
-          providerPanel.eventsStatus(providerEventsNotice);
-          providerPanel.cosmeticsStatus(providerCosmeticNotice);
-          return providerPanel;
         }),
     });
     lazyPanels.register({
@@ -2540,51 +2490,6 @@ export async function startMain(): Promise<void> {
         ),
     });
     lazyPanels.register({
-      id: 'display-panel',
-      title: 'Settings',
-      group: 'view',
-      load: () =>
-        Promise.all([import('./display-ui'), import('./panel-templates/display-panel.html?raw')]).then(
-          ([{ DisplaySettings }, markup]) =>
-            () => {
-              const root = mountPanel<HTMLDialogElement>(markup.default, 'display-panel');
-              const view = new DisplaySettings(root, panelTrigger('display-open'), display);
-              const displaySearch = document.createElement('input');
-              displaySearch.type = 'search';
-              displaySearch.placeholder = 'Search display settings';
-              displaySearch.setAttribute('aria-label', 'Search display settings');
-              element('display-panel', HTMLDialogElement).prepend(displaySearch);
-              displaySearch.addEventListener('input', () => {
-                for (const label of element('display-panel', HTMLDialogElement).querySelectorAll<HTMLLabelElement>(
-                  'label',
-                ))
-                  label.hidden = !label.textContent?.toLowerCase().includes(displaySearch.value.toLowerCase());
-              });
-
-              element('display-panel', HTMLDialogElement).addEventListener('change', (event) => {
-                if (event.target instanceof HTMLInputElement && event.target.name === 'notify' && event.target.checked)
-                  void attention.permission();
-              });
-
-              element('alert-test', HTMLButtonElement).addEventListener('click', () => {
-                void attention.test().then((result) => {
-                  element('alert-test-status', HTMLElement).textContent = result;
-                });
-              });
-
-              return panelAdapter(
-                'display-panel',
-                'Settings',
-                'view',
-                root,
-                () => view.open(),
-                () => view.close(),
-                () => view.stop(),
-              );
-            },
-        ),
-    });
-    lazyPanels.register({
       id: 'video-panel',
       title: 'Video',
       group: 'chat',
@@ -2707,9 +2612,10 @@ export async function startMain(): Promise<void> {
                   root,
                   panelTrigger('resources-open'),
                   (name) => {
+                    const retired = retiredTarget(name);
+                    if (retired) return openSettings(retired);
                     const id = (
                       {
-                        'display-open': 'display-panel',
                         'stats-open': 'stats-panel',
                         'archive-open': 'archive-search',
                       } as Record<string, string>

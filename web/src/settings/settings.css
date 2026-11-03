@@ -120,6 +120,12 @@
 .settings-custom {
   padding: 6px 0;
 }
+.settings-custom-body input[aria-label='Settings URL']:not([hidden]) {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
 
 @media (max-width: 700px) {
   .settings-window {

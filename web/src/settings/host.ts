@@ -13,6 +13,10 @@ export interface SettingsHost {
   reloadProviders(): boolean;
   /** Events and cosmetics notices joined with " · ". */
   providerStatus(): string;
+  /** Reconnects optional provider event and cosmetic services. */
+  reconnectProviders(): void;
+  /** Reads one page of chatters for completion; resolves to a status line. */
+  readChatters(): Promise<string>;
   attention: { permission(): Promise<unknown>; test(): Promise<string> };
   /** lazyPanels.open */
   openPanel(id: string): void;

@@ -1,4 +1,3 @@
-import { ProviderPanel } from './provider-preferences-ui';
 // @vitest-environment happy-dom
 import { afterEach, expect, it } from 'vitest';
 import {
@@ -114,26 +113,6 @@ it('live refresh replaces removed names while a paused provider waits for explic
   expect(selectProviderMetadata(reconcileProviderMetadata(next, data, p, true), p).emotes.Wave).toBeUndefined();
   p.providers.FFZ.live = true;
   expect(selectProviderMetadata(reconcileProviderMetadata(next, data, p), p).emotes.Wave).toBeUndefined();
-});
-it('requires review, invalidates edits, and persists only after apply', () => {
-  document.body.innerHTML = '<button id="commands-open">Commands</button>';
-  const changed = () => {},
-    panel = new ProviderPanel(changed, () => true);
-  try {
-    const checkbox = panel.root.querySelector<HTMLInputElement>('[name="FFZ.channel"]')!;
-    checkbox.checked = false;
-    const button = (text: string) => [...panel.root.querySelectorAll('button')].find((b) => b.textContent === text)!;
-    expect(button('Apply provider preferences').disabled).toBe(true);
-    button('Review provider preferences').click();
-    expect(button('Apply provider preferences').disabled).toBe(false);
-    checkbox.dispatchEvent(new Event('input', { bubbles: true }));
-    expect(button('Apply provider preferences').disabled).toBe(true);
-    button('Review provider preferences').click();
-    button('Apply provider preferences').click();
-    expect(new ProviderPreferenceStore().read().providers.FFZ.channel).toBe(false);
-  } finally {
-    panel.stop();
-  }
 });
 it('uses optional FFZ role artwork only for supplied native tags and restores native images on error or opt-out', () => {
   const metadata = {
