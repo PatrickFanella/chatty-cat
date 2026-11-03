@@ -1855,7 +1855,6 @@ html[data-privacy='true'] #login,
 html[data-privacy='true'] #account,
 html[data-privacy='true'] #account-emotes,
 html[data-privacy='true'] #personal-status,
-html[data-privacy='true'] #whisper-open,
 html[data-privacy='true'] #whisper-panel,
 html[data-privacy='true'] #composer,
 html[data-privacy='true'] #user-inspector,
@@ -1957,7 +1956,6 @@ html[data-privacy='true'] #inbox-open {
 [data-presentation-hide-reply-context='true'] .row blockquote,
 [data-presentation-show-reply-button='false'] .row .reply,
 [data-presentation-show-send-button='false'] #send,
-[data-presentation-hide-settings='true'] #display-open,
 [data-presentation-hide-account='true'] #login,
 [data-presentation-hide-account='true'] #account {
   display: none;

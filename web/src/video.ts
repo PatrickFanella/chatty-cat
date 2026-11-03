@@ -119,12 +119,14 @@ export class VideoPanel {
       this.volume.stop();
       this.container.replaceChildren();
       this.status.textContent = 'Video is hidden in privacy mode';
+      delete this.status.dataset.hint;
       return;
     }
     this.root.querySelector<HTMLAnchorElement>('#video-external')!.href =
       'https://www.twitch.tv/' + this.options.channel;
     if (innerWidth < 448) {
       this.status.textContent = 'Open Twitch for video on this narrow screen';
+      delete this.status.dataset.hint;
       return;
     }
     if (this.container.querySelector('iframe')) return;
@@ -144,6 +146,7 @@ export class VideoPanel {
     this.container.replaceChildren(frame);
     if (this.options.rememberVolume) void this.mountVolume();
     this.status.textContent = 'Use Twitch’s player controls for playback, sound and quality';
+    this.status.dataset.hint = 'true';
   }
   private privacyChanged = (): void => {
     if (privacyEnabled()) {
@@ -199,6 +202,7 @@ export class VideoPanel {
     );
     if (!loaded && !this.root.hidden && this.options.rememberVolume && channel === this.options.channel)
       this.status.textContent = 'Volume memory unavailable · Twitch controls remain available';
+    delete this.status.dataset.hint;
   };
   private remember = (): void => {
     this.options.rememberVolume = !this.options.rememberVolume;

@@ -14,7 +14,7 @@ import {
   SHADE_NAMES,
   displayOptionLabel,
 } from './display-data';
-import { defaultDisplay, parseDisplay, displayFromURL, type DisplayRuntime } from './display';
+import { firstVisitDisplay, parseDisplay, displayFromURL, type DisplayRuntime } from './display';
 export class DisplaySettings {
   get options() {
     return this.runtime.options;
@@ -193,7 +193,7 @@ export class DisplaySettings {
     this.changed();
   };
   private reset = (): void => {
-    this.options = displayFromURL(defaultDisplay(), new URLSearchParams('theme=nightshade'));
+    this.options = firstVisitDisplay();
     document.dispatchEvent(new CustomEvent('displaypreset', { detail: 'nightshade' }));
     this.apply();
     this.sync();

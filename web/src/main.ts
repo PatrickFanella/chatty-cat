@@ -215,6 +215,8 @@ export async function startMain(): Promise<void> {
       history.replaceState(null, '', url);
     }
   }
+  // With one joined channel the per-row channel label repeats the top bar chip; CSS hides it.
+  document.documentElement.dataset.channelCount = String(channels.length);
   const capacityNotice = document.createElement('span');
   capacityNotice.className = 'capacity-notice';
   capacityNotice.setAttribute('role', 'status');
@@ -988,6 +990,7 @@ export async function startMain(): Promise<void> {
       : archiveView
         ? `${archiveView.length} archived messages · Jump to live to return`
         : `${store.messages.length.toLocaleString()} messages`;
+    count.dataset.plain = String(!archiveView && !(virtualLog.layout.enabled && virtualLog.hasContexts()));
     latest.hidden = follow && virtualLog.allFollowing();
     if (pendingReaders) {
       const restored = virtualLog.restoreReaders(pendingReaders);
@@ -2816,7 +2819,6 @@ export async function startMain(): Promise<void> {
         trigger: animation,
         run: () => animation.click(),
       },
-      { id: 'view:header', label: 'Cycle header', group: 'view' as const, run: () => display.minimize() },
       { id: 'view:panes', label: 'Independent panes', group: 'view' as const, run: () => virtualLog.toggleLayout() },
       {
         id: 'chat:selection-search',

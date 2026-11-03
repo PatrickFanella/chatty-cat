@@ -1,6 +1,6 @@
 // Top bar: brand, joined channels, connection state, rate graph, search and account. Everything else lives in the menu
-// and the command palette. The legacy header stays in the DOM, hidden, so feature modules can keep inserting their
-// trigger buttons there; the registry mirrors them.
+// and the command palette, registered directly as commands. The hidden header only holds the few controls the top bar
+// adopts plus the theme, freeze and pane toggles that their commands click.
 import { CommandRegistry, GROUP_LABELS, GROUP_ORDER, type Command } from './registry';
 import { openMenu, type MenuSection } from './menu';
 export interface TopbarParts {

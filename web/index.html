@@ -13,15 +13,14 @@
   <link rel="stylesheet" href="/seo.css">
 </head>
 <body>
-  <header><button id="header-min" data-short="↕" type="button" aria-label="Cycle header: full, strip, graph">Header ↕</button>
+  <header>
     <div class="brand"><svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" shape-rendering="crispEdges"><path class="cat-face" d="M2 2h2.02v2.02h-2.02zM20 2h2.02v2.02h-2.02zM2 4h2.02v2.02h-2.02zM4 4h2.02v2.02h-2.02zM18 4h2.02v2.02h-2.02zM20 4h2.02v2.02h-2.02zM2 6h2.02v2.02h-2.02zM4 6h2.02v2.02h-2.02zM6 6h2.02v2.02h-2.02zM16 6h2.02v2.02h-2.02zM18 6h2.02v2.02h-2.02zM20 6h2.02v2.02h-2.02zM2 8h20.02v2.02h-20.02zM2 10h20.02v2.02h-20.02zM2 12h2.02v2.02h-2.02zM8 12h8.02v2.02h-8.02zM20 12h2.02v2.02h-2.02zM2 14h20.02v2.02h-20.02zM2 16h8.02v2.02h-8.02zM14 16h8.02v2.02h-8.02zM4 18h16.02v2.02h-16.02zM6 20h12.02v2.02h-12.02z"/><path class="cat-cursor" d="M10 16h4.02v2.02h-4.02z"/></svg><h1 class="brand-title">Chatty Cat</h1></div>
     <form id="channels"><label for="channel">Channels</label><input id="channel" name="channel" autocomplete="off" spellcheck="false" maxlength="155"><button>Join</button></form>
     <span id="status" role="status">Connecting…</span>
     <button id="theme" type="button" aria-label="Toggle light theme">◐</button>
     <button id="login" type="button" disabled>Log in with Twitch</button>
     <span id="account" role="status"></span><span id="personal-status" role="status"></span><span id="account-emotes" role="status"></span>
-    <button id="video-open" data-short="▶" type="button" aria-expanded="false" aria-controls="video-panel">Video</button><button id="whisper-open" data-short="✉" type="button" aria-controls="whisper-panel" aria-expanded="false" disabled>Whispers</button><button id="resources-open" data-short="?" type="button" aria-controls="resources-panel" aria-expanded="false">Help &amp; resources</button><button id="actions-open" type="button">Actions</button><button id="hotkeys-open" type="button">Shortcuts</button><button id="splits-open" type="button" aria-pressed="false">Independent panes</button><button id="workspace-open" type="button">Workspaces</button><button id="display-open" data-short="⚙" type="button">Settings</button><button id="stats-open" data-short="▥" type="button">Stats</button><span id="rate" aria-label="Message rate"></span>
-    <button id="archive-open" data-short="⌕" type="button">Search archive</button>
+    <button id="splits-open" type="button" aria-pressed="false">Independent panes</button><span id="rate" aria-label="Message rate"></span>
     <button id="animation" data-short="❄" type="button" aria-pressed="false">Freeze emotes</button>
   <nav id="joined-channels" aria-label="Joined channels"></nav></header>
 <div id="offline" role="status" hidden>Offline · Saved history remains available; live chat and sending require a connection.</div><button id="app-update" type="button" hidden>Update ready · Reload</button>

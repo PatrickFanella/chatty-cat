@@ -21,10 +21,10 @@ html[data-shell] body {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 38px;
-  padding: 0 8px 0 4px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  height: 32px;
+  padding: 0 6px 0 2px;
+  background: var(--bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
   font-size: 12px;
   color: var(--muted);
   user-select: none;
@@ -34,9 +34,9 @@ html[data-shell] body {
   border: 1px solid transparent;
   border-radius: var(--shell-radius);
   color: inherit;
-  padding: 4px 8px;
+  padding: 3px 7px;
   line-height: 1.2;
-  min-height: 26px;
+  min-height: 24px;
 }
 #topbar button:hover,
 #topbar button[aria-expanded='true'] {
@@ -52,9 +52,8 @@ html[data-shell] body {
 #topbar .tb-brand .brand {
   gap: 7px;
 }
-#topbar .tb-brand strong {
-  font-weight: 600;
-  letter-spacing: 0.01em;
+#topbar .tb-brand :is(strong, h1) {
+  display: none;
 }
 #topbar .tb-icon {
   width: 26px;
@@ -163,7 +162,7 @@ html[data-shell] body {
 #topbar .tb-rate {
   display: flex;
   align-items: center;
-  opacity: 0.8;
+  opacity: 0.45;
 }
 #topbar #rate {
   width: 72px;
@@ -172,15 +171,21 @@ html[data-shell] body {
 #topbar .tb-search {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 3px 6px 3px 10px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--bg) 60%, transparent);
-  min-width: 150px;
+  gap: 6px;
   color: var(--muted);
 }
-#topbar .tb-search:hover {
-  border-color: var(--accent);
+#topbar .tb-search span {
+  display: none;
+}
+#topbar .tb-search::before {
+  content: '⌕';
+  font-size: 15px;
+  line-height: 1;
+}
+@media (hover: none), (max-width: 700px) {
+  #topbar .tb-search kbd {
+    display: none;
+  }
 }
 #topbar kbd,
 .shell-menu kbd,
@@ -199,11 +204,12 @@ html[data-shell] body {
   align-items: center;
   gap: 6px;
 }
-#topbar #login {
-  border-color: var(--line);
+#topbar .tb-account:has(#account:not(:empty)) #login:disabled {
+  display: none;
 }
 #topbar #account {
   font-size: 11px;
+  opacity: 0.7;
   max-width: 180px;
   white-space: nowrap;
   overflow: hidden;
@@ -238,39 +244,45 @@ html[data-shell] body {
   #topbar .tb-search {
     flex: none;
   }
-  #topbar kbd {
-    white-space: nowrap;
-  }
-  #topbar .tb-search span {
-    display: none;
-  }
-  #topbar .tb-search {
-    min-width: 0;
-  }
   #topbar .tb-rate,
   #topbar .tb-state-text {
-    display: none;
-  }
-  #topbar .tb-brand :is(strong, h1) {
     display: none;
   }
 }
 
 /* ---- Centre column (stream line, log, composer) ---- */
-.wb-centre > #stream,
-.wb-centre > #room-state {
-  padding: 3px 12px;
+/* One line: stream details on the left, room modes on the right; both recede until hovered. */
+.wb-info {
+  display: flex;
+  gap: 12px;
+  padding: 2px 12px;
   font-size: 11px;
-  border-bottom: 1px solid var(--line);
   color: var(--muted);
-  background: var(--bg);
+  opacity: 0.6;
+  transition: opacity var(--shell-ease);
 }
-.wb-centre > #stream {
+.wb-info:hover,
+.wb-info:focus-within {
+  opacity: 1;
+}
+.wb-info:not(:has(> :not(:empty, [hidden]))) {
+  display: none;
+}
+.wb-info > .stream {
+  flex: 0 1 auto;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.wb-centre > #stream:empty {
+.wb-info > #stream {
+  flex: 1 1 auto;
+}
+.wb-info > :is(:empty, [hidden]) {
   display: none;
 }
 .wb-centre > #offline {
@@ -286,6 +298,45 @@ html[data-shell] main#log {
 html[data-shell] #composer {
   padding: 6px 12px;
   gap: 6px;
+  background: var(--bg);
+  border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+}
+/* A destination menu only matters with more than one joined channel, and only when sending. */
+html[data-shell] #composer:not(:has(#send-channel option + option)) :is(label[for='send-channel'], #send-channel),
+html:not([data-authenticated='true'])[data-shell] #composer :is(label[for='send-channel'], #send-channel) {
+  display: none;
+}
+html[data-shell] #composer label[for='send-channel'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.link-status {
+  margin: 0;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+html[data-shell] #composer-login {
+  margin-left: auto;
+  border-color: transparent;
+  background: transparent;
+  color: var(--accent);
+}
+html[data-shell] #composer-login:hover {
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
+}
+html[data-shell] #composer-login[hidden],
+html[data-authenticated='true'] #composer-login {
+  display: none;
+}
+html[data-shell]:not([data-authenticated='true']) #composer {
+  padding-block: 3px;
+}
+html[data-shell] #send-status:empty {
+  display: none;
 }
 html[data-shell] #composer #message {
   padding: 6px 10px;
@@ -300,20 +351,41 @@ html[data-shell] #picker-open[aria-expanded='true'] {
   color: var(--fg);
   background: color-mix(in srgb, var(--fg) 8%, transparent);
 }
+/* Footer: links stay reachable but faint; the count is in the stats panel. */
 html[data-shell] footer {
-  padding: 3px 12px;
+  padding: 2px 12px;
   gap: 12px;
   font-size: 10px;
-  border-top: 1px solid var(--line);
-  min-height: 20px;
-  opacity: 0.85;
+  border-top: 0;
+  min-height: 0;
+  justify-content: flex-end;
+  opacity: 0.45;
+  transition: opacity var(--shell-ease);
+}
+html[data-shell] footer:is(:hover, :focus-within),
+html[data-shell] footer:has(> button:not([hidden])) {
+  opacity: 1;
+}
+html[data-shell] footer #count[data-plain='true'] {
+  display: none;
+}
+html[data-shell] footer:has(#count[data-plain='false']) {
+  opacity: 1;
 }
 html[data-shell] footer a {
   color: var(--muted);
+  text-decoration: none;
+}
+html[data-shell] footer a:hover {
+  text-decoration: underline;
 }
 html[data-shell] footer button {
   padding: 1px 8px;
   font-size: 11px;
+}
+
+html[data-shell][data-channel-count='1'] .row > .channel {
+  display: none;
 }
 
 /* ---- Workbench grid ---- */
@@ -363,42 +435,42 @@ html[data-shell] footer button {
   height: min(var(--wb-bottom), 50dvh);
   flex-direction: row;
 }
-.wb-splitter {
+.wb-splitter,
+.wb-share {
   flex: none;
-  background: var(--line);
-  transition: background var(--shell-ease);
+  --wb-hair: color-mix(in srgb, var(--line) 70%, transparent);
+  background: linear-gradient(var(--wb-hair), var(--wb-hair)) center / 1px 100% no-repeat;
   touch-action: none;
+}
+.wb-splitter[data-zone='bottom'],
+.wb-zone:not([data-zone='bottom']) > .wb-share {
+  background-size: 100% 1px;
 }
 .wb-splitter[hidden] {
   display: none;
 }
 .wb-splitter[data-zone='left'],
 .wb-splitter[data-zone='right'] {
-  width: 4px;
+  width: 5px;
   cursor: col-resize;
 }
 .wb-splitter[data-zone='bottom'] {
-  height: 4px;
+  height: 5px;
   cursor: row-resize;
 }
 .wb-splitter:hover,
 .wb-splitter:focus-visible,
 .wb-share:hover,
 .wb-share:focus-visible {
-  background: var(--accent);
+  --wb-hair: var(--accent);
   outline: none;
 }
-.wb-share {
-  flex: none;
-  background: var(--line);
-  touch-action: none;
-}
 .wb-zone[data-zone='bottom'] > .wb-share {
-  width: 4px;
+  width: 5px;
   cursor: col-resize;
 }
 .wb-zone:not([data-zone='bottom']) > .wb-share {
-  height: 4px;
+  height: 5px;
   cursor: row-resize;
 }
 .wb-share[hidden] {
@@ -435,7 +507,7 @@ body.wb-dragging iframe {
 #workbench[data-drop='left'] .wb-splitter[data-zone='left'],
 #workbench[data-drop='right'] .wb-splitter[data-zone='right'],
 #workbench[data-drop='bottom'] .wb-splitter[data-zone='bottom'] {
-  background: var(--accent);
+  --wb-hair: var(--accent);
 }
 
 /* Compact panels share one lower sheet; desktop placements remain in the layout model. */
@@ -593,8 +665,8 @@ body.wb-dragging iframe {
   padding: 0 4px 0 12px;
   font-size: 11px;
   color: var(--muted);
-  background: color-mix(in srgb, var(--fg) 4%, var(--panel));
-  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  border-bottom: 0;
   flex: none;
   user-select: none;
 }
@@ -607,9 +679,10 @@ body.wb-dragging iframe {
   white-space: nowrap;
   cursor: grab;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   font-size: 10px;
+  opacity: 0.75;
 }
 .wb-chrome .wb-title:focus-visible {
   outline: 2px solid var(--accent);
@@ -634,6 +707,76 @@ body.wb-dragging .wb-title {
   background: color-mix(in srgb, var(--fg) 10%, transparent);
   color: var(--fg);
   border: 0;
+}
+@media (hover: hover) {
+  .wb-panel .wb-chrome button {
+    opacity: 0;
+    transition: opacity var(--shell-ease);
+  }
+  .wb-panel:is(:hover, :focus-within) .wb-chrome button {
+    opacity: 1;
+  }
+  /* Docked or floating video: the player fills the panel; its controls drop down from the title bar. */
+  .wb-panel[data-placement='docked'] {
+    position: relative;
+  }
+  .wb-panel .video-controls {
+    position: absolute;
+    top: var(--shell-chrome);
+    left: 0;
+    right: 0;
+    z-index: 3;
+    padding: 6px 12px;
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    border-bottom: 1px solid var(--line);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--shell-ease);
+  }
+  .wb-panel:is(:has(.wb-chrome:hover), :focus-within) .video-controls,
+  .wb-panel .video-controls:hover {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.wb-panel #video-status[data-hint='true'] {
+  display: none;
+}
+/* Panel options start collapsed so the content leads. */
+.panel-options {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+.panel-options > div {
+  width: 100%;
+}
+.panel-options > summary {
+  cursor: pointer;
+  width: max-content;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 0;
+  list-style: none;
+}
+.panel-options > summary::before {
+  content: '▸ ';
+}
+.panel-options[open] > summary::before {
+  content: '▾ ';
+}
+.panel-options > summary:hover {
+  color: var(--fg);
+}
+.panel-options[open] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding-bottom: 8px;
+}
+.panel-options[open] > summary {
+  flex-basis: 100%;
 }
 /* Chrome inside a modal dialog becomes the dialog title bar. */
 dialog:not(.wb-panel > *) > .wb-chrome {

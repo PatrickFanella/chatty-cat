@@ -329,6 +329,18 @@ export function messageVisibility(
         )),
   };
 }
+/** First visits and display reset: the Nightshade palette with a calm log (chat alone, 15px, minute timestamps,
+ * no zebra); panels open on request. */
+export function firstVisitDisplay(): DisplayOptions {
+  return {
+    ...displayFromURL(defaultDisplay(), new URLSearchParams('theme=nightshade')),
+    split: 1,
+    size: 15,
+    lh: 1.4,
+    zebra: 0,
+    times: 1,
+  };
+}
 export class DisplayRuntime extends EventTarget {
   options = defaultDisplay();
   private systemTone = matchMedia('(prefers-color-scheme: dark)');
@@ -336,9 +348,7 @@ export class DisplayRuntime extends EventTarget {
     super();
     try {
       const saved = localStorage.getItem(profileKey('chatthing:v1:display'));
-      this.options = saved
-        ? parseDisplay(JSON.parse(saved))
-        : displayFromURL(defaultDisplay(), new URLSearchParams('theme=nightshade'));
+      this.options = saved ? parseDisplay(JSON.parse(saved)) : firstVisitDisplay();
     } catch {
       /* optional storage */
     }
@@ -353,7 +363,6 @@ export class DisplayRuntime extends EventTarget {
     }
     this.options = displayFromURL(this.options, new URL(location.href).searchParams);
     this.apply();
-    document.getElementById('header-min')?.addEventListener('click', this.minimize);
     window.addEventListener('storage', this.storage);
     this.systemTone.addEventListener('change', this.toneChanged);
   }
@@ -428,13 +437,6 @@ export class DisplayRuntime extends EventTarget {
       ][o.shadow] ?? 'none',
     );
   }
-  minimize = (): void => {
-    this.options.min = (this.options.min + 1) % 3;
-    this.apply();
-    this.save();
-    this.changed();
-    this.dispatchEvent(new Event('change'));
-  };
   setOptions(value: unknown): void {
     this.options = parseDisplay(value);
     this.apply();
@@ -473,7 +475,6 @@ export class DisplayRuntime extends EventTarget {
     this.dispatchEvent(new Event('change'));
   }
   stop(): void {
-    document.getElementById('header-min')?.removeEventListener('click', this.minimize);
     window.removeEventListener('storage', this.storage);
     this.systemTone.removeEventListener('change', this.toneChanged);
   }

@@ -105,6 +105,35 @@ export function startShell(options: ShellOptions): Shell {
     centre:
       '#offline,#app-update,#stream,#room-state,#video-panel,main#log,.chat-workspace,#announcer,#composer,.message-navigation',
   });
+  // Stream details and room modes share one quiet line above the log.
+  const stream = document.getElementById('stream'),
+    roomState = document.getElementById('room-state');
+  if (stream && roomState && stream.parentElement === roomState.parentElement) {
+    const info = document.createElement('div');
+    info.className = 'wb-info';
+    stream.before(info);
+    info.append(stream, roomState);
+  }
+  // Logged out, the composer offers sign-in instead of an empty row; hidden while login is unavailable.
+  const login = document.getElementById('login'),
+    composer = document.getElementById('composer');
+  let loginWatch: MutationObserver | undefined;
+  if (login instanceof HTMLButtonElement && composer) {
+    const prompt = document.createElement('button');
+    prompt.type = 'button';
+    prompt.id = 'composer-login';
+    prompt.textContent = 'Log in to chat';
+    prompt.addEventListener('click', () => login.click());
+    const sync = (): void => {
+      prompt.hidden = login.disabled;
+    };
+    sync();
+    composer.append(prompt);
+    if (typeof MutationObserver !== 'undefined') {
+      loginWatch = new MutationObserver(sync);
+      loginWatch.observe(login, { attributes: true, attributeFilter: ['disabled'] });
+    }
+  }
   const palette = new CommandPalette(registry, options.extra);
   const parts = {
     header,
@@ -143,6 +172,7 @@ export function startShell(options: ShellOptions): Shell {
     topbar,
     stop: () => {
       document.removeEventListener('keydown', keys, true);
+      loginWatch?.disconnect();
       palette.stop();
       registry.stop();
       workbench.stop();
