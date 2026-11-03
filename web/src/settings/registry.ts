@@ -60,7 +60,12 @@ export const PAGES: readonly PageDef[] = [
 
 export type Control =
   | { kind: 'toggle' }
-  | { kind: 'choice'; options: readonly { value: string | number; label: string }[] }
+  | {
+      kind: 'choice';
+      options: readonly { value: string | number; label: string }[];
+      /** First option, value '', shown while the stored value is empty; choosing it saves nothing. */
+      placeholder?: string;
+    }
   | { kind: 'number'; min: number; max: number; step: number; unit?: string }
   | { kind: 'text'; placeholder?: string; maxLength?: number; multiline?: boolean }
   | { kind: 'color' };
@@ -87,6 +92,8 @@ export interface CustomSection {
   section: string;
   keywords: string;
   mount(host: HTMLElement): Promise<() => void>;
+  /** Called when the window puts an already mounted host back on screen. */
+  attached?(): void;
   visible?(): boolean;
   private?: boolean;
 }

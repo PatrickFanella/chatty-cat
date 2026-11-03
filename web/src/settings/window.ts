@@ -24,6 +24,8 @@ export class SettingsWindow {
   private readonly navButtons = new Map<PageId, HTMLButtonElement>();
   private readonly controls = new Map<string, { def: SettingDef; el: HTMLElement; error: HTMLElement }>();
   private readonly mounted = new Map<string, Mounted>();
+  // Mounted sections put back on screen by the current render.
+  private reattached: CustomSection[] = [];
   private readonly storageAvailable: boolean;
   private page: PageId = 'general';
   private signature = '';
@@ -167,6 +169,7 @@ export class SettingsWindow {
       return;
     }
     let lastPage: PageId | undefined;
+    this.reattached = [];
     for (const g of groups) {
       if (searching && g.page !== lastPage) {
         lastPage = g.page;
@@ -174,11 +177,19 @@ export class SettingsWindow {
         h.textContent = PAGES.find((p) => p.id === g.page)?.title ?? '';
         this.content.append(h);
       }
-      this.content.append(this.renderSection(g));
+      this.content.append(this.renderSection(g, searching));
+    }
+    if (!this.root.open) return;
+    for (const def of this.reattached.splice(0)) {
+      try {
+        def.attached?.();
+      } catch {
+        // One section's failure must not block the others.
+      }
     }
   }
 
-  private renderSection(g: Group): HTMLElement {
+  private renderSection(g: Group, searching = false): HTMLElement {
     const sec = document.createElement('section');
     sec.className = 'settings-section';
     sec.dataset.section = g.section;
@@ -198,7 +209,8 @@ export class SettingsWindow {
       const reset = document.createElement('button');
       reset.type = 'button';
       reset.className = 'settings-reset';
-      reset.textContent = 'Reset section';
+      // Search shows only the matching rows, and only those are reset.
+      reset.textContent = searching ? 'Reset shown' : 'Reset section';
       reset.addEventListener('click', () => {
         for (const d of defs) this.commit(d, d.defaultValue());
         this.refreshValues(true);
@@ -233,6 +245,12 @@ export class SettingsWindow {
     let el: HTMLElement;
     if (c.kind === 'choice') {
       const s = document.createElement('select');
+      if (c.placeholder) {
+        const empty = document.createElement('option');
+        empty.value = '';
+        empty.textContent = c.placeholder;
+        s.append(empty);
+      }
       for (const o of c.options) {
         const opt = document.createElement('option');
         opt.value = String(o.value);
@@ -240,6 +258,7 @@ export class SettingsWindow {
         s.append(opt);
       }
       s.addEventListener('change', () => {
+        if (c.placeholder && s.value === '') return;
         const hit = c.options.find((o) => String(o.value) === s.value);
         this.commit(def, hit ? hit.value : s.value);
       });
@@ -337,7 +356,7 @@ export class SettingsWindow {
       m = { host, stopped: false };
       this.mounted.set(def.id, m);
       this.startMount(def, m);
-    }
+    } else if (m.dispose) this.reattached.push(def);
     return m.host;
   }
 

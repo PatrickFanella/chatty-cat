@@ -141,10 +141,6 @@ export function presentationSettings(host: SettingsHost): SettingDef[] {
           const parsed = parsePresentation({
             ...host.presentation.saved,
             [key]: next,
-            showTimestamps: true,
-            timestampFormat: 'legacy',
-            separators: 'legacy',
-            alternating: 'legacy',
             mentionAt: completion.mentionAt,
             mentionComma: completion.mentionComma,
           });

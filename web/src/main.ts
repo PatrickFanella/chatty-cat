@@ -2212,7 +2212,7 @@ export async function startMain(): Promise<void> {
       },
       load: () =>
         import('./commands-ui').then(({ CommandPanel }) => () => {
-          commandPanel = new CommandPanel(composer, commandContext, undefined, commandRuntime);
+          commandPanel = new CommandPanel(composer, commandContext, undefined, commandRuntime, () => settings?.close());
           return commandPanel;
         }),
     });

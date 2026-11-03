@@ -1,4 +1,5 @@
-import { defaultDisplay, displayFromURL, firstVisitDisplay, type DisplayOptions } from '../../display';
+import { defaultDisplay, displayFromURL, firstVisitDisplay, parseDisplay, type DisplayOptions } from '../../display';
+import { parsePresentation, type PresentationOptions } from '../../presentation';
 import {
   COLOURS,
   FONT_SIZES,
@@ -16,6 +17,9 @@ import type { SettingsHost } from '../host';
 
 /** Keys that are not user settings: `min` is owned by the header toggle. */
 export const DISPLAY_EXCLUDED: readonly (keyof DisplayOptions)[] = ['min'];
+
+/** parseDisplay keeps this many characters of a text field. */
+const TEXT_LIMIT = 1000;
 
 type Choices = readonly (string | number)[];
 
@@ -53,9 +57,16 @@ const CONTROLS: Partial<Record<keyof DisplayOptions, Control>> = {
   anim: choice('anim', [0, 1, 2, 3]),
   rbw: choice('rbw', [0, 1, 2, 3, 4]),
   hideMode: choice('hideMode', ['vanish', 'stub', 'ghost']),
-  keywords: { kind: 'text', maxLength: 1000, placeholder: 'Comma-separated words' },
-  blocked: { kind: 'text', maxLength: 1000, placeholder: 'Comma-separated words' },
-  hidden: { kind: 'text', maxLength: 1000, placeholder: 'Comma-separated usernames' },
+  keywords: { kind: 'text', maxLength: TEXT_LIMIT, placeholder: 'Comma-separated words' },
+  blocked: { kind: 'text', maxLength: TEXT_LIMIT, placeholder: 'Comma-separated words' },
+  hidden: { kind: 'text', maxLength: TEXT_LIMIT, placeholder: 'Comma-separated usernames' },
+};
+
+// The presentation copy of these display choices follows the display value again once it is changed here.
+const PRESENTATION_COPIES: Partial<Record<keyof DisplayOptions, Partial<PresentationOptions>>> = {
+  times: { showTimestamps: true, timestampFormat: 'legacy' },
+  lines: { separators: 'legacy' },
+  zebra: { alternating: 'legacy' },
 };
 
 type Spec = [page: PageId, section: string, items: [key: keyof DisplayOptions, label: string][]];
@@ -188,8 +199,16 @@ export function displaySettings(host: SettingsHost): SettingDef[] {
           const next = typeof sample === 'number' ? Number(value) : value;
           const patch: Partial<DisplayOptions> = { [key]: next };
           if (key === 'shade') patch.autoShade = false;
+          // The parser keeps only strings (truncated); refuse anything it would replace.
+          if (
+            control.kind === 'text' &&
+            parseDisplay({ ...host.display.options, ...patch })[key] !== String(value).slice(0, TEXT_LIMIT)
+          )
+            throw new Error('Not a valid value');
           const wasOn = host.display.options.notify;
           save(patch);
+          const copy = PRESENTATION_COPIES[key];
+          if (copy) host.presentation.persist(parsePresentation({ ...host.presentation.saved, ...copy }));
           if (key === 'notify' && next === true && !wasOn) void host.attention.permission();
         },
       });
@@ -205,6 +224,7 @@ export function displaySettings(host: SettingsHost): SettingDef[] {
     keywords: 'theme preset',
     control: {
       kind: 'choice',
+      placeholder: 'Choose a preset…',
       options: Object.keys(PRESETS).map((value) => ({ value, label: displayOptionLabel('preset', value) })),
     },
     private: true,

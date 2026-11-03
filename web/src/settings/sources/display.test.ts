@@ -2,11 +2,15 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { DisplayRuntime, defaultDisplay, displayFromURL, firstVisitDisplay } from '../../display';
 import { PRESETS } from '../../display-data';
+import { presentationDefaults, setPresentation } from '../../presentation';
+import { PresentationRuntime } from '../../presentation-runtime';
+import { profileKey } from '../../account-profiles';
 import type { SettingsHost } from '../host';
 import type { SettingDef } from '../registry';
 import { DISPLAY_EXCLUDED, displaySettings } from './display';
 
 let runtime: DisplayRuntime;
+let presentation: PresentationRuntime;
 let permission: ReturnType<typeof vi.fn>;
 let defs: SettingDef[];
 
@@ -15,8 +19,10 @@ beforeEach(() => {
   localStorage.clear();
   runtime = new DisplayRuntime(() => {});
   permission = vi.fn(async () => 'granted');
+  presentation = new PresentationRuntime(() => {});
   const host = {
     display: runtime,
+    presentation,
     attention: { permission, test: async () => '' },
   } as unknown as SettingsHost;
   defs = displaySettings(host);
@@ -24,6 +30,8 @@ beforeEach(() => {
 
 afterEach(() => {
   runtime.stop();
+  presentation.stop();
+  setPresentation({ ...presentationDefaults });
   localStorage.clear();
   vi.unstubAllGlobals();
 });
@@ -56,6 +64,7 @@ it('preset write applies the preset values', () => {
   get('display.preset').write('irc');
   expect(runtime.options.font).toBe('fixedsys');
   expect(get('display.preset').read()).toBe('');
+  expect(get('display.preset').control).toMatchObject({ placeholder: 'Choose a preset…' });
 });
 
 it('defaults come from firstVisitDisplay', () => {
@@ -113,4 +122,43 @@ it('explains every display option while keeping exact values and order', () => {
         expect(label).not.toMatch(/^-?\d+(\.\d+)?$/);
         expect(label).not.toMatch(/^(num-left|num-right|bauto|mirc|sourcesans)$/);
       }
+});
+
+it('writing timestamps, separators or zebra resets the matching presentation copy to legacy', () => {
+  presentation.persist({
+    ...presentation.saved,
+    showTimestamps: false,
+    timestampFormat: 'HH:mm',
+    separators: 'on',
+    alternating: 'off',
+  });
+  get('display.size').write(16);
+  expect(presentation.saved.timestampFormat).toBe('HH:mm');
+  expect(presentation.saved.separators).toBe('on');
+  expect(presentation.saved.alternating).toBe('off');
+  get('display.times').write(2);
+  expect(runtime.options.times).toBe(2);
+  expect(presentation.saved.showTimestamps).toBe(true);
+  expect(presentation.saved.timestampFormat).toBe('legacy');
+  expect(presentation.saved.separators).toBe('on');
+  get('display.lines').write(1);
+  expect(presentation.saved.separators).toBe('legacy');
+  expect(presentation.saved.alternating).toBe('off');
+  get('display.zebra').write(1);
+  expect(presentation.saved.alternating).toBe('legacy');
+});
+
+it('text fields refuse a value the parser would replace and keep the stored text', () => {
+  const words = get('display.keywords');
+  words.write('  alpha, beta ');
+  expect(runtime.options.keywords).toBe('  alpha, beta ');
+  const stored = localStorage.getItem(profileKey('chatthing:v1:display'));
+  for (const id of ['display.keywords', 'display.blocked', 'display.hidden']) {
+    const before = get(id).read();
+    expect(() => get(id).write(42)).toThrow('Not a valid value');
+    expect(get(id).read()).toBe(before);
+  }
+  expect(localStorage.getItem(profileKey('chatthing:v1:display'))).toBe(stored);
+  words.write('x'.repeat(1200));
+  expect(runtime.options.keywords).toBe('x'.repeat(1000));
 });

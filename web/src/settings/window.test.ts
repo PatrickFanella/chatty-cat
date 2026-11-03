@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsRegistry, type CustomSection, type SettingDef } from './registry';
 import { SettingsWindow } from './window';
+import { readFileSync } from 'node:fs';
 
 function mk(id: string, over: Partial<SettingDef> = {}, store: { v: unknown } = { v: false }): SettingDef {
   return {
@@ -187,6 +188,49 @@ describe('settings window', () => {
     q('.settings-section[data-section="Appearance"] button.settings-reset').click();
     expect(w1).toHaveBeenCalledWith(true);
     expect(w2).not.toHaveBeenCalled();
+  });
+
+  it('in search results the reset button says it resets only the shown rows', () => {
+    const w1 = vi.fn();
+    const w2 = vi.fn();
+    const { win } = make([
+      mk('a', { label: 'Alpha', write: w1, defaultValue: () => true }),
+      mk('b', { label: 'Beta', write: w2, defaultValue: () => true }),
+    ]);
+    win.open();
+    const s = q<HTMLInputElement>('nav.settings-nav input[type=search]');
+    s.value = 'alpha';
+    fire(s, 'input');
+    const reset = q<HTMLButtonElement>('button.settings-reset');
+    expect(reset.textContent).toBe('Reset shown');
+    reset.click();
+    expect(w1).toHaveBeenCalledWith(true);
+    expect(w2).not.toHaveBeenCalled();
+  });
+
+  it('a choice setting with an empty value shows its placeholder option', () => {
+    const { win } = make([
+      mk('p', {
+        label: 'Preset',
+        read: () => '',
+        control: { kind: 'choice', placeholder: 'Choose a preset…', options: [{ value: 'irc', label: 'IRC' }] },
+      }),
+    ]);
+    win.open();
+    const select = row('p').querySelector('select')!;
+    expect(select.options[0]!.value).toBe('');
+    expect(select.options[0]!.textContent).toBe('Choose a preset…');
+    expect(select.value).toBe('');
+  });
+
+  it('embedded panels sit flat in their section and hide their own heading visually', () => {
+    const css = readFileSync(process.cwd() + '/src/settings/settings.css', 'utf8');
+    expect(css).toMatch(/\.settings-custom-body > \[data-embedded='true'\] \{[^}]*border: 0;[^}]*padding: 0;/);
+    expect(css).toMatch(
+      /\.settings-custom-body > \[data-embedded='true'\] > :is\(h1, h2\):first-of-type \{[^}]*clip-path: inset\(50%\);/,
+    );
+    expect(css).toMatch(/\.settings-reset \{[^}]*color: var\(--muted\);/);
+    expect(css).toMatch(/\.settings-reset:hover[^{]*\{[^}]*color: var\(--accent\);/);
   });
 
   it('search shows results grouped by page and edits in place; clearing returns to the page', () => {

@@ -49,13 +49,20 @@ it('writes persist through parsePresentation and rerender', () => {
   expect(rerender).toHaveBeenCalledTimes(1);
 });
 
-it('writes collapse duplicate copies to legacy', () => {
-  runtime.persist({ ...runtime.saved, separators: 'on', timestampFormat: 'HH:mm', showTimestamps: false });
+it('writes keep imported timestamp, separator and zebra copies and still copy completion choices', () => {
+  runtime.persist({
+    ...runtime.saved,
+    separators: 'on',
+    alternating: 'off',
+    timestampFormat: 'HH:mm',
+    showTimestamps: false,
+  });
   setCompletionPreferences({ ...getCompletionPreferences(), mentionAt: true, mentionComma: false });
   get('presentation.boldUsernames').write(false);
-  expect(runtime.saved.separators).toBe('legacy');
-  expect(runtime.saved.timestampFormat).toBe('legacy');
-  expect(runtime.saved.showTimestamps).toBe(true);
+  expect(runtime.saved.separators).toBe('on');
+  expect(runtime.saved.alternating).toBe('off');
+  expect(runtime.saved.timestampFormat).toBe('HH:mm');
+  expect(runtime.saved.showTimestamps).toBe(false);
   expect(runtime.saved.mentionAt).toBe(true);
   expect(runtime.saved.mentionComma).toBe(false);
   expect(runtime.saved.boldUsernames).toBe(false);

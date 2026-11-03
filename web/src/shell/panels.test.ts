@@ -5,6 +5,8 @@ import { CommandRegistry } from './registry';
 import { Workbench } from './workbench';
 import { showPanel } from './open-panel';
 import { dock, emptyLayout, setClosed } from './layout';
+import { SettingsRegistry } from '../settings/registry';
+import { SettingsWindow } from '../settings/window';
 
 let panels: LazyPanels | undefined;
 afterEach(() => {
@@ -415,4 +417,83 @@ it('perform on an already embedded settings panel runs the action right after op
   expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
   expect(action).toHaveBeenCalledOnce();
   expect(f.create).toHaveBeenCalledOnce();
+});
+
+// The real Settings window hosting the fixture panel on its Commands page.
+async function settingsWindow(f: ReturnType<typeof setup>) {
+  f.registerSettings();
+  const registry = new SettingsRegistry(() => false);
+  registry.add(panels!.settingsSections());
+  const win = new SettingsWindow(registry, { storageAvailable: true });
+  panels!.setSettingsOpener((target) => win.open(target));
+  const settle = async () => {
+    for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+  const current = () => win.root.querySelector<HTMLElement>('button[aria-current="page"]')?.dataset.page;
+  const page = (id: string) => win.root.querySelector<HTMLButtonElement>(`button[data-page="${id}"]`)!.click();
+  return { win, settle, current, page };
+}
+it('an embedded panel asked to show while Settings is closed opens Settings on its page first', async () => {
+  const f = setup();
+  const { win, settle, current } = await settingsWindow(f);
+  win.open({ page: 'commands' });
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  expect(win.root.contains(instance.root)).toBe(true);
+  win.close();
+  await panels!.perform('fixture-panel', () => showPanel(instance.root), false);
+  await settle();
+  expect(win.root.open).toBe(true);
+  expect(current()).toBe('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.stop();
+});
+it('an embedded panel asked to show while Settings shows another page switches to its page', async () => {
+  const f = setup();
+  const { win, settle, current, page } = await settingsWindow(f);
+  win.open({ page: 'commands' });
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  page('general');
+  expect(instance.root.isConnected).toBe(false);
+  showPanel(instance.root);
+  await settle();
+  expect(current()).toBe('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.stop();
+});
+it('a settings panel loaded without activation opens Settings when its action shows it', async () => {
+  const f = setup();
+  const { win, settle, current } = await settingsWindow(f);
+  await panels!.perform('fixture-panel', () => showPanel(f.create.mock.results[0]!.value.root), false);
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(win.root.open).toBe(true);
+  expect(current()).toBe('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.stop();
+});
+it('an embedded panel that closed while its page was hidden is shown again when the page returns', async () => {
+  const f = setup();
+  const { win, settle, page } = await settingsWindow(f);
+  win.open({ page: 'commands' });
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  page('general');
+  instance.root.close();
+  await settle();
+  expect(instance.root.open).toBe(false);
+  page('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.close();
+  instance.root.close();
+  await settle();
+  win.open();
+  expect(instance.root.open).toBe(true);
+  win.stop();
 });

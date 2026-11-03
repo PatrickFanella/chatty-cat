@@ -36,10 +36,10 @@ export class Resources {
       'Log in with Twitch to send. Enter sends; Shift+Enter adds a draft line break. Up and Down at the ends of the draft recall sent messages. Use @ for names, : for emotes, or Tab to complete a word.',
       'Reply buttons quote a parent message. Link buttons preserve the current channels and open saved message context. Jump to live resumes following chat.',
       'The emote picker has provider and emoji tabs, search, recent use, age markers, animation filters and saved size. Drag its title or use arrow keys on the move handle; Shift moves farther. Pin retains its position.',
-      'Display settings control presets, palettes, fonts, metrics, timestamps, filters, scrollback, emote-only size and shadows. Mention sound and notifications are optional. The missed-mention button jumps to each queued message; Shift-click clears it.',
+      'Settings control presets, palettes, fonts, metrics, timestamps, filters, scrollback, emote-only size and shadows. Mention sound and notifications are optional. The missed-mention button jumps to each queued message; Shift-click clears it.',
       'Search reads this browser’s saved archive. Stats retain observed rankings; their summary and graph cover retained messages. Offline mode displays saved history; live chat and sending need the network.',
       'Video opens Twitch’s player with the current parent domain and does not start playback automatically. Link previews load media players only when selected.',
-      'GIF title lookup uses direct, uncached GIPHY requests. Results keep GIPHY attribution and original media URLs. Enable PG-13 safe mode in Display settings; request limits and failure links still apply. A server cache or proxy is not part of the supported integration.',
+      'GIF title lookup uses direct, uncached GIPHY requests. Results keep GIPHY attribution and original media URLs. Enable PG-13 safe mode in Settings › General › Links and cards; request limits and failure links still apply. A server cache or proxy is not part of the supported integration.',
       'Warnings/Shield Mode: /warn username reason, /shield, /shieldoff, /banid numeric-user-id [reason], /untimeout username. These composer commands open the moderation review; Confirm sends once and records a private receipt. Warning acknowledgement happens in Twitch and is unavailable here. Supported commands: /me action text, /timeout username [seconds] [reason], /ban username [reason], /unban username, /delete message-id, /clear, /slow [seconds], /slowoff, /followers [minutes], /followersoff, /subscribers and /subscribersoff, /emoteonly and /emoteonlyoff, /uniquechat and /uniquechatoff, /announce text (or /announceblue, /announcegreen, /announceorange, /announcepurple), /color named-color or #RRGGBB. Also /raid username, /unraid, /mod and /unmod username, /vip and /unvip username, /block and /unblock username, /shoutout username. Raid/mod/VIP commands require the selected channel’s broadcaster account. A raid request starts Twitch’s pending raid; complete or cancel it there. Commands require the relevant Twitch scope and channel permission.',
       'Media, left, libre and author lists retain the original project’s curated links and attribution.',
     ];
@@ -49,7 +49,7 @@ export class Resources {
       help.append(p);
     }
     for (const [name, label] of [
-      ['display-open', 'Display settings'],
+      ['display-open', 'Settings'],
       ['stats-open', 'Stats'],
       ['archive-open', 'Search archive'],
     ] as const) {

@@ -43,6 +43,18 @@ interface Entry {
   detach?: (() => void) | undefined;
   // perform() calls waiting for the Settings window to embed this panel.
   embedWaiters: (() => void)[];
+  // Set while embed() opens the panel, so its own show request does not open Settings.
+  embedding?: boolean;
+}
+
+// An embedded root is visible only while its host is attached in an open Settings window.
+function shownInSettings(root: HTMLElement): boolean {
+  return root.isConnected && !root.parentElement?.closest('dialog:not([open])');
+}
+function reveal(root: HTMLElement): void {
+  if (root instanceof HTMLDialogElement) {
+    if (!root.open) root.show();
+  } else root.hidden = false;
 }
 
 // Register commands without constructing DOM or importing their feature module.
@@ -107,6 +119,7 @@ export class LazyPanels {
         keywords: settings.keywords,
         visible: () => !this.stopped && this.available() && (definition.available?.() ?? true),
         mount: (host) => this.embed(id, host),
+        attached: () => this.reattached(id),
       });
     }
     return sections;
@@ -154,28 +167,25 @@ export class LazyPanels {
     const root = panel.root;
     host.append(root);
     root.dataset.embedded = 'true';
-    const request = (event: Event): void => {
-      event.preventDefault();
-      if (root instanceof HTMLDialogElement) {
-        if (!root.open) root.show();
-      } else root.hidden = false;
-    };
     let attached = true;
     const closed = (): void => {
       queueMicrotask(() => {
         if (attached && root.isConnected && root instanceof HTMLDialogElement && !root.open) root.show();
       });
     };
-    root.addEventListener('panel-open-request', request);
     root.addEventListener('close', closed);
     const detach = (): void => {
       attached = false;
-      root.removeEventListener('panel-open-request', request);
       root.removeEventListener('close', closed);
       if (entry.detach === detach) entry.detach = undefined;
     };
     entry.detach = detach;
-    panel.open();
+    entry.embedding = true;
+    try {
+      panel.open();
+    } finally {
+      entry.embedding = false;
+    }
     this.settle(entry);
     return () => {
       // A later embed moved the root; that embedding owns the panel now.
@@ -187,6 +197,24 @@ export class LazyPanels {
       }
       panel.stop();
     };
+  }
+  // A settings panel shows inline; when its page is not on screen, Settings opens there first.
+  private watchRequests(entry: Entry, root: HTMLElement): void {
+    root.addEventListener('panel-open-request', (event) => {
+      event.preventDefault();
+      if (this.stopped || entry.panel?.root !== root) return;
+      // Not yet embedded: the embed that opening Settings causes shows it.
+      const embedded = !!entry.detach;
+      if (embedded) reveal(root);
+      const settings = entry.definition.settings!;
+      if (!entry.embedding && !(embedded && shownInSettings(root)))
+        this.openSettings?.({ page: settings.page, section: settings.section });
+    });
+  }
+  // The window put a mounted section back on screen: show its root again if it closed while away.
+  private reattached(id: string): void {
+    const entry = this.entries.get(id);
+    if (!this.stopped && entry?.panel && entry.detach && entry.panel.root.isConnected) reveal(entry.panel.root);
   }
   // Load and construct a panel once; `skip` adds a caller-specific veto, `adopted` attaches it.
   private construct(entry: Entry, adopted?: (panel: Panel) => void, skip?: () => boolean): Promise<void> {
@@ -211,6 +239,7 @@ export class LazyPanels {
           throw new Error('Panel identity does not match its registration');
         }
         entry.panel = panel;
+        if (entry.definition.settings) this.watchRequests(entry, panel.root);
         adopted?.(panel);
       })
       .catch(() => {
