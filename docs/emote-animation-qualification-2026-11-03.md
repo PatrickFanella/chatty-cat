@@ -30,8 +30,9 @@ work. The GPU time that remains comes from compositing the visible chat and from
 animations in the viewport. Those keep playing by design.
 
 The history GPU expectation in #136 therefore cannot be shown on this hardware,
-and is probably not achievable by pausing offscreen images. Whether to accept the
-CPU result as completing the gate is the owner's decision, as it was for #138.
+and is probably not achievable by pausing offscreen images. On November 3 the
+owner accepted the CPU result as completing the gate and waived the history GPU
+expectation, as with #138's renderer-specific scope. #136 is closed on this basis.
 
 ## Measurements
 
