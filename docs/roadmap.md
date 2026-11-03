@@ -172,6 +172,9 @@ The #136 implementation merged in PR #158. It pauses offscreen/hidden virtual ro
 images while preserving manual freeze, Hold+ and reader geometry. Local tests and
 controlled browser checks pass. External CPU/GPU qualification remains open; see
 [animation evidence](emote-animation.md). The issue remains open for qualification.
+The November 3 [CPU/GPU qualification](emote-animation-qualification-2026-11-03.md)
+shows the hidden-tab CPU and GPU drop and the history CPU drop, with reader position
+held. It does not show a history GPU drop, which needs the owner's acceptance or waiver.
 
 The #131 implementation merged in PR #159 and #131 is closed. It gives Display settings readable labels and measurement
 units, retaining all raw option values and the 18 canonical preset definitions.
