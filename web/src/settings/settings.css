@@ -159,3 +159,31 @@
 [data-embedded='true'] :is(button[id$='-close'], [data-action='close']) {
   display: none;
 }
+
+/* The shell styles every open dialog as a loose flex layout; the window keeps its own grid and spacing. */
+html[data-shell] dialog#settings-window.settings-window {
+  padding: 0;
+  font-size: 13px;
+}
+html[data-shell] dialog#settings-window.settings-window[open] {
+  display: grid;
+  gap: 0;
+}
+html[data-shell] #settings-window .settings-page h2 {
+  margin: 16px 0 0;
+}
+html[data-shell] #settings-window .settings-section h3 {
+  margin: 18px 0 6px;
+}
+/* An embedded panel flows inside its section instead of floating over the window. */
+.settings-custom-body > [data-embedded='true'] {
+  position: static;
+  inset: auto;
+  transform: none;
+  margin: 0;
+  width: auto;
+  max-width: 100%;
+  max-height: none;
+  box-sizing: border-box;
+  box-shadow: none;
+}

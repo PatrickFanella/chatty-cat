@@ -401,3 +401,18 @@ it('a pending settings perform is abandoned when the panel is closed', async () 
   await pending;
   expect(action).not.toHaveBeenCalled();
 });
+it('perform on an already embedded settings panel runs the action right after opening Settings', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  await panels!.embed('fixture-panel', host);
+  // The window keeps an open section mounted, so opening Settings embeds nothing new.
+  const opener = vi.fn();
+  panels!.setSettingsOpener(opener);
+  const action = vi.fn();
+  await panels!.perform('fixture-panel', action);
+  expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
+  expect(action).toHaveBeenCalledOnce();
+  expect(f.create).toHaveBeenCalledOnce();
+});

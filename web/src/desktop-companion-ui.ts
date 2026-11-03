@@ -246,7 +246,12 @@ export class DesktopPlaybackPanel implements Panel {
       throw new Error('Use the current signed-in account outside privacy mode');
     if (this.busy || this.uncertain)
       throw new Error('Resolve the current companion request before opening another review');
-    if (document.querySelector('dialog[open]:not([data-rail="true"])'))
+    // The Settings window and panels embedded in it do not block a review of this embedded panel.
+    if (
+      [...document.querySelectorAll('dialog[open]:not([data-rail="true"])')].some(
+        (dialog) => dialog !== this.root && !dialog.closest('#settings-window'),
+      )
+    )
       throw new Error('Close the current dialog before opening desktop review');
     if (!this.channels().includes(channel)) throw new Error('Select a joined channel before opening desktop review');
     this.open();

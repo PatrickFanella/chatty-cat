@@ -29,3 +29,61 @@ it('provides shell controls and lazy templates without eager panel markup', () =
   const all = [...dom.querySelectorAll('[id]')].map((element) => element.id);
   expect(new Set(all).size).toBe(all.length);
 });
+
+function shellDom(): void {
+  document.body.innerHTML =
+    '<header><span class="brand">Chatty Cat</span><span id="status"></span><span id="rate"></span>' +
+    '<button id="login">Log in</button><span id="account"></span><div id="joined-channels"></div>' +
+    '<form id="channels"></form></header><footer></footer>';
+}
+
+it('Ctrl+, opens settings', async () => {
+  shellDom();
+  const { startShell } = await import('./shell');
+  const openSettings = vi.fn();
+  const shell = startShell({ actions: [], run: vi.fn(), available: () => true, extra: () => [], openSettings });
+  try {
+    const plain = new KeyboardEvent('keydown', { code: 'Comma', ctrlKey: true, cancelable: true, bubbles: true });
+    document.dispatchEvent(plain);
+    expect(openSettings).toHaveBeenCalledOnce();
+    expect(plain.defaultPrevented).toBe(true);
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Comma', metaKey: true, bubbles: true }));
+    expect(openSettings).toHaveBeenCalledTimes(2);
+    for (const modifiers of [{ ctrlKey: true, altKey: true }, { ctrlKey: true, shiftKey: true }, {}])
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Comma', ...modifiers, bubbles: true }));
+    expect(openSettings).toHaveBeenCalledTimes(2);
+  } finally {
+    shell.stop();
+  }
+});
+
+it('the Settings… command is registered', async () => {
+  shellDom();
+  const { startShell } = await import('./shell');
+  const openSettings = vi.fn();
+  const shell = startShell({ actions: [], run: vi.fn(), available: () => true, extra: () => [], openSettings });
+  try {
+    const command = shell.registry.get('settings:open');
+    expect(command?.label).toBe('Settings…');
+    expect(command?.group).toBe('view');
+    expect(command?.hint).toMatch(/^(Ctrl\+,|⌘,)$/);
+    command!.run();
+    expect(openSettings).toHaveBeenCalledOnce();
+  } finally {
+    shell.stop();
+  }
+});
+
+it('readonly views have no Settings command or shortcut', async () => {
+  shellDom();
+  const { startShell } = await import('./shell');
+  const shell = startShell({ actions: [], run: vi.fn(), available: () => true, extra: () => [] });
+  try {
+    expect(shell.registry.get('settings:open')).toBeUndefined();
+    const event = new KeyboardEvent('keydown', { code: 'Comma', ctrlKey: true, cancelable: true, bubbles: true });
+    document.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
+  } finally {
+    shell.stop();
+  }
+});

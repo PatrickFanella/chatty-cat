@@ -62,7 +62,8 @@ export class SettingsWindow {
 
     const main = document.createElement('div');
     main.className = 'settings-main';
-    const head = document.createElement('header');
+    // Not a <header>: the shell hides every header element.
+    const head = document.createElement('div');
     head.className = 'settings-head';
     const title = document.createElement('span');
     title.textContent = 'Settings';

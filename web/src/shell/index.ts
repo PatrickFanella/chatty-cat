@@ -16,6 +16,8 @@ export interface ShellOptions {
   run: (id: string) => void;
   available: (id: string) => boolean;
   extra: () => PaletteEntry[];
+  /** Absent in readonly views (pane popout, ephemeral popout), which have no Settings window. */
+  openSettings?: () => void;
 }
 export interface Shell {
   registry: CommandRegistry;
@@ -99,6 +101,16 @@ export function startShell(options: ShellOptions): Shell {
       available: () => options.available(action.id),
     });
   }
+  const openSettings = options.openSettings;
+  if (openSettings)
+    registry.register({
+      id: 'settings:open',
+      label: 'Settings…',
+      group: 'view',
+      keywords: 'preferences options configure',
+      hint: navigator.platform.includes('Mac') ? '⌘,' : 'Ctrl+,',
+      run: openSettings,
+    });
   const workbench = new Workbench({
     titleFor: (root) => titleFor(registry, root),
     exclude: (root) => root.dataset.shellOwned !== undefined || root.closest('#topbar,.shell-menu') !== null,
@@ -160,6 +172,18 @@ export function startShell(options: ShellOptions): Shell {
       event.preventDefault();
       event.stopPropagation();
       if (!privacyEnabled()) palette.toggle();
+      return;
+    }
+    if (
+      openSettings &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.code === 'Comma'
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      openSettings();
       return;
     }
     if (event.key === 'Escape') closeMenus();

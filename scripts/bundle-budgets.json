@@ -408,6 +408,10 @@
       "jsGzipBytes": 2913,
       "cssGzipBytes": 0
     },
+    "src/settings/index.ts": {
+      "jsGzipBytes": 163976,
+      "cssGzipBytes": 17534
+    },
     "src/shortcuts-ui.ts": {
       "jsGzipBytes": 156288,
       "cssGzipBytes": 15887

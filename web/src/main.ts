@@ -100,6 +100,7 @@ import './style.css';
 import './shell/shell.css';
 import { startShell, type Shell } from './shell';
 import { LazyPanels } from './shell/panels';
+import type { Settings, SettingsTarget } from './settings/index';
 import { mountAuth } from './auth';
 import { Composer } from './composer';
 import { PickerModel } from './picker-model';
@@ -1158,9 +1159,7 @@ export async function startMain(): Promise<void> {
   }
   const hotkeyActions = {
     palette: () => shell?.palette.toggle(),
-    shortcuts: () => {
-      void lazyPanels?.open('shortcut-settings');
-    },
+    shortcuts: () => openSettings({ page: 'hotkeys' }),
     accounts: () => document.dispatchEvent(new Event('open-account-profiles')),
     compose: () => composer.focusTyping(''),
     workspace: () => {
@@ -1212,15 +1211,11 @@ export async function startMain(): Promise<void> {
     stats: () => {
       void lazyPanels?.open('stats-panel');
     },
-    settings: () => {
-      void lazyPanels?.open('display-panel');
-    },
+    settings: () => openSettings(),
     inbox: () => {
       void lazyPanels?.open('inbox-panel');
     },
-    commands: () => {
-      void lazyPanels?.open('commands-panel');
-    },
+    commands: () => openSettings({ page: 'commands' }),
   } satisfies Record<ActionID, () => void>;
   const paletteExtra = () => [
     ...(panePopout ? virtualLog.layout.activePane.channels : channels).map((channel) => ({
@@ -1254,6 +1249,7 @@ export async function startMain(): Promise<void> {
           })),
         ])
       : []),
+    ...settingsEntries(),
   ];
   const actionAvailable = (id: string): boolean =>
     id === 'desktop-playback' || id === 'desktop-overlay'
@@ -1544,6 +1540,76 @@ export async function startMain(): Promise<void> {
   let providerPanel: ProviderPanel | undefined;
   let providerEventsNotice = '',
     providerCosmeticNotice = '';
+  function providersChanged(): void {
+    providerActivity?.preferencesChanged();
+    cosmeticClient.preferencesChanged();
+    providerEvents?.preferencesChanged();
+    for (const data of rawMetadata.values()) applyProviderData(data);
+    visualRevision++;
+    scheduleRender();
+  }
+
+  // The Settings window loads on first use; readonly views (popouts, overlay) have none.
+  const settingsReadonly = !!panePopout || ephemeralPopout || overlay;
+  let settings: Settings | undefined;
+  let settingsLoading: Promise<Settings | undefined> | undefined;
+  function loadSettings(): Promise<Settings | undefined> {
+    const panels = lazyPanels;
+    if (settingsReadonly || !panels) return Promise.resolve(undefined);
+    settingsLoading ??= import('./settings/index').then(
+      ({ startSettings }) => {
+        settings = startSettings(
+          {
+            display,
+            presentation: presentationRuntime,
+            rerender: scheduleRender,
+            providersChanged,
+            reloadProviders: reloadProviderMetadata,
+            providerStatus: () => [providerEventsNotice, providerCosmeticNotice].filter(Boolean).join(' · '),
+            attention: { permission: () => attention.permission(), test: () => attention.test() },
+            openPanel: (id) => {
+              // Workbench panels open behind the modal window otherwise.
+              settings?.close();
+              void lazyPanels?.open(id);
+            },
+            overlay,
+            readonlyView: settingsReadonly,
+            privacy: privacyEnabled,
+          },
+          panels.settingsSections(),
+        );
+        return settings;
+      },
+      () => {
+        settingsLoading = undefined;
+        announcer.textContent = 'Settings could not load. Try again.';
+        return undefined;
+      },
+    );
+    return settingsLoading;
+  }
+  function openSettings(target?: SettingsTarget): void {
+    void loadSettings().then((loaded) => loaded?.open(target));
+  }
+  // Palette rows for every page and visible setting; the first palette use loads them.
+  function settingsEntries(): { id: string; label: string; context: string; run: () => void }[] {
+    if (!settings) {
+      void loadSettings();
+      return [];
+    }
+    return settings
+      .entries()
+      .map((entry) => ({ id: entry.id, label: entry.label, context: 'settings', run: entry.run }));
+  }
+  // An open window re-reads values changed elsewhere and re-filters private settings.
+  const settingsChanged = (): void => settings?.registry.notify();
+  document.addEventListener('privacychange', settingsChanged);
+  display.addEventListener('change', settingsChanged);
+  window.addEventListener('pagehide', () => {
+    document.removeEventListener('privacychange', settingsChanged);
+    display.removeEventListener('change', settingsChanged);
+    settings?.stop();
+  });
   try {
     restoreProviderPreferences();
   } catch {
@@ -1857,6 +1923,7 @@ export async function startMain(): Promise<void> {
       actions: ACTIONS,
       run: (id) => hotkeyActions[id as ActionID](),
       available: actionAvailable,
+      ...(settingsReadonly ? {} : { openSettings: () => openSettings() }),
       extra: () =>
         paletteExtra().map((entry) => ({
           id: entry.id,
@@ -1880,6 +1947,7 @@ export async function startMain(): Promise<void> {
         announcer.textContent = title + ' could not load. Try again.';
       },
     );
+    if (!settingsReadonly) lazyPanels.setSettingsOpener((target) => openSettings(target));
     lazyPanels.register({
       id: 'irc-relay-panel',
       title: 'IRC conversations',
@@ -1896,6 +1964,11 @@ export async function startMain(): Promise<void> {
       title: 'Import Chatterino',
       group: 'tools',
       keywords: 'settings layout workspace',
+      settings: {
+        page: 'integrations',
+        section: 'Chatterino import',
+        keywords: 'Import Chatterino settings layout workspace json commands local files',
+      },
       load: () =>
         import('./chatterino-import-ui').then(
           ({ ChatterinoImportPanel }) =>
@@ -2013,6 +2086,11 @@ export async function startMain(): Promise<void> {
       id: 'browser-companion-panel',
       title: 'Browser companion',
       group: 'tools',
+      settings: {
+        page: 'integrations',
+        section: 'Browser companion',
+        keywords: 'Browser companion watched-channel browser extension pairing',
+      },
       load: () =>
         import('./browser-companion-ui').then(({ BrowserCompanionPanel }) => () => {
           browserCompanion = new BrowserCompanionPanel(
@@ -2050,6 +2128,11 @@ export async function startMain(): Promise<void> {
       id: 'desktop-playback-panel',
       title: 'Desktop playback',
       group: 'tools',
+      settings: {
+        page: 'integrations',
+        section: 'Desktop playback',
+        keywords: 'Desktop playback optional desktop companion external player overlay review',
+      },
       load: () =>
         import('./desktop-companion-ui').then(({ DesktopPlaybackPanel }) => () => {
           desktopPlayback = new DesktopPlaybackPanel(
@@ -2065,6 +2148,11 @@ export async function startMain(): Promise<void> {
       id: 'user-hold-panel',
       title: 'Own message feedback',
       group: 'account',
+      settings: {
+        page: 'accounts',
+        section: 'Own message feedback',
+        keywords: 'Own message feedback private held messages feedback channel permission',
+      },
       load: () =>
         import('./user-holds').then(({ UserHoldPanel }) => () => {
           userHoldPanel = new UserHoldPanel(
@@ -2123,6 +2211,11 @@ export async function startMain(): Promise<void> {
       id: 'rules-panel',
       title: 'Rules',
       group: 'moderation',
+      settings: {
+        page: 'highlights',
+        section: 'Message rules',
+        keywords: 'Rules message rules highlight hide regex pattern similarity quiet hours sound notification',
+      },
       load: () =>
         import('./rules-ui').then(
           ({ RulePanel }) =>
@@ -2145,6 +2238,11 @@ export async function startMain(): Promise<void> {
       id: 'commands-panel',
       title: 'Commands',
       group: 'moderation',
+      settings: {
+        page: 'commands',
+        section: 'Custom commands',
+        keywords: 'Commands custom commands message actions templates placeholders trigger',
+      },
       load: () =>
         import('./commands-ui').then(({ CommandPanel }) => () => {
           commandPanel = new CommandPanel(composer, commandContext, undefined, commandRuntime);
@@ -2233,14 +2331,7 @@ export async function startMain(): Promise<void> {
       load: () =>
         import('./provider-preferences-ui').then(({ ProviderPanel }) => () => {
           providerPanel = new ProviderPanel(
-            () => {
-              providerActivity?.preferencesChanged();
-              cosmeticClient.preferencesChanged();
-              providerEvents?.preferencesChanged();
-              for (const data of rawMetadata.values()) applyProviderData(data);
-              visualRevision++;
-              scheduleRender();
-            },
+            providersChanged,
             reloadProviderMetadata,
             !!panePopout || ephemeralPopout || overlay,
             () => providerEvents?.reconnect(),
@@ -2254,6 +2345,11 @@ export async function startMain(): Promise<void> {
       id: 'extensions-panel',
       title: 'Web extensions',
       group: 'tools',
+      settings: {
+        page: 'integrations',
+        section: 'Web extensions',
+        keywords: 'Web extensions optional local text extensions',
+      },
       load: () =>
         import('./extensions-ui').then(({ ExtensionsPanel }) => () => {
           extensionsPanel = new ExtensionsPanel(
@@ -2641,6 +2737,7 @@ export async function startMain(): Promise<void> {
       id: 'shortcut-settings',
       title: 'Shortcuts',
       group: 'help',
+      settings: { page: 'hotkeys', section: 'Shortcuts', keywords: 'Shortcuts keyboard hotkeys bindings chord keys' },
       load: () =>
         import('./shortcuts-ui').then(
           ({ ShortcutPanel }) =>
@@ -2699,6 +2796,11 @@ export async function startMain(): Promise<void> {
       id: 'privacy-settings',
       title: 'Privacy settings',
       group: 'view',
+      settings: {
+        page: 'privacy',
+        section: 'Visible workspaces',
+        keywords: 'Privacy settings visible workspaces privacy mode',
+      },
       load: () =>
         import('./privacy-settings-ui').then(
           ({ PrivacySettingsPanel }) =>
@@ -2710,11 +2812,10 @@ export async function startMain(): Promise<void> {
       id: 'account-profiles',
       title: 'Accounts',
       group: 'account',
+      settings: { page: 'accounts', section: 'Accounts', keywords: 'Accounts account profiles sign in log out twitch' },
       load: stopAuth.loadAccountsPanel,
     });
-    const openAccounts = (): void => {
-      void lazyPanels?.open('account-profiles');
-    };
+    const openAccounts = (): void => openSettings({ page: 'accounts' });
     document.addEventListener('open-account-profiles', openAccounts);
     window.addEventListener('pagehide', () => document.removeEventListener('open-account-profiles', openAccounts));
     lazyPanels.register({
@@ -2744,6 +2845,7 @@ export async function startMain(): Promise<void> {
       id: 'local-command-help',
       title: 'Local command help',
       group: 'help',
+      settings: { page: 'about', section: 'Local command help', keywords: 'Local command help local commands' },
       load: () => import('./local-help-ui').then(({ localHelpPanel }) => localHelpPanel),
     });
     lazyPanels.register({
@@ -2751,6 +2853,11 @@ export async function startMain(): Promise<void> {
       title: 'Device sync',
       group: 'tools',
       keywords: 'manual public snapshot recovery backup',
+      settings: {
+        page: 'integrations',
+        section: 'Device sync',
+        keywords: 'Device sync optional self-hosted device sync manual public snapshot recovery backup',
+      },
       load: () =>
         import('./device-sync-ui').then(({ DeviceSyncPanel }) => () => {
           deviceSyncPanel = new DeviceSyncPanel(
@@ -2795,6 +2902,11 @@ export async function startMain(): Promise<void> {
       title: 'Custom themes',
       group: 'view',
       keywords: 'colors palette import contrast',
+      settings: {
+        page: 'general',
+        section: 'Appearance',
+        keywords: 'Custom themes custom color themes colors palette import contrast',
+      },
       load: () =>
         import('./custom-theme-ui').then(
           ({ CustomThemePanel }) =>
@@ -2837,6 +2949,11 @@ export async function startMain(): Promise<void> {
       title: 'Resource readout',
       group: 'help',
       keywords: 'debug memory timers long tasks',
+      settings: {
+        page: 'about',
+        section: 'Resource readout',
+        keywords: 'Resource readout local diagnostics debug memory timers long tasks heap',
+      },
       load: () =>
         import('./resource-readout').then(
           ({ ResourceReadout }) =>
