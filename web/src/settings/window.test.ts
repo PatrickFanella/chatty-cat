@@ -48,6 +48,20 @@ afterEach(() => {
 });
 
 describe('settings window', () => {
+  it('Escape closes the window unless an embedded control handles it first', () => {
+    const { win } = make([mk('a')]);
+    win.open();
+    const handled = document.createElement('input');
+    handled.addEventListener('keydown', (e) => e.preventDefault());
+    q('.settings-page').append(handled);
+    handled.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(q<HTMLDialogElement>('#settings-window').open).toBe(true);
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    q('.settings-nav').dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(q<HTMLDialogElement>('#settings-window').open).toBe(false);
+  });
+
   it('renders the first page with ordered sections and rows', () => {
     const { win } = make([
       mk('f', { section: 'Font' }),
