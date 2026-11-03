@@ -19,7 +19,7 @@ function setup(restored = false) {
   let changed = () => {};
   const workbench: PanelWorkbench = {
     adopt: vi.fn(),
-    releaseAll: vi.fn(),
+    forget: vi.fn(),
     wantsPanel: () => wanted,
     onLayoutChange: (listener) => {
       changed = listener;
@@ -299,7 +299,7 @@ it('open redirects settings panels to the settings opener', async () => {
 it('a saved layout docking a settings panel is released and not opened', async () => {
   const f = setup(true);
   f.registerSettings();
-  expect(f.workbench.releaseAll).toHaveBeenCalledWith(['fixture-panel']);
+  expect(f.workbench.forget).toHaveBeenCalledWith(['fixture-panel']);
   f.restore(true);
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(f.load).not.toHaveBeenCalled();
@@ -353,4 +353,51 @@ it('embed disposer stops the panel', async () => {
   instance.root.dispatchEvent(new Event('close'));
   await Promise.resolve();
   expect(instance.root.isConnected).toBe(false);
+});
+it('perform on a settings panel opens Settings, waits for the embed and then runs the action', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  const opener = vi.fn(() => {
+    void panels!.embed('fixture-panel', host);
+  });
+  panels!.setSettingsOpener(opener);
+  const action = vi.fn(() => {
+    expect(f.create.mock.results[0]!.value.root.parentElement).toBe(host);
+  });
+  await panels!.perform('fixture-panel', action);
+  expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
+  expect(action).toHaveBeenCalledOnce();
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(f.workbench.adopt).not.toHaveBeenCalled();
+});
+it('perform without activation loads a settings panel unattached and a later embed reuses it', async () => {
+  const f = setup();
+  f.registerSettings();
+  const opener = vi.fn();
+  panels!.setSettingsOpener(opener);
+  const action = vi.fn();
+  await panels!.perform('fixture-panel', action, false);
+  expect(opener).not.toHaveBeenCalled();
+  expect(action).toHaveBeenCalledOnce();
+  const instance = f.create.mock.results[0]!.value;
+  expect(instance.open).not.toHaveBeenCalled();
+  expect(instance.root.dataset.embedded).toBeUndefined();
+  const host = document.createElement('div');
+  document.body.append(host);
+  await panels!.embed('fixture-panel', host);
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(instance.root.parentElement).toBe(host);
+  expect(instance.open).toHaveBeenCalledOnce();
+});
+it('a pending settings perform is abandoned when the panel is closed', async () => {
+  const f = setup();
+  f.registerSettings();
+  panels!.setSettingsOpener(vi.fn());
+  const action = vi.fn();
+  const pending = panels!.perform('fixture-panel', action);
+  panels!.close('fixture-panel');
+  await pending;
+  expect(action).not.toHaveBeenCalled();
 });

@@ -27,7 +27,7 @@ export interface PanelDefinition {
 export interface PanelWorkbench {
   adopt(root: HTMLElement, close?: () => void): void;
   wantsPanel(id: string): boolean;
-  releaseAll(ids: readonly string[]): void;
+  forget(ids: readonly string[]): void;
   onLayoutChange(listener: () => void): () => void;
 }
 interface Entry {
@@ -41,6 +41,8 @@ interface Entry {
   version: number;
   // Removes the listeners of the current inline embedding.
   detach?: (() => void) | undefined;
+  // perform() calls waiting for the Settings window to embed this panel.
+  embedWaiters: (() => void)[];
 }
 
 // Register commands without constructing DOM or importing their feature module.
@@ -67,6 +69,7 @@ export class LazyPanels {
       version: 0,
       manualRequested: false,
       activateRequested: false,
+      embedWaiters: [],
       dispose:
         definition.command === false || definition.settings
           ? () => {}
@@ -86,7 +89,7 @@ export class LazyPanels {
     };
     this.entries.set(definition.id, entry);
     // A saved layout may still dock a panel that now lives in Settings.
-    if (definition.settings) this.workbench.releaseAll([definition.id]);
+    if (definition.settings) this.workbench.forget([definition.id]);
     this.restore();
   }
   setSettingsOpener(open: (target: { page: PageId; section: string }) => void): void {
@@ -127,50 +130,24 @@ export class LazyPanels {
       if (activate) entry.activateRequested = true;
       return entry.loading;
     }
-    const context = this.context(),
-      version = entry.version;
-    entry.loadingVersion = version;
     entry.activateRequested = activate;
     entry.manualRequested = !restoring;
-    entry.loading = Promise.resolve()
-      .then(() => entry.definition.load())
-      .then((create) => {
-        if (
-          this.stopped ||
-          !this.available() ||
-          entry.definition.available?.() === false ||
-          this.context() !== context ||
-          entry.version !== version ||
-          (restoring && !entry.manualRequested && !this.workbench.wantsPanel(id))
-        )
-          return;
-        const panel = create();
-        if (panel.id !== id || panel.root.id !== id) {
-          panel.stop();
-          throw new Error('Panel identity does not match its registration');
-        }
-        entry.panel = panel;
+    return this.construct(
+      entry,
+      (panel) => {
         this.workbench.adopt(panel.root, () => panel.close());
         if (entry.activateRequested) panel.open();
-      })
-      .catch(() => {
-        if (!this.stopped && this.available() && this.context() === context && entry.version === version)
-          this.failure(entry.definition.title);
-      })
-      .finally(() => {
-        entry.loading = undefined;
-      });
-    return entry.loading;
+      },
+      // A superseded saved-layout restore must not construct unless a user asked meanwhile.
+      () => restoring && !entry.manualRequested && !this.workbench.wantsPanel(id),
+    );
   }
   // Mount a settings panel inline: never adopted by the workbench and never modal.
   async embed(id: string, host: HTMLElement): Promise<() => void> {
     const entry = this.entries.get(id);
     const usable = () => !!entry && !this.stopped && this.available() && entry.definition.available?.() !== false;
     if (!entry?.definition.settings || !usable()) return () => {};
-    if (!entry.panel) {
-      entry.loading ??= this.construct(entry);
-      await entry.loading;
-    }
+    if (!entry.panel) await (entry.loading ?? this.construct(entry));
     const panel = entry.panel;
     if (!panel || !usable()) return () => {};
     entry.detach?.();
@@ -199,6 +176,7 @@ export class LazyPanels {
     };
     entry.detach = detach;
     panel.open();
+    this.settle(entry);
     return () => {
       // A later embed moved the root; that embedding owns the panel now.
       if (!attached) return;
@@ -210,11 +188,12 @@ export class LazyPanels {
       panel.stop();
     };
   }
-  private construct(entry: Entry): Promise<void> {
+  // Load and construct a panel once; `skip` adds a caller-specific veto, `adopted` attaches it.
+  private construct(entry: Entry, adopted?: (panel: Panel) => void, skip?: () => boolean): Promise<void> {
     const context = this.context(),
       version = entry.version;
     entry.loadingVersion = version;
-    return Promise.resolve()
+    entry.loading = Promise.resolve()
       .then(() => entry.definition.load())
       .then((create) => {
         if (
@@ -222,7 +201,8 @@ export class LazyPanels {
           !this.available() ||
           entry.definition.available?.() === false ||
           this.context() !== context ||
-          entry.version !== version
+          entry.version !== version ||
+          skip?.()
         )
           return;
         const panel = create();
@@ -231,6 +211,7 @@ export class LazyPanels {
           throw new Error('Panel identity does not match its registration');
         }
         entry.panel = panel;
+        adopted?.(panel);
       })
       .catch(() => {
         if (!this.stopped && this.available() && this.context() === context && entry.version === version)
@@ -239,11 +220,31 @@ export class LazyPanels {
       .finally(() => {
         entry.loading = undefined;
       });
+    return entry.loading;
+  }
+  // Release callers waiting for a settings panel to be embedded (or abandoned).
+  private settle(entry: Entry): void {
+    for (const resolve of entry.embedWaiters.splice(0)) resolve();
   }
   async perform(id: string, action: () => void, activate = true): Promise<void> {
     const context = this.context();
     const version = this.entries.get(id)?.version;
-    await this.open(id, false, activate);
+    const settings = this.entries.get(id)?.definition.settings;
+    if (!settings) await this.open(id, false, activate);
+    else {
+      const target = this.entries.get(id)!;
+      if (this.stopped || !this.available() || target.definition.available?.() === false) return;
+      if (activate) {
+        // The Settings window mounts the section, which embeds the panel.
+        if (!this.openSettings) return;
+        const embedded =
+          target.panel && target.detach
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => target.embedWaiters.push(resolve));
+        this.openSettings({ page: settings.page, section: settings.section });
+        await embedded;
+      } else if (!target.panel) await (target.loading ?? this.construct(target));
+    }
     const entry = this.entries.get(id);
     if (
       !this.stopped &&
@@ -259,6 +260,7 @@ export class LazyPanels {
     const entry = this.entries.get(id);
     if (!entry) return;
     entry.version++;
+    this.settle(entry);
     entry.panel?.close();
   }
   private restore = (): void => {
@@ -279,6 +281,7 @@ export class LazyPanels {
     for (const entry of this.entries.values()) {
       entry.dispose();
       entry.detach?.();
+      this.settle(entry);
       entry.panel?.stop();
     }
     this.entries.clear();
