@@ -1581,7 +1581,9 @@ does not claim identical performance on every device.
 ### Preset and shared URL completion
 
 First visits and display reset now apply the original `nightshade` preset;
-existing saved display settings remain authoritative. Header label controls and
+existing saved display settings remain authoritative. (Superseded November 2, 2026:
+first visits keep the Nightshade look but open on chat alone; see
+`docs/design-system.md`.) Header label controls and
 preset link weights are restored. The original source sets `old-default.lbls=0`,
 which differs from its README statement; the rebuild follows the source value.
 Legacy `help=labels/both` flags still turn labels on unless `lbls` overrides.

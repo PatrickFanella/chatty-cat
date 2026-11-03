@@ -20,6 +20,8 @@ export class CommandPanel implements Panel {
     private context: () => CommandContext,
     private inspector: HTMLDialogElement | undefined,
     private runtime: CommandRuntime,
+    // Called when staging, so a Settings window embedding this panel can step aside for the composer.
+    private staged: () => void = () => {},
   ) {
     this.root.id = 'commands-panel';
     this.root.setAttribute('aria-label', 'Custom commands');
@@ -159,6 +161,8 @@ export class CommandPanel implements Panel {
           throw new Error('Finish or clear the destination draft before staging this action');
         this.composer.setTarget(preview.channel);
         this.root.close();
+        // Before prepare: closing a modal window restores focus to what was focused before it opened.
+        this.staged();
         this.composer.prepare(preview.text);
         this.invalidate();
         return;

@@ -1,8 +1,9 @@
 // Top bar: brand, joined channels, connection state, rate graph, search and account. Everything else lives in the menu
-// and the command palette. The legacy header stays in the DOM, hidden, so feature modules can keep inserting their
-// trigger buttons there; the registry mirrors them.
+// and the command palette, registered directly as commands. The hidden header only holds the few controls the top bar
+// adopts plus the theme, freeze and pane toggles that their commands click.
 import { CommandRegistry, GROUP_LABELS, GROUP_ORDER, type Command } from './registry';
 import { openMenu, type MenuSection } from './menu';
+import { applePlatform } from './platform';
 export interface TopbarParts {
   header: HTMLElement;
   status: HTMLElement;
@@ -65,8 +66,7 @@ export class Topbar {
     this.searchButton.type = 'button';
     this.searchButton.id = 'shell-search';
     this.searchButton.className = 'tb-search';
-    this.searchButton.innerHTML =
-      '<span>Search</span><kbd>' + (navigator.platform.includes('Mac') ? '⌘K' : 'Ctrl K') + '</kbd>';
+    this.searchButton.innerHTML = '<span>Search</span><kbd>' + (applePlatform() ? '⌘K' : 'Ctrl K') + '</kbd>';
     this.searchButton.setAttribute('aria-label', 'Search commands');
     this.searchButton.addEventListener('click', openPalette);
     const account = document.createElement('div');

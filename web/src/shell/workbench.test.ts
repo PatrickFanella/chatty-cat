@@ -135,3 +135,18 @@ it('docks a touch title drag into the bottom sheet without detaching its content
   resize(1280, 800);
   expect(root.closest('[data-zone]')?.getAttribute('data-zone')).toBe('bottom');
 });
+
+it('forgets ids from the stored layout whether or not they are managed and writes only on change', () => {
+  workbench.stop();
+  localStorage.setItem('chatthing:v1:workbench', JSON.stringify(dock(emptyLayout(), 'account-profiles', 'right')));
+  workbench = new Workbench({ titleFor: (root) => root.id, exclude: () => false, centre: 'main#log' });
+  expect(workbench.wantsPanel('account-profiles')).toBe(true);
+  workbench.forget(['account-profiles']);
+  const saved = localStorage.getItem('chatthing:v1:workbench')!;
+  expect(saved).not.toContain('account-profiles');
+  expect(workbench.wantsPanel('account-profiles')).toBe(false);
+  const setItem = vi.spyOn(Storage.prototype, 'setItem');
+  workbench.forget(['account-profiles', 'never-placed']);
+  expect(setItem).not.toHaveBeenCalled();
+  setItem.mockRestore();
+});

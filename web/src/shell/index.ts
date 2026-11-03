@@ -5,6 +5,7 @@ import { Topbar } from './topbar';
 import { Workbench } from './workbench';
 import { closeMenus } from './menu';
 import { privacyEnabled } from '../privacy';
+import { applePlatform } from './platform';
 export interface ShellAction {
   id: string;
   label: string;
@@ -16,6 +17,8 @@ export interface ShellOptions {
   run: (id: string) => void;
   available: (id: string) => boolean;
   extra: () => PaletteEntry[];
+  /** Absent in readonly views (pane popout, ephemeral popout), which have no Settings window. */
+  openSettings?: () => void;
 }
 export interface Shell {
   registry: CommandRegistry;
@@ -99,12 +102,53 @@ export function startShell(options: ShellOptions): Shell {
       available: () => options.available(action.id),
     });
   }
+  const openSettings = options.openSettings;
+  if (openSettings)
+    registry.register({
+      id: 'settings:open',
+      label: 'Settings…',
+      group: 'view',
+      keywords: 'preferences options configure',
+      hint: applePlatform() ? '⌘,' : 'Ctrl+,',
+      // Privacy mode keeps Settings closed, as it does the palette.
+      available: () => !privacyEnabled(),
+      run: openSettings,
+    });
   const workbench = new Workbench({
     titleFor: (root) => titleFor(registry, root),
     exclude: (root) => root.dataset.shellOwned !== undefined || root.closest('#topbar,.shell-menu') !== null,
     centre:
       '#offline,#app-update,#stream,#room-state,#video-panel,main#log,.chat-workspace,#announcer,#composer,.message-navigation',
   });
+  // Stream details and room modes share one quiet line above the log.
+  const stream = document.getElementById('stream'),
+    roomState = document.getElementById('room-state');
+  if (stream && roomState && stream.parentElement === roomState.parentElement) {
+    const info = document.createElement('div');
+    info.className = 'wb-info';
+    stream.before(info);
+    info.append(stream, roomState);
+  }
+  // Logged out, the composer offers sign-in instead of an empty row; hidden while login is unavailable.
+  const login = document.getElementById('login'),
+    composer = document.getElementById('composer');
+  let loginWatch: MutationObserver | undefined;
+  if (login instanceof HTMLButtonElement && composer) {
+    const prompt = document.createElement('button');
+    prompt.type = 'button';
+    prompt.id = 'composer-login';
+    prompt.textContent = 'Log in to chat';
+    prompt.addEventListener('click', () => login.click());
+    const sync = (): void => {
+      prompt.hidden = login.disabled;
+    };
+    sync();
+    composer.append(prompt);
+    if (typeof MutationObserver !== 'undefined') {
+      loginWatch = new MutationObserver(sync);
+      loginWatch.observe(login, { attributes: true, attributeFilter: ['disabled'] });
+    }
+  }
   const palette = new CommandPalette(registry, options.extra);
   const parts = {
     header,
@@ -133,6 +177,18 @@ export function startShell(options: ShellOptions): Shell {
       if (!privacyEnabled()) palette.toggle();
       return;
     }
+    if (
+      openSettings &&
+      (event.metaKey || event.ctrlKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.code === 'Comma'
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!privacyEnabled()) openSettings();
+      return;
+    }
     if (event.key === 'Escape') closeMenus();
   };
   document.addEventListener('keydown', keys, true);
@@ -143,6 +199,7 @@ export function startShell(options: ShellOptions): Shell {
     topbar,
     stop: () => {
       document.removeEventListener('keydown', keys, true);
+      loginWatch?.disconnect();
       palette.stop();
       registry.stop();
       workbench.stop();

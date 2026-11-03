@@ -1,6 +1,13 @@
 // @vitest-environment happy-dom
 import { expect, it } from 'vitest';
-import { defaultDisplay, displayFromURL, messageVisibility, parseDisplay, wordsPattern } from './display';
+import {
+  defaultDisplay,
+  displayFromURL,
+  firstVisitDisplay,
+  messageVisibility,
+  parseDisplay,
+  wordsPattern,
+} from './display';
 import { PRESETS } from './display-data';
 import type { ChatMessage } from './protocol';
 const message: ChatMessage = {
@@ -142,4 +149,10 @@ it('preserves preset labels and link weights with explicit URL overrides', () =>
     lbls: true,
     lw: 700,
   });
+});
+it('opens first visits on a calm, chat-only log in the Nightshade palette', () => {
+  const nightshade = displayFromURL(defaultDisplay(), new URLSearchParams('theme=nightshade'));
+  const first = firstVisitDisplay();
+  expect(first).toEqual({ ...nightshade, split: 1, size: 15, lh: 1.4, zebra: 0, times: 1 });
+  expect(parseDisplay(first)).toEqual(first);
 });

@@ -55,6 +55,10 @@ it('supports tab keyboard navigation, linked help actions and close focus restor
   expect(tabs[4]?.getAttribute('aria-selected')).toBe('true');
   expect(document.activeElement).toBe(tabs[4]);
   tabs[4]?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
+  const help = root.querySelector('#resources-help')!;
+  expect(help.textContent).not.toContain('Display settings');
+  expect(help.textContent).toContain('Settings › General › Links and cards');
+  expect(root.querySelector('[data-help-action="display-open"]')?.textContent).toBe('Settings');
   root.querySelector<HTMLButtonElement>('[data-help-action="display-open"]')?.click();
   expect(action).toHaveBeenCalledWith('display-open');
   root.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));

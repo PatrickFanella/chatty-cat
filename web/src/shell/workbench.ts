@@ -157,6 +157,16 @@ export class Workbench {
     this.render();
     this.save();
   }
+  /** Drop ids from the stored layout whether or not they are managed; writes only on change. */
+  forget(ids: readonly string[]): void {
+    let layout = this.layout;
+    for (const id of ids)
+      if (placementOf(layout, id).kind !== 'modal' || layout.closed.includes(id)) layout = release(layout, id);
+    if (layout === this.layout) return;
+    this.layout = layout;
+    this.render();
+    this.save();
+  }
   private railMode = 0;
   private railOpened = new Set<string>();
   /** The display option "columns and rail" (4: video, emotes and stats; 5: video and emotes; 6: emotes) docks those panels on the right. */

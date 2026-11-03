@@ -23,6 +23,7 @@ export class LinkTools {
   ) {
     log.before(this.openingStatus);
     this.openingStatus.setAttribute('role', 'status');
+    this.openingStatus.className = 'link-status';
     document.addEventListener('privacychange', this.privacy);
     document.addEventListener('linkpreferenceschange', this.preferencesChanged);
     log.addEventListener('click', this.click, true);

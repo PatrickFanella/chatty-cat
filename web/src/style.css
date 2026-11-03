@@ -689,22 +689,6 @@ html[data-privacy='true'] .bookmark-message {
   opacity: 0.4;
   text-decoration: line-through;
 }
-#display-panel form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  margin: 12px 0;
-}
-#display-panel label {
-  display: flex;
-  flex-direction: column;
-}
-#display-panel input[type='checkbox'] {
-  width: auto;
-}
-#display-url {
-  width: 100%;
-  margin-top: 12px;
-}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -969,7 +953,6 @@ html[data-privacy='true'] .bookmark-message {
 }
 #resources-panel [role='tab'][aria-selected='true'] {
   color: var(--accent);
-  border-color: var(--accent);
 }
 .resource-content {
   min-height: 0;
@@ -1196,8 +1179,9 @@ header {
 .log-column:last-child {
   border-right: 0;
 }
+/* Active states change colour only; no accent edge. */
 .log-column[data-active='true'] {
-  box-shadow: inset 0 2px 0 var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 #log.independent-splits {
   display: flex;
@@ -1214,7 +1198,6 @@ header {
   border-bottom: 1px solid var(--line);
 }
 .split-tabs [aria-selected='true'] {
-  border-color: var(--accent);
   color: var(--accent);
 }
 .split-actions {
@@ -1242,8 +1225,8 @@ header {
   flex-direction: column;
   border-right: 1px solid var(--line);
 }
-.split-pane[data-active='true'] {
-  box-shadow: inset 0 2px var(--accent);
+.split-pane[data-active='true'] > .split-heading > button:first-child {
+  color: var(--accent);
 }
 .split-heading {
   flex: none;
@@ -1330,7 +1313,7 @@ html[data-privacy='true'] #split-settings {
   padding: 8px 0;
 }
 .action-results [aria-selected='true'] {
-  border-color: var(--accent);
+  color: var(--accent);
   background: var(--panel);
 }
 #action-search {
@@ -1855,13 +1838,11 @@ html[data-privacy='true'] #login,
 html[data-privacy='true'] #account,
 html[data-privacy='true'] #account-emotes,
 html[data-privacy='true'] #personal-status,
-html[data-privacy='true'] #whisper-open,
 html[data-privacy='true'] #whisper-panel,
 html[data-privacy='true'] #composer,
 html[data-privacy='true'] #user-inspector,
 html[data-privacy='true'] #identity-preview,
 html[data-privacy='true'] #link-preview,
-html[data-privacy='true'] #display-panel,
 html[data-privacy='true'] #resources-panel,
 html[data-privacy='true'] #workspace-panel,
 html[data-privacy='true'] #archive-search,
@@ -1938,26 +1919,10 @@ html[data-privacy='true'] #inbox-open {
 :root {
   zoom: var(--presentation-scale, 1);
 }
-#presentation-panel {
-  max-width: 760px;
-  max-height: 85vh;
-}
-#presentation-panel label {
-  display: block;
-  margin: 0.45rem 0;
-}
-#presentation-panel label[hidden] {
-  display: none;
-}
-#presentation-panel input,
-#presentation-panel select {
-  max-width: 100%;
-}
 [data-presentation-show-timestamps='false'] .row time,
 [data-presentation-hide-reply-context='true'] .row blockquote,
 [data-presentation-show-reply-button='false'] .row .reply,
 [data-presentation-show-send-button='false'] #send,
-[data-presentation-hide-settings='true'] #display-open,
 [data-presentation-hide-account='true'] #login,
 [data-presentation-hide-account='true'] #account {
   display: none;

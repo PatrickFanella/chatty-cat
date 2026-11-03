@@ -7,11 +7,11 @@ the product's interface rules and identity. The SUBCULT Studio pack in
 promotional artwork and the web-asset generator, and copies this file with hashes. Edit
 interface rules here; edit artwork and palettes there.
 
-The retained chat presentation is not a redesign surface. `docs/architecture.md` sets the
-original app's dense, configurable chat as the parity reference, and its palette axes,
-presets, fonts and resource content are AGPL material attributed in `NOTICE.md`. The
-identity applies to the shell, the icons and public material. It does not change how a
-message row looks.
+Since November 2, 2026 the owner has set aside parity with the original app as a design
+constraint: every surface, the chat presentation included, follows what is best for the
+product. The original app remains a useful reference, and its palette axes, presets,
+fonts and resource content are still AGPL material attributed in `NOTICE.md`. The
+identity applies to the shell, the icons and public material.
 
 ## Identity
 
@@ -21,8 +21,8 @@ repository, Go module and image names are `chatty-cat`.
 
 **What it is.** A self-hosted Twitch chat client that merges up to six channels into one
 scrollback and keeps the user's display settings. It rebuilds mxmilkiib's HasanAbi Chat
-Thing and Twitch Chat Relay in Go and TypeScript. It is in migration; the original app
-stays up until the parity gates in `docs/parity.md` close.
+Thing and Twitch Chat Relay in Go and TypeScript. The original app stays up until
+the owner decides on cutover; `docs/parity.md` records the earlier gates and evidence.
 
 **Mark.** An eight-bit cat face, twelve cells wide and ten tall: two ear cells, two eye
 gaps and a two-cell cursor for a mouth. Every cell is solid, so it reads at 16px as a cat
@@ -116,11 +116,13 @@ Rules:
 1. New chrome uses the tokens. No hex in a component rule, except the two retained
    literals (`#status[data-state=connected]` green and the warning amber on the length
    counter) until they are tokenised.
-2. The default display is gray at shade 7, system sans at 14px/1.3, line style 4, zebra 2,
-   timestamps 2. The gray brand palette is that default, so the header cat matches the
-   first screen.
-3. The 18 canonical presets in `display-data.ts` are retained verbatim. Adding a preset is a parity
-   question, not a brand one.
+2. First visits and display reset use `firstVisitDisplay()` in `display.ts`: the Nightshade
+   palette (lavender, contrast, shade 7, Roobert) with a calmer log: 15px at 1.4 line
+   height, no zebra, hour-and-minute timestamps and chat alone (`split` 1). Video, emotes
+   and stats open on request; choosing the Nightshade preset explicitly still applies all
+   of its values. Saved display settings are left as they are.
+3. The 18 presets in `display-data.ts` came from the original app. Change or add presets
+   when it helps the product.
 
 ## Display option labels
 
@@ -187,32 +189,47 @@ the font-size menu, rather than subtracting pixels.
 
 ## Components
 
-- **Top bar.** One 38px row on `--panel`: the pixel cat and name as the menu button,
+- **Top bar.** One 32px row on `--bg` with a faint `--line` rule: the pixel cat alone as
+  the menu button (the name stays in the hidden header and the accessible label),
   joined-channel chips with a `+` to join more, a connection dot (`--good` live, amber
-  reconnecting, `--danger` failed) with a short state word, the rate sparkline, the
-  search button (Ctrl+K or Command+K) and the login or account control. Nothing else is
-  a button in the bar. The original header stays in the document, hidden, so feature
-  modules keep inserting their trigger buttons there; `src/shell/registry.ts` mirrors
-  every one of them as a command. The `data-min` header modes and the strip and graph
-  variants no longer apply.
+  reconnecting, `--danger` failed) with a short state word, the rate sparkline at 45%
+  opacity, a borderless search button (a `⌕` glyph plus the Ctrl+K or Command+K hint;
+  the hint is hidden on touch and narrow screens) and the login or account control. When
+  the account text already explains why login is unavailable, the disabled login button
+  is hidden. Nothing else is a button in the bar. Panels and actions register as commands
+  directly (`src/shell/panels.ts`, `src/shell/registry.ts`). The hidden `<header>` only
+  holds the controls the top bar adopts (brand, channel form, status, login, account,
+  rate) and the theme, freeze-emotes and panes toggles that their commands click. The
+  `data-min` header modes, their Cycle header command and the strip and graph variants
+  are gone.
 - **Menu and palette.** The cat opens a column menu grouped as Chat, View, Account,
   Moderation, Providers, Integrations and Help, with bindings as `kbd` hints and the
   current placement of docked panels. The palette is a 620px dialog with one search box
   over the same commands, the keyboard actions and quick-switch targets; prefix,
   substring and subsequence matches rank in that order.
 - **Workbench.** The chat column sits between three dock zones (left, right, bottom)
-  separated by 4px `--line` splitters that turn `--accent` on hover or focus. Any dialog
+  separated by 1px `--line` hairlines with a 5px grab area that turn `--accent` on hover
+  or focus. Any dialog
   or panel gets a 28px chrome bar: uppercase 10px title (the drag handle), a placement
   menu (dock left, right or bottom, float, open as dialog, move, close) and a close
-  button. Docked panels stack with share splitters between them; floating panels are
+  button. On pointer devices those two buttons appear only while the panel is hovered or
+  focused. Docked panels stack with share splitters between them; floating panels are
   fixed, resizable, 6px-cornered on `--popline` with the panel shadow. Dragging a title
   detaches the panel; dropping within 40px of an edge or onto a zone docks it. The
   "columns and rail" display option docks video, emotes and stats on the right. Layout
   persists per profile and travels in workspaces as the `workbench` settings part.
 - **Notice bars.** The offline bar sits on `--panel` with a `--danger` bottom rule. The
-  update-ready control is a normal button. The stream bar and room-state bar are 12px
-  `--muted` on a `--line` rule.
-- **Log row.** Time and channel in 12px `--muted`; badges 18px; name bold in the user's
+  update-ready control is a normal button. Stream details and room modes share one 11px
+  `--muted` line (`.wb-info`) at 60% opacity, full on hover or focus, with no rule.
+- **Panel options.** Configuration in the emote picker and stats panels sits in a
+  collapsed `details.panel-options` labelled Options, so emotes and statistics lead.
+  Docked video hides its static player hint; its channel and volume controls drop over
+  the player when the panel title is hovered or a control has focus.
+- **Footer.** Right-aligned 10px links at 45% opacity, full on hover or focus. The plain
+  message count is hidden; archive and pane-history counts, missed mentions and the
+  latest-messages button stay visible and raise the footer to full opacity.
+- **Log row.** Time and channel in 12px `--muted` (the channel label is hidden while only
+  one channel is joined, `data-channel-count='1'`, because the top bar chip names it); badges 18px; name bold in the user's
   colour or `--accent`; subscription, bits and first-message chips as 10px outlined
   pills; message text; a quoted reply as a `blockquote`. Modifiers: `.action` italic,
   `.removed` struck through at 50%, `.system-message` at 80%, `.target-message` with a
@@ -220,7 +237,9 @@ the font-size menu, rather than subtracting pixels.
 - **Composer.** Picker button, send-target select, reply target line, an autogrowing
   textarea capped at 160px, the length counter (amber at the warning threshold), send
   button and a 12px status line. The completion list is a `--bg` box with `--line` border;
-  the selected option is `--line` with `--accent` text.
+  the selected option is `--line` with `--accent` text. Logged out, the row shrinks to the
+  picker button and a right-aligned `--accent` "Log in to chat" button that clicks the top
+  bar login; it is hidden while login is unavailable.
 - **Emote picker.** A fixed, resizable 560×440 panel on `--panel` with a 6px corner,
   header search, tab and setting rows at 12px, a grid of `--picker-cell` (64px) buttons
   and a recent row. The handle moves it; geometry is saved.
@@ -228,10 +247,22 @@ the font-size menu, rather than subtracting pixels.
   40% black backdrop; 16px padding with the chrome bar bleeding to the edges. Content is
   normalised by `src/shell/shell.css`: paragraphs, headings, fieldsets and sections span
   the width; labelled fields form a responsive grid at 200px minimum; checkbox labels
-  stay inline; loose buttons flow in rows. Display settings are grouped into Theme,
-  Type, Rows, Filters, Alerts, Composer, Links and cards, Layout and Motion fieldsets.
+  stay inline; loose buttons flow in rows.
   Video, whispers, help and the emote picker keep their own open and close logic but
   dock and float through the workbench like any dialog.
+- **Settings window.** One modal dialog (`src/settings/`), opened by Ctrl+, or Command+,,
+  the Settings… command and palette rows that name a page or setting. Privacy mode keeps
+  it closed. It is `min(860px, 94vw)` by `min(620px, 88vh)` on `--panel` with a
+  `--popline` border, 8px corner and a 50% black backdrop. A 200px left column holds the
+  search box and the page list (General, Accounts, Commands, Highlights, Ignores,
+  Hotkeys, Moderation, Notifications, Integrations, Privacy, About); the current page is shown by
+  its colour alone (`--fg` on `--bg`), with no accent edge. Each page lists sections under 11px uppercase `--muted`
+  headings, and each setting is a row with its label on the left and a 160–260px control
+  on the right. A section can be reset to its defaults; a rejected or clamped value shows
+  a one-line message under its row. Panels that edit lists (commands, rules, shortcuts,
+  extensions and similar) are embedded in their section instead of opening as separate
+  dialogs. Below 700px the window fills the screen, the page list becomes a horizontal
+  strip and rows stack.
 - **Cards** (identity preview, link preview). Fixed 360 and 380px panes with 12px padding
   that follow the dialog frame; `--popline` is the hue-neutral frame colour for popups.
 - **Rate sparkline.** 72×18 in the top bar, `--accent` stroke.

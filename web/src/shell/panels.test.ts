@@ -5,6 +5,8 @@ import { CommandRegistry } from './registry';
 import { Workbench } from './workbench';
 import { showPanel } from './open-panel';
 import { dock, emptyLayout, setClosed } from './layout';
+import { SettingsRegistry } from '../settings/registry';
+import { SettingsWindow } from '../settings/window';
 
 let panels: LazyPanels | undefined;
 afterEach(() => {
@@ -19,6 +21,7 @@ function setup(restored = false) {
   let changed = () => {};
   const workbench: PanelWorkbench = {
     adopt: vi.fn(),
+    forget: vi.fn(),
     wantsPanel: () => wanted,
     onLayoutChange: (listener) => {
       changed = listener;
@@ -49,6 +52,14 @@ function setup(restored = false) {
   });
   const load = vi.fn(async () => create);
   const register = () => panels!.register({ id: 'fixture-panel', title: 'Fixture', group: 'tools', load });
+  const registerSettings = () =>
+    panels!.register({
+      id: 'fixture-panel',
+      title: 'Fixture',
+      group: 'tools',
+      load,
+      settings: { page: 'commands', section: 'Custom commands', keywords: 'fixture alias' },
+    });
   return {
     registry,
     workbench,
@@ -56,6 +67,7 @@ function setup(restored = false) {
     create,
     load,
     register,
+    registerSettings,
     context: (next: string) => {
       context = next;
     },
@@ -259,4 +271,229 @@ it('cancels a pending contextual callback when the panel is explicitly closed', 
   panels!.close('fixture-panel');
   await pending;
   expect(action).not.toHaveBeenCalled();
+});
+
+it('settings panels register no command', () => {
+  const f = setup();
+  f.registerSettings();
+  expect(f.registry.get('panel:fixture-panel')).toBeUndefined();
+  expect(panels!.settingsSections()).toEqual([
+    expect.objectContaining({
+      id: 'panel:fixture-panel',
+      page: 'commands',
+      section: 'Custom commands',
+      keywords: 'fixture alias',
+    }),
+  ]);
+});
+it('open redirects settings panels to the settings opener', async () => {
+  const f = setup();
+  f.registerSettings();
+  await panels!.open('fixture-panel');
+  expect(f.load).not.toHaveBeenCalled();
+  const opener = vi.fn();
+  panels!.setSettingsOpener(opener);
+  await panels!.open('fixture-panel');
+  expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
+  expect(f.load).not.toHaveBeenCalled();
+  expect(f.workbench.adopt).not.toHaveBeenCalled();
+});
+it('a saved layout docking a settings panel is released and not opened', async () => {
+  const f = setup(true);
+  f.registerSettings();
+  expect(f.workbench.forget).toHaveBeenCalledWith(['fixture-panel']);
+  f.restore(true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(f.load).not.toHaveBeenCalled();
+  expect(f.create).not.toHaveBeenCalled();
+});
+it('embed mounts the root inline and shows it non-modally', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  const showModal = vi.spyOn(HTMLDialogElement.prototype, 'showModal');
+  const dispose = await panels!.embed('fixture-panel', host);
+  const instance = f.create.mock.results[0]!.value;
+  expect(showModal).not.toHaveBeenCalled();
+  expect(instance.root.parentElement).toBe(host);
+  expect(instance.root.dataset.embedded).toBe('true');
+  expect(instance.root.open).toBe(true);
+  expect(instance.open).toHaveBeenCalledOnce();
+  expect(f.workbench.adopt).not.toHaveBeenCalled();
+  const other = document.createElement('div');
+  document.body.append(other);
+  const again = await panels!.embed('fixture-panel', other);
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(instance.root.parentElement).toBe(other);
+  dispose();
+  again();
+  showModal.mockRestore();
+});
+it('embedded dialog that closes itself is shown again', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  await panels!.embed('fixture-panel', host);
+  const instance = f.create.mock.results[0]!.value;
+  instance.root.close();
+  expect(instance.root.open).toBe(false);
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(instance.root.open).toBe(true);
+});
+it('embed disposer stops the panel', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  const dispose = await panels!.embed('fixture-panel', host);
+  const instance = f.create.mock.results[0]!.value;
+  dispose();
+  expect(instance.stop).toHaveBeenCalledOnce();
+  instance.root.dispatchEvent(new Event('close'));
+  await Promise.resolve();
+  expect(instance.root.isConnected).toBe(false);
+});
+it('perform on a settings panel opens Settings, waits for the embed and then runs the action', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  const opener = vi.fn(() => {
+    void panels!.embed('fixture-panel', host);
+  });
+  panels!.setSettingsOpener(opener);
+  const action = vi.fn(() => {
+    expect(f.create.mock.results[0]!.value.root.parentElement).toBe(host);
+  });
+  await panels!.perform('fixture-panel', action);
+  expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
+  expect(action).toHaveBeenCalledOnce();
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(f.workbench.adopt).not.toHaveBeenCalled();
+});
+it('perform without activation loads a settings panel unattached and a later embed reuses it', async () => {
+  const f = setup();
+  f.registerSettings();
+  const opener = vi.fn();
+  panels!.setSettingsOpener(opener);
+  const action = vi.fn();
+  await panels!.perform('fixture-panel', action, false);
+  expect(opener).not.toHaveBeenCalled();
+  expect(action).toHaveBeenCalledOnce();
+  const instance = f.create.mock.results[0]!.value;
+  expect(instance.open).not.toHaveBeenCalled();
+  expect(instance.root.dataset.embedded).toBeUndefined();
+  const host = document.createElement('div');
+  document.body.append(host);
+  await panels!.embed('fixture-panel', host);
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(instance.root.parentElement).toBe(host);
+  expect(instance.open).toHaveBeenCalledOnce();
+});
+it('a pending settings perform is abandoned when the panel is closed', async () => {
+  const f = setup();
+  f.registerSettings();
+  panels!.setSettingsOpener(vi.fn());
+  const action = vi.fn();
+  const pending = panels!.perform('fixture-panel', action);
+  panels!.close('fixture-panel');
+  await pending;
+  expect(action).not.toHaveBeenCalled();
+});
+it('perform on an already embedded settings panel runs the action right after opening Settings', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  await panels!.embed('fixture-panel', host);
+  // The window keeps an open section mounted, so opening Settings embeds nothing new.
+  const opener = vi.fn();
+  panels!.setSettingsOpener(opener);
+  const action = vi.fn();
+  await panels!.perform('fixture-panel', action);
+  expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
+  expect(action).toHaveBeenCalledOnce();
+  expect(f.create).toHaveBeenCalledOnce();
+});
+
+// The real Settings window hosting the fixture panel on its Commands page.
+async function settingsWindow(f: ReturnType<typeof setup>) {
+  f.registerSettings();
+  const registry = new SettingsRegistry(() => false);
+  registry.add(panels!.settingsSections());
+  const win = new SettingsWindow(registry, { storageAvailable: true });
+  panels!.setSettingsOpener((target) => win.open(target));
+  const settle = async () => {
+    for (let i = 0; i < 5; i++) await new Promise((resolve) => setTimeout(resolve, 0));
+  };
+  const current = () => win.root.querySelector<HTMLElement>('button[aria-current="page"]')?.dataset.page;
+  const page = (id: string) => win.root.querySelector<HTMLButtonElement>(`button[data-page="${id}"]`)!.click();
+  return { win, settle, current, page };
+}
+it('an embedded panel asked to show while Settings is closed opens Settings on its page first', async () => {
+  const f = setup();
+  const { win, settle, current } = await settingsWindow(f);
+  win.open({ page: 'commands' });
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  expect(win.root.contains(instance.root)).toBe(true);
+  win.close();
+  await panels!.perform('fixture-panel', () => showPanel(instance.root), false);
+  await settle();
+  expect(win.root.open).toBe(true);
+  expect(current()).toBe('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.stop();
+});
+it('an embedded panel asked to show while Settings shows another page switches to its page', async () => {
+  const f = setup();
+  const { win, settle, current, page } = await settingsWindow(f);
+  win.open({ page: 'commands' });
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  page('general');
+  expect(instance.root.isConnected).toBe(false);
+  showPanel(instance.root);
+  await settle();
+  expect(current()).toBe('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.stop();
+});
+it('a settings panel loaded without activation opens Settings when its action shows it', async () => {
+  const f = setup();
+  const { win, settle, current } = await settingsWindow(f);
+  await panels!.perform('fixture-panel', () => showPanel(f.create.mock.results[0]!.value.root), false);
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(win.root.open).toBe(true);
+  expect(current()).toBe('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.stop();
+});
+it('an embedded panel that closed while its page was hidden is shown again when the page returns', async () => {
+  const f = setup();
+  const { win, settle, page } = await settingsWindow(f);
+  win.open({ page: 'commands' });
+  await settle();
+  const instance = f.create.mock.results[0]!.value;
+  page('general');
+  instance.root.close();
+  await settle();
+  expect(instance.root.open).toBe(false);
+  page('commands');
+  expect(win.root.contains(instance.root)).toBe(true);
+  expect(instance.root.open).toBe(true);
+  win.close();
+  instance.root.close();
+  await settle();
+  win.open();
+  expect(instance.root.open).toBe(true);
+  win.stop();
 });

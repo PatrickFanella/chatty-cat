@@ -62,3 +62,25 @@ it('never launches on open, pairing or review; clears reviewed native action on 
   expect(button('Launch reviewed playback').disabled).toBe(true);
   expect(fetcher.mock.calls.every((c) => !String(c[0]).endsWith('/v1/launch'))).toBe(true);
 });
+it('desktop review opens while embedded in the Settings window but not over another dialog', () => {
+  setProfileScope('42');
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+  };
+  panel = new DesktopPlaybackPanel(
+    () => auth,
+    () => ['one'],
+    () => 'one',
+  );
+  const settings = document.createElement('dialog');
+  settings.id = 'settings-window';
+  document.body.append(settings);
+  settings.showModal();
+  settings.append(panel.root);
+  panel.root.show();
+  expect(() => panel!.openReview('playback')).not.toThrow();
+  const other = document.createElement('dialog');
+  document.body.append(other);
+  other.showModal();
+  expect(() => panel!.openReview('playback')).toThrow('Close the current dialog before opening desktop review');
+});

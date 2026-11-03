@@ -26,7 +26,7 @@ export const ACTIONS = [
   { id: 'desktop-playback', label: 'Open desktop playback setup and review', context: 'chat', binding: '' },
   { id: 'desktop-overlay', label: 'Open native overlay setup and review', context: 'chat', binding: '' },
   { id: 'stats', label: 'Open statistics', context: 'chat', binding: 'Alt+KeyT' },
-  { id: 'settings', label: 'Open display settings', context: 'chat', binding: 'Alt+KeyD' },
+  { id: 'settings', label: 'Open settings', context: 'chat', binding: 'Alt+KeyD' },
   { id: 'inbox', label: 'Open conversation inbox', context: 'chat', binding: 'Alt+KeyI' },
   { id: 'commands', label: 'Open custom commands', context: 'chat', binding: 'Alt+KeyC' },
   { id: 'shortcuts', label: 'Edit keyboard shortcuts', context: 'chat', binding: 'Alt+KeyB' },

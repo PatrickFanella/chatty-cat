@@ -5,8 +5,8 @@
 Chatty Cat rebuilds [HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org)
 and its [Twitch relay](https://github.com/mxmilkiib/twitch-chat-relay) as one
 self-hosted Go service with a TypeScript frontend. The intended origin is
-`https://chat.subcult.tv`. Full feature parity is required before cutover.
-The original app remains the reference; this conversion is still in progress.
+`https://chat.subcult.tv`. The original app is a reference, not a constraint:
+since November 2, 2026, product decisions take priority over feature parity.
 
 [Parity checklist](docs/parity.md) records release gates and checkpoint evidence.
 [Architecture](docs/architecture.md) describes ownership and deployment boundaries.

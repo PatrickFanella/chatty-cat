@@ -96,7 +96,10 @@ export class StatsPanel {
     private badges: (channel: string) => ChannelMetadata['badges'] = () => ({}),
   ) {
     this.channels = [...channels];
-    if (ledger && typeof indexedDB !== 'undefined') this.storageControls = new StatisticsStorageControls(dialog);
+    if (ledger && typeof indexedDB !== 'undefined')
+      this.storageControls = new StatisticsStorageControls(
+        dialog.querySelector<HTMLElement>('.panel-options') ?? dialog,
+      );
     this.badgeOrder = dialog.querySelector<HTMLSelectElement>('#stats-badge-order')!;
     this.scope = dialog.querySelector<HTMLSelectElement>('#stats-scope')!;
     this.channel = dialog.querySelector<HTMLSelectElement>('#stats-channel')!;

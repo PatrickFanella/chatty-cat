@@ -39,7 +39,8 @@ it('stages a selected-message action in its channel while preserving the other c
     input: '',
   };
   const runtime = new CommandRuntime(composer, (command, invocation) => panel.showPreview(command, invocation));
-  const panel = new CommandPanel(composer, () => context, inspector, runtime);
+  const staged = vi.fn();
+  const panel = new CommandPanel(composer, () => context, inspector, runtime, staged);
   const set = (id: string, value: string) => {
     document.querySelector<HTMLInputElement>('#command-' + id)!.value = value;
   };
@@ -59,6 +60,8 @@ it('stages a selected-message action in its channel while preserving the other c
   document.querySelector<HTMLButtonElement>('[data-action=stage]')!.click();
   expect(composer.target).toBe('room');
   expect(input.value).toBe('/timeout alice 30');
+  // The embedding Settings window closes so the composer is reachable.
+  expect(staged).toHaveBeenCalledOnce();
   expect(sessionStorage.getItem('chatthing:v1:draft:20:other')).toBe('keep this draft');
   expect(fetcher).not.toHaveBeenCalled();
   panel.stop();

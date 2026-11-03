@@ -9,13 +9,9 @@ import {
   getLinkPreferences,
 } from './link-preferences';
 import { LinkTools } from './link-tools';
-import { LinkPreferencesPanel } from './link-preferences-ui';
 import { setProfileScope } from './account-profiles';
 let tools: LinkTools | undefined;
-let panel: LinkPreferencesPanel | undefined;
 afterEach(() => {
-  panel?.stop();
-  panel = undefined;
   tools?.stop();
   tools = undefined;
   setLinkPreferences(linkDefaults);
@@ -47,20 +43,6 @@ it('keeps local-only policy isolated and refuses stale writes', () => {
   expect(() => a.save(linkDefaults)).toThrow('Account');
   expect(localStorage.getItem('chatthing:v1:profile:43:link-preferences')).toBeNull();
 });
-it('reviews settings before enabling remote fetches and never persists selected text', () => {
-  document.body.innerHTML = '<main id="test-log">public</main>';
-  tools = new LinkTools(document.getElementById('test-log')!);
-  panel = new LinkPreferencesPanel();
-  panel.open();
-  const d = panel.root;
-  d.querySelector<HTMLInputElement>('[name=enabled]')!.checked = true;
-  d.querySelector<HTMLInputElement>('[name=thumbnails]')!.checked = true;
-  const click = (name: string) => [...d.querySelectorAll('button')].find((x) => x.textContent === name)!.click();
-  click('Review link preferences');
-  expect(localStorage.getItem('chatthing:v1:link-preferences')).toBeNull();
-  click('Apply link preferences');
-  expect(d.textContent).toContain('Saved');
-});
 it('applies saved click/search policy before either editor or selection-review DOM exists', () => {
   document.body.innerHTML = '<main id="test-log"><a class="chat-link" href="https://example.com/">public</a></main>';
   new LinkPreferenceStore().save({ ...linkDefaults, doubleClick: true, searchEnabled: true });
@@ -71,27 +53,10 @@ it('applies saved click/search policy before either editor or selection-review D
   document.querySelector('a')!.dispatchEvent(click);
   expect(click.defaultPrevented).toBe(true);
   expect(getLinkPreferences().searchEnabled).toBe(true);
-  panel = new LinkPreferencesPanel();
-  panel.open();
-  panel.close();
-  panel.stop();
-  panel = undefined;
   expect(getLinkPreferences().doubleClick).toBe(true);
   expect(getLinkPreferences().searchEnabled).toBe(true);
   expect(document.querySelector('[aria-label="Review selection search"]')).toBeNull();
 });
-it('suppresses link/search tools and clears input in privacy mode', () => {
-  document.body.innerHTML = '<main id="test-log">public</main>';
-  tools = new LinkTools(document.getElementById('test-log')!);
-  panel = new LinkPreferencesPanel();
-  panel.open();
-  const field = panel.root.querySelector<HTMLInputElement>('[name=engineURL]')!;
-  field.value = 'https://example.com/?q={query}';
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
-  document.dispatchEvent(new Event('privacychange'));
-  expect(field.value).toBe('');
-});
-
 it('reviews only selection contained in public chat and exposes a safe encoded search link', () => {
   document.body.innerHTML = '<main id="test-log"><p>Alice & 😀</p></main><p id="outside">private note</p>';
   tools = new LinkTools(document.getElementById('test-log')!);
