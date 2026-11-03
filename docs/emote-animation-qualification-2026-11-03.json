@@ -1,0 +1,1675 @@
+{
+ "issue": 136,
+ "date": "2026-11-03",
+ "source": {
+  "main": "20b4b82",
+  "featureEntry": "main-C17z3amt.js",
+  "controlEntry": "main-Dooi8y2Z.js",
+  "control": "emote-animation.ts with pauseEmoteAnimations returning immediately and paused=false at construction; not committed",
+  "server": "bin/chatthing sha256 1d598d612ac017fe94f6f2b68754012868ac839f8a23f530c9f7ace394232c0f, CHATTHING_ENV_FILE=/dev/null, loopback, anonymous read-only chat"
+ },
+ "environment": {
+  "host": "dozor",
+  "cpu": "Intel Core i5-4570S, 4 logical CPUs",
+  "gpu": "Intel HD Graphics 4600 (HSW GT2), Mesa 25.0.7 via ANGLE OpenGL ES 3.2",
+  "browser": "Chromium 141.0.7390.37 (Playwright build 1194), --headless=new --enable-gpu --ignore-gpu-blocklist --use-angle=gl-egl, 1280x800",
+  "os": "Debian 13, kernel 6.12.115",
+  "hostLoadAverage": "about 2 on 4 CPUs from unrelated services"
+ },
+ "channels": [
+  "hasanabi",
+  "xqc",
+  "zackrawrr",
+  "kaicenat",
+  "jynxzi",
+  "caseoh_"
+ ],
+ "method": {
+  "warmupSeconds": 45,
+  "phaseSeconds": 30,
+  "cpuPct": "utime+stime of the whole Chromium process tree from /proc, percent of one logical CPU",
+  "gpuRcsPct": "i915 PMU rcs0-busy (render engine) busy time over the phase, global to the GPU; 0 when idle before the run",
+  "hidden": "a second tab activated in the same window (natural document.visibilityState=hidden)",
+  "history": "log scrolled to 40% of its height; history-scroll records whether the position held",
+  "playing/still": "mounted img[data-emote-animation] whose src does or does not contain \"static\"; approximate",
+  "anchor": "length and hash of the row text at the top-left of the log; no chat text is stored",
+  "msgsPerSec": "change in the footer message count; the count is not repainted while hidden, so hidden reads 0"
+ },
+ "excluded": [
+  "run 1 control rounds 1-2 history: position did not hold",
+  "run 2 round 2 control: the app never loaded the log (scrollTop null)",
+  "run 2 round 2 control history: position did not hold"
+ ],
+ "runs": [
+  {
+   "run": 1,
+   "records": [
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "live",
+     "seconds": 30.046,
+     "cpuPct": 93.8,
+     "gpuRcsPct": 3.218,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 19.84,
+     "start": {
+      "vis": "visible",
+      "msgs": 2118,
+      "tracked": 6,
+      "still": 3,
+      "playing": 3,
+      "animatedAll": 6,
+      "scrollTop": 70553,
+      "scrollHeight": 71112,
+      "anchor": "5:47722882"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 2714,
+      "tracked": 4,
+      "still": 1,
+      "playing": 3,
+      "animatedAll": 4,
+      "scrollTop": 91676,
+      "scrollHeight": 92235,
+      "anchor": "40:-46390630"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "history",
+     "seconds": 30.038,
+     "cpuPct": 61,
+     "gpuRcsPct": 3.202,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 22.27,
+     "start": {
+      "vis": "visible",
+      "msgs": 2743,
+      "tracked": 10,
+      "still": 7,
+      "playing": 3,
+      "animatedAll": 10,
+      "scrollTop": 36664,
+      "scrollHeight": 93199,
+      "anchor": "5:47722881"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3412,
+      "tracked": 10,
+      "still": 7,
+      "playing": 3,
+      "animatedAll": 10,
+      "scrollTop": 36664,
+      "scrollHeight": 114607,
+      "anchor": "5:47722881"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "live-return",
+     "seconds": 30.053,
+     "cpuPct": 90.9,
+     "gpuRcsPct": 2.384,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 20.73,
+     "start": {
+      "vis": "visible",
+      "msgs": 3448,
+      "tracked": 3,
+      "still": 1,
+      "playing": 2,
+      "animatedAll": 3,
+      "scrollTop": 115401,
+      "scrollHeight": 115960,
+      "anchor": "5:47722883"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4071,
+      "tracked": 17,
+      "still": 8,
+      "playing": 9,
+      "animatedAll": 17,
+      "scrollTop": 138312,
+      "scrollHeight": 138871,
+      "anchor": "40:-1242624429"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "hidden",
+     "seconds": 30.041,
+     "cpuPct": 13.2,
+     "gpuRcsPct": 0.017,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 4071,
+      "tracked": 17,
+      "still": 17,
+      "playing": 0,
+      "animatedAll": 17,
+      "scrollTop": 138312,
+      "scrollHeight": 138871,
+      "anchor": "40:-1242624429"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 4071,
+      "tracked": 17,
+      "still": 17,
+      "playing": 0,
+      "animatedAll": 17,
+      "scrollTop": 138312,
+      "scrollHeight": 138871,
+      "anchor": "40:-1242624429"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 4946,
+      "tracked": 3,
+      "still": 1,
+      "playing": 2,
+      "animatedAll": 3,
+      "scrollTop": 166576,
+      "scrollHeight": 167135,
+      "anchor": "40:1860656479"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "live",
+     "seconds": 30.037,
+     "cpuPct": 99.7,
+     "gpuRcsPct": 1.866,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 25.14,
+     "start": {
+      "vis": "visible",
+      "msgs": 2302,
+      "tracked": 8,
+      "still": 2,
+      "playing": 6,
+      "animatedAll": 8,
+      "scrollTop": 76621,
+      "scrollHeight": 77180,
+      "anchor": "40:-739891364"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3057,
+      "tracked": 15,
+      "still": 6,
+      "playing": 9,
+      "animatedAll": 15,
+      "scrollTop": 103363,
+      "scrollHeight": 103922,
+      "anchor": "40:-195484026"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "history",
+     "seconds": 30.035,
+     "cpuPct": 104.3,
+     "gpuRcsPct": 1.933,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 29.77,
+     "start": {
+      "vis": "visible",
+      "msgs": 3115,
+      "tracked": 14,
+      "still": 4,
+      "playing": 10,
+      "animatedAll": 14,
+      "scrollTop": 105358,
+      "scrollHeight": 105917,
+      "anchor": "40:913320835"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4009,
+      "tracked": 8,
+      "still": 0,
+      "playing": 8,
+      "animatedAll": 8,
+      "scrollTop": 137963,
+      "scrollHeight": 138522,
+      "anchor": "40:-1253164092"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "live-return",
+     "seconds": 30.055,
+     "cpuPct": 114.8,
+     "gpuRcsPct": 1.834,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 31.11,
+     "start": {
+      "vis": "visible",
+      "msgs": 4065,
+      "tracked": 20,
+      "still": 0,
+      "playing": 20,
+      "animatedAll": 20,
+      "scrollTop": 139935,
+      "scrollHeight": 140494,
+      "anchor": "17:586302170"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 3,
+      "playing": 4,
+      "animatedAll": 7,
+      "scrollTop": 173685,
+      "scrollHeight": 174244,
+      "anchor": "40:1521023654"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "hidden",
+     "seconds": 30.034,
+     "cpuPct": 17.7,
+     "gpuRcsPct": 0.017,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 3,
+      "playing": 4,
+      "animatedAll": 7,
+      "scrollTop": 173685,
+      "scrollHeight": 174244,
+      "anchor": "40:1521023654"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 7,
+      "playing": 0,
+      "animatedAll": 7,
+      "scrollTop": 173685,
+      "scrollHeight": 174244,
+      "anchor": "40:1521023654"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 1,
+      "playing": 6,
+      "animatedAll": 7,
+      "scrollTop": 174000,
+      "scrollHeight": 174559,
+      "anchor": "40:-1016818223"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "live",
+     "seconds": 30.044,
+     "cpuPct": 115.5,
+     "gpuRcsPct": 2.167,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 33.92,
+     "start": {
+      "vis": "visible",
+      "msgs": 2489,
+      "tracked": 14,
+      "still": 1,
+      "playing": 13,
+      "animatedAll": 14,
+      "scrollTop": 84208,
+      "scrollHeight": 84767,
+      "anchor": "40:-2045951653"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3508,
+      "tracked": 10,
+      "still": 4,
+      "playing": 6,
+      "animatedAll": 10,
+      "scrollTop": 120824,
+      "scrollHeight": 121383,
+      "anchor": "40:-894288699"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "history",
+     "seconds": 30.048,
+     "cpuPct": 114.1,
+     "gpuRcsPct": 2.384,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 32.68,
+     "start": {
+      "vis": "visible",
+      "msgs": 3548,
+      "tracked": 6,
+      "still": 1,
+      "playing": 5,
+      "animatedAll": 6,
+      "scrollTop": 122487,
+      "scrollHeight": 123046,
+      "anchor": "40:-1583577417"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4530,
+      "tracked": 2,
+      "still": 0,
+      "playing": 2,
+      "animatedAll": 2,
+      "scrollTop": 157047,
+      "scrollHeight": 157606,
+      "anchor": "40:-1310774190"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "live-return",
+     "seconds": 30.055,
+     "cpuPct": 111.5,
+     "gpuRcsPct": 2.034,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 14.34,
+     "start": {
+      "vis": "visible",
+      "msgs": 4569,
+      "tracked": 4,
+      "still": 0,
+      "playing": 4,
+      "animatedAll": 4,
+      "scrollTop": 158903,
+      "scrollHeight": 159462,
+      "anchor": "40:581634135"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 8,
+      "still": 0,
+      "playing": 8,
+      "animatedAll": 8,
+      "scrollTop": 176746,
+      "scrollHeight": 177305,
+      "anchor": "40:342104864"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "hidden",
+     "seconds": 30.036,
+     "cpuPct": 16.8,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 0,
+      "playing": 7,
+      "animatedAll": 7,
+      "scrollTop": 176747,
+      "scrollHeight": 177306,
+      "anchor": "40:1158606395"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 0,
+      "playing": 7,
+      "animatedAll": 7,
+      "scrollTop": 176747,
+      "scrollHeight": 177306,
+      "anchor": "40:1158606395"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 15,
+      "still": 0,
+      "playing": 15,
+      "animatedAll": 15,
+      "scrollTop": 175983,
+      "scrollHeight": 176542,
+      "anchor": "40:-1708495352"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "live",
+     "seconds": 30.039,
+     "cpuPct": 105.8,
+     "gpuRcsPct": 2.301,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 30.69,
+     "start": {
+      "vis": "visible",
+      "msgs": 2182,
+      "tracked": 4,
+      "still": 0,
+      "playing": 4,
+      "animatedAll": 4,
+      "scrollTop": 73070,
+      "scrollHeight": 73629,
+      "anchor": "9:952851528"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3104,
+      "tracked": 10,
+      "still": 8,
+      "playing": 2,
+      "animatedAll": 10,
+      "scrollTop": 106954,
+      "scrollHeight": 107513,
+      "anchor": "40:-1010291230"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "history",
+     "seconds": 30.048,
+     "cpuPct": 72.2,
+     "gpuRcsPct": 4.135,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 33.98,
+     "start": {
+      "vis": "visible",
+      "msgs": 3149,
+      "tracked": 11,
+      "still": 8,
+      "playing": 3,
+      "animatedAll": 11,
+      "scrollTop": 42782,
+      "scrollHeight": 108953,
+      "anchor": "40:-1210668807"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4170,
+      "tracked": 11,
+      "still": 8,
+      "playing": 3,
+      "animatedAll": 11,
+      "scrollTop": 42782,
+      "scrollHeight": 141625,
+      "anchor": "40:-1210668807"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "live-return",
+     "seconds": 30.044,
+     "cpuPct": 111.7,
+     "gpuRcsPct": 1.8,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 25.6,
+     "start": {
+      "vis": "visible",
+      "msgs": 4231,
+      "tracked": 2,
+      "still": 2,
+      "playing": 0,
+      "animatedAll": 2,
+      "scrollTop": 143393,
+      "scrollHeight": 143952,
+      "anchor": "40:721062659"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 5,
+      "still": 1,
+      "playing": 4,
+      "animatedAll": 5,
+      "scrollTop": 171496,
+      "scrollHeight": 172055,
+      "anchor": "40:1973446721"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "hidden",
+     "seconds": 30.039,
+     "cpuPct": 12.1,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 5,
+      "still": 5,
+      "playing": 0,
+      "animatedAll": 5,
+      "scrollTop": 171503,
+      "scrollHeight": 172062,
+      "anchor": "40:1644351840"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 5,
+      "still": 5,
+      "playing": 0,
+      "animatedAll": 5,
+      "scrollTop": 171503,
+      "scrollHeight": 172062,
+      "anchor": "40:1644351840"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 2,
+      "still": 0,
+      "playing": 2,
+      "animatedAll": 2,
+      "scrollTop": 171751,
+      "scrollHeight": 172310,
+      "anchor": "40:1030295618"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "live",
+     "seconds": 30.061,
+     "cpuPct": 94.8,
+     "gpuRcsPct": 2.134,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 25.25,
+     "start": {
+      "vis": "visible",
+      "msgs": 2497,
+      "tracked": 3,
+      "still": 2,
+      "playing": 1,
+      "animatedAll": 3,
+      "scrollTop": 83485,
+      "scrollHeight": 84044,
+      "anchor": "5:47722936"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3256,
+      "tracked": 9,
+      "still": 3,
+      "playing": 6,
+      "animatedAll": 9,
+      "scrollTop": 110943,
+      "scrollHeight": 111502,
+      "anchor": "40:-405775230"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "history",
+     "seconds": 30.037,
+     "cpuPct": 40.9,
+     "gpuRcsPct": 0.283,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 21.41,
+     "start": {
+      "vis": "visible",
+      "msgs": 3290,
+      "tracked": 6,
+      "still": 5,
+      "playing": 1,
+      "animatedAll": 6,
+      "scrollTop": 44888,
+      "scrollHeight": 112700,
+      "anchor": "40:-150726034"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3933,
+      "tracked": 6,
+      "still": 5,
+      "playing": 1,
+      "animatedAll": 6,
+      "scrollTop": 44888,
+      "scrollHeight": 133276,
+      "anchor": "40:-150726034"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "live-return",
+     "seconds": 30.039,
+     "cpuPct": 99.7,
+     "gpuRcsPct": 2.067,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 24.34,
+     "start": {
+      "vis": "visible",
+      "msgs": 3962,
+      "tracked": 3,
+      "still": 1,
+      "playing": 2,
+      "animatedAll": 3,
+      "scrollTop": 133893,
+      "scrollHeight": 134452,
+      "anchor": "40:1670089489"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4693,
+      "tracked": 10,
+      "still": 4,
+      "playing": 6,
+      "animatedAll": 10,
+      "scrollTop": 160251,
+      "scrollHeight": 160810,
+      "anchor": "40:-1666729582"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "hidden",
+     "seconds": 30.051,
+     "cpuPct": 11,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 4694,
+      "tracked": 10,
+      "still": 10,
+      "playing": 0,
+      "animatedAll": 10,
+      "scrollTop": 160283,
+      "scrollHeight": 160842,
+      "anchor": "40:251727342"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 4694,
+      "tracked": 10,
+      "still": 10,
+      "playing": 0,
+      "animatedAll": 10,
+      "scrollTop": 160283,
+      "scrollHeight": 160842,
+      "anchor": "40:251727342"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 4,
+      "still": 2,
+      "playing": 2,
+      "animatedAll": 4,
+      "scrollTop": 170395,
+      "scrollHeight": 170954,
+      "anchor": "5:47722938"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "live",
+     "seconds": 30.053,
+     "cpuPct": 98.6,
+     "gpuRcsPct": 2.251,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 26.79,
+     "start": {
+      "vis": "visible",
+      "msgs": 2599,
+      "tracked": 4,
+      "still": 1,
+      "playing": 3,
+      "animatedAll": 4,
+      "scrollTop": 87816,
+      "scrollHeight": 88375,
+      "anchor": "5:47722938"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3404,
+      "tracked": 6,
+      "still": 5,
+      "playing": 1,
+      "animatedAll": 6,
+      "scrollTop": 116338,
+      "scrollHeight": 116897,
+      "anchor": "5:47722939"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "history",
+     "seconds": 30.046,
+     "cpuPct": 79.1,
+     "gpuRcsPct": 0.35,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 22.3,
+     "start": {
+      "vis": "visible",
+      "msgs": 3429,
+      "tracked": 18,
+      "still": 2,
+      "playing": 16,
+      "animatedAll": 18,
+      "scrollTop": 46535,
+      "scrollHeight": 117697,
+      "anchor": "40:1678087362"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4099,
+      "tracked": 18,
+      "still": 2,
+      "playing": 16,
+      "animatedAll": 18,
+      "scrollTop": 46535,
+      "scrollHeight": 139137,
+      "anchor": "40:1678087362"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "live-return",
+     "seconds": 30.049,
+     "cpuPct": 110.7,
+     "gpuRcsPct": 2.151,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 28.52,
+     "start": {
+      "vis": "visible",
+      "msgs": 4143,
+      "tracked": 12,
+      "still": 7,
+      "playing": 5,
+      "animatedAll": 12,
+      "scrollTop": 140365,
+      "scrollHeight": 140924,
+      "anchor": "40:1098270532"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 2,
+      "still": 0,
+      "playing": 2,
+      "animatedAll": 2,
+      "scrollTop": 171853,
+      "scrollHeight": 172412,
+      "anchor": "5:47722940"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "hidden",
+     "seconds": 30.042,
+     "cpuPct": 12.5,
+     "gpuRcsPct": 0.017,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 2,
+      "still": 0,
+      "playing": 2,
+      "animatedAll": 2,
+      "scrollTop": 171853,
+      "scrollHeight": 172412,
+      "anchor": "5:47722940"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 5000,
+      "tracked": 2,
+      "still": 0,
+      "playing": 2,
+      "animatedAll": 2,
+      "scrollTop": 171853,
+      "scrollHeight": 172412,
+      "anchor": "5:47722940"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 7,
+      "still": 1,
+      "playing": 6,
+      "animatedAll": 7,
+      "scrollTop": 172197,
+      "scrollHeight": 172756,
+      "anchor": "40:-1589354707"
+     }
+    }
+   ]
+  },
+  {
+   "run": 2,
+   "records": [
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "live",
+     "seconds": 30.053,
+     "cpuPct": 94.3,
+     "gpuRcsPct": 1.934,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 26.79,
+     "start": {
+      "vis": "visible",
+      "msgs": 2465,
+      "tracked": 5,
+      "still": 1,
+      "playing": 4,
+      "animatedAll": 5,
+      "scrollTop": 82614,
+      "scrollHeight": 83173,
+      "anchor": "5:47722942"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3270,
+      "tracked": 11,
+      "still": 5,
+      "playing": 6,
+      "animatedAll": 11,
+      "scrollTop": 111384,
+      "scrollHeight": 111943,
+      "anchor": "40:1027600699"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "history-scroll",
+     "held": true,
+     "tries": 1
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "history",
+     "seconds": 30.041,
+     "cpuPct": 79.3,
+     "gpuRcsPct": 3.836,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 29.53,
+     "start": {
+      "vis": "visible",
+      "msgs": 3318,
+      "tracked": 17,
+      "still": 12,
+      "playing": 5,
+      "animatedAll": 17,
+      "scrollTop": 44576,
+      "scrollHeight": 113472,
+      "anchor": "5:47722942"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4205,
+      "tracked": 17,
+      "still": 12,
+      "playing": 5,
+      "animatedAll": 17,
+      "scrollTop": 44576,
+      "scrollHeight": 141856,
+      "anchor": "5:47722942"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "hidden",
+     "seconds": 30.034,
+     "cpuPct": 15.2,
+     "gpuRcsPct": 0.017,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 4259,
+      "tracked": 5,
+      "still": 5,
+      "playing": 0,
+      "animatedAll": 5,
+      "scrollTop": 143282,
+      "scrollHeight": 143841,
+      "anchor": "40:252428996"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 4259,
+      "tracked": 5,
+      "still": 5,
+      "playing": 0,
+      "animatedAll": 5,
+      "scrollTop": 143282,
+      "scrollHeight": 143841,
+      "anchor": "40:252428996"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "feature",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 16,
+      "still": 4,
+      "playing": 12,
+      "animatedAll": 16,
+      "scrollTop": 167328,
+      "scrollHeight": 167887,
+      "anchor": "40:-1523886901"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "live",
+     "seconds": 30.057,
+     "cpuPct": 92.9,
+     "gpuRcsPct": 2.034,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 25.88,
+     "start": {
+      "vis": "visible",
+      "msgs": 2460,
+      "tracked": 9,
+      "still": 3,
+      "playing": 6,
+      "animatedAll": 9,
+      "scrollTop": 83640,
+      "scrollHeight": 84199,
+      "anchor": "5:47722945"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3238,
+      "tracked": 4,
+      "still": 1,
+      "playing": 3,
+      "animatedAll": 4,
+      "scrollTop": 111602,
+      "scrollHeight": 112161,
+      "anchor": "5:47722945"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "history-scroll",
+     "held": true,
+     "tries": 3
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "history",
+     "seconds": 30.038,
+     "cpuPct": 78.2,
+     "gpuRcsPct": 12.927,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 22.5,
+     "start": {
+      "vis": "visible",
+      "msgs": 3354,
+      "tracked": 31,
+      "still": 6,
+      "playing": 25,
+      "animatedAll": 31,
+      "scrollTop": 45834,
+      "scrollHeight": 116065,
+      "anchor": "5:47722944"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4030,
+      "tracked": 31,
+      "still": 9,
+      "playing": 22,
+      "animatedAll": 31,
+      "scrollTop": 45834,
+      "scrollHeight": 137697,
+      "anchor": "5:47722944"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "hidden",
+     "seconds": 30.053,
+     "cpuPct": 2.3,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 4030,
+      "tracked": 3,
+      "still": 2,
+      "playing": 1,
+      "animatedAll": 3,
+      "scrollTop": 137170,
+      "scrollHeight": 137729,
+      "anchor": "40:1512597405"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 4030,
+      "tracked": 3,
+      "still": 2,
+      "playing": 1,
+      "animatedAll": 3,
+      "scrollTop": 137170,
+      "scrollHeight": 137731,
+      "anchor": "40:1512597405"
+     }
+    },
+    {
+     "round": 1,
+     "variant": "control",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 4030,
+      "tracked": 3,
+      "still": 2,
+      "playing": 1,
+      "animatedAll": 3,
+      "scrollTop": 137172,
+      "scrollHeight": 137731,
+      "anchor": "40:1107677101"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "live",
+     "seconds": 30.033,
+     "cpuPct": 20.4,
+     "gpuRcsPct": 2.283,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "visible",
+      "msgs": 0,
+      "tracked": 0,
+      "still": 0,
+      "playing": 0,
+      "animatedAll": 0,
+      "scrollTop": null,
+      "scrollHeight": null,
+      "anchor": null
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 0,
+      "tracked": 0,
+      "still": 0,
+      "playing": 0,
+      "animatedAll": 0,
+      "scrollTop": null,
+      "scrollHeight": null,
+      "anchor": null
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "history-scroll",
+     "held": false,
+     "tries": 6
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "history",
+     "seconds": 30.036,
+     "cpuPct": 23.7,
+     "gpuRcsPct": 3.15,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "visible",
+      "msgs": 0,
+      "tracked": 0,
+      "still": 0,
+      "playing": 0,
+      "animatedAll": 0,
+      "scrollTop": null,
+      "scrollHeight": null,
+      "anchor": null
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 0,
+      "tracked": 0,
+      "still": 0,
+      "playing": 0,
+      "animatedAll": 0,
+      "scrollTop": null,
+      "scrollHeight": null,
+      "anchor": null
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "hidden",
+     "seconds": 30.052,
+     "cpuPct": 11.2,
+     "gpuRcsPct": 0.017,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 0,
+      "tracked": 0,
+      "still": 0,
+      "playing": 0,
+      "animatedAll": 0,
+      "scrollTop": null,
+      "scrollHeight": null,
+      "anchor": null
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 0,
+      "tracked": 0,
+      "still": 0,
+      "playing": 0,
+      "animatedAll": 0,
+      "scrollTop": null,
+      "scrollHeight": null,
+      "anchor": null
+     }
+    },
+    {
+     "round": 2,
+     "variant": "control",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 1410,
+      "tracked": 11,
+      "still": 4,
+      "playing": 7,
+      "animatedAll": 11,
+      "scrollTop": 44705,
+      "scrollHeight": 45264,
+      "anchor": "5:47722970"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "live",
+     "seconds": 30.039,
+     "cpuPct": 114.7,
+     "gpuRcsPct": 2.118,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 34.46,
+     "start": {
+      "vis": "visible",
+      "msgs": 2515,
+      "tracked": 9,
+      "still": 8,
+      "playing": 1,
+      "animatedAll": 9,
+      "scrollTop": 85581,
+      "scrollHeight": 86140,
+      "anchor": "5:47722971"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3550,
+      "tracked": 12,
+      "still": 5,
+      "playing": 7,
+      "animatedAll": 12,
+      "scrollTop": 122576,
+      "scrollHeight": 123135,
+      "anchor": "40:571889219"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "history-scroll",
+     "held": true,
+     "tries": 1
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "history",
+     "seconds": 30.037,
+     "cpuPct": 95,
+     "gpuRcsPct": 3.847,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 27.47,
+     "start": {
+      "vis": "visible",
+      "msgs": 3584,
+      "tracked": 22,
+      "still": 14,
+      "playing": 8,
+      "animatedAll": 22,
+      "scrollTop": 49030,
+      "scrollHeight": 124223,
+      "anchor": "5:47722970"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4409,
+      "tracked": 22,
+      "still": 14,
+      "playing": 8,
+      "animatedAll": 22,
+      "scrollTop": 49030,
+      "scrollHeight": 150623,
+      "anchor": "5:47722970"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "hidden",
+     "seconds": 30.039,
+     "cpuPct": 13.5,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 4446,
+      "tracked": 11,
+      "still": 11,
+      "playing": 0,
+      "animatedAll": 11,
+      "scrollTop": 151564,
+      "scrollHeight": 152123,
+      "anchor": "40:-1176838272"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 4446,
+      "tracked": 11,
+      "still": 11,
+      "playing": 0,
+      "animatedAll": 11,
+      "scrollTop": 151564,
+      "scrollHeight": 152123,
+      "anchor": "40:-1176838272"
+     }
+    },
+    {
+     "round": 2,
+     "variant": "feature",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 15,
+      "still": 12,
+      "playing": 3,
+      "animatedAll": 15,
+      "scrollTop": 169611,
+      "scrollHeight": 170170,
+      "anchor": "40:1117186577"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "live",
+     "seconds": 30.038,
+     "cpuPct": 101.1,
+     "gpuRcsPct": 2.618,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 30.26,
+     "start": {
+      "vis": "visible",
+      "msgs": 2241,
+      "tracked": 13,
+      "still": 7,
+      "playing": 6,
+      "animatedAll": 13,
+      "scrollTop": 75644,
+      "scrollHeight": 76203,
+      "anchor": "40:1049562945"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3150,
+      "tracked": 4,
+      "still": 1,
+      "playing": 3,
+      "animatedAll": 4,
+      "scrollTop": 108420,
+      "scrollHeight": 108979,
+      "anchor": "5:47722973"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "history-scroll",
+     "held": true,
+     "tries": 4
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "history",
+     "seconds": 30.04,
+     "cpuPct": 69.8,
+     "gpuRcsPct": 2.035,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 33.85,
+     "start": {
+      "vis": "visible",
+      "msgs": 3407,
+      "tracked": 8,
+      "still": 2,
+      "playing": 6,
+      "animatedAll": 8,
+      "scrollTop": 46119,
+      "scrollHeight": 117809,
+      "anchor": "40:-1306080064"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 4424,
+      "tracked": 8,
+      "still": 4,
+      "playing": 4,
+      "animatedAll": 8,
+      "scrollTop": 46119,
+      "scrollHeight": 150353,
+      "anchor": "40:-1306080064"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "hidden",
+     "seconds": 30.044,
+     "cpuPct": 15.3,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 4462,
+      "tracked": 29,
+      "still": 29,
+      "playing": 0,
+      "animatedAll": 29,
+      "scrollTop": 151359,
+      "scrollHeight": 151918,
+      "anchor": "5:47722974"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 4462,
+      "tracked": 29,
+      "still": 29,
+      "playing": 0,
+      "animatedAll": 29,
+      "scrollTop": 151359,
+      "scrollHeight": 151918,
+      "anchor": "5:47722974"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "feature",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 5000,
+      "tracked": 10,
+      "still": 8,
+      "playing": 2,
+      "animatedAll": 10,
+      "scrollTop": 168781,
+      "scrollHeight": 169340,
+      "anchor": "5:47722975"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "live",
+     "seconds": 30.045,
+     "cpuPct": 99.9,
+     "gpuRcsPct": 3.018,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 26.69,
+     "start": {
+      "vis": "visible",
+      "msgs": 2311,
+      "tracked": 7,
+      "still": 3,
+      "playing": 4,
+      "animatedAll": 7,
+      "scrollTop": 78051,
+      "scrollHeight": 78610,
+      "anchor": "40:-257935424"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3113,
+      "tracked": 19,
+      "still": 15,
+      "playing": 4,
+      "animatedAll": 19,
+      "scrollTop": 107047,
+      "scrollHeight": 107606,
+      "anchor": "40:1979831883"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "history-scroll",
+     "held": true,
+     "tries": 3
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "history",
+     "seconds": 30.04,
+     "cpuPct": 86.5,
+     "gpuRcsPct": 1.666,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 16.84,
+     "start": {
+      "vis": "visible",
+      "msgs": 3195,
+      "tracked": 17,
+      "still": 10,
+      "playing": 7,
+      "animatedAll": 17,
+      "scrollTop": 43545,
+      "scrollHeight": 110344,
+      "anchor": "5:47722975"
+     },
+     "end": {
+      "vis": "visible",
+      "msgs": 3701,
+      "tracked": 17,
+      "still": 10,
+      "playing": 7,
+      "animatedAll": 17,
+      "scrollTop": 43545,
+      "scrollHeight": 126536,
+      "anchor": "5:47722975"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "hidden",
+     "seconds": 30.037,
+     "cpuPct": 13.1,
+     "gpuRcsPct": 0,
+     "gpuVecsPct": 0,
+     "gpuBcsPct": 0,
+     "msgsPerSec": 0,
+     "start": {
+      "vis": "hidden",
+      "msgs": 3728,
+      "tracked": 21,
+      "still": 7,
+      "playing": 14,
+      "animatedAll": 21,
+      "scrollTop": 127081,
+      "scrollHeight": 127640,
+      "anchor": "5:47722976"
+     },
+     "end": {
+      "vis": "hidden",
+      "msgs": 3728,
+      "tracked": 21,
+      "still": 7,
+      "playing": 14,
+      "animatedAll": 21,
+      "scrollTop": 127081,
+      "scrollHeight": 127640,
+      "anchor": "5:47722976"
+     }
+    },
+    {
+     "round": 3,
+     "variant": "control",
+     "phase": "restored",
+     "state": {
+      "vis": "visible",
+      "msgs": 4518,
+      "tracked": 5,
+      "still": 1,
+      "playing": 4,
+      "animatedAll": 5,
+      "scrollTop": 152658,
+      "scrollHeight": 153217,
+      "anchor": "5:47722998"
+     }
+    }
+   ]
+  }
+ ]
+}

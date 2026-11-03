@@ -56,3 +56,15 @@ tab and dispatching `visibilitychange`, then restoring native properties. This
 does not establish natural browser background throttling. External CPU/GPU
 measurements and a comparable busy-channel live/history session remain required
 by #136; keep the issue open for that qualification. This change is not deployed.
+
+## CPU/GPU qualification, November 3, 2026
+
+[The qualification report](emote-animation-qualification-2026-11-03.md) measured
+busy-channel live, history and natural hidden-tab phases on an Intel HD 4600 with
+hardware compositing. Each phase was compared with a control build that has
+automatic pausing disabled. When the tab is hidden, CPU falls to about 13% of the
+live level and GPU busy time to about zero, mostly because Chromium stops
+compositing. In history, CPU falls 31% with the feature and 16% without it. History
+GPU busy time did not fall consistently, and reader position held in every
+history phase. The history GPU expectation remains for the owner to accept or
+waive.
