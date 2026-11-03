@@ -247,10 +247,22 @@ the font-size menu, rather than subtracting pixels.
   40% black backdrop; 16px padding with the chrome bar bleeding to the edges. Content is
   normalised by `src/shell/shell.css`: paragraphs, headings, fieldsets and sections span
   the width; labelled fields form a responsive grid at 200px minimum; checkbox labels
-  stay inline; loose buttons flow in rows. Display settings are grouped into Theme,
-  Type, Rows, Filters, Alerts, Composer, Links and cards, Layout and Motion fieldsets.
+  stay inline; loose buttons flow in rows.
   Video, whispers, help and the emote picker keep their own open and close logic but
   dock and float through the workbench like any dialog.
+- **Settings window.** One modal dialog (`src/settings/`), opened by Ctrl+, or Command+,,
+  the Settings… command and palette rows that name a page or setting. Privacy mode keeps
+  it closed. It is `min(860px, 94vw)` by `min(620px, 88vh)` on `--panel` with a
+  `--popline` border, 8px corner and a 50% black backdrop. A 200px left column holds the
+  search box and the page list (General, Accounts, Commands, Highlights, Ignores,
+  Hotkeys, Moderation, Notifications, Integrations, Privacy, About); the current page has
+  a 2px `--accent` inset rule. Each page lists sections under 11px uppercase `--muted`
+  headings, and each setting is a row with its label on the left and a 160–260px control
+  on the right. A section can be reset to its defaults; a rejected or clamped value shows
+  a one-line message under its row. Panels that edit lists (commands, rules, shortcuts,
+  extensions and similar) are embedded in their section instead of opening as separate
+  dialogs. Below 700px the window fills the screen, the page list becomes a horizontal
+  strip and rows stack.
 - **Cards** (identity preview, link preview). Fixed 360 and 380px panes with 12px padding
   that follow the dialog frame; `--popline` is the hue-neutral frame colour for popups.
 - **Rate sparkline.** 72×18 in the top bar, `--accent` stroke.
