@@ -154,3 +154,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Panels embedded in a settings page are closed with the window, not their own controls. */
+[data-embedded='true'] :is(button[id$='-close'], [data-action='close']) {
+  display: none;
+}

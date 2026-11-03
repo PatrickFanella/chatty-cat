@@ -19,6 +19,7 @@ function setup(restored = false) {
   let changed = () => {};
   const workbench: PanelWorkbench = {
     adopt: vi.fn(),
+    releaseAll: vi.fn(),
     wantsPanel: () => wanted,
     onLayoutChange: (listener) => {
       changed = listener;
@@ -49,6 +50,14 @@ function setup(restored = false) {
   });
   const load = vi.fn(async () => create);
   const register = () => panels!.register({ id: 'fixture-panel', title: 'Fixture', group: 'tools', load });
+  const registerSettings = () =>
+    panels!.register({
+      id: 'fixture-panel',
+      title: 'Fixture',
+      group: 'tools',
+      load,
+      settings: { page: 'commands', section: 'Custom commands', keywords: 'fixture alias' },
+    });
   return {
     registry,
     workbench,
@@ -56,6 +65,7 @@ function setup(restored = false) {
     create,
     load,
     register,
+    registerSettings,
     context: (next: string) => {
       context = next;
     },
@@ -259,4 +269,88 @@ it('cancels a pending contextual callback when the panel is explicitly closed', 
   panels!.close('fixture-panel');
   await pending;
   expect(action).not.toHaveBeenCalled();
+});
+
+it('settings panels register no command', () => {
+  const f = setup();
+  f.registerSettings();
+  expect(f.registry.get('panel:fixture-panel')).toBeUndefined();
+  expect(panels!.settingsSections()).toEqual([
+    expect.objectContaining({
+      id: 'panel:fixture-panel',
+      page: 'commands',
+      section: 'Custom commands',
+      keywords: 'fixture alias',
+    }),
+  ]);
+});
+it('open redirects settings panels to the settings opener', async () => {
+  const f = setup();
+  f.registerSettings();
+  await panels!.open('fixture-panel');
+  expect(f.load).not.toHaveBeenCalled();
+  const opener = vi.fn();
+  panels!.setSettingsOpener(opener);
+  await panels!.open('fixture-panel');
+  expect(opener).toHaveBeenCalledWith({ page: 'commands', section: 'Custom commands' });
+  expect(f.load).not.toHaveBeenCalled();
+  expect(f.workbench.adopt).not.toHaveBeenCalled();
+});
+it('a saved layout docking a settings panel is released and not opened', async () => {
+  const f = setup(true);
+  f.registerSettings();
+  expect(f.workbench.releaseAll).toHaveBeenCalledWith(['fixture-panel']);
+  f.restore(true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(f.load).not.toHaveBeenCalled();
+  expect(f.create).not.toHaveBeenCalled();
+});
+it('embed mounts the root inline and shows it non-modally', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  const showModal = vi.spyOn(HTMLDialogElement.prototype, 'showModal');
+  const dispose = await panels!.embed('fixture-panel', host);
+  const instance = f.create.mock.results[0]!.value;
+  expect(showModal).not.toHaveBeenCalled();
+  expect(instance.root.parentElement).toBe(host);
+  expect(instance.root.dataset.embedded).toBe('true');
+  expect(instance.root.open).toBe(true);
+  expect(instance.open).toHaveBeenCalledOnce();
+  expect(f.workbench.adopt).not.toHaveBeenCalled();
+  const other = document.createElement('div');
+  document.body.append(other);
+  const again = await panels!.embed('fixture-panel', other);
+  expect(f.create).toHaveBeenCalledOnce();
+  expect(instance.root.parentElement).toBe(other);
+  dispose();
+  again();
+  showModal.mockRestore();
+});
+it('embedded dialog that closes itself is shown again', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  await panels!.embed('fixture-panel', host);
+  const instance = f.create.mock.results[0]!.value;
+  instance.root.close();
+  expect(instance.root.open).toBe(false);
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(instance.root.open).toBe(true);
+});
+it('embed disposer stops the panel', async () => {
+  const f = setup();
+  f.registerSettings();
+  const host = document.createElement('div');
+  document.body.append(host);
+  const dispose = await panels!.embed('fixture-panel', host);
+  const instance = f.create.mock.results[0]!.value;
+  dispose();
+  expect(instance.stop).toHaveBeenCalledOnce();
+  instance.root.dispatchEvent(new Event('close'));
+  await Promise.resolve();
+  expect(instance.root.isConnected).toBe(false);
 });
