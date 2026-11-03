@@ -269,9 +269,15 @@ describe('settings window', () => {
 
   it('open({ setting }) selects its page and focuses the row control', () => {
     const { win } = make([mk('a'), mk('z', { page: 'accounts', section: 'Accounts' })]);
+    const scroll = vi.fn();
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = scroll;
     win.open({ setting: 'z' });
+    Element.prototype.scrollIntoView = original;
     expect(q('button[data-page="accounts"]').getAttribute('aria-current')).toBe('page');
     expect(document.activeElement).toBe(row('z').querySelector('input'));
+    // Only the page pane scrolls; scrollIntoView would move the dialog too.
+    expect(scroll).not.toHaveBeenCalled();
   });
 
   it('re-reads values when registry notifies', () => {

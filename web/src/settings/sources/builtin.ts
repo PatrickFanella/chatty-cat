@@ -1,7 +1,7 @@
 import type { CustomSection } from '../registry';
 import type { SettingsHost } from '../host';
 import { profileKey } from '../../account-profiles';
-import { parseDisplay, type DisplayOptions } from '../../display';
+import { firstVisitDisplay, parseDisplay, type DisplayOptions } from '../../display';
 import { captureBundle, parseBundle, restoreBundle, type SettingsBundle } from '../../settings-bundle';
 
 const SLOTS_KEY = 'chatthing:v1:display-slots';
@@ -216,8 +216,28 @@ export function builtinSections(host: SettingsHost): CustomSection[] {
           paint();
         };
         window.addEventListener('storage', storage);
-        const dispose = mountInto(el, note, ...buttons, share, output);
+        // Resetting every display setting at once asks for a second click; saved slots are kept.
+        let armed = 0;
+        const disarm = (): void => {
+          clearTimeout(armed);
+          armed = 0;
+          reset.textContent = 'Reset all display settings';
+        };
+        const reset = button('', () => {
+          if (!armed) {
+            reset.textContent = 'Click again to reset';
+            armed = window.setTimeout(disarm, 4000);
+            return;
+          }
+          disarm();
+          host.display.setOptions(firstVisitDisplay());
+          // The emote picker applies its matching preset.
+          document.dispatchEvent(new CustomEvent('displaypreset', { detail: 'nightshade' }));
+        });
+        disarm();
+        const dispose = mountInto(el, note, ...buttons, share, output, reset);
         return () => {
+          clearTimeout(armed);
           cancelAnimationFrame(frame);
           window.removeEventListener('storage', storage);
           dispose();

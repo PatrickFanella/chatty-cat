@@ -1591,10 +1591,12 @@ export async function startMain(): Promise<void> {
   function openSettings(target?: SettingsTarget): void {
     void loadSettings().then((loaded) => loaded?.open(target));
   }
-  // Palette rows for every page and visible setting; the first palette use loads them.
+  // Palette rows for every page and visible setting; the first palette use loads them and repaints the open palette.
   function settingsEntries(): { id: string; label: string; context: string; run: () => void }[] {
     if (!settings) {
-      void loadSettings();
+      void loadSettings().then((loaded) => {
+        if (loaded) shell?.palette.refresh();
+      });
       return [];
     }
     return settings

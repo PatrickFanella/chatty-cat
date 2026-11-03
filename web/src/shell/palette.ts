@@ -90,6 +90,10 @@ export class CommandPalette {
     this.paint();
     this.input.focus();
   }
+  /** Repaints an open palette after late entries (the Settings chunk) arrive. */
+  refresh(): void {
+    if (this.dialogRoot?.open) this.paint();
+  }
   toggle(): void {
     if (this.dialogRoot?.open) this.dialogRoot.close();
     else this.show();

@@ -99,14 +99,25 @@ export class SettingsWindow {
     this.render();
     if (target.setting) {
       const c = this.controls.get(target.setting);
-      c?.el.focus();
-      c?.el.closest('.settings-row')?.scrollIntoView?.({ block: 'center' });
+      c?.el.focus({ preventScroll: true });
+      const row = c?.el.closest<HTMLElement>('.settings-row');
+      if (row) this.reveal(row, 'center');
     } else if (target.section) {
       const sec = [...this.content.querySelectorAll<HTMLElement>('.settings-section')].find(
         (s) => s.dataset.section === target.section,
       );
-      sec?.scrollIntoView?.({ block: 'start' });
+      if (sec) this.reveal(sec, 'start');
     }
+  }
+
+  /** Scrolls only the page pane; scrollIntoView would also move the dialog and the document behind it. */
+  private reveal(el: HTMLElement, block: 'center' | 'start'): void {
+    const box = this.content;
+    const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
+    box.scrollTop = Math.max(
+      0,
+      block === 'start' ? top : top - (box.clientHeight - el.getBoundingClientRect().height) / 2,
+    );
   }
 
   close(): void {

@@ -5,6 +5,7 @@ import { Topbar } from './topbar';
 import { Workbench } from './workbench';
 import { closeMenus } from './menu';
 import { privacyEnabled } from '../privacy';
+import { applePlatform } from './platform';
 export interface ShellAction {
   id: string;
   label: string;
@@ -108,7 +109,7 @@ export function startShell(options: ShellOptions): Shell {
       label: 'Settings…',
       group: 'view',
       keywords: 'preferences options configure',
-      hint: navigator.platform.includes('Mac') ? '⌘,' : 'Ctrl+,',
+      hint: applePlatform() ? '⌘,' : 'Ctrl+,',
       // Privacy mode keeps Settings closed, as it does the palette.
       available: () => !privacyEnabled(),
       run: openSettings,

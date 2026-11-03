@@ -171,3 +171,24 @@ it('shares the exact existing settings URL contract, including automatic shade a
   expect(restored).toEqual({ ...runtime.options, shade: defaultDisplay().shade });
   expect(new URL(output.value).searchParams.get('shade')).toBe('auto');
 });
+
+it('resets every display setting to first-visit defaults after a second click and keeps slots', async () => {
+  const { firstVisitDisplay } = await import('../../display');
+  const runtime = display();
+  runtime.setOptions({ ...runtime.options, size: 24, split: 3 });
+  localStorage.setItem('chatthing:v1:display-slots', JSON.stringify([null, null, null]));
+  const el = document.createElement('div');
+  await section({ display: runtime }, 'builtin.display-slots').mount(el);
+  const reset = [...el.querySelectorAll('button')].find((b) => b.textContent === 'Reset all display settings')!;
+  const preset = vi.fn();
+  document.addEventListener('displaypreset', preset);
+  reset.click();
+  expect(reset.textContent).toBe('Click again to reset');
+  expect(runtime.options.size).toBe(24);
+  reset.click();
+  document.removeEventListener('displaypreset', preset);
+  expect(runtime.options).toEqual(firstVisitDisplay());
+  expect(reset.textContent).toBe('Reset all display settings');
+  expect((preset.mock.calls[0]![0] as CustomEvent).detail).toBe('nightshade');
+  expect(localStorage.getItem('chatthing:v1:display-slots')).toBe(JSON.stringify([null, null, null]));
+});

@@ -10,6 +10,9 @@
 .settings-window[open] {
   display: grid;
   grid-template-columns: 200px 1fr;
+  /* One row the height of the window, so the nav and page scroll instead of the dialog. */
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
 }
 .settings-window::backdrop {
   background: rgba(0, 0, 0, 0.5);
@@ -148,7 +151,7 @@
   }
   .settings-window[open] {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
   .settings-nav {
     flex-direction: row;
@@ -182,8 +185,11 @@ html[data-shell] dialog#settings-window.settings-window {
   padding: 0;
   font-size: 13px;
 }
+/* Both columns fill the window (the shell top-aligns children), so the page pane scrolls, not the dialog. */
 html[data-shell] dialog#settings-window.settings-window[open] {
   display: grid;
+  align-items: stretch;
+  align-content: stretch;
   gap: 0;
 }
 html[data-shell] #settings-window .settings-page h2 {
