@@ -244,10 +244,12 @@ merged the reusable picker collator, and #184 merged nested render-phase
 diagnostics; each final head passed four hosted checks. Live provider acceptance
 and #136's external CPU/GPU qualification remain independent.
 
-Production runs source `2cb8dea`, the approved #193 head with the same tree as
-merged main `62c3052`. The
-[current deployment receipt](deployment-2026-10-20-browser-handoff.md) records staging,
-public hashes, independent source rebuild, retained data and rollback guards.
+Production runs merged main `8a80132`, which includes the minimal shell and
+Settings window (#197). The
+[current deployment receipt](deployment-2026-11-03-minimal-ui.md) records staging,
+public hashes, independent source rebuild, retained data and rollback guards. The
+previous [browser companion receipt](deployment-2026-10-20-browser-handoff.md)
+covers `2cb8dea`.
 #180's earlier [layout receipt](deployment-2026-10-19-layout.md) preserves the
 passing fresh/reloaded popout viewport checks. These bounded observations do not
 supply exhaustive startup, provider or CPU/GPU qualification.
