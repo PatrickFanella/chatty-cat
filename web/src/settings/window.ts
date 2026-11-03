@@ -259,7 +259,7 @@ export class SettingsWindow {
         i.min = String(c.min);
         i.max = String(c.max);
         i.step = String(c.step);
-        i.addEventListener('change', () => this.commit(def, Number(i.value)));
+        i.addEventListener('change', () => this.commit(def, i.value.trim() === '' ? NaN : Number(i.value)));
       } else if (c.kind === 'color') {
         i.type = 'color';
         i.addEventListener('change', () => this.commit(def, i.value));

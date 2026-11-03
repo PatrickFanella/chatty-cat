@@ -126,6 +126,18 @@ describe('settings window', () => {
     expect(write).toHaveBeenCalledWith(120);
   });
 
+  it('rejects an emptied number field without writing', () => {
+    const write = vi.fn();
+    const { win } = make([mk('n', { control: { kind: 'number', min: 0, max: 200, step: 1 }, read: () => 5, write })]);
+    win.open();
+    const n = row('n').querySelector<HTMLInputElement>('input')!;
+    n.value = '';
+    fire(n, 'change');
+    expect(write).not.toHaveBeenCalled();
+    expect(n.value).toBe('5');
+    expect(row('n').querySelector('.settings-error')!.textContent).toContain('Enter a number');
+  });
+
   it('shows the stored value and an adjustment note when the store clamps', () => {
     const store = { v: 50 as unknown };
     const { win } = make([
