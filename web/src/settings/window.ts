@@ -38,6 +38,14 @@ export class SettingsWindow {
     root.id = 'settings-window';
     root.className = 'settings-window';
     root.setAttribute('aria-label', 'Settings');
+    // Chrome does not always deliver Escape to this dialog's close watcher while
+    // embedded panels are open inside it, so close explicitly. Embedded controls
+    // that handle Escape themselves call preventDefault and keep the window open.
+    root.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return;
+      event.preventDefault();
+      this.close();
+    });
 
     this.nav = document.createElement('nav');
     this.nav.className = 'settings-nav';

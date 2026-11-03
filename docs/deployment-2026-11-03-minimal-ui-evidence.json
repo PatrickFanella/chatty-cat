@@ -1,0 +1,108 @@
+{
+ "sourceCommit": "8a80132f234233b6b9696265857082fe80381e45",
+ "mainCI": {
+  "Verify / Go race and vet (push)": "success",
+  "Verify / Frontend tests and build (push)": "success"
+ },
+ "build": {
+  "host": "dozor",
+  "builder": "node:24-alpine with Go 1.27.2 from golang:1.27.2-alpine",
+  "node": "v24.22.2",
+  "go": "go1.27.2 linux/amd64",
+  "cleanClone": true,
+  "sourceIncludesUncommittedChanges": false,
+  "files": 4038,
+  "bundleBudgets": "passed",
+  "releaseArchiveSHA256": "1b26c0a6e4482095bbd87dae86f06415f91c720ab705440631327a78f2717b25"
+ },
+ "independentSourceRebuildIdentical": [
+  {
+   "file": "index.html",
+   "sha256": "b2774d4ca4e44ea12146e8a1c9dbce67f2f77938c1f7030a24bba8492e29ab68"
+  },
+  {
+   "file": "overlay.html",
+   "sha256": "d57d72a0d37689cee21a9e4d81b5a228032f1ca0329d898900588267b62fbb20"
+  },
+  {
+   "file": "assets/main-C17z3amt.js",
+   "sha256": "9dc5db346eb7276e072f4d6fc7d3bea6da31d4a5501b4edb9ed0b82fd23d0d13"
+  },
+  {
+   "file": "assets/main-C0fdtZ-S.css",
+   "sha256": "5ca20d7f35284512b1705500dc5115a7a51d3a44df7f8ded1b483a1e80379bac"
+  },
+  {
+   "file": "assets/browser-companion-ui-Cc1mu3f0.js",
+   "sha256": "4110cc7e4755089a4ed7e6a243dbc848dc27d019dc5082ee8ebc5504d5a1bab3"
+  },
+  {
+   "file": "assets/storage-worker-Lb5EFQx7.js",
+   "sha256": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931"
+  },
+  {
+   "file": "assets/overlay-UoW_Wii2.js",
+   "sha256": "ae3fdff9153e5d75f0dc643760f4884b5e063297db9be87fd213af156d59253b"
+  },
+  {
+   "file": "assets/index-UL4N7RI5.js",
+   "sha256": "27618ffbb853c28c16cd317a04008899934b6a29eeb2ad62e6d2d80c288af5a5"
+  }
+ ],
+ "staging": {
+  "passed": true,
+  "readiness": 200,
+  "packagedHashesChecked": 10,
+  "filesVerified": 4038
+ },
+ "runtime": {
+  "host": "nuc",
+  "release": "releases/chatty-cat-8a80132-20261103",
+  "imageTag": "chatty-cat:8a80132-20261103",
+  "image": "sha256:cbedbc1190ea04ef9d7f277a3d2c0361f00aafd1fcc5ed09e788327b5340d28a",
+  "startedAt": "2026-11-03T23:12:38.512174036Z",
+  "health": "healthy",
+  "restarts": 0,
+  "retainedDataUnchanged": true,
+  "retainedFileCount": 2,
+  "rollbackGuardsPassed": true
+ },
+ "previousImage": "sha256:ed23e75bfba8ecd685cc6929d60d6f1d436d7056d074d4b837a0147430787be0",
+ "previousRelease": "chatty-cat-2cb8dea-20261020",
+ "recovery": "/srv/apps/projects/chatty-cat/recovery/storage-8a80132-20261103",
+ "public": {
+  "indexEntry": "assets/main-C17z3amt.js",
+  "readiness": 200,
+  "publicHashesMatched": {
+   "/assets/main-C17z3amt.js": "9dc5db346eb7276e072f4d6fc7d3bea6da31d4a5501b4edb9ed0b82fd23d0d13",
+   "/assets/main-C0fdtZ-S.css": "5ca20d7f35284512b1705500dc5115a7a51d3a44df7f8ded1b483a1e80379bac",
+   "/assets/index-UL4N7RI5.js": "27618ffbb853c28c16cd317a04008899934b6a29eeb2ad62e6d2d80c288af5a5",
+   "/assets/storage-worker-Lb5EFQx7.js": "f10bdb31abb7f33b9a288105c5a6d70ab65c6ff6f1d3ebecd995176b31f7d931",
+   "/assets/browser-companion-ui-Cc1mu3f0.js": "4110cc7e4755089a4ed7e6a243dbc848dc27d019dc5082ee8ebc5504d5a1bab3",
+   "/assets/overlay-UoW_Wii2.js": "ae3fdff9153e5d75f0dc643760f4884b5e063297db9be87fd213af156d59253b",
+   "/overlay.html": "d57d72a0d37689cee21a9e4d81b5a228032f1ca0329d898900588267b62fbb20",
+   "/source.tar.gz?build=%2Fassets%2Fmain-C17z3amt.js": "8af0b9d96e4ccb3c66d5065e3ec472ce2f95722732eda4b246c4dd589fea247e"
+  },
+  "browser": [
+   {
+    "viewport": "1280x800",
+    "liveChat": "connected",
+    "shell": true,
+    "settingsOpened": true,
+    "settingsPages": 11,
+    "activePageBoxShadow": "none",
+    "documentWidth": 1280
+   },
+   {
+    "viewport": "390x844",
+    "documentWidth": 390,
+    "loginRight": 384,
+    "errorBannerVisible": false
+   }
+  ],
+  "failedRequests": "only native Twitch emotes/animated URLs returning 404 before their static fallback; unchanged since the previous release",
+  "supportLink": "https://subcult.tv/support"
+ },
+ "foundAfterActivation": "Escape does not close the Settings window in Chrome; fixed in the same PR as this receipt and not deployed",
+ "sessions": "activation restarted the service; signed-in users sign in again"
+}
