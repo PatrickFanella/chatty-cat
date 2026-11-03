@@ -255,8 +255,8 @@ the font-size menu, rather than subtracting pixels.
   it closed. It is `min(860px, 94vw)` by `min(620px, 88vh)` on `--panel` with a
   `--popline` border, 8px corner and a 50% black backdrop. A 200px left column holds the
   search box and the page list (General, Accounts, Commands, Highlights, Ignores,
-  Hotkeys, Moderation, Notifications, Integrations, Privacy, About); the current page has
-  a 2px `--accent` inset rule. Each page lists sections under 11px uppercase `--muted`
+  Hotkeys, Moderation, Notifications, Integrations, Privacy, About); the current page is shown by
+  its colour alone (`--fg` on `--bg`), with no accent edge. Each page lists sections under 11px uppercase `--muted`
   headings, and each setting is a row with its label on the left and a 160–260px control
   on the right. A section can be reset to its defaults; a rejected or clamped value shows
   a one-line message under its row. Panels that edit lists (commands, rules, shortcuts,

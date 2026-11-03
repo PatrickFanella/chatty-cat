@@ -539,7 +539,6 @@ body.wb-dragging iframe {
 }
 .wb-sheet-tabs [aria-selected='true'] {
   color: var(--accent);
-  border-color: var(--accent);
 }
 .wb-sheet-body {
   display: flex;

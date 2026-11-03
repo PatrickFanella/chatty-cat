@@ -45,7 +45,6 @@
 .settings-nav button[aria-current='page'] {
   color: var(--fg);
   background: var(--bg);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
 .settings-main {
   display: flex;
