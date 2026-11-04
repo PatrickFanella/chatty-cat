@@ -89,5 +89,9 @@ AppImage (with `APPIMAGE_EXTRACT_AND_RUN=1`) both passed the smoke check. Each
 started the bundled server, reached `connected` and rendered 35 live #hasanabi
 rows with emotes, badges and stream information. No `chatthing` process remained
 after quitting. Without FUSE the AppImage refused to start, as described above.
-The `.deb` was inspected but not installed. The macOS build has not run yet; the
-first Desktop workflow run is its first check.
+The `.deb` was inspected but not installed.
+
+On November 4, Desktop run 18201 built `4402a89` on soyuz (Apple Silicon).
+`codesign --verify --deep --strict` accepted the ad-hoc signature, and the smoke
+check reached `connected` with 35 live rows. Nobody has yet opened the
+downloaded dmg on a Mac, so the Gatekeeper first-open steps above are untested.
