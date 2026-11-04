@@ -16,6 +16,19 @@ describe('emote tokenization', () => {
     expect(tokens[1]?.type === 'emote' && tokens[1].emote.code).toBe('Kappa');
     expect(tokens[2]).toEqual({ type: 'text', text: ' hello' });
   });
+  it('requests the default format for tagged emotes, which is animated only when Twitch has an animation', () => {
+    const dark = tokenize('Kappa', '25:0-4', {})[0];
+    expect(dark).toMatchObject({
+      type: 'emote',
+      emote: {
+        url: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0',
+        staticUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/static/dark/2.0',
+      },
+    });
+    expect(tokenize('Kappa', '25:0-4', {}, true)[0]).toMatchObject({
+      emote: { url: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/light/2.0' },
+    });
+  });
   it('native tags override matching provider names', () => {
     const token = tokenize('Wave', '25:0-3', { Wave: emote })[0];
     expect(token?.type === 'emote' && token.emote.source).toBe('Twitch');
