@@ -1,11 +1,11 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Browser companion navigation fixture</title>
+<title>Browser companion navigation and reload fixture</title>
 <button id="commands-open">Commands</button>
-<p>Synthetic account, extension and workspace navigation. No Twitch or installed-extension acceptance is implied.</p>
+<p>Synthetic account, extension, workspace navigation and reload. No Twitch or installed-extension acceptance is implied.</p>
 <script type="module">
 import { BrowserCompanionPanel } from '/src/browser-companion-ui.ts';
-import { readBrowserHandoff } from '/src/browser-companion-handoff.ts';
+import { readBrowserHandoff, readBrowserReload } from '/src/browser-companion-handoff.ts';
 import { setProfileScope } from '/src/account-profiles.ts';
 import { external, pairingCode, sendWatched } from '../../companion/browser/core.js';
 const stateKey = 'fixture:companion-state';
@@ -44,7 +44,7 @@ window.fixtureSend = channel => {
 };
 window.fixtureTrace = () => JSON.parse(localStorage.getItem(traceKey) || '[]');
 window.addEventListener('pagehide', () => panel.stop());
-if (readBrowserHandoff()) panel.resumeNavigation(workspace);
+if (readBrowserHandoff() || readBrowserReload()) panel.resumeNavigation(workspace);
 else {
   const current = state();
   const code = pairingCode(current);

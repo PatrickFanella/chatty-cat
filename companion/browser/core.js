@@ -23,7 +23,15 @@ export function external(state,message,sender,now=Date.now()){
  if(message.kind==='resume'){
   const h=s.handoff;
   if(!h||now>h.expires||s.tab!==sender.tab.id||s.account!==message.account||h.code!==message.code||new URL(sender.url).searchParams.get('workspace')!==h.workspace)return {ok:false,error:'navigation handoff refused'};
-  s.token=random();s.handoff=null;s.lastSeen=now;s.lastPoll=0;
+  s.token=random();s.handoff=null;s.reload=null;s.lastSeen=now;s.lastPoll=0;
+  return {ok:true,version:1,account:s.account,token:s.token};
+ }
+ // A reload of the same paired tab may resume once with the code it armed.
+ // Closing the tab ends the session (tabs.onRemoved) and the heartbeat lease still applies.
+ if(message.kind==='resume-reload'){
+  const r=s.reload;
+  if(!r||s.tab!==sender.tab.id||s.account!==message.account||typeof message.code!=='string'||r!==message.code)return {ok:false,error:'reload handoff refused'};
+  s.token=random();s.reload=null;s.handoff=null;s.lastSeen=now;s.lastPoll=0;
   return {ok:true,version:1,account:s.account,token:s.token};
  }
  if(s.tab!==sender.tab.id||s.account!==message.account||s.token!==message.token)return {ok:false,error:'paired tab/account refused'};
@@ -34,6 +42,10 @@ export function external(state,message,sender,now=Date.now()){
   return {ok:true,version:1,account:s.account};
  }
  if(message.kind==='cancel-handoff'){s.handoff=null;return {ok:true,version:1,account:s.account};}
+ if(message.kind==='arm-reload'){
+  if(typeof message.code!=='string'||!capability.test(message.code))return {ok:false,error:'invalid reload handoff'};
+  s.reload=message.code;s.lastSeen=now;return {ok:true,version:1,account:s.account};
+ }
  if(message.kind!=='poll')return {ok:false,error:'unsupported request'};
  if(now-s.lastPoll<1000)return {ok:false,error:'poll cooldown'};s.lastPoll=now;s.lastSeen=now;
  if(s.watched&&now>s.watched.expires)s.watched=null;

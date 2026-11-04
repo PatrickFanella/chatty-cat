@@ -95,6 +95,30 @@ it('resumes one confirmed navigation in the same tab/account/workspace with a ro
   });
   expect(state.session?.expires).toBe(100001 + 8 * 3600000);
 });
+it('resumes a reload once in the same tab and account, and unpair or a new pairing clears it', () => {
+  const state: BridgeState = {};
+  const code = pairingCode(state, 100000);
+  const paired = external(state, { version: 1, kind: 'pair', account: '42', code }, sender, 100001);
+  const auth = { version: 1, account: '42', token: paired.token };
+  const reload = { version: 1, kind: 'resume-reload', account: '42', code: 'f'.repeat(64) };
+  expect(external(state, reload, sender, 100002).ok).toBe(false);
+  expect(external(state, { ...auth, kind: 'arm-reload', code: 'not-hex' }, sender, 100003).ok).toBe(false);
+  expect(external(state, { ...auth, kind: 'arm-reload', code: reload.code }, sender, 100004).ok).toBe(true);
+  expect(external(state, reload, { ...sender, tab: { id: 2 } }, 101000).ok).toBe(false);
+  expect(external(state, { ...reload, account: '43' }, sender, 101001).ok).toBe(false);
+  expect(external(state, { ...reload, code: 'e'.repeat(64) }, sender, 101002).ok).toBe(false);
+  const resumed = external(state, reload, sender, 102000);
+  expect(resumed.ok).toBe(true);
+  expect(resumed.token).not.toBe(paired.token);
+  expect(external(state, reload, sender, 103000).ok).toBe(false);
+  expect(state.session?.expires).toBe(100001 + 8 * 3600000);
+  const next = { ...auth, token: resumed.token };
+  external(state, { ...next, kind: 'arm-reload', code: reload.code }, sender, 104000);
+  expect(external(state, reload, sender, 104000 + 120001).ok).toBe(false);
+  external(state, { ...next, kind: 'arm-reload', code: reload.code }, sender, 105000);
+  external(state, { ...next, kind: 'unpair' }, sender, 105001);
+  expect(external(state, reload, sender, 105002).ok).toBe(false);
+});
 it('expires or cancels navigation handoff and still honors explicit unpair', () => {
   const state: BridgeState = {};
   const code = pairingCode(state, 100000);
