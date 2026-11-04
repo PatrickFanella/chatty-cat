@@ -25,7 +25,11 @@ afterEach(() => {
   resetPrivacyFallback();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  window.dispatchEvent(new Event('pageshow'));
 });
+const navigationKey = 'chatthing:v1:browser-companion-handoff';
+const reloadKey = 'chatthing:v1:browser-companion-reload';
+const kinds = (calls: unknown[][]) => calls.map(([, m]) => (m as { kind: string }).kind);
 function fixture(pageSender = sender) {
   const state: BridgeState = {};
   const code = pairingCode(state);
@@ -132,7 +136,8 @@ it('hands a confirmed navigation to the same session and receives a second chann
   nextAuth = auth;
   expect(resumed.authChanged()).toBe(false);
   expect(await resumed.resumeNavigation('next')).toBe('a'.repeat(32));
-  expect(sessionStorage.length).toBe(0);
+  expect(sessionStorage.getItem(navigationKey)).toBeNull();
+  expect(sessionStorage.getItem(reloadKey)).not.toBeNull();
   sendWatched(f.state, 'https://www.twitch.tv/another_channel');
   expect((await resumed.poll())?.channel).toBe('another_channel');
   expect(f.sendMessage.mock.calls.filter(([, m]) => (m as { kind: string }).kind === 'pair')).toHaveLength(1);
@@ -160,9 +165,68 @@ it('clears an expired handoff without sending a resume request', async () => {
   old.navigationStarted();
   old.stop();
   time.mockReturnValue(130001);
-  expect(await new BrowserCompanion(() => auth).resumeNavigation('next')).toBeUndefined();
-  expect(sessionStorage.length).toBe(0);
-  expect(f.sendMessage.mock.calls.some(([, m]) => (m as { kind: string }).kind === 'resume')).toBe(false);
+  // The tab's reload code still applies within the extension's heartbeat lease.
+  expect(await new BrowserCompanion(() => auth).resumeNavigation('next')).toBe('a'.repeat(32));
+  expect(sessionStorage.getItem(navigationKey)).toBeNull();
+  expect(kinds(f.sendMessage.mock.calls)).not.toContain('resume');
+  expect(kinds(f.sendMessage.mock.calls)).toContain('resume-reload');
+});
+it('resumes a reload of the paired tab once, with a rotated token and no second pairing', async () => {
+  const f = fixture();
+  const time = vi.spyOn(Date, 'now').mockReturnValue(100000);
+  const old = new BrowserCompanion(() => auth);
+  await old.pair('a'.repeat(32), f.code);
+  const first = f.state.session!.token;
+  const stored = sessionStorage.getItem(reloadKey)!;
+  expect(stored).not.toContain(auth.csrf);
+  expect(stored).not.toContain(first);
+  window.dispatchEvent(new Event('pagehide'));
+  old.stop();
+  expect(kinds(f.sendMessage.mock.calls)).not.toContain('unpair');
+  time.mockReturnValue(110000);
+  const page = new BrowserCompanion(() => auth);
+  expect(page.authChanged()).toBe(false);
+  expect(await page.resumeNavigation('active')).toBe('a'.repeat(32));
+  expect(f.state.session!.token).not.toBe(first);
+  sendWatched(f.state, 'https://www.twitch.tv/one', 110001);
+  time.mockReturnValue(112000);
+  expect((await page.poll())?.channel).toBe('one');
+  expect(kinds(f.sendMessage.mock.calls).filter((k) => k === 'pair')).toHaveLength(1);
+  // The consumed code cannot be replayed, and explicit unpair clears the record.
+  sessionStorage.setItem(reloadKey, stored);
+  await expect(new BrowserCompanion(() => auth).resumeNavigation('active')).rejects.toThrow('reload handoff refused');
+  page.disconnect();
+  expect(sessionStorage.getItem(reloadKey)).toBeNull();
+  await vi.waitFor(() => expect(f.state.session).toBeNull());
+});
+it('refuses a reload for another account/session and still unpairs when no page unload happened', async () => {
+  const f = fixture();
+  const old = new BrowserCompanion(() => auth);
+  await old.pair('a'.repeat(32), f.code);
+  await expect(
+    new BrowserCompanion(() => ({ ...auth, csrf: 'different-session' })).resumeNavigation('active'),
+  ).rejects.toThrow('account/session');
+  expect(kinds(f.sendMessage.mock.calls)).not.toContain('resume-reload');
+  const again = new BrowserCompanion(() => auth);
+  await again.pair('a'.repeat(32), pairingCode(f.state));
+  again.stop();
+  await vi.waitFor(() => expect(f.state.session).toBeNull());
+  expect(sessionStorage.getItem(reloadKey)).toBeNull();
+});
+it('keeps the old reload behavior with a companion that cannot arm a reload', async () => {
+  const f = fixture();
+  const original = f.sendMessage.getMockImplementation()!;
+  f.sendMessage.mockImplementation((id, m, cb) =>
+    (m as { kind: string }).kind === 'arm-reload'
+      ? queueMicrotask(() => cb({ ok: false, error: 'unsupported request' }))
+      : original(id, m, cb),
+  );
+  const old = new BrowserCompanion(() => auth);
+  await old.pair('a'.repeat(32), f.code);
+  expect(sessionStorage.getItem(reloadKey)).toBeNull();
+  window.dispatchEvent(new Event('pagehide'));
+  old.stop();
+  await vi.waitFor(() => expect(f.state.session).toBeNull());
 });
 it('aborts navigation handoff when per-tab storage cannot be written', async () => {
   const f = fixture();
@@ -213,7 +277,7 @@ it('rechecks the reviewed destination after an asynchronous handoff and cancels 
   finish!();
   await vi.waitFor(() => expect(panel!.root.textContent).toContain('review changed or expired'));
   expect(apply).not.toHaveBeenCalled();
-  expect(sessionStorage.length).toBe(0);
+  expect(sessionStorage.getItem(navigationKey)).toBeNull();
   await vi.waitFor(() => expect(f.state.session?.handoff).toBeNull());
 });
 it('privacy clears pairing and pending reviews', async () => {

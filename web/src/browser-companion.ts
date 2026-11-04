@@ -1,7 +1,14 @@
 import type { AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { privacyEnabled } from './privacy';
-import { clearBrowserHandoff, readBrowserHandoff, saveBrowserHandoff } from './browser-companion-handoff';
+import {
+  clearBrowserHandoff,
+  clearBrowserReload,
+  readBrowserHandoff,
+  readBrowserReload,
+  saveBrowserHandoff,
+  saveBrowserReload,
+} from './browser-companion-handoff';
 interface Runtime {
   lastError?: { message?: string };
   sendMessage(id: string, message: unknown, callback: (value: unknown) => void): void;
@@ -22,11 +29,20 @@ function runtime(): Runtime | undefined {
 function record(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === 'object' && !Array.isArray(v);
 }
+function randomCode(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+// Only a real page unload may keep an armed bridge for the reloaded page. A capture
+// listener on window runs before the app's own pagehide teardown, which stops panels.
+let unloading = false;
+window.addEventListener('pagehide', () => (unloading = true), { capture: true });
+window.addEventListener('pageshow', () => (unloading = false));
 export class BrowserCompanion {
   private pairState: Pair | undefined;
   private generation = 0;
   private observed = '';
   private navigating = false;
+  private reloadArmed = false;
   constructor(private auth: () => AuthStatus | undefined) {
     this.observed = this.identity();
   }
@@ -95,6 +111,22 @@ export class BrowserCompanion {
       throw new Error('Account/session changed during pairing');
     }
     this.pairState = state;
+    await this.armReload(state);
+  }
+  // Companion 0.1.3 can resume a reload of this tab; an older companion refuses the
+  // request, and a reload then disconnects as before.
+  private async armReload(s: Pair): Promise<void> {
+    const generation = this.generation;
+    this.reloadArmed = false;
+    try {
+      const code = randomCode();
+      saveBrowserReload({ extension: s.extension, account: s.account, code, session: await this.sessionFingerprint() });
+      await this.message(s.extension, { version: 1, kind: 'arm-reload', account: s.account, token: s.token, code });
+      if (generation !== this.generation || this.pairState !== s) throw new Error('stale');
+      this.reloadArmed = true;
+    } catch {
+      if (generation === this.generation) clearBrowserReload();
+    }
   }
   async poll(): Promise<WatchedChannel | null> {
     const a = this.account(),
@@ -124,9 +156,7 @@ export class BrowserCompanion {
       generation = this.generation;
     if (!s || s.account !== a.id || s.csrf !== a.csrf || !/^[a-zA-Z0-9_-]{1,128}$/.test(workspace))
       throw new Error('Pair this account before opening the reviewed workspace');
-    const code = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join(
-      '',
-    );
+    const code = randomCode();
     const session = await this.sessionFingerprint();
     if (generation !== this.generation || this.identity() !== a.id + ':' + a.csrf)
       throw new Error('Account/session changed before navigation');
@@ -164,7 +194,9 @@ export class BrowserCompanion {
   async resumeNavigation(workspace: string): Promise<string | undefined> {
     const handoff = readBrowserHandoff();
     clearBrowserHandoff();
-    if (!handoff) return;
+    const reload = readBrowserReload();
+    clearBrowserReload();
+    if (!handoff) return reload ? this.resumeReload(reload) : undefined;
     const a = this.account(),
       generation = this.generation;
     if (
@@ -185,7 +217,32 @@ export class BrowserCompanion {
       throw new Error('Account/session changed while resuming');
     }
     this.pairState = state;
+    await this.armReload(state);
     return handoff.extension;
+  }
+  private async resumeReload(reload: { extension: string; account: string; code: string; session: string }) {
+    const a = this.account(),
+      generation = this.generation;
+    if (this.pairState || reload.account !== a.id || reload.session !== (await this.sessionFingerprint()))
+      throw new Error('Browser pairing does not match this account/session; pair again');
+    if (generation !== this.generation || this.identity() !== a.id + ':' + a.csrf)
+      throw new Error('Account/session changed before resuming');
+    const v = await this.message(reload.extension, {
+      version: 1,
+      kind: 'resume-reload',
+      account: a.id,
+      code: reload.code,
+    });
+    if (!record(v) || v.account !== a.id || typeof v.token !== 'string' || !/^[a-f0-9]{64}$/.test(v.token))
+      throw new Error('Invalid browser companion reload response');
+    const state = { extension: reload.extension, account: a.id, csrf: a.csrf, token: v.token };
+    if (generation !== this.generation || this.identity() !== a.id + ':' + a.csrf) {
+      this.revoke(state);
+      throw new Error('Account/session changed while resuming');
+    }
+    this.pairState = state;
+    await this.armReload(state);
+    return reload.extension;
   }
   private revoke(s: Pair): void {
     void this.message(s.extension, { version: 1, kind: 'unpair', account: s.account, token: s.token }).catch(() => {});
@@ -193,15 +250,20 @@ export class BrowserCompanion {
   disconnect(): void {
     this.generation++;
     this.navigating = false;
+    this.reloadArmed = false;
     clearBrowserHandoff();
+    clearBrowserReload();
     const s = this.pairState;
     this.pairState = undefined;
     if (s) this.revoke(s);
   }
   stop(): void {
-    if (!this.navigating) this.disconnect();
+    if (!this.navigating && !(unloading && this.reloadArmed)) this.disconnect();
     else {
+      // Leave the extension session and this tab's one-use code for the next page.
       this.generation++;
+      this.navigating = false;
+      this.reloadArmed = false;
       this.pairState = undefined;
     }
   }

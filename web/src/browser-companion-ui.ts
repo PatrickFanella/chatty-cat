@@ -47,7 +47,7 @@ export class BrowserCompanionPanel implements Panel {
     h.textContent = 'Watched-channel browser companion';
     const help = document.createElement('p');
     help.textContent =
-      'Pair the installed Chromium companion with its extension ID and one-use code. Send watched channel stages a channel for review here. Confirmed workspace opening resumes pairing in this tab with companion 0.1.2 or newer. Ordinary reload, account/session change, privacy, unpair or removal disconnects. No Twitch cookies/tokens or private messages are shared.';
+      'Pair the installed Chromium companion with its extension ID and one-use code. Send watched channel stages a channel for review here. With companion 0.1.3 or newer, pairing resumes in this tab after a reload or a confirmed workspace opening. Closing the tab, account/session change, privacy, unpair or removal disconnects. No Twitch cookies/tokens or private messages are shared.';
     this.extension.setAttribute('aria-label', 'Installed Chromium extension ID');
     this.extension.maxLength = 32;
     this.code.type = 'password';
@@ -257,7 +257,7 @@ export class BrowserCompanionPanel implements Panel {
       this.connected = true;
       this.title = 'Browser bridge active';
       document.dispatchEvent(new Event('panelstatechange'));
-      this.status.textContent = 'Browser pairing resumed after opening the reviewed channel';
+      this.status.textContent = 'Browser pairing resumed in this tab';
       this.poll();
     });
   }

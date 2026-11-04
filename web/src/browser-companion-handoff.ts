@@ -48,3 +48,48 @@ export function readBrowserHandoff(): BrowserHandoff | undefined {
 export function saveBrowserHandoff(value: BrowserHandoff): void {
   sessionStorage.setItem(key, JSON.stringify(value));
 }
+
+// While a tab is paired it also holds one reload code, so reloading the same tab
+// resumes the bridge once. The extension binds the code to this tab and account
+// and still enforces its heartbeat lease and eight-hour limit; no token is kept here.
+const reloadKey = 'chatthing:v1:browser-companion-reload';
+export interface BrowserReload {
+  extension: string;
+  account: string;
+  code: string;
+  session: string;
+}
+export function clearBrowserReload(): void {
+  try {
+    sessionStorage.removeItem(reloadKey);
+  } catch {
+    /* Without tab storage a reload simply disconnects. */
+  }
+}
+export function readBrowserReload(): BrowserReload | undefined {
+  try {
+    const raw = sessionStorage.getItem(reloadKey);
+    if (!raw) return;
+    if (raw.length > 1024) throw new Error();
+    const v = JSON.parse(raw) as BrowserReload;
+    if (
+      !v ||
+      typeof v.extension !== 'string' ||
+      typeof v.account !== 'string' ||
+      typeof v.code !== 'string' ||
+      typeof v.session !== 'string' ||
+      !/^[a-p]{32}$/.test(v.extension) ||
+      !/^[1-9][0-9]{0,19}$/.test(v.account) ||
+      !/^[a-f0-9]{64}$/.test(v.code) ||
+      !/^[a-f0-9]{64}$/.test(v.session)
+    )
+      throw new Error();
+    return v;
+  } catch {
+    clearBrowserReload();
+    return;
+  }
+}
+export function saveBrowserReload(value: BrowserReload): void {
+  sessionStorage.setItem(reloadKey, JSON.stringify(value));
+}
