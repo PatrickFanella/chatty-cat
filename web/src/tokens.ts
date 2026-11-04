@@ -14,7 +14,10 @@ function nativeEmote(id: string, code: string, light: boolean): Emote {
   const tone = light ? 'light' : 'dark';
   return {
     code,
-    url: `${base}/animated/${tone}/2.0`,
+    // IRC tags do not say whether an emote is animated. Twitch's `default` format
+    // serves the animation when one exists and the static image otherwise, so a
+    // static emote no longer costs a 404 before the fallback.
+    url: `${base}/default/${tone}/2.0`,
     staticUrl: `${base}/static/${tone}/2.0`,
     source: 'Twitch',
     animated: true,
