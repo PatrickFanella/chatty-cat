@@ -1,0 +1,59 @@
+{
+  "name": "chatty-cat-desktop",
+  "productName": "Chatty Cat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Twitch chat client: the Chatty Cat server and UI in one desktop app",
+  "homepage": "https://git.subcult.tv/subculture-collective/chatty-cat",
+  "license": "AGPL-3.0",
+  "author": {
+    "name": "SUBCULT",
+    "email": "info@subcult.tv"
+  },
+  "desktopName": "chatty-cat.desktop",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "44.9.2",
+    "electron-builder": "26.17.0"
+  },
+  "build": {
+    "appId": "tv.subcult.chattycat",
+    "productName": "Chatty Cat",
+    "artifactName": "chatty-cat-${env.CHATTY_BUILD}-${os}-${arch}.${ext}",
+    "files": [
+      "main.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "build/server",
+        "to": "server"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "publish": null,
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "executableName": "chatty-cat",
+      "maintainer": "SUBCULT <info@subcult.tv>",
+      "syncDesktopName": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.social-networking",
+      "identity": "-",
+      "hardenedRuntime": false
+    }
+  }
+}
