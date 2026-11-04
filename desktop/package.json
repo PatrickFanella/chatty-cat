@@ -22,7 +22,6 @@
   "build": {
     "appId": "tv.subcult.chattycat",
     "productName": "Chatty Cat",
-    "executableName": "chatty-cat",
     "artifactName": "chatty-cat-${env.CHATTY_BUILD}-${os}-${arch}.${ext}",
     "files": [
       "main.cjs"
@@ -43,6 +42,7 @@
         "deb"
       ],
       "category": "Network",
+      "executableName": "chatty-cat",
       "maintainer": "SUBCULT <info@subcult.tv>",
       "syncDesktopName": true
     },

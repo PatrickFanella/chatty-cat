@@ -87,6 +87,10 @@ jobs:
       - run: npm --prefix web ci --no-audit --no-fund
       - run: npm --prefix desktop ci --no-audit --no-fund
       - run: python3 scripts/build-desktop.py
+        env:
+          # electron-builder skips signing in pull requests unless told otherwise. The
+          # ad-hoc identity uses no certificate or other secret.
+          CSC_FOR_PULL_REQUEST: 'true'
       - name: Check the ad-hoc signature
         run: codesign --verify --deep --strict "desktop/dist/mac-arm64/Chatty Cat.app"
       - name: Start the app and render live chat
