@@ -1,5 +1,13 @@
 # Remaining-work roadmap
 
+**Closed November 4, 2026.** Every tracked issue is closed, and so are the
+coordinators #143 and #3. #136 closed after the owner accepted its CPU
+qualification and waived the history GPU expectation. The owner accepted the
+automated evidence for #36's remaining installed-browser checks and for #32's
+positive Twitch events, and closed #38 as not planned. The relay code stays in
+main. Production runs merged main `1065ffb`. The sections below are the plan as
+it stood during delivery and are kept for reference.
+
 Updated October 19, 2026 against main `1f64fb9` and the live Gitea issue inventory.
 This plan replaces the original implementation catalog. It contains all 8 open
 issues: 6 delivery issues and the two planning issues, #3 and #143. Dates are
@@ -244,10 +252,13 @@ merged the reusable picker collator, and #184 merged nested render-phase
 diagnostics; each final head passed four hosted checks. Live provider acceptance
 and #136's external CPU/GPU qualification remain independent.
 
-Production runs merged main `8a80132`, which includes the minimal shell and
-Settings window (#197). The
-[current deployment receipt](deployment-2026-11-03-minimal-ui.md) records staging,
-public hashes, independent source rebuild, retained data and rollback guards. The
+Production runs merged main `1065ffb`, deployed November 4. It adds the Settings
+Escape fix (#200) to `8a80132`, which brought the minimal shell and Settings window
+(#197). The `8a80132`
+[deployment receipt](deployment-2026-11-03-minimal-ui.md) records staging,
+public hashes, independent source rebuild, retained data and rollback guards; the
+`1065ffb` release repeated those checks, with its recovery under
+`/srv/apps/projects/chatty-cat/recovery/storage-1065ffb-20261104`. The
 previous [browser companion receipt](deployment-2026-10-20-browser-handoff.md)
 covers `2cb8dea`.
 #180's earlier [layout receipt](deployment-2026-10-19-layout.md) preserves the
