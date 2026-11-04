@@ -106,7 +106,7 @@ jobs:
   publish:
     name: Publish release
     needs: [linux, mac]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -118,13 +118,19 @@ jobs:
       - name: Create the release and upload the apps
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Cloudflare in front of git.subcult.tv refuses request bodies over 100 MB, and each
+          # app is larger, so uploads go to Almaz's Caddy on the LAN. That hop is plain HTTP;
+          # the job token it carries expires when the job ends.
+          LAN_API: http://10.0.0.200/api/v1/repos/${{ github.repository }}
         run: |
           set -eu
           mkdir assets
           find downloads -type f ! -name 'smoke-*.png' -exec mv {} assets/ \;
           (cd assets && sha256sum * > SHA256SUMS)
           short=${GITHUB_SHA::7}
+          tag=desktop-$short
           api="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
+          auth="Authorization: token $TOKEN"
           body=$(python3 - "$short" "$GITHUB_SHA" <<'EOF'
           import json, sys
           short, commit = sys.argv[1:3]
@@ -144,10 +150,19 @@ jobs:
           }))
           EOF
           )
-          id=$(curl -fsS -X POST -H "Authorization: token $TOKEN" -H 'Content-Type: application/json' \
-            -d "$body" "$api/releases" | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])')
+          # A rerun reuses the release and skips files it already holds.
+          if curl -fsS -H "$auth" "$api/releases/tags/$tag" -o release.json; then
+            echo "Reusing release $tag"
+          else
+            curl -fsS -X POST -H "$auth" -H 'Content-Type: application/json' -d "$body" "$api/releases" -o release.json
+          fi
+          id=$(python3 -c 'import json; print(json.load(open("release.json"))["id"])')
+          python3 -c 'import json; [print(a["name"]) for a in json.load(open("release.json"))["assets"]]' > uploaded.txt
           for file in assets/*; do
-            curl -fsS -o /dev/null -X POST -H "Authorization: token $TOKEN" -F "attachment=@$file" \
-              "$api/releases/$id/assets?name=$(basename "$file")"
+            name=$(basename "$file")
+            if grep -qxF "$name" uploaded.txt; then echo "Already uploaded: $name"; continue; fi
+            curl -fsS -o /dev/null -X POST -H "$auth" -H 'Host: git.subcult.tv' -F "attachment=@$file" \
+              "$LAN_API/releases/$id/assets?name=$name"
+            echo "Uploaded $name"
           done
-          echo "Published $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/desktop-$short"
+          echo "Published $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$tag"
