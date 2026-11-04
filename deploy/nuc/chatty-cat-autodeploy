@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Deploy the current green main of Chatty Cat to production on NUC.
+
+Installed as /usr/local/bin/chatty-cat-autodeploy and run as onnwee, either by
+hand or through the restricted SSH key that the Verify workflow's deploy job
+uses. It takes no input: it fetches main itself, requires both Verify push
+checks to have passed on that exact commit, and skips the deploy when nothing
+that ships in the release changed, because every activation ends the in-memory
+sign-in sessions. Root steps go through release.py with sudo.
+
+--stage-only (operators only; the SSH key cannot pass it) builds and stages the
+current main even when nothing shipped changed, then stops before activation.
+"""
+import fcntl
+import hashlib
+import json
+import os
+import pathlib
+import re
+import shutil
+import subprocess
+import sys
+import time
+import urllib.request
+
+REPO = 'subculture-collective/chatty-cat'
+REMOTE = f'https://git.subcult.tv/{REPO}.git'
+ROOT = pathlib.Path('/srv/apps/projects/chatty-cat')
+BUILD = ROOT / 'build'
+RELEASE = ['sudo', '-n', 'python3', '-I', '/usr/local/lib/chatty-cat-deploy/release.py']
+PUBLIC = 'https://chat.subcult.tv'
+REQUIRED = ['Verify / Go race and vet (push)', 'Verify / Frontend tests and build (push)']
+# Paths whose change alters the binary, the served files or the packaged companion.
+SHIPPED = ('cmd/', 'internal/', 'web/', 'companion/', 'go.mod', 'go.sum', '.go-version', 'NOTICE.md', 'LICENSE',
+           'scripts/build-release.py')
+BUILDER = b"""FROM golang:1.27.2-alpine AS go
+FROM node:24-alpine
+COPY --from=go /usr/local/go /usr/local/go
+RUN apk add --no-cache python3 git
+ENV PATH=/usr/local/go/bin:$PATH GOTOOLCHAIN=local GOFLAGS=-trimpath
+"""
+
+
+def log(message):
+    print(time.strftime('%H:%M:%S'), message, flush=True)
+
+
+def run(*args, **kw):
+    return subprocess.run(args, check=True, **kw)
+
+
+def out(*args, **kw):
+    return subprocess.check_output(args, text=True, **kw).strip()
+
+
+def git(*args):
+    return out('git', '-C', str(BUILD / 'src'), *args)
+
+
+def checks(commit):
+    data = json.loads(out('tea', 'api', '--login', 'subcult-agent', f'/repos/{REPO}/commits/{commit}/status'))
+    return {s['context']: s['status'] for s in data.get('statuses', [])}
+
+
+def fetch(url):
+    request = urllib.request.Request(url, headers={'User-Agent': 'chatty-cat-autodeploy'})
+    with urllib.request.urlopen(request, timeout=15) as f:
+        return f.status, f.read()
+
+
+def main():
+    stage_only = sys.argv[1:] == ['--stage-only'] and not os.environ.get('SSH_ORIGINAL_COMMAND')
+    if sys.argv[1:] and not stage_only:
+        raise SystemExit('usage: chatty-cat-autodeploy [--stage-only]')
+    BUILD.mkdir(exist_ok=True)
+    lock = open(BUILD / 'autodeploy.lock', 'a')
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit('another deploy is running')
+
+    src = BUILD / 'src'
+    if not (src / '.git').exists():
+        run('git', 'clone', '-q', REMOTE, str(src))
+    run('git', '-C', str(src), 'fetch', '-q', '--prune', 'origin', '+refs/heads/main:refs/remotes/origin/main')
+    commit = git('rev-parse', 'refs/remotes/origin/main')
+    log(f'main is {commit}')
+
+    deadline = time.time() + 600
+    while True:
+        state = checks(commit)
+        failed = [c for c in REQUIRED if state.get(c) in ('failure', 'error')]
+        if failed:
+            raise SystemExit('Verify failed on this commit: ' + ', '.join(failed))
+        if all(state.get(c) == 'success' for c in REQUIRED):
+            break
+        if time.time() > deadline:
+            raise SystemExit('Verify did not finish within 10 minutes')
+        time.sleep(15)
+    log('Verify passed on this commit')
+
+    current = os.readlink(ROOT / 'current')
+    deployed = json.loads((ROOT / current / 'manifest.json').read_text())['baseCommit']
+    if deployed == commit and not stage_only:
+        log(f'{commit[:7]} is already live; nothing to do')
+        return
+    changed = git('diff', '--name-only', deployed, commit).splitlines()
+    shipped = [p for p in changed if p.startswith(SHIPPED)]
+    if not shipped and not stage_only:
+        log(f'No shipped files changed since {deployed[:7]}; production stays on it')
+        return
+    log(f'{len(shipped)} shipped files changed since {deployed[:7]}')
+
+    name = f'chatty-cat-{commit[:7]}-{time.strftime("%Y%m%d", time.gmtime())}'
+    if (ROOT / 'releases' / name).exists():
+        raise SystemExit(f'{name} already exists; deploy it by hand or remove it first')
+    run('git', '-C', str(src), 'checkout', '-q', '--detach', commit)
+    run('git', '-C', str(src), 'clean', '-q', '-ffdx')
+    output = BUILD / 'out'
+    output.mkdir(exist_ok=True)
+    if (output / name).exists():
+        shutil.rmtree(output / name)
+    builder_dir = BUILD / 'builder'
+    builder_dir.mkdir(exist_ok=True)
+    (builder_dir / 'Dockerfile').write_bytes(BUILDER)
+    builder = 'local/chatty-cat-release-builder:' + hashlib.sha256(BUILDER).hexdigest()[:12]
+    run('docker', 'build', '-q', '-t', builder, str(builder_dir), stdout=subprocess.DEVNULL)
+    log('building the release')
+    run('docker', 'run', '--rm', '--user', f'{os.getuid()}:{os.getgid()}', '-e', 'HOME=/tmp',
+        '-e', 'GOCACHE=/tmp/gocache', '-e', 'GOPATH=/tmp/gopath', '-v', f'{BUILD}:/work', '-w', '/work/src', builder,
+        'sh', '-c', 'git config --global --add safe.directory /work/src && '
+        'npm --prefix web ci --no-audit --no-fund >/tmp/npm-ci.log 2>&1 && '
+        f'python3 scripts/build-release.py --output /work/out/{name} --license LICENSE >/tmp/build.log 2>&1 '
+        '|| { tail -40 /tmp/npm-ci.log /tmp/build.log; exit 1; }')
+    built = json.loads((output / name / 'manifest.json').read_text())
+    if built['baseCommit'] != commit or built['sourceIncludesUncommittedChanges']:
+        raise SystemExit('built release does not match the verified commit')
+    entry = next(k for k in built['sha256'] if re.fullmatch(r'web/dist/assets/main-[A-Za-z0-9_-]+\.js', k))
+    log(f'built {name}: {len(built["sha256"])} files, entry {entry.rsplit("/", 1)[1]}')
+
+    run(*RELEASE, 'install', name)
+    shutil.rmtree(output / name)
+    run(*RELEASE, 'prepare', name, commit)
+    if stage_only:
+        log(f'staged {name}; stopping before activation as requested')
+        return
+    run(*RELEASE, 'activate', name)
+    log('activated; checking the public site')
+
+    want = built['sha256'][entry]
+    path = '/' + entry.removeprefix('web/dist/')
+    for attempt in range(12):
+        try:
+            status, page = fetch(PUBLIC + '/')
+            ready_status, _ = fetch(PUBLIC + '/api/ready')
+            _, asset = fetch(PUBLIC + path)
+            if (status == 200 and ready_status == 200 and path.encode() in page
+                    and hashlib.sha256(asset).hexdigest() == want):
+                break
+        except OSError:
+            pass
+        if attempt == 11:
+            log('public check failed; rolling back')
+            run(*RELEASE, 'rollback', name)
+            raise SystemExit('public site did not serve the new release; rolled back')
+        time.sleep(5)
+    run(*RELEASE, 'check', name)
+    log(f'deployed {commit[:7]}: public site serves {path} and readiness returns 200')
+
+
+if __name__ == '__main__':
+    main()

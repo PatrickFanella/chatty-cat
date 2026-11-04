@@ -41,3 +41,26 @@ jobs:
           node --check companion/browser/background.js
           node --check companion/browser/popup.js
           python3 scripts/package-browser-companion.py /tmp/chatty-browser-companion.zip
+  deploy:
+    name: Deploy to production
+    needs: [go, web]
+    # Only a push to main deploys. The key in NUC_DEPLOY_KEY can do nothing but run
+    # NUC's fixed chatty-cat-autodeploy, which fetches main itself, requires these
+    # checks to have passed on that commit and skips releases with no shipped change.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Run the guarded deploy on NUC
+        env:
+          NUC_DEPLOY_KEY: ${{ secrets.NUC_DEPLOY_KEY }}
+          NUC_HOST_KEY: '10.0.0.56 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDXG1FuUR5ues37EaZ25p6LtmOs9C5mcr3aVo9nAqU1Z'
+        run: |
+          umask 077
+          key=$(mktemp)
+          hosts=$(mktemp)
+          trap 'rm -f "$key" "$hosts"' EXIT
+          printf '%s\n' "$NUC_DEPLOY_KEY" > "$key"
+          printf '%s\n' "$NUC_HOST_KEY" > "$hosts"
+          ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 \
+            -o UserKnownHostsFile="$hosts" -o StrictHostKeyChecking=yes onnwee@10.0.0.56
