@@ -140,7 +140,7 @@ jobs:
               'name': f'Chatty Cat desktop {short}',
               'body': (
                   f'Desktop app built from {short}. It runs its own chat server and renders chat in the app; '
-                  'Twitch login is not available in the desktop app yet.\n\n'
+                  'Sign in with Twitch using the app’s browser authorization link. Quitting the app signs you out.\n\n'
                   '- **macOS (Apple Silicon):** the app is ad-hoc signed, not notarized. After moving it to '
                   'Applications, open it once with right-click > Open, or run '
                   '`xattr -dr com.apple.quarantine "/Applications/Chatty Cat.app"`.\n'

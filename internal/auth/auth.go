@@ -25,11 +25,14 @@ const stateLifetime = 10 * time.Minute
 const validateInterval = 30 * time.Minute
 const maxEntries = 1024
 
-// Config contains server-only credentials and the public origin.
+// Config contains Twitch client settings and the public origin.
+// PublicClient enables secret-free device sign-in on loopback only.
 // Endpoint overrides are for local integration tests.
 type Config struct {
 	WorkspaceChannels, ChatSubscriptions int
 	ClientID, ClientSecret, PublicURL    string
+	PublicClient                         bool
+	DeviceURL                            string
 	AuthorizeURL, TokenURL, ValidateURL  string
 	HelixURL                             string
 	IRCURL                               string
@@ -41,6 +44,7 @@ type pending struct {
 	expires  time.Time
 	returnTo string
 	account  string
+	device   *deviceLogin
 }
 type tokens struct {
 	Access  string `json:"access_token"`
@@ -118,7 +122,7 @@ func New(cfg Config) (*Service, error) {
 	}
 	cfg.ChatSubscriptions = max(1, min(cfg.ChatSubscriptions, chatlimits.MaxSubscriptions))
 	cfg.WorkspaceChannels = min(chatlimits.Capacity(cfg.WorkspaceChannels), cfg.ChatSubscriptions)
-	if (cfg.ClientID == "") != (cfg.ClientSecret == "") {
+	if !cfg.PublicClient && (cfg.ClientID == "") != (cfg.ClientSecret == "") {
 		return nil, errors.New("set both TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET")
 	}
 	if cfg.PublicURL == "" {
@@ -131,6 +135,12 @@ func New(cfg Config) (*Service, error) {
 	loopback := u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"
 	if u.Scheme != "https" && (u.Scheme != "http" || !loopback) {
 		return nil, errors.New("CHATTHING_PUBLIC_URL requires HTTPS except on loopback")
+	}
+	if cfg.PublicClient && (!loopback || cfg.ClientSecret != "") {
+		return nil, errors.New("public Twitch clients require a loopback origin and no client secret")
+	}
+	if cfg.DeviceURL == "" {
+		cfg.DeviceURL = "https://id.twitch.tv/oauth2/device"
 	}
 	cfg.PublicURL = strings.TrimSuffix(cfg.PublicURL, "/")
 	if cfg.AuthorizeURL == "" {
@@ -188,6 +198,7 @@ func (s *Service) Close() {
 func (s *Service) Register(mux *http.ServeMux) {
 	mux.Handle("GET /api/auth/login", s.limit(s.login))
 	mux.Handle("GET /api/auth/callback", s.limit(s.callback))
+	mux.Handle("POST /api/auth/device", s.limit(s.pollDeviceLogin))
 	mux.Handle("GET /api/auth/session", s.limit(s.status))
 	mux.Handle("POST /api/auth/logout", s.limit(s.logout))
 	mux.Handle("POST /api/chat/send", s.limit(s.send))
@@ -339,6 +350,10 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	if channel := r.URL.Query().Get("channel"); len(channel) <= 155 && channel != "" {
 		returnTo += "?" + url.Values{"channel": {channel}}.Encode()
 	}
+	if s.cfg.PublicClient {
+		s.startDeviceLogin(w, r, scopes, returnTo, account)
+		return
+	}
 	state, binding := randomValue(), randomValue()
 	s.mu.Lock()
 	s.pruneLocked(time.Now())
@@ -375,6 +390,10 @@ func authReturn(returnTo, result string) string {
 	return returnTo + separator + "auth=" + result
 }
 func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.PublicClient {
+		http.Error(w, "use device sign-in for this app", http.StatusBadRequest)
+		return
+	}
 	if !s.sameHost(r) {
 		http.Error(w, "invalid callback host", 400)
 		return
@@ -417,6 +436,13 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, authReturn(p.returnTo, "account-mismatch"), http.StatusSeeOther)
 		return
 	}
+	if !s.establishSession(w, r, tok, user) {
+		return
+	}
+	http.Redirect(w, r, p.returnTo, http.StatusSeeOther)
+}
+
+func (s *Service) establishSession(w http.ResponseWriter, r *http.Request, tok tokens, user identity) bool {
 	sid := randomValue()
 	sess := &session{tokens: tok, user: user, csrf: randomValue(), expires: time.Now().Add(sessionLifetime), validated: time.Now()}
 	s.mu.Lock()
@@ -424,7 +450,7 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 	if len(s.sessions) >= maxEntries {
 		s.mu.Unlock()
 		http.Error(w, "session capacity reached", http.StatusServiceUnavailable)
-		return
+		return false
 	}
 	// Switching accounts invalidates the old session rather than orphaning it.
 	var oldSession *session
@@ -442,11 +468,13 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		oldSession.mu.Unlock()
 	}
 	s.cookie(w, "chatthing_session", sid, int(sessionLifetime.Seconds()))
-	http.Redirect(w, r, p.returnTo, http.StatusSeeOther)
+	return true
 }
 func (s *Service) exchange(ctx context.Context, values url.Values) (tokens, error) {
 	values.Set("client_id", s.cfg.ClientID)
-	values.Set("client_secret", s.cfg.ClientSecret)
+	if s.cfg.ClientSecret != "" {
+		values.Set("client_secret", s.cfg.ClientSecret)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.TokenURL, strings.NewReader(values.Encode()))
 	if err != nil {
 		return tokens{}, errors.New("token request unavailable")
