@@ -30,7 +30,14 @@ publishes a Gitea release tagged `desktop-<commit>` with these files and a
 | Linux x86-64 | `.deb` and `.AppImage` |
 | macOS, Apple Silicon | `.dmg` and `.zip` |
 
-Intel Macs, Linux on ARM and Windows have no build.
+Intel Macs, Linux on ARM and Windows have no build. While the repository is
+private, downloading a release needs a Gitea sign-in.
+
+Each file is larger than the 100 MB request limit of Cloudflare, which sits in
+front of git.subcult.tv. The publish job therefore uploads to Gitea through
+Almaz's Caddy on the LAN, and Gitea's attachment limit is 500 MB. A failed publish
+can be rerun from the Actions page on `main`: it reuses the release and skips
+files already uploaded.
 
 - **macOS:** the app is ad-hoc signed, not notarized, so Gatekeeper blocks the
   first open. Open it with right-click > Open, or run
