@@ -94,9 +94,9 @@ app into `desktop/dist`. To test without packaging, run `npm --prefix desktop st
 after the build.
 
 `--smoke=<file.png>` is the check CI runs. It starts the app with a throwaway
-profile, waits until the status leaves "Connecting…", checks that Twitch login
-is enabled and the visible Emotes button opens a populated picker, then saves
-a screenshot and prints what rendered:
+profile and an unused loopback port, waits until the status leaves "Connecting…",
+checks that Twitch login is enabled and the visible Emotes button opens a
+populated picker, then saves a screenshot and prints what rendered:
 
 ```sh
 xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --smoke=/tmp/smoke.png

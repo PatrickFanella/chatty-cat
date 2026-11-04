@@ -6,6 +6,7 @@
 const { app, BrowserWindow, dialog, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
+const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
 // Public Twitch client ID: it identifies this app and is safe to distribute.
@@ -13,8 +14,8 @@ const { clientID } = require('./twitch-client.json');
 
 // A fixed port keeps the page origin, and with it saved settings and history,
 // the same on every launch.
-const PORT = 47830;
-const ORIGIN = `http://localhost:${PORT}`;
+let PORT = 47830;
+let ORIGIN = `http://localhost:${PORT}`;
 const smoke = process.argv.find((arg) => arg.startsWith('--smoke='))?.slice('--smoke='.length);
 const web = { sandbox: true, contextIsolation: true };
 
@@ -29,6 +30,19 @@ function stop(code) {
 
 if (smoke) app.setPath('userData', fs.mkdtempSync(path.join(os.tmpdir(), 'chatty-cat-smoke-')));
 if (!app.requestSingleInstanceLock()) app.exit(0);
+
+// CI shares the runner with normal app launches. Its throwaway profile does
+// not need the persistent origin, so ask the OS for a free loopback port.
+function smokePort() {
+  return new Promise((resolve, reject) => {
+    const probe = net.createServer();
+    probe.once('error', reject);
+    probe.listen(0, '127.0.0.1', () => {
+      const { port } = probe.address();
+      probe.close((error) => (error ? reject(error) : resolve(port)));
+    });
+  });
+}
 
 function startServer() {
   const dir = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, 'build'), 'server');
@@ -172,8 +186,12 @@ app.on('before-quit', () => {
 
 app.whenReady().then(async () => {
   if (smoke && process.platform === 'darwin') app.dock?.hide();
-  startServer();
   try {
+    if (smoke) {
+      PORT = await smokePort();
+      ORIGIN = `http://localhost:${PORT}`;
+    }
+    startServer();
     await waitReady();
   } catch (error) {
     if (!smoke) dialog.showErrorBox('Chatty Cat', error.message);
