@@ -61,7 +61,7 @@ jobs:
       - name: Start the app and render live chat
         # The job runs as root, which Chromium's sandbox refuses.
         run: xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --no-sandbox --smoke="$PWD/desktop/dist/smoke-linux.png"
-      - uses: https://github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: https://github.com/actions/upload-artifact@c6a3b2bd78b3985e4b2f15397fec357f0fd808de # v3.2.2-node20, as Gitea lacks v4
         with:
           name: linux
           path: |
@@ -91,7 +91,7 @@ jobs:
         run: codesign --verify --deep --strict "desktop/dist/mac-arm64/Chatty Cat.app"
       - name: Start the app and render live chat
         run: '"desktop/dist/mac-arm64/Chatty Cat.app/Contents/MacOS/Chatty Cat" --smoke="$PWD/desktop/dist/smoke-mac.png"'
-      - uses: https://github.com/actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: https://github.com/actions/upload-artifact@c6a3b2bd78b3985e4b2f15397fec357f0fd808de # v3.2.2-node20, as Gitea lacks v4
         with:
           name: mac
           path: |
@@ -108,16 +108,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: https://github.com/actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      - uses: https://github.com/actions/download-artifact@ad191675b41f6a5b46da9a048cb6893812da158b # v3.1.0-node20
         with:
-          path: assets
-          merge-multiple: true
+          path: downloads
       - name: Create the release and upload the apps
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eu
-          rm -f assets/smoke-*.png
+          mkdir assets
+          find downloads -type f ! -name 'smoke-*.png' -exec mv {} assets/ \;
           (cd assets && sha256sum * > SHA256SUMS)
           short=${GITHUB_SHA::7}
           api="$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY"
