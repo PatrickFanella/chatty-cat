@@ -2,3 +2,6 @@ web/node_modules/
 web/dist/
 bin/
 .env
+desktop/node_modules/
+desktop/build/
+desktop/dist/

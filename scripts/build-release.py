@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build a Linux release with matching public source and SHA-256 evidence."""
+"""Build a release with matching public source and SHA-256 evidence.
+
+The server binary targets Linux amd64 unless GOOS and GOARCH are set.
+"""
 import argparse
 import hashlib
 import json
@@ -26,7 +29,8 @@ def main():
     shutil.copytree(root / 'web/dist', output / 'web/dist')
     shutil.copy2(args.license, output / 'LICENSE')
     shutil.copy2(root / 'NOTICE.md', output / 'NOTICE.md')
-    env = dict(os.environ, CGO_ENABLED='0', GOOS='linux', GOARCH='amd64')
+    env = dict(os.environ, CGO_ENABLED='0', GOOS=os.environ.get('GOOS', 'linux'),
+               GOARCH=os.environ.get('GOARCH', 'amd64'))
     subprocess.run(['go', 'build', '-o', str(output / 'chatthing'), './cmd/chatthing'], cwd=root, env=env, check=True)
     sources = ['cmd', 'internal', 'web/src', 'web/public', 'web/index.html',
                'web/overlay.html', 'web/test-support', 'companion', 'web/package.json', 'web/package-lock.json', 'web/tsconfig.json',
@@ -34,7 +38,8 @@ def main():
                'go.mod', 'go.sum', 'README.md', 'NOTICE.md', 'Dockerfile',
                'compose.yaml', '.dockerignore', '.go-version', 'scripts',
                'deploy/Caddyfile', 'deploy/Caddyfile.host', 'deploy/README.md',
-               'docs/architecture.md']
+               'docs/architecture.md', 'desktop/main.cjs', 'desktop/package.json',
+               'desktop/package-lock.json']
     with tarfile.open(output / 'source.tar.gz', 'w:gz') as archive:
         for name in sources:
             archive.add(root / name, arcname=name)

@@ -60,6 +60,11 @@ replies, actions and whispers. Tests use fake Twitch services. The owner also co
 replies, subscriber emotes, whisper sending and the approved test-message deletion
 on the hosted build. See [acceptance evidence](docs/parity.md).
 
+## Desktop app
+
+The [desktop app](docs/desktop-app.md) for Linux and macOS bundles the server and
+UI and renders chat in its own window. Builds are published as Gitea releases.
+
 ## Self-hosting
 
 [Deployment instructions](deploy/README.md) cover the combined Go/frontend image,
