@@ -24,7 +24,8 @@
     "productName": "Chatty Cat",
     "artifactName": "chatty-cat-${env.CHATTY_BUILD}-${os}-${arch}.${ext}",
     "files": [
-      "main.cjs"
+      "main.cjs",
+      "twitch-client.json"
     ],
     "extraResources": [
       {

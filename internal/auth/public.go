@@ -11,10 +11,11 @@ import (
 	"time"
 )
 
-// HasAppCredentials reports whether public Helix metadata can be enabled.
+// HasAppCredentials reports whether this client can read public Helix metadata.
 func (s *Service) HasAppCredentials() bool { return s.cfg.ClientID != "" }
 
-// PublicRead uses a server-only app credential for fixed public Helix reads.
+// PublicRead uses a server-owned credential for fixed public Helix reads.
+// Public desktop clients use a local session instead of an app credential.
 func (s *Service) PublicRead(ctx context.Context, path string) ([]byte, error) {
 	u, err := url.Parse(path)
 	if err != nil || u.IsAbs() || u.Host != "" || u.Fragment != "" {
@@ -29,6 +30,9 @@ func (s *Service) PublicRead(ctx context.Context, path string) ([]byte, error) {
 	defer cancel()
 	stop := context.AfterFunc(s.ctx, cancel)
 	defer stop()
+	if s.cfg.PublicClient {
+		return s.publicUserRead(ctx, u.String())
+	}
 	for attempt := 0; attempt < 2; attempt++ {
 		access, err := s.appCredential(ctx)
 		if err != nil {
@@ -128,4 +132,29 @@ func (s *Service) appFailure(ctx context.Context) (string, error) {
 		s.appRetryAfter = time.Now().Add(time.Minute)
 	}
 	return "", errors.New("public API credential unavailable")
+}
+
+// publicUserRead serves the desktop's public metadata using a local session.
+// The path has already passed PublicRead's fixed read-only allowlist.
+func (s *Service) publicUserRead(ctx context.Context, path string) ([]byte, error) {
+	s.mu.Lock()
+	var candidates []*session
+	for _, p := range s.sessions {
+		candidates = append(candidates, p)
+	}
+	s.mu.Unlock()
+	for _, p := range candidates {
+		p.mu.Lock()
+		if !time.Now().Before(p.expires) || !s.check(ctx, p, time.Now()) {
+			p.mu.Unlock()
+			continue
+		}
+		data, status, ok := s.helix(ctx, p, http.MethodGet, path, nil)
+		p.mu.Unlock()
+		if ok && status == http.StatusOK && json.Valid(data) {
+			return data, nil
+		}
+		return nil, errors.New("public API response unavailable")
+	}
+	return nil, errors.New("sign in to load Twitch metadata")
 }

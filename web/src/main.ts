@@ -2575,7 +2575,7 @@ export async function startMain(): Promise<void> {
                 const root = mountPanel<HTMLElement>(markup.default, 'emote-picker');
                 picker = new EmotePicker(
                   root,
-                  panelTrigger('picker-open'),
+                  element('picker-open', HTMLButtonElement),
                   pickerModel,
                   () => composer.target,
                   () => composer.canInsert,
@@ -2587,6 +2587,7 @@ export async function startMain(): Promise<void> {
                     scheduleRender();
                   },
                   () => rateTimeline.series.observationGaps(),
+                  false, // The shell owns the visible button, including the first lazy load.
                 );
                 pickerLighting = new PickerLighting(log, root);
                 return panelAdapter(

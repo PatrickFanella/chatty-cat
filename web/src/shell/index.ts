@@ -149,6 +149,11 @@ export function startShell(options: ShellOptions): Shell {
       loginWatch.observe(login, { attributes: true, attributeFilter: ['disabled'] });
     }
   }
+  const pickerButton = document.getElementById('picker-open');
+  const openPicker = (): void => {
+    if (options.available('emotes')) options.run('emotes');
+  };
+  pickerButton?.addEventListener('click', openPicker);
   const palette = new CommandPalette(registry, options.extra);
   const parts = {
     header,
@@ -200,6 +205,7 @@ export function startShell(options: ShellOptions): Shell {
     stop: () => {
       document.removeEventListener('keydown', keys, true);
       loginWatch?.disconnect();
+      pickerButton?.removeEventListener('click', openPicker);
       palette.stop();
       registry.stop();
       workbench.stop();

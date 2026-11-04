@@ -108,3 +108,25 @@ it('readonly views have no Settings command or shortcut', async () => {
     shell.stop();
   }
 });
+
+it('opens the lazy emote picker from the visible button while signed out', async () => {
+  shellDom();
+  const picker = document.createElement('button');
+  picker.id = 'picker-open';
+  document.body.append(picker);
+  const { startShell } = await import('./shell');
+  const run = vi.fn();
+  let available = true;
+  const shell = startShell({ actions: [], run, available: () => available, extra: () => [] });
+  try {
+    picker.click();
+    expect(run).toHaveBeenCalledWith('emotes');
+    available = false;
+    picker.click();
+    expect(run).toHaveBeenCalledOnce();
+  } finally {
+    shell.stop();
+  }
+  picker.click();
+  expect(run).toHaveBeenCalledOnce();
+});

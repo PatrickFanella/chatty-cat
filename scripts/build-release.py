@@ -39,7 +39,7 @@ def main():
                'compose.yaml', '.dockerignore', '.go-version', 'scripts',
                'deploy/Caddyfile', 'deploy/Caddyfile.host', 'deploy/README.md',
                'docs/architecture.md', 'desktop/main.cjs', 'desktop/package.json',
-               'desktop/package-lock.json']
+               'desktop/package-lock.json', 'desktop/twitch-client.json']
     with tarfile.open(output / 'source.tar.gz', 'w:gz') as archive:
         for name in sources:
             archive.add(root / name, arcname=name)

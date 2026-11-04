@@ -64,6 +64,7 @@ export class EmotePicker {
     private readonly insert: (code: string) => void,
     private readonly temporaryFreeze: (on: boolean) => void = () => {},
     private readonly observationGaps: () => readonly { from: number; to: number }[] = () => [],
+    bindTrigger = true,
   ) {
     this.search = get(root, 'picker-search', HTMLInputElement);
     this.grid = get(root, 'picker-grid', HTMLElement);
@@ -154,7 +155,7 @@ export class EmotePicker {
       get(root, 'picker-' + key, HTMLInputElement).checked = model.options[key];
     this.grid.addEventListener('pointerenter', this.gridEnter);
     this.grid.addEventListener('pointerleave', this.gridLeave);
-    trigger.addEventListener('click', this.toggle);
+    if (bindTrigger) trigger.addEventListener('click', this.toggle);
     root.addEventListener('click', this.click);
     document.addEventListener('displaypreset', this.preset);
     document.addEventListener('keydown', this.key, true);

@@ -5,7 +5,8 @@ The desktop app runs Chatty Cat without the website. It is an Electron shell
 
 1. On launch it starts the bundled `chatthing` on `127.0.0.1:47830`, with settings
    only from the shell: no `.env` file and no `TWITCH_*` or `CHATTHING_*` values
-   from the user's environment.
+   from the user's environment. The registered public Twitch client ID ships in
+   `desktop/twitch-client.json`; no client secret is included.
 2. When the server is ready, the app opens `http://localhost:47830` in its own
    Chromium window. The UI files come from the bundled build, and chat, emotes and
    metadata go from the bundled server straight to Twitch and the emote providers.
@@ -46,12 +47,27 @@ files already uploaded.
   profile. The AppImage needs FUSE 2 (`libfuse2`), which Debian 13 doesn't install
   by default. Without it, run the AppImage with `APPIMAGE_EXTRACT_AND_RUN=1`.
 
+## Twitch sign-in
+
+Click **Log in with Twitch**, then **Open Twitch in your browser**. Approve
+Chatty Cat in your regular browser and return to the app; it detects approval
+and opens chat. If prompted, enter the code displayed in the app. The desktop
+uses Twitch's device-code flow with a Public client. The registered redirect
+URL is `http://localhost:47830/api/auth/callback`, but device sign-in does not
+use a redirect callback.
+
+The local server validates the token, owns the session and refreshes tokens
+without a client secret. Tokens are kept in memory; quitting the app signs you
+out. Settings and saved account names stay in the app profile. Twitch metadata
+and account emotes use the signed-in account. Third-party emotes and emoji can
+be browsed without signing in; inserting and sending require sign-in.
+
+For a development server, set `TWITCH_PUBLIC_CLIENT=true`, `TWITCH_CLIENT_ID`
+and a loopback `CHATTHING_PUBLIC_URL`; leave `TWITCH_CLIENT_SECRET` unset.
+The hosted website continues to use its confidential client and callback.
+
 ## What doesn't work yet
 
-- **Twitch login:** the server signs in with a client secret, and an app that
-  anyone can download can't hold one. Login, sending and other features that need
-  Twitch app credentials are off; anonymous chat works. Adding login needs a
-  public Twitch client using the device-code flow.
 - **Image uploads and device sync:** both need a shared server, so the desktop
   server has them turned off.
 - **Port 47830 in use:** the app reports it and quits. If the app is killed
@@ -78,8 +94,9 @@ app into `desktop/dist`. To test without packaging, run `npm --prefix desktop st
 after the build.
 
 `--smoke=<file.png>` is the check CI runs. It starts the app with a throwaway
-profile, waits until the status leaves "Connecting…", saves a screenshot and
-prints what rendered:
+profile, waits until the status leaves "Connecting…", checks that Twitch login
+is enabled and the visible Emotes button opens a populated picker, then saves
+a screenshot and prints what rendered:
 
 ```sh
 xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --smoke=/tmp/smoke.png

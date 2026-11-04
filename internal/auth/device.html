@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in to Chatty Cat</title>
+<style nonce="{{.Nonce}}">
+  :root { color-scheme: dark; font: 16px system-ui, sans-serif; background: #151519; color: #eee; }
+  main { max-width: 32rem; margin: 12vh auto; padding: 1.5rem; }
+  h1 { font-size: 1.5rem; } a { color: #c4a5ff; } code { font-size: 1.5rem; letter-spacing: .15em; }
+  p { line-height: 1.6; }
+</style>
+<main data-state="{{.State}}" data-interval="{{.Interval}}" data-return="{{.ReturnTo}}">
+  <h1>Sign in with Twitch</h1>
+  <p><a href="{{.URI}}" target="_blank" rel="noreferrer noopener">Open Twitch in your browser</a> and approve Chatty Cat.</p>
+  <p>If Twitch asks for a code, enter <code>{{.Code}}</code>.</p>
+  <p id="status" role="status">Waiting for authorization. Keep this window open.</p>
+  <p><a href="{{.ReturnTo}}">Back to chat</a></p>
+</main>
+<script nonce="{{.Nonce}}">
+  const main = document.querySelector('main');
+  let interval = Number(main.dataset.interval) * 1000;
+  async function poll() {
+    try {
+      const response = await fetch('/api/auth/device?state=' + encodeURIComponent(main.dataset.state), {
+        method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(30000)
+      });
+      if (response.status === 204) { location.replace(main.dataset.return); return; }
+      if (response.status !== 202) {
+        document.getElementById('status').textContent = await response.text();
+        return;
+      }
+      interval = Math.max(5000, Number(response.headers.get('Retry-After') || interval / 1000) * 1000);
+    } catch {
+      document.getElementById('status').textContent = 'Connection interrupted. Retrying sign-in…';
+    }
+    setTimeout(poll, interval);
+  }
+  setTimeout(poll, interval);
+</script>
+</html>

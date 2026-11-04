@@ -8,6 +8,8 @@ const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+// Public Twitch client ID: it identifies this app and is safe to distribute.
+const { clientID } = require('./twitch-client.json');
 
 // A fixed port keeps the page origin, and with it saved settings and history,
 // the same on every launch.
@@ -31,7 +33,7 @@ if (!app.requestSingleInstanceLock()) app.exit(0);
 function startServer() {
   const dir = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, 'build'), 'server');
   // Server settings come only from here: never from a stray .env or the user's
-  // environment, so login stays off until the desktop app supports it.
+  // environment. Only the registered public client ID ships in the app.
   const env = Object.fromEntries(
     Object.entries(process.env).filter(([key]) => !/^(CHATTHING|TWITCH|GIPHY)_/.test(key)),
   );
@@ -42,6 +44,8 @@ function startServer() {
       CHATTHING_ASSETS: path.join(dir, 'web/dist'),
       CHATTHING_ENV_FILE: os.devNull,
       CHATTHING_PUBLIC_URL: ORIGIN,
+      TWITCH_PUBLIC_CLIENT: 'true',
+      TWITCH_CLIENT_ID: clientID,
     },
     stdio: ['ignore', 'inherit', 'inherit'],
   });
@@ -130,11 +134,25 @@ async function runSmoke(win) {
     if (state?.origin === ORIGIN && state.status && state.status !== 'Connecting…') break;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  const passed = state?.origin === ORIGIN && !!state.status && state.status !== 'Connecting…';
-  if (passed) await new Promise((resolve) => setTimeout(resolve, 5_000));
+  const connected = state?.origin === ORIGIN && !!state.status && state.status !== 'Connecting…';
+  // Exercise the visible control, not the menu or the picker's private trigger.
+  // This catches a lazy panel whose constructor is never reached by a click.
+  if (connected) await win.webContents.executeJavaScript(`document.getElementById('picker-open').click()`);
+  let controls = null;
+  const controlsDeadline = Date.now() + 10_000;
+  while (connected && Date.now() < controlsDeadline) {
+    controls = await win.webContents.executeJavaScript(`({
+      loginEnabled: !document.getElementById('login').disabled,
+      pickerVisible: !!document.getElementById('emote-picker') && document.getElementById('emote-picker').checkVisibility(),
+      pickerItems: document.querySelectorAll('#picker-grid button[data-insert]').length
+    })`);
+    if (controls.loginEnabled && controls.pickerVisible && controls.pickerItems > 0) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  const passed = connected && controls?.loginEnabled && controls.pickerVisible && controls.pickerItems > 0;
   const image = await win.webContents.capturePage();
   fs.writeFileSync(smoke, image.toPNG());
-  console.log(JSON.stringify({ smoke: passed ? 'passed' : 'failed', ...(await read()), screenshot: smoke }));
+  console.log(JSON.stringify({ smoke: passed ? 'passed' : 'failed', ...(await read()), ...controls, screenshot: smoke }));
   stop(passed ? 0 : 1);
 }
 
