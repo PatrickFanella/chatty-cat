@@ -5,7 +5,7 @@ coordinators #143 and #3. #136 closed after the owner accepted its CPU
 qualification and waived the history GPU expectation. The owner accepted the
 automated evidence for #36's remaining installed-browser checks and for #32's
 positive Twitch events, and closed #38 as not planned. The relay code stays in
-main. Production runs merged main `1065ffb`. The sections below are the plan as
+main. Production runs merged main `be0642b`. The sections below are the plan as
 it stood during delivery and are kept for reference.
 
 Updated October 19, 2026 against main `1f64fb9` and the live Gitea issue inventory.
@@ -252,13 +252,19 @@ merged the reusable picker collator, and #184 merged nested render-phase
 diagnostics; each final head passed four hosted checks. Live provider acceptance
 and #136's external CPU/GPU qualification remain independent.
 
-Production runs merged main `1065ffb`, deployed November 4. It adds the Settings
-Escape fix (#200) to `8a80132`, which brought the minimal shell and Settings window
-(#197). The `8a80132`
+Production runs merged main `be0642b`, deployed November 4 at 01:40 UTC as image
+`sha256:48cd1b82c867b305e534d52b4566a44e8b75569925e662714922258615c3d515`. It
+adds Twitch's `default` emote format (#202) and reload-resumed browser companion
+pairing (#203) to `1065ffb`, which added the Settings Escape fix (#200) to
+`8a80132`, the release that brought the minimal shell and Settings window (#197).
+Reload resume also needs companion 0.1.3 in the browser; installed-extension
+acceptance of 0.1.3 has not been run. The `8a80132`
 [deployment receipt](deployment-2026-11-03-minimal-ui.md) records staging,
-public hashes, independent source rebuild, retained data and rollback guards; the
-`1065ffb` release repeated those checks, with its recovery under
-`/srv/apps/projects/chatty-cat/recovery/storage-1065ffb-20261104`. The
+public hashes, independent source rebuild, retained data and rollback guards. The
+`1065ffb` and `be0642b` releases repeated those checks; their recovery directories
+are `/srv/apps/projects/chatty-cat/recovery/storage-1065ffb-20261104` and
+`storage-be0642b-20261104`. After the `be0642b` activation, live emote requests
+across three busy channels returned no failures and no `/animated/` requests. The
 previous [browser companion receipt](deployment-2026-10-20-browser-handoff.md)
 covers `2cb8dea`.
 #180's earlier [layout receipt](deployment-2026-10-19-layout.md) preserves the
