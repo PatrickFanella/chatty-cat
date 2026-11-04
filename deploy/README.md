@@ -60,6 +60,8 @@ acceptance remain unverified. No public deployment has occurred.
 
 ## Check and update
 
+Production on NUC deploys automatically from `main`; see [nuc/README.md](nuc/README.md).
+
 ```sh
 docker compose --env-file ../.env ps
 curl --fail https://chat.subcult.tv/api/health
