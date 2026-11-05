@@ -732,6 +732,7 @@ body.wb-dragging .wb-title {
     pointer-events: none;
     transition: opacity var(--shell-ease);
   }
+  .wb-panel > #video-panel[data-controls-open='true'] .video-controls,
   .wb-panel:is(:hover, :focus-within) .video-controls,
   .wb-panel .video-controls:hover {
     opacity: 1;

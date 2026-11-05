@@ -157,3 +157,27 @@ it('offers official player sign-in and reloads only when refresh is selected', (
   root.querySelector<HTMLButtonElement>('[aria-label="Refresh video player"]')!.click();
   expect(root.querySelector('iframe')).not.toBe(frame);
 });
+
+it('keeps video options open through native select focus and gives pointer departures a grace period', async () => {
+  vi.useFakeTimers();
+  try {
+    const { root } = setup();
+    root.hidden = false;
+    document.body.append(root);
+    const select = root.querySelector<HTMLSelectElement>('#video-channel')!;
+    root.dispatchEvent(new PointerEvent('pointerenter'));
+    select.focus();
+    root.dispatchEvent(new PointerEvent('pointerleave', { clientX: -10, clientY: -10 }));
+    await vi.advanceTimersByTimeAsync(500);
+    expect(root.dataset.controlsOpen).toBe('true');
+    const outside = document.createElement('button');
+    document.body.append(outside);
+    outside.focus();
+    await vi.advanceTimersByTimeAsync(499);
+    expect(root.dataset.controlsOpen).toBe('true');
+    await vi.advanceTimersByTimeAsync(1);
+    expect(root.dataset.controlsOpen).toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
+});

@@ -18,6 +18,7 @@ export class VideoPanel {
   private status: HTMLElement;
   private channel: HTMLSelectElement;
   private dock: HTMLButtonElement;
+  private controlsTimer: ReturnType<typeof setTimeout> | undefined;
   constructor(
     private root: HTMLElement,
     private trigger: HTMLButtonElement,
@@ -30,6 +31,10 @@ export class VideoPanel {
       /* optional storage */
     }
     document.addEventListener('privacychange', this.privacyChanged);
+    root.addEventListener('pointerenter', this.holdControls);
+    root.addEventListener('pointerleave', this.leaveControls);
+    root.addEventListener('focusin', this.holdControls);
+    root.addEventListener('focusout', this.leaveControls);
     this.container = root.querySelector<HTMLElement>('#video-player')!;
     this.status = root.querySelector<HTMLElement>('#video-status')!;
     this.channel = root.querySelector<HTMLSelectElement>('#video-channel')!;
@@ -105,6 +110,26 @@ export class VideoPanel {
     } else if (this.floating.reopen) this.open();
     document.addEventListener('share-settings', this.share);
   }
+  private holdControls = (): void => {
+    clearTimeout(this.controlsTimer);
+    this.root.dataset.controlsOpen = 'true';
+  };
+  private leaveControls = (event: Event): void => {
+    if (event instanceof PointerEvent) {
+      const box = this.root.getBoundingClientRect();
+      if (
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom
+      )
+        return;
+    }
+    clearTimeout(this.controlsTimer);
+    this.controlsTimer = setTimeout(() => {
+      if (!this.root.contains(document.activeElement)) delete this.root.dataset.controlsOpen;
+    }, 500);
+  };
   private paint(): void {
     this.dock.textContent = this.options.docked ? 'Float' : 'Dock';
   }
@@ -239,6 +264,12 @@ export class VideoPanel {
       );
   };
   stop(): void {
+    clearTimeout(this.controlsTimer);
+    this.root.removeEventListener('pointerenter', this.holdControls);
+    this.root.removeEventListener('pointerleave', this.leaveControls);
+    this.root.removeEventListener('focusin', this.holdControls);
+    this.root.removeEventListener('focusout', this.leaveControls);
+    delete this.root.dataset.controlsOpen;
     document.removeEventListener('privacychange', this.privacyChanged);
     this.volume.stop();
     this.refresh.removeEventListener('click', this.reload);
