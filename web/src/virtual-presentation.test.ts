@@ -99,3 +99,25 @@ it('keeps the reader key and pixel offset when a style revision replaces estimat
   expect(view.readerPosition()).toEqual(before);
   view.stop();
 });
+
+it('uses native wheel scrolling at normal speed and clears hover pause when settings open', () => {
+  vi.useFakeTimers();
+  const log = document.createElement('main');
+  document.body.append(log);
+  const view = new VirtualLog(log);
+  view.set(
+    [{ key: 'one', render: () => Object.assign(document.createElement('article'), { className: 'row' }) }],
+    true,
+    0,
+    false,
+    true,
+  );
+  const wheel = new WheelEvent('wheel', { deltaY: 120, cancelable: true });
+  log.dispatchEvent(wheel);
+  expect(wheel.defaultPrevented).toBe(false);
+  log.querySelector('.row')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+  expect(view.pausedByHover()).toBe(true);
+  document.dispatchEvent(new Event('settings-opened'));
+  expect(view.pausedByHover()).toBe(false);
+  view.stop();
+});

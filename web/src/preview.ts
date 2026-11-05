@@ -1,3 +1,4 @@
+import { getPresentation } from './presentation';
 import { getLinkPreferences } from './link-preferences';
 import { privacyEnabled } from './privacy';
 import { twitchMedia, twitchFrame } from './twitch-media';
@@ -113,7 +114,7 @@ export class LinkPreview {
     this.hold();
     this.timer = setTimeout(() => {
       void this.open(anchor);
-    }, 350);
+    }, getPresentation().tooltipDelay);
   };
   private leave = (event: Event): void => {
     if (!this.rootValue) return;

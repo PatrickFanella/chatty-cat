@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { presentationDefaults, setPresentation } from './presentation';
 import { linkDefaults, setLinkPreferences } from './link-preferences';
 import { afterEach, expect, it, vi } from 'vitest';
 import { IdentityCards, emotePage, parseProfile } from './identity-cards';
@@ -6,6 +7,7 @@ import { providerDefaults, setProviderPreferences } from './provider-preferences
 let cards: IdentityCards | undefined;
 afterEach(() => {
   cards?.stop();
+  setPresentation({ ...presentationDefaults });
   setProviderPreferences(providerDefaults());
   setLinkPreferences(linkDefaults);
   localStorage.clear();
@@ -39,6 +41,7 @@ it('validates public profile fields and provider destinations', () => {
 it('opens safe profile and emote cards and drops late profile results', async () => {
   setLinkPreferences({ ...linkDefaults, emoteTooltip: true });
   vi.useFakeTimers();
+  setPresentation({ ...presentationDefaults, usercardHover: true });
   const surface = document.createElement('main');
   surface.innerHTML =
     '<article class="row" data-login="alice"><a class="name">Alice</a><img class="emote" data-emote-source="7TV" data-emote-code="wave" alt="wave" src="https://cdn.7tv.app/emote/abc/2x.webp"></article>';
@@ -89,6 +92,7 @@ it('links both current and legacy FFZ CDN paths to the provider page', () => {
 });
 it('applies the explicit emote tooltip scale within the consented image width', async () => {
   vi.useFakeTimers();
+  setPresentation({ ...presentationDefaults, usercardHover: true });
   setLinkPreferences({ ...linkDefaults, emoteTooltip: true, thumbnailSize: 120 });
   setProviderPreferences({ ...providerDefaults(), tooltipScale: 2 });
   const surface = document.createElement('main');
@@ -109,6 +113,7 @@ it('applies the explicit emote tooltip scale within the consented image width', 
 });
 it('refuses a private note when the public profile identity conflicts with a retained author ID', async () => {
   vi.useFakeTimers();
+  setPresentation({ ...presentationDefaults, usercardHover: true });
   const surface = document.createElement('main');
   surface.innerHTML =
     '<article class="row" data-id="m" data-login="alice" data-channel="one"><a class="name">Alice</a></article>';
@@ -160,4 +165,26 @@ it('refuses a private note when the public profile identity conflicts with a ret
   cards.setAccount('43');
   expect(root.hidden).toBe(true);
   expect(root.childElementCount).toBe(0);
+});
+
+it('does not fetch or open a usercard on hover by default', async () => {
+  vi.useFakeTimers();
+  setPresentation({ ...presentationDefaults });
+  const surface = document.createElement('main');
+  surface.innerHTML = '<article class="row" data-login="alice"><a class="name">Alice</a></article>';
+  const root = document.createElement('section');
+  root.hidden = true;
+  document.body.append(surface, root);
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  cards = new IdentityCards(
+    surface,
+    root,
+    () => [],
+    async () => undefined,
+  );
+  surface.querySelector('a')!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(root.hidden).toBe(true);
+  expect(fetcher).not.toHaveBeenCalled();
 });

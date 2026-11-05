@@ -1,3 +1,4 @@
+import { openMenu } from './shell/menu';
 import { measureResourceWork } from './resource-timers';
 import { PassivePanelSettings } from './passive-panel-settings';
 import { mountPanel, panelAdapter, transientRoot } from './shell/static-panel';
@@ -1732,6 +1733,32 @@ export async function startMain(): Promise<void> {
       action = modified ? p.modifiedRightClick : p.rightClick;
     if (action === 'ignore') return;
     event.preventDefault();
+    if (action === 'usercard') {
+      const login = name.dataset.mention || row.dataset.login || '';
+      const channel = row.dataset.channel || '';
+      openMenu(
+        name,
+        [
+          {
+            items: [
+              {
+                label: 'Open user card',
+                run: () => {
+                  void lazyPanels?.perform('user-inspector', () => inspector?.openUser(login, channel));
+                },
+              },
+              {
+                label: 'Mention',
+                disabled: !composer.canInsert,
+                run: () => composer.mention(login, p.mentionAt, p.mentionComma),
+              },
+            ],
+          },
+        ],
+        { label: 'User actions' },
+      );
+      return;
+    }
     if (!composer.canInsert) {
       announcer.textContent = 'Log in to stage a mention or reply';
       return;
@@ -2821,7 +2848,7 @@ export async function startMain(): Promise<void> {
       keywords: 'colors palette import contrast',
       settings: {
         page: 'general',
-        section: 'Appearance',
+        section: 'Custom themes',
         keywords: 'Custom themes custom color themes colors palette import contrast',
       },
       load: () =>

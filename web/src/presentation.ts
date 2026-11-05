@@ -1,4 +1,8 @@
 export interface PresentationOptions {
+  messageActions: string;
+  hideReplyUsername: boolean;
+  usercardHover: boolean;
+  tooltipDelay: number;
   boldScale: number;
   autoCloseUserPopup: boolean;
   autoCloseThreadPopup: boolean;
@@ -65,6 +69,10 @@ export interface PresentationOptions {
   overlayShadowRadius: number;
 }
 export const presentationDefaults: PresentationOptions = {
+  messageActions: 'icons',
+  hideReplyUsername: false,
+  usercardHover: false,
+  tooltipDelay: 150,
   boldScale: 1,
   autoCloseUserPopup: true,
   autoCloseThreadPopup: false,
@@ -102,7 +110,7 @@ export const presentationDefaults: PresentationOptions = {
   pauseModifier: 'none',
   markers: true,
   hideScrollbar: false,
-  rightClick: 'mention',
+  rightClick: 'usercard',
   modifiedRightClick: 'reply',
   rightClickModifier: 'shift',
   mentionAt: false,
@@ -134,6 +142,10 @@ export const presentationFields: Record<
   keyof PresentationOptions,
   { label: string; min?: number; max?: number; step?: number; choices?: readonly string[] }
 > = {
+  messageActions: { label: 'Message action buttons', choices: ['icons', 'text'] },
+  hideReplyUsername: { label: 'Hide recipient username at the start of replies' },
+  usercardHover: { label: 'Open usercards on hover' },
+  tooltipDelay: { label: 'Tooltip delay (milliseconds)', min: 0, max: 1000, step: 50 },
   boldScale: { label: 'Bold text scale', min: 0.5, max: 2, step: 0.05 },
   autoCloseUserPopup: { label: 'Close user card after staging a reply' },
   autoCloseThreadPopup: { label: 'Hide reply threads when focus moves outside the panel' },
@@ -161,14 +173,14 @@ export const presentationFields: Record<
   hideDeletionActions: { label: 'Hide deletion notices' },
   hideReplyContext: { label: 'Hide reply context' },
   showReplyButton: { label: 'Show reply buttons' },
-  stripReplyMention: { label: 'Strip leading recipient mention from replies' },
+  stripReplyMention: { label: 'Strip recipient mention from outgoing replies' },
   showEmptyInput: { label: 'Show full empty input box' },
   showLength: { label: 'Show message character count' },
   showWait: { label: 'Show slow-mode countdown' },
   overflow: { label: 'Overlong message behavior', choices: ['highlight', 'block', 'truncate'] },
   pulseSelf: { label: 'Pulse input on own observed message' },
   scrollMultiplier: { label: 'Mouse scroll speed', min: 0.25, max: 4, step: 0.25 },
-  smoothScroll: { label: 'Smooth mouse scrolling' },
+  smoothScroll: { label: 'Smooth custom-speed mouse scrolling' },
   smoothNew: { label: 'Smooth scrolling to new messages' },
   pauseHoverSeconds: {
     label: 'Pause after hover, seconds (0 uses existing pane setting)',
@@ -179,8 +191,8 @@ export const presentationFields: Record<
   pauseModifier: { label: 'Hold modifier to pause chat', choices: ['none', 'shift', 'alt', 'ctrl', 'meta'] },
   markers: { label: 'Show scrollbar highlight markers' },
   hideScrollbar: { label: 'Hide scrollbar thumb' },
-  rightClick: { label: 'Username right click', choices: ['mention', 'reply', 'ignore'] },
-  modifiedRightClick: { label: 'Username modified right click', choices: ['mention', 'reply', 'ignore'] },
+  rightClick: { label: 'Username right click', choices: ['usercard', 'mention', 'reply', 'ignore'] },
+  modifiedRightClick: { label: 'Username modified right click', choices: ['usercard', 'mention', 'reply', 'ignore'] },
   rightClickModifier: { label: 'Right-click modifier', choices: ['shift', 'alt', 'ctrl', 'meta'] },
   mentionAt: { label: 'Prefix right-click mentions with @' },
   mentionComma: { label: 'Add comma to right-click mentions' },

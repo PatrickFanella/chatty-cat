@@ -1,3 +1,4 @@
+import { settingHelp } from './help';
 import './settings.css';
 import { PAGES, type CustomSection, type PageId, type SettingDef, type SettingsRegistry } from './registry';
 
@@ -29,6 +30,8 @@ export class SettingsWindow {
   private readonly storageAvailable: boolean;
   private page: PageId = 'general';
   private signature = '';
+  private openedSections = new Map<string, boolean>();
+  private sectionNav: HTMLElement | undefined;
   private readonly onChange = () => this.onRegistryChange();
 
   constructor(registry: SettingsRegistry, options: { storageAvailable: boolean }) {
@@ -103,13 +106,16 @@ export class SettingsWindow {
       this.page = page;
       this.search.value = '';
     }
-    if (!this.root.open) this.root.showModal();
+    if (!this.root.open) {
+      document.dispatchEvent(new Event('settings-opened'));
+      this.root.showModal();
+    }
     this.render();
     if (target.setting) {
       const c = this.controls.get(target.setting);
-      c?.el.focus({ preventScroll: true });
       const row = c?.el.closest<HTMLElement>('.settings-row');
       if (row) this.reveal(row, 'center');
+      c?.el.focus({ preventScroll: true });
     } else if (target.section) {
       const sec = [...this.content.querySelectorAll<HTMLElement>('.settings-section')].find(
         (s) => s.dataset.section === target.section,
@@ -120,6 +126,8 @@ export class SettingsWindow {
 
   /** Scrolls only the page pane; scrollIntoView would also move the dialog and the document behind it. */
   private reveal(el: HTMLElement, block: 'center' | 'start'): void {
+    const details = el.closest<HTMLDetailsElement>('details.settings-section');
+    if (details) details.open = true;
     const box = this.content;
     const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
     box.scrollTop = Math.max(
@@ -169,6 +177,25 @@ export class SettingsWindow {
       else b.removeAttribute('aria-current');
     }
     const groups = this.groups();
+    this.sectionNav?.remove();
+    this.sectionNav = document.createElement('div');
+    this.sectionNav.className = 'settings-subnav';
+    this.sectionNav.setAttribute('aria-label', 'Settings subsections');
+    if (!searching) {
+      for (const group of groups) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = group.section;
+        button.addEventListener('click', () => {
+          const section = [...this.content.querySelectorAll<HTMLElement>('.settings-section')].find(
+            (el) => el.dataset.section === group.section,
+          );
+          if (section) this.reveal(section, 'start');
+        });
+        this.sectionNav.append(button);
+      }
+      this.navButtons.get(this.page)?.after(this.sectionNav);
+    }
     this.signature = this.sig(groups);
     this.controls.clear();
     for (const m of this.mounted.values()) m.host.remove();
@@ -209,12 +236,19 @@ export class SettingsWindow {
   }
 
   private renderSection(g: Group, searching = false): HTMLElement {
-    const sec = document.createElement('section');
+    const sec = document.createElement('details');
     sec.className = 'settings-section';
+    const sectionKey = this.page + ':' + g.section;
+    sec.open = searching || (this.openedSections.get(sectionKey) ?? g.section === this.groups()[0]?.section);
+    sec.addEventListener('toggle', () => {
+      this.openedSections.set(sectionKey, sec.open);
+    });
     sec.dataset.section = g.section;
     const h = document.createElement('h3');
     h.textContent = g.section;
-    sec.append(h);
+    const summary = document.createElement('summary');
+    summary.append(h);
+    sec.append(summary);
     const defs: SettingDef[] = [];
     for (const e of g.entries) {
       if (e.type === 'setting') {
@@ -249,7 +283,15 @@ export class SettingsWindow {
     const label = document.createElement('label');
     label.htmlFor = id;
     label.textContent = def.label;
-    text.append(label);
+    const explanation = settingHelp(def);
+    const help = document.createElement('button');
+    help.type = 'button';
+    help.className = 'settings-help';
+    help.textContent = '?';
+    help.setAttribute('aria-label', 'About ' + def.label);
+    help.dataset.tooltip = explanation;
+    help.title = explanation;
+    text.append(label, help);
     if (def.hint) {
       const hint = document.createElement('p');
       hint.className = 'settings-hint';
@@ -311,6 +353,7 @@ export class SettingsWindow {
       el = i;
     }
     el.id = id;
+    el.dataset.tooltip = explanation;
     const field = document.createElement('div');
     field.className = 'settings-field';
     field.append(el);

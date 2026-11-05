@@ -1,3 +1,4 @@
+import { getPresentation } from './presentation';
 import { getProviderPreferences } from './provider-preferences';
 import { getLinkPreferences } from './link-preferences';
 import { privacyEnabled } from './privacy';
@@ -118,12 +119,12 @@ export class IdentityCards {
       !anchor ||
       privacyEnabled() ||
       (anchor instanceof HTMLImageElement && !getLinkPreferences().emoteTooltip) ||
-      (!(anchor instanceof HTMLImageElement) && !previewMode())
+      (!(anchor instanceof HTMLImageElement) && (!previewMode() || !getPresentation().usercardHover))
     )
       return;
     this.hold();
     if (anchor === this.anchor && !this.root.hidden) return;
-    this.timer = setTimeout(() => void this.open(anchor), 350);
+    this.timer = setTimeout(() => void this.open(anchor), getPresentation().tooltipDelay);
   };
   private leave = (event: Event): void => {
     if (!this.rootValue) return;
@@ -147,7 +148,7 @@ export class IdentityCards {
     if (
       privacyEnabled() ||
       (anchor instanceof HTMLImageElement && !getLinkPreferences().emoteTooltip) ||
-      (!(anchor instanceof HTMLImageElement) && !previewMode())
+      (!(anchor instanceof HTMLImageElement) && (!previewMode() || !getPresentation().usercardHover))
     )
       return;
     this.abort?.abort();

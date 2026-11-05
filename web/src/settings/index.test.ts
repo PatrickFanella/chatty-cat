@@ -171,3 +171,24 @@ it('startup releases retired ids from a saved layout', () => {
   }
   expect(workbench.wantsPanel('stats-panel')).toBe(true);
 });
+
+it('opens Settings with the embedded custom theme editor in its own subsection', async () => {
+  const settings = startSettings(host(), [
+    {
+      id: 'panel:custom-theme',
+      page: 'general',
+      section: 'Custom themes',
+      keywords: 'themes colors',
+      mount: async (el) => {
+        el.textContent = 'Theme editor';
+        return () => {};
+      },
+    },
+  ]);
+  stops.push(() => settings.stop());
+  settings.open({ page: 'general', section: 'Custom themes' });
+  const section = document.querySelector<HTMLDetailsElement>('[data-section="Custom themes"]')!;
+  expect(document.querySelector<HTMLDialogElement>('#settings-window')?.open).toBe(true);
+  expect(section.open).toBe(true);
+  await vi.waitFor(() => expect(section.textContent).toContain('Theme editor'));
+});

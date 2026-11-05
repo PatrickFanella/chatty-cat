@@ -43,3 +43,19 @@ and update the affected committed limits explicitly. Preserve the baseline as
 historical evidence or replace it with a separately measured, documented baseline.
 CI never raises limits automatically. Local build and deliberate-regression checks
 pass; hosted CI and merge remain separate acceptance steps.
+
+## Desktop UI review, November 4, 2026
+
+The desktop interaction and presentation pass adds state-preserving panel moves,
+a draggable chat panel, compact message action controls, shared fast tooltips,
+settings subsections and explanations, and player sign-in controls. The original
+baseline above remains historical evidence. Local production measurements for
+this change are approximately 155 KB JavaScript / 16.1 KB CSS for the main entry,
+and 169 KB JavaScript / 17.5 KB CSS for Settings, at gzip level 9.
+
+The affected main/static-import entry limits increase by 1,024 JavaScript bytes
+and 512 CSS bytes. The browser-companion closure needs 2,048 JavaScript bytes;
+Settings needs 3,072 JavaScript bytes and 1,024 CSS bytes. These are reviewed
+absolute-limit adjustments for the new UI, rather than renewed percentage
+headroom. Overlay and worker limits stay unchanged. The deliberate 20 KiB
+regression test still rejects an oversized main build.

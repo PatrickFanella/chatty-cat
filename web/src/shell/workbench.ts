@@ -27,6 +27,7 @@ export interface WorkbenchOptions {
   exclude: (root: HTMLElement) => boolean;
   /** Elements moved into the centre column, in document order. */
   centre: string;
+  chat?: boolean;
 }
 interface Managed {
   id: string;
@@ -44,6 +45,23 @@ function isOpen(root: HTMLElement): boolean {
 }
 function viewport(): { width: number; height: number } {
   return { width: innerWidth, height: innerHeight };
+}
+// Moving connected panels atomically keeps iframe browsing contexts alive.
+function movePanel(parent: Element, node: Element, before: Element | null = null): void {
+  if (node.parentElement === parent && node.nextElementSibling === before) return;
+  const atomic = parent as Element & { moveBefore?: (node: Element, before: Element | null) => void };
+  if (parent.isConnected && node.isConnected && typeof atomic.moveBefore === 'function')
+    atomic.moveBefore(node, before);
+  else parent.insertBefore(node, before);
+}
+function reconcile(parent: Element, wanted: HTMLElement[]): void {
+  for (const node of [...parent.children])
+    if (!wanted.includes(node as HTMLElement) && node.classList.contains('wb-share')) node.remove();
+  let cursor = parent.firstElementChild;
+  for (const node of wanted) {
+    if (node === cursor) cursor = cursor.nextElementSibling;
+    else movePanel(parent, node, cursor);
+  }
 }
 export class Workbench {
   readonly root = document.createElement('div');
@@ -125,6 +143,12 @@ export class Workbench {
     (first ?? document.body.firstChild)?.before(this.root);
     for (const element of [...document.body.querySelectorAll(options.centre)])
       if (element.parentElement === document.body) this.centre.append(element);
+    if (options.chat) {
+      this.centre.id = 'chat-panel';
+      this.centre.setAttribute('aria-label', 'Chat');
+      const chat = this.manage(this.centre);
+      chat.chrome.querySelector<HTMLButtonElement>('.wb-close')!.hidden = true;
+    }
     this.bundleDispose = registerSettings(
       'workbench',
       () => this.layout,
@@ -135,6 +159,12 @@ export class Workbench {
       },
     );
     window.addEventListener('resize', this.resized);
+    document.addEventListener('pointermove', this.titleMove);
+    document.addEventListener('pointerup', this.titleUp);
+    document.addEventListener('pointercancel', this.titleUp);
+    window.addEventListener('blur', this.cancelPointers);
+    document.addEventListener('keydown', this.cancelKey);
+    this.root.addEventListener('lostpointercapture', this.captureLost);
     this.render();
   }
   /** Adopt each root explicitly after its lazy factory constructs it. */
@@ -325,9 +355,6 @@ export class Workbench {
     menu.addEventListener('click', () => this.openMenu(entry, menu));
     close.addEventListener('click', () => this.closePanel(entry));
     title.addEventListener('pointerdown', (event) => this.titleDown(entry, event));
-    title.addEventListener('pointermove', this.titleMove);
-    title.addEventListener('pointerup', this.titleUp);
-    title.addEventListener('pointercancel', this.titleUp);
     title.addEventListener('keydown', (event) => this.titleKey(entry, event));
     root.addEventListener('wb-reopen', () => {
       if (!this.compact && placementOf(this.layout, entry.id).kind === 'modal') return;
@@ -365,7 +392,11 @@ export class Workbench {
     const items = [
       ...dockItems,
       { label: 'Float', checked: place.kind === 'floating', run: () => this.floatPanel(entry) },
-      { label: 'Open as dialog', checked: place.kind === 'modal', run: () => this.restoreModal(entry) },
+      {
+        label: entry.id === 'chat-panel' ? 'Return to centre' : 'Open as dialog',
+        checked: place.kind === 'modal',
+        run: () => this.restoreModal(entry),
+      },
     ];
     const order =
       place.kind === 'docked'
@@ -385,7 +416,7 @@ export class Workbench {
       [
         { title: 'Placement', items },
         { items: order },
-        { items: [{ label: 'Close', run: () => this.closePanel(entry) }] },
+        { items: entry.id === 'chat-panel' ? [] : [{ label: 'Close', run: () => this.closePanel(entry) }] },
       ],
       { align: 'end', label: 'Panel placement' },
     );
@@ -428,7 +459,7 @@ export class Workbench {
       const size = this.layout.sizes[zone];
       this.root.style.setProperty(
         `--wb-${zone}`,
-        Math.min(size, (zone === 'bottom' ? view.height : view.width) * 0.6) + 'px',
+        Math.min(size, (zone === 'bottom' ? view.height : view.width) * 0.85) + 'px',
       );
     }
     for (const entry of this.managed.values()) {
@@ -436,7 +467,7 @@ export class Workbench {
       entry.wrapper.inert = false;
       entry.wrapper.removeAttribute('role');
       entry.wrapper.removeAttribute('aria-labelledby');
-      if (place.kind === 'modal' && !this.compact) {
+      if ((place.kind === 'modal' && !this.compact) || (entry.id === 'chat-panel' && this.compact)) {
         if (entry.root.dataset.wbPlaced) {
           this.transition++;
           try {
@@ -446,8 +477,10 @@ export class Workbench {
             delete entry.root.dataset.wbRail;
             const home = entry.home;
             if (home.parent.isConnected && (home.next === null || home.next.parentNode === home.parent))
-              home.parent.insertBefore(entry.root, home.next);
-            else document.body.append(entry.root);
+              if (home.parent instanceof Element)
+                movePanel(home.parent, entry.root, home.next instanceof Element ? home.next : null);
+              else home.parent.insertBefore(entry.root, home.next);
+            else movePanel(document.body, entry.root);
             entry.wrapper.remove();
             entry.wrapper.removeAttribute('style');
             if (wasOpen && entry.root instanceof HTMLDialogElement) {
@@ -459,6 +492,7 @@ export class Workbench {
             this.transition--;
           }
         }
+        if (entry.id === 'chat-panel') entry.wrapper.remove();
         entry.chrome.dataset.placement = 'modal';
         continue;
       }
@@ -476,7 +510,8 @@ export class Workbench {
             entry.root.dataset.rail = 'true';
             entry.root.dataset.wbRail = 'true';
           }
-          entry.wrapper.append(entry.root);
+          if (!entry.wrapper.isConnected) document.body.append(entry.wrapper);
+          movePanel(entry.wrapper, entry.root);
           if (dialog && !dialog.open && (modal || (place.kind !== 'modal' && !this.layout.closed.includes(entry.id))))
             dialog.show();
         } finally {
@@ -488,7 +523,7 @@ export class Workbench {
       entry.wrapper.dataset.placement = this.compact ? 'sheet' : place.kind;
       if (this.compact) {
         entry.wrapper.removeAttribute('style');
-        this.sheetBody.append(entry.wrapper);
+        if (entry.wrapper.parentElement !== this.sheetBody) movePanel(this.sheetBody, entry.wrapper);
         continue;
       }
       if (place.kind === 'floating') {
@@ -498,7 +533,7 @@ export class Workbench {
         entry.wrapper.style.width = box.width + 'px';
         entry.wrapper.style.height = box.height + 'px';
         entry.wrapper.style.flex = '';
-        if (entry.wrapper.parentElement !== document.body) document.body.append(entry.wrapper);
+        if (entry.wrapper.parentElement !== document.body) movePanel(document.body, entry.wrapper);
       } else if (place.kind === 'docked') {
         entry.wrapper.style.left = '';
         entry.wrapper.style.top = '';
@@ -513,7 +548,10 @@ export class Workbench {
       const wanted: HTMLElement[] = [];
       ids.forEach((id, index) => {
         if (index > 0) {
-          const share = document.createElement('div');
+          const share =
+            [...element.querySelectorAll<HTMLElement>(':scope > .wb-share')].find(
+              (node) => node.dataset.prev === ids[index - 1] && node.dataset.next === id,
+            ) ?? document.createElement('div');
           share.className = 'wb-share';
           share.tabIndex = 0;
           share.setAttribute('role', 'separator');
@@ -531,8 +569,9 @@ export class Workbench {
         }
         wanted.push(this.managed.get(id)!.wrapper);
       });
-      element.replaceChildren(...wanted);
+      reconcile(element, wanted);
     }
+    this.row.dataset.chatPlaced = String(!!this.options.chat && this.centre.parentElement !== this.row);
     this.syncZones();
     if (typeof ResizeObserver !== 'undefined') this.observeFloating();
   }
@@ -554,7 +593,9 @@ export class Workbench {
   }
   private syncSheet(): void {
     const open = this.compact
-      ? [...this.managed.values()].filter((entry) => isOpen(entry.root) && !this.layout.closed.includes(entry.id))
+      ? [...this.managed.values()].filter(
+          (entry) => entry.id !== 'chat-panel' && isOpen(entry.root) && !this.layout.closed.includes(entry.id),
+        )
       : [];
     this.sheet.hidden = !open.length;
     if (!open.some((entry) => entry.id === this.activeSheet)) this.activeSheet = open[0]?.id;
@@ -635,7 +676,7 @@ export class Workbench {
     event.preventDefault();
     this.drag = { id: event.pointerId, managed: entry, startX: event.clientX, startY: event.clientY, active: false };
     try {
-      entry.title.setPointerCapture(event.pointerId);
+      this.root.setPointerCapture(event.pointerId);
     } catch {
       /* unsupported */
     }
@@ -698,6 +739,12 @@ export class Workbench {
     const drag = this.drag;
     if (!drag || drag.id !== event.pointerId) return;
     this.drag = undefined;
+    if (event.type === 'pointercancel') drag.target = undefined;
+    try {
+      if (this.root.hasPointerCapture(event.pointerId)) this.root.releasePointerCapture(event.pointerId);
+    } catch {
+      /* capture may already be lost */
+    }
     delete this.root.dataset.dragging;
     delete this.root.dataset.drop;
     document.body.classList.remove('wb-dragging');
@@ -724,10 +771,25 @@ export class Workbench {
     }
     drag.managed.title.focus({ preventScroll: true });
   };
+  private captureLost = (event: PointerEvent): void => {
+    if (event.pointerId === this.drag?.id) this.cancelPointers();
+  };
+  private cancelPointers = (): void => {
+    if (this.drag) this.titleUp(new PointerEvent('pointercancel', { pointerId: this.drag.id }));
+    this.zoneDrag = undefined;
+    this.shareDrag = undefined;
+    document.body.classList.remove('wb-dragging', 'wb-resizing');
+  };
+  private cancelKey = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape' && this.drag) {
+      event.preventDefault();
+      this.cancelPointers();
+    }
+  };
   private dropTarget(x: number, y: number, self: string): { zone: ZoneName; index: number } | undefined {
     const edge = 40;
-    const centre = this.centre.getBoundingClientRect();
     const row = this.row.getBoundingClientRect();
+    const centre = row;
     for (const zone of ZONES) {
       const element = this.zones[zone];
       if (element.hidden) continue;
@@ -782,7 +844,8 @@ export class Workbench {
     }
     if (event.key === 'Escape' && place.kind !== 'modal') {
       event.preventDefault();
-      this.closePanel(entry);
+      if (entry.id === 'chat-panel') this.restoreModal(entry);
+      else this.closePanel(entry);
     }
   }
   // Zone splitters.
@@ -879,6 +942,13 @@ export class Workbench {
     this.apply(setShares(this.layout, zone, { [prev]: ratio * total, [next]: (1 - ratio) * total }));
   };
   stop(): void {
+    this.cancelPointers();
+    document.removeEventListener('pointermove', this.titleMove);
+    document.removeEventListener('pointerup', this.titleUp);
+    document.removeEventListener('pointercancel', this.titleUp);
+    this.root.removeEventListener('lostpointercapture', this.captureLost);
+    document.removeEventListener('keydown', this.cancelKey);
+    window.removeEventListener('blur', this.cancelPointers);
     this.layoutListeners.clear();
     this.bundleDispose();
     for (const observer of this.visibilityObservers) observer.disconnect();

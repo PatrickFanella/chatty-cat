@@ -16,7 +16,7 @@ function setup() {
   const root = document.createElement('section');
   root.hidden = true;
   root.innerHTML =
-    '<button id="video-handle"></button><button id="video-pin"></button><button id="video-dock"></button><button id="video-close"></button><select id="video-channel"></select><a id="video-external"></a><div id="video-status"></div><div id="video-player"></div>';
+    '<div class="video-controls"></div><button id="video-handle"></button><button id="video-pin"></button><button id="video-dock"></button><button id="video-close"></button><select id="video-channel"></select><a id="video-external"></a><div id="video-status"></div><div id="video-player"></div>';
   const trigger = document.createElement('button');
   document.body.append(trigger);
   panel = new VideoPanel(root, trigger, ['one', 'two']);
@@ -144,4 +144,16 @@ it('unloads the hidden Twitch player in privacy mode and restores without autopl
   document.dispatchEvent(new Event('privacychange'));
   const frame = root.querySelector('iframe')!;
   expect(new URL(frame.src).searchParams.get('autoplay')).toBe('false');
+});
+
+it('offers official player sign-in and reloads only when refresh is selected', () => {
+  const { root, trigger } = setup();
+  trigger.click();
+  const frame = root.querySelector('iframe');
+  const login = root.querySelector<HTMLAnchorElement>('a[href="https://www.twitch.tv/login"]')!;
+  expect(login.target).toBe('_blank');
+  panel!.open();
+  expect(root.querySelector('iframe')).toBe(frame);
+  root.querySelector<HTMLButtonElement>('[aria-label="Refresh video player"]')!.click();
+  expect(root.querySelector('iframe')).not.toBe(frame);
 });

@@ -23,6 +23,7 @@ export const PAGES: readonly PageDef[] = [
     title: 'General',
     sections: [
       'Appearance',
+      'Custom themes',
       'Font',
       'Messages',
       'Emotes',
