@@ -1,4 +1,4 @@
-import { getPresentation } from './presentation';
+import { formatTimestamp, getPresentation } from './presentation';
 import { getProviderPreferences } from './provider-preferences';
 import { getLinkPreferences } from './link-preferences';
 import { privacyEnabled } from './privacy';
@@ -75,6 +75,8 @@ export class IdentityCards {
       this.rootValue = root;
       root.addEventListener('pointerenter', this.hold);
       root.addEventListener('pointerleave', this.leave);
+      root.addEventListener('focusin', this.hold);
+      root.addEventListener('focusout', this.leave);
       root.addEventListener('click', this.click);
     }
     return this.rootValue;
@@ -128,7 +130,6 @@ export class IdentityCards {
   };
   private leave = (event: Event): void => {
     if (!this.rootValue) return;
-    if (this.root.contains(document.activeElement) && document.activeElement?.matches('textarea,input')) return;
     if (
       event instanceof PointerEvent &&
       event.relatedTarget instanceof Node &&
@@ -136,7 +137,14 @@ export class IdentityCards {
     )
       return;
     this.hold();
-    this.timer = setTimeout(this.close, 500);
+    this.timer = setTimeout(() => {
+      if (
+        this.root.contains(document.activeElement) &&
+        document.activeElement?.matches('textarea,input,.identity-history')
+      )
+        return;
+      this.close();
+    }, 500);
   };
   private position(): void {
     if (!this.anchor) return;
@@ -198,12 +206,7 @@ export class IdentityCards {
     name.textContent = anchor.textContent || login;
     name.style.color = readableColor('', document.documentElement.dataset.theme === 'light');
     this.root.append(name);
-    const count = this.messages().filter(
-      (message) => message.login.toLowerCase() === login && message.command === 'PRIVMSG',
-    ).length;
-    const retained = document.createElement('p');
-    retained.textContent = count.toLocaleString() + ' retained messages';
-    this.root.append(retained);
+    this.root.append(this.recentMessages(login, row?.dataset.channel || ''));
     const pronounLine = document.createElement('p');
     this.root.append(pronounLine);
     void this.pronouns(login).then((label) => {
@@ -277,6 +280,49 @@ export class IdentityCards {
       }
     }
   }
+  private recentMessages(login: string, channel: string): HTMLElement {
+    const section = document.createElement('section');
+    const heading = document.createElement('h3');
+    heading.className = 'identity-history-heading';
+    heading.textContent = 'Recent messages' + (channel ? ' · #' + channel : '');
+    const history = document.createElement('div');
+    history.className = 'identity-history';
+    history.tabIndex = 0;
+    history.setAttribute('role', 'region');
+    history.setAttribute(
+      'aria-label',
+      `Recent messages from ${login}${channel ? ' in #' + channel : ''}, newest first`,
+    );
+    const list = document.createElement('ol');
+    const deleted = new Set<string>();
+    let cleared = -1;
+    const messages = this.messages();
+    for (let i = messages.length - 1; i >= 0 && list.childElementCount < 50; i--) {
+      const message = messages[i]!;
+      if (message.channel !== channel) continue;
+      if (message.command === 'CLEARMSG') deleted.add(message.tags['target-msg-id'] || '');
+      if (message.command === 'CLEARCHAT' && (!message.text || message.text.toLowerCase() === login))
+        cleared = Math.max(cleared, message.timestamp);
+      if (message.command !== 'PRIVMSG' || message.login.toLowerCase() !== login) continue;
+      const removed =
+        deleted.has(message.id) || message.timestamp <= cleared || ['1', 'true'].includes(message.tags.deleted || '');
+      if (removed && getPresentation().hideModerated) continue;
+      const item = document.createElement('li');
+      const time = document.createElement('time');
+      const date = new Date(message.timestamp);
+      time.dateTime = date.toISOString();
+      time.textContent = formatTimestamp(date, 'HH:mm:ss');
+      time.title = date.toLocaleString();
+      const text = document.createElement('span');
+      text.textContent = removed ? '[removed message]' : message.text;
+      item.append(time, text);
+      list.append(item);
+    }
+    if (list.childElementCount) history.append(list);
+    else history.textContent = 'No messages retained for this user in this channel.';
+    section.append(heading, history);
+    return section;
+  }
   private click = (event: MouseEvent): void => {
     if (event.target instanceof Element && event.target.closest('[data-close-identity]')) this.close();
   };
@@ -304,6 +350,8 @@ export class IdentityCards {
     this.surface.removeEventListener('pointerout', this.leave);
     this.rootValue?.removeEventListener('pointerenter', this.hold);
     this.rootValue?.removeEventListener('pointerleave', this.leave);
+    this.rootValue?.removeEventListener('focusin', this.hold);
+    this.rootValue?.removeEventListener('focusout', this.leave);
     this.rootValue?.removeEventListener('click', this.click);
     document.removeEventListener('keydown', this.key);
     document.removeEventListener('previewsettings', this.close);

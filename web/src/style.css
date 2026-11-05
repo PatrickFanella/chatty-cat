@@ -2269,3 +2269,47 @@ dialog[aria-label='Browser companion'] label select {
   display: block;
   max-width: 100%;
 }
+
+#identity-preview .identity-history-heading {
+  font-size: 12px;
+  margin: 12px 0 6px;
+  color: var(--muted);
+}
+#identity-preview .identity-history {
+  max-height: min(280px, 38dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#identity-preview .identity-history ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+#identity-preview .identity-history li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  padding-block: 6px;
+}
+#identity-preview .identity-history li + li {
+  border-top: 1px solid var(--line);
+}
+#identity-preview .identity-history time {
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+#identity-preview .identity-history li > span {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#identity-preview .identity-history:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

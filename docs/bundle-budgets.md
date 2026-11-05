@@ -59,3 +59,8 @@ Settings needs 3,072 JavaScript bytes and 1,024 CSS bytes. These are reviewed
 absolute-limit adjustments for the new UI, rather than renewed percentage
 headroom. Overlay and worker limits stay unchanged. The deliberate 20 KiB
 regression test still rejects an oversized main build.
+
+The subsequent hover-usercard history adds a bounded, scrollable list of retained
+messages. Its shared code also appears in the Settings and Video import closures;
+only those JavaScript limits increase by a further 256 bytes each. All other
+limits, including CSS, remain at the values established by the desktop UI pass.
