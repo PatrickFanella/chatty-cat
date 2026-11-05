@@ -50,7 +50,7 @@ it('selects/remembers/forgets public IDs without extension requests or saved pai
   const select = panel!.root.querySelector<HTMLSelectElement>('[aria-label="Registered browser companion"]')!;
   select.value = 'b'.repeat(32);
   select.dispatchEvent(new Event('change', { bubbles: true }));
-  expect(input('Installed Chromium extension ID').value).toBe('b'.repeat(32));
+  expect(input('Installed browser companion ID').value).toBe('b'.repeat(32));
   expect(input('Browser companion local name').value).toBe('Second');
   expect(requests).not.toHaveBeenCalled();
   input('Browser companion pairing code').value = 'd'.repeat(64);
@@ -81,7 +81,7 @@ it('keeps one active companion, locks switching while paired and clears registry
   );
   select.value = 'b'.repeat(32);
   select.dispatchEvent(new Event('change'));
-  expect(input('Installed Chromium extension ID').value).toBe('a'.repeat(32));
+  expect(input('Installed browser companion ID').value).toBe('a'.repeat(32));
   expect(requests.mock.calls.every((c) => c[0] === 'a'.repeat(32))).toBe(true);
   button('Return to chat; keep browser bridge connected').click();
   await vi.waitFor(() => expect(panel!.root.open).toBe(false));
@@ -92,7 +92,7 @@ it('keeps one active companion, locks switching while paired and clears registry
   setProfileScope('43');
   panel!.authChanged();
   expect(select.options).toHaveLength(0);
-  expect(input('Installed Chromium extension ID').value).toBe('');
+  expect(input('Installed browser companion ID').value).toBe('');
   expect(input('Browser companion local name').value).toBe('');
   expect(new BrowserCompanionRegistry('43').all()).toEqual([]);
 });

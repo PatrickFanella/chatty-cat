@@ -47,9 +47,9 @@ export class BrowserCompanionPanel implements Panel {
     h.textContent = 'Watched-channel browser companion';
     const help = document.createElement('p');
     help.textContent =
-      'Pair the installed Chromium companion with its extension ID and one-use code. Send watched channel stages a channel for review here. With companion 0.1.3 or newer, pairing resumes in this tab after a reload or a confirmed workspace opening. Closing the tab, account/session change, privacy, unpair or removal disconnects. No Twitch cookies/tokens or private messages are shared.';
-    this.extension.setAttribute('aria-label', 'Installed Chromium extension ID');
-    this.extension.maxLength = 32;
+      'Pair the installed Chromium or Firefox companion with its extension ID and one-use code. Send watched channel stages a channel for review here. With companion 0.1.3 or newer, pairing resumes in this tab after a reload or a confirmed workspace opening. Closing the tab, account/session change, privacy, unpair or removal disconnects. No Twitch cookies/tokens or private messages are shared.';
+    this.extension.setAttribute('aria-label', 'Installed browser companion ID');
+    this.extension.maxLength = 80;
     this.code.type = 'password';
     this.code.maxLength = 64;
     this.code.autocomplete = 'off';
@@ -99,7 +99,7 @@ export class BrowserCompanionPanel implements Panel {
         this.clearReview();
         this.status.textContent = 'Companion ID forgotten locally; no extension was uninstalled';
       }),
-      field('Installed Chromium extension ID', this.extension),
+      field('Installed browser companion ID', this.extension),
       field('One-use pairing code', this.code),
       this.button('Pair browser companion', async () => {
         await this.client.pair(this.extension.value.trim(), this.code.value.trim());

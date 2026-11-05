@@ -1,10 +1,11 @@
+import { validBrowserCompanionID } from './browser-companion-id';
 import { getProfileScope, profileKey } from './account-profiles';
 export interface RegisteredBrowserCompanion {
   id: string;
   name: string;
 }
 const key = 'chatthing:v1:browser-companions';
-const validID = (id: string) => /^[a-p]{32}$/.test(id);
+const validID = validBrowserCompanionID;
 function parse(value: unknown): RegisteredBrowserCompanion[] {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('Invalid saved browser companion registry; existing data retained');
@@ -76,7 +77,7 @@ export class BrowserCompanionRegistry {
   }
   remember(id: string, name: string): void {
     if (!validID(id) || !name.trim() || name.trim().length > 64 || /[\x00-\x1f\x7f]/.test(name))
-      throw new Error('Use a Chromium extension ID and a name of 1–64 characters');
+      throw new Error('Use a compatible companion ID and a name of 1–64 characters');
     const rows = this.all(),
       index = rows.findIndex((r) => r.id === id);
     const row = { id, name: name.trim() };

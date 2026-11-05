@@ -1,16 +1,54 @@
 # Watched-channel browser companion (#36)
 
-The optional Chromium Manifest V3 extension in `companion/browser` reads the active Twitch tab URL only after **Send watched channel**. It stages a validated channel login in a paired Chatty Cat tab. The web app then requires a destination review and **Open reviewed channel**; pairing, polling and receiving a channel do not change local workspaces.
+The optional Chromium and Firefox Manifest V3 companion in `companion/browser` reads the active Twitch tab URL only after **Send watched channel**. It stages a validated channel login in a paired Chatty Cat tab. The web app then requires a destination review and **Open reviewed channel**; pairing, polling and receiving a channel do not change local workspaces.
 
 ## Install and pair
 
-Open the browser's extension manager, enable developer mode and load `companion/browser` unpacked. The extension requests `activeTab` and `storage` only. It has no content scripts, persistent Twitch host permission, cookie access or native-messaging permission. Its externally-connectable allowlist is `https://chat.subcult.tv/*`; the protocol additionally accepts only that exact origin, the top-level app root and the paired tab. See Chrome's [external messaging](https://developer.chrome.com/docs/extensions/develop/concepts/messaging) and [activeTab permission](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab).
+Open the browser's extension manager, enable developer mode and load `companion/browser` unpacked. The Chromium extension requests `activeTab` and `storage` only. It has no content scripts, persistent Twitch host permission, cookie access or native-messaging permission. Its externally-connectable allowlist is `https://chat.subcult.tv/*`; the protocol additionally accepts only that exact origin, the top-level app root and the paired tab. See Chrome's [external messaging](https://developer.chrome.com/docs/extensions/develop/concepts/messaging) and [activeTab permission](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab).
+
+
+### Firefox
+
+Download `chatty-cat-firefox-unsigned.xpi` from the latest
+[desktop release](https://git.subcult.tv/subculture-collective/chatty-cat/releases),
+or build a Firefox package from the repository root:
+
+```sh
+python3 scripts/package-browser-companion.py --browser firefox /tmp/chatty-cat-firefox.xpi
+```
+
+For a temporary installation in Firefox 142 or newer, open
+`about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on…**, and
+select the XPI. Firefox removes temporary add-ons when it closes. A permanent
+installation in regular Firefox requires Mozilla signing; this package is
+unsigned and has not been submitted to addons.mozilla.org. Mozilla's signing
+process is separate from Apple's developer program.
+
+Allow the add-on access to `https://chat.subcult.tv` when Firefox asks. Open or
+reload Chatty Cat in Firefox after installation. Use the popup's fixed ID,
+`chatty-cat-companion@subcult.tv`, and a fresh pairing code in the app's
+**Installed browser companion ID** field. The app must include the Firefox
+bridge update. Pair, send and review follow the same steps as Chromium.
+
+Firefox does not support webpage `runtime.sendMessage` through
+[`externally_connectable`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/externally_connectable),
+so this package uses a content script restricted to
+the top-level app root at `https://chat.subcult.tv/`. It relays explicit protocol
+messages to the background page, which checks Firefox's real sender URL, frame
+and tab before applying the existing pairing checks. It does not inject into
+Twitch pages or read their DOM. The active Twitch URL is read only after the
+popup's Send action. The manifest declares browsing-activity transmission
+because the selected channel is sent to the paired app; no Twitch cookies,
+OAuth credentials or private messages are forwarded.
+
+The browser companion pairs with a web tab in the same browser. It does not
+connect Firefox to the separate Electron desktop app or to localhost.
 
 In the extension popup, **Generate new pairing code (unpairs)** displays its extension ID and a five-minute one-use code. In the signed-in app's **Browser companion** panel, enter both and pair. No app CSRF value, OAuth secret, workspace record, private message or embedded-player identity is forwarded. A capability and account ID bind one app tab. The pairing capability stays in extension session storage and the app page's memory; it is not synced or stored in app profiles. The extension's session storage uses its default restriction to trusted extension contexts.
 
 The app can optionally remember up to eight compatible extension IDs by a local name for the current signed-in account. **Remember browser companion ID** saves only the ID/name; selecting a saved record fills the ID/name fields and clears the temporary code. Manual ID entry remains available. Registration, selection and forgetting make no extension request, install nothing and grant no permission. The registry is account-local, bounded to 4 KiB and excluded from workspace export and device sync. Codes, capabilities and app authentication data are never saved in it.
 
-One bridge remains active at a time. Identity/registry fields lock while pairing or paired; unpair before choosing or editing another companion. Reopening an active bridge retains its selected ID. Account/session changes and privacy clear registry controls as well as pairing; saved records remain in their own account store. Stale edits/selections report another-tab changes and retain that tab's data. Unreadable or invalid records remain untouched, and the manual pairing flow remains available. A saved ID must still belong to an installed compatible Chromium companion and requires its fresh one-use code.
+One bridge remains active at a time. Identity/registry fields lock while pairing or paired; unpair before choosing or editing another companion. Reopening an active bridge retains its selected ID. Account/session changes and privacy clear registry controls as well as pairing; saved records remain in their own account store. Stale edits/selections report another-tab changes and retain that tab's data. Unreadable or invalid records remain untouched, and the manual pairing flow remains available. A saved ID must still belong to an installed compatible Chromium or Firefox companion and requires its fresh one-use code.
 
 Choose a saved destination workspace. Switching away from the active workspace is off until **Allow switching to the selected workspace** is checked. Pair and use **Return to chat; keep browser bridge connected** to keep the app's five-second poll alive. Ordinary close disconnects. Pairing expires after eight hours, or if the app heartbeat is absent for two minutes. The heartbeat lease allows minute-long background timer delays with scheduling margin; popup sends do not renew it. Account/session change, privacy, explicit unpair, tab removal and detected extension removal clear the bridge. With companion 0.1.3 a reload of the paired tab resumes it (see below); with an older companion a reload still disconnects. Revocation on page teardown is best effort; the heartbeat expiry is the fallback. A frozen or discarded app tab can still lose pairing.
 
@@ -29,9 +67,8 @@ Regression tests exercise the actual extension protocol and web controller/UI: e
 The automated browser-runtime fixture is synthetic. The installed-extension
 owner checks below are separate evidence. The owner reached delivery and review
 with 0.1.1; its confirmation reload ended pairing. PR #193's deployed handoff
-addresses that reload path with companion 0.1.2. Firefox and Safari are
-unavailable for this initial `externally_connectable` adaptation; no cross-browser
-claim is made. Installing an extension does not make the embedded Twitch player
+addresses that reload path with companion 0.1.2. Firefox 0.1.4 uses the restricted
+content-script relay described above. Safari remains unsupported. Installing an extension does not make the embedded Twitch player
 share the app's OAuth account. Chat and native playback work without the extension.
 
 ### Owner acceptance, October 25, 2026
@@ -62,6 +99,23 @@ Keep #36 open for these remaining installed-browser checks:
 Re-pairing after an intentional unpair, logout or removal is expected. No
 passwords, pairing codes, capabilities or private message bodies belong in the
 acceptance record. Record the observed result and browser/version when available.
+
+### Firefox 0.1.4 verification
+
+On November 4, 2026, an unsigned temporary install in Firefox 153.6.0 ESR on
+Dozor passed a native extension round trip: the real popup generated a pairing
+code, the content-script relay paired the app tab, the popup staged `#hasanabi`
+from an active Twitch tab, the app page received it, and explicit unpair succeeded.
+The test used synthetic account 42 and direct protocol messages on the real app
+origin; it did not authenticate to Twitch or apply a workspace change. It does
+not establish Mozilla signing or owner acceptance in an updated signed-in UI.
+
+`web-ext` 10.8.0 reported zero errors, warnings and notices. The frontend suite
+passed 1,041 tests with a 15-second local timeout; the unchanged whispers render
+test exceeds the default five-second limit on Dozor. The production build and
+bundle-budget checks passed. Tests cover the Firefox relay's origin/frame/ID
+checks, popup-only actions, pairing and receipt, plus the existing Chromium
+lifecycle and review checks.
 
 ### Synthetic regression evidence
 

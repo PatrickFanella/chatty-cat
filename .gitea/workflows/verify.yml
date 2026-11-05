@@ -40,7 +40,11 @@ jobs:
           node --check companion/browser/core.js
           node --check companion/browser/background.js
           node --check companion/browser/popup.js
+          node --check companion/browser/firefox-content.js
           python3 scripts/package-browser-companion.py /tmp/chatty-browser-companion.zip
+          python3 scripts/package-browser-companion.py --browser firefox /tmp/chatty-firefox-companion.xpi
+          python3 -m zipfile -e /tmp/chatty-firefox-companion.xpi /tmp/chatty-firefox-companion
+          npx --yes web-ext@10.8.0 lint --source-dir /tmp/chatty-firefox-companion --warnings-as-errors
   deploy:
     name: Deploy to production
     needs: [go, web]

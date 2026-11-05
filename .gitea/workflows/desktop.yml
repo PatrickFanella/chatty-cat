@@ -17,6 +17,7 @@ on:
       - 'LICENSE'
       - 'scripts/build-release.py'
       - 'scripts/build-desktop.py'
+      - 'scripts/package-browser-companion.py'
       - '.gitea/workflows/desktop.yml'
   pull_request:
     paths:
@@ -32,6 +33,7 @@ on:
       - 'LICENSE'
       - 'scripts/build-release.py'
       - 'scripts/build-desktop.py'
+      - 'scripts/package-browser-companion.py'
       - '.gitea/workflows/desktop.yml'
   workflow_dispatch:
 jobs:
@@ -103,9 +105,27 @@ jobs:
             desktop/dist/*.zip
             desktop/dist/smoke-mac.png
           if-no-files-found: error
+  browser:
+    name: Browser companions
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Package Chromium and unsigned Firefox companions
+        run: |
+          mkdir browser-dist
+          python3 scripts/package-browser-companion.py browser-dist/chatty-cat-chromium.zip
+          python3 scripts/package-browser-companion.py --browser firefox browser-dist/chatty-cat-firefox-unsigned.xpi
+      - uses: https://github.com/actions/upload-artifact@c6a3b2bd78b3985e4b2f15397fec357f0fd808de # v3.2.2-node20
+        with:
+          name: browser-companions
+          path: browser-dist/*
+          if-no-files-found: error
   publish:
     name: Publish release
-    needs: [linux, mac]
+    needs: [linux, mac, browser]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -146,6 +166,9 @@ jobs:
                   '`xattr -dr com.apple.quarantine "/Applications/Chatty Cat.app"`.\n'
                   '- **Linux (x86-64):** install the .deb, or run the AppImage. The AppImage needs FUSE '
                   '(`libfuse2`); without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.\n\n'
+                  '- **Browser companion:** load the Chromium zip unpacked. The Firefox XPI is unsigned; '
+                  'load it temporarily from `about:debugging#/runtime/this-firefox` in Firefox 142 or newer. '
+                  'Permanent Firefox installation needs Mozilla signing.\n\n'
                   'SHA256SUMS lists the checksum of each file.'),
           }))
           EOF
