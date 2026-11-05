@@ -1,3 +1,4 @@
+import { validBrowserCompanionID } from './browser-companion-id';
 // Only an explicitly confirmed workspace navigation may carry a short-lived,
 // one-use handoff in this tab. Pairing tokens and OAuth/CSRF values stay out.
 const key = 'chatthing:v1:browser-companion-handoff';
@@ -29,7 +30,7 @@ export function readBrowserHandoff(): BrowserHandoff | undefined {
       typeof v.code !== 'string' ||
       typeof v.session !== 'string' ||
       typeof v.workspace !== 'string' ||
-      !/^[a-p]{32}$/.test(v.extension) ||
+      !validBrowserCompanionID(v.extension) ||
       !/^[1-9][0-9]{0,19}$/.test(v.account) ||
       !/^[a-f0-9]{64}$/.test(v.code) ||
       !/^[a-f0-9]{64}$/.test(v.session) ||
@@ -78,7 +79,7 @@ export function readBrowserReload(): BrowserReload | undefined {
       typeof v.account !== 'string' ||
       typeof v.code !== 'string' ||
       typeof v.session !== 'string' ||
-      !/^[a-p]{32}$/.test(v.extension) ||
+      !validBrowserCompanionID(v.extension) ||
       !/^[1-9][0-9]{0,19}$/.test(v.account) ||
       !/^[a-f0-9]{64}$/.test(v.code) ||
       !/^[a-f0-9]{64}$/.test(v.session)

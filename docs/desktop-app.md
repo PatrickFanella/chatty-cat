@@ -30,6 +30,7 @@ publishes a Gitea release tagged `desktop-<commit>` with these files and a
 | --- | --- |
 | Linux x86-64 | `.deb` and `.AppImage` |
 | macOS, Apple Silicon | `.dmg` and `.zip` |
+| Browser companions | Chromium `.zip` and unsigned Firefox `.xpi` |
 
 Intel Macs, Linux on ARM and Windows have no build. While the repository is
 private, downloading a release needs a Gitea sign-in.

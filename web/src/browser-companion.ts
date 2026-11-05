@@ -1,3 +1,4 @@
+import { validBrowserCompanionID, FIREFOX_COMPANION_ID } from './browser-companion-id';
 import type { AuthStatus } from './auth';
 import { getProfileScope } from './account-profiles';
 import { privacyEnabled } from './privacy';
@@ -62,9 +63,10 @@ export class BrowserCompanion {
     return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
   }
   private async message(extension: string, message: unknown): Promise<unknown> {
-    if (!/^[a-p]{32}$/.test(extension)) throw new Error('Enter the installed Chromium extension ID');
+    if (!validBrowserCompanionID(extension)) throw new Error('Enter the installed Chromium or Firefox companion ID');
+    if (extension === FIREFOX_COMPANION_ID) return this.firefoxMessage(message);
     const api = runtime();
-    if (!api?.sendMessage) throw new Error('Install the Chromium companion; this browser exposes no extension bridge');
+    if (!api?.sendMessage) throw new Error('Install the browser companion; this browser exposes no extension bridge');
     return new Promise((resolve, reject) => {
       let finished = false;
       const timeout = window.setTimeout(() => {
@@ -95,6 +97,50 @@ export class BrowserCompanion {
         clearTimeout(timeout);
         reject(new Error('Browser companion unavailable'));
       }
+    });
+  }
+  private firefoxMessage(payload: unknown): Promise<unknown> {
+    if (location.origin !== 'https://chat.subcult.tv' || window.top !== window)
+      throw new Error('Use Firefox companion with the top-level chat.subcult.tv app');
+    const request = randomCode();
+    return new Promise((resolve, reject) => {
+      const cleanup = (): void => {
+        window.removeEventListener('message', receive);
+        clearTimeout(timeout);
+      };
+      const receive = (event: MessageEvent): void => {
+        const data: unknown = event.data;
+        if (
+          event.source !== window ||
+          event.origin !== location.origin ||
+          !record(data) ||
+          data.bridge !== 'chatty-cat-companion' ||
+          data.direction !== 'response' ||
+          data.extension !== FIREFOX_COMPANION_ID ||
+          data.request !== request
+        )
+          return;
+        cleanup();
+        const value = data.value;
+        if (!record(value) || value.ok !== true || value.version !== 1) {
+          reject(
+            new Error(
+              record(value) && typeof value.error === 'string'
+                ? value.error.slice(0, 200)
+                : 'Invalid Firefox companion response',
+            ),
+          );
+        } else resolve(value);
+      };
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        reject(new Error('Firefox companion timed out; install it and allow access to chat.subcult.tv'));
+      }, 5000);
+      window.addEventListener('message', receive);
+      window.postMessage(
+        { bridge: 'chatty-cat-companion', direction: 'request', extension: FIREFOX_COMPANION_ID, request, payload },
+        location.origin,
+      );
     });
   }
   async pair(extension: string, code: string): Promise<void> {

@@ -89,7 +89,7 @@ it('requires a reviewed destination; opening/pairing/polling cannot mutate a wor
   );
   panel!.open();
   expect(f.sendMessage).not.toHaveBeenCalled();
-  (document.querySelector('[aria-label="Installed Chromium extension ID"]') as HTMLInputElement).value = 'a'.repeat(32);
+  (document.querySelector('[aria-label="Installed browser companion ID"]') as HTMLInputElement).value = 'a'.repeat(32);
   (document.querySelector('[aria-label="Browser companion pairing code"]') as HTMLInputElement).value = f.code;
   // Stage a watched channel immediately after pairing, before the first poll.
   const original = f.sendMessage.getMockImplementation()!;
@@ -263,7 +263,7 @@ it('rechecks the reviewed destination after an asynchronous handoff and cancels 
     apply,
   );
   panel.open();
-  (panel.root.querySelector('[aria-label="Installed Chromium extension ID"]') as HTMLInputElement).value = 'a'.repeat(
+  (panel.root.querySelector('[aria-label="Installed browser companion ID"]') as HTMLInputElement).value = 'a'.repeat(
     32,
   );
   (panel.root.querySelector('[aria-label="Browser companion pairing code"]') as HTMLInputElement).value = f.code;

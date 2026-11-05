@@ -49,7 +49,7 @@ else {
   const current = state();
   const code = pairingCode(current);
   save(current);
-  panel.root.querySelector('[aria-label="Installed Chromium extension ID"]').value = 'a'.repeat(32);
+  panel.root.querySelector('[aria-label="Installed browser companion ID"]').value = 'a'.repeat(32);
   panel.root.querySelector('[aria-label="Browser companion pairing code"]').value = code;
 }
 panel.open();
