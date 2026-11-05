@@ -100,6 +100,14 @@ export function messageText(
     document.documentElement.dataset.theme === 'light',
     /^[1-9][0-9]*$/.test(message.tags.bits ?? ''),
   );
+  const recipient = message.tags['reply-parent-user-login'] || message.tags['reply-parent-display-name'];
+  if (getPresentation().hideReplyUsername && recipient && tokens[0]?.type === 'text') {
+    const escaped = recipient.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    tokens[0] = {
+      ...tokens[0],
+      text: tokens[0].text.replace(new RegExp('^\\s*@?' + escaped + '(?:[, :]+|$)', 'i'), ''),
+    };
+  }
   if (getProviderPreferences().stackBits)
     tokens = stackCheerTokens(tokens, Number(message.tags.bits), document.documentElement.dataset.theme === 'light');
   let stack: HTMLElement | null = null;
@@ -393,6 +401,32 @@ export function messageRow(
     bookmark.setAttribute('aria-label', 'Bookmark this public message');
     row.append(bookmark);
   }
+  const actions = document.createElement('div');
+  actions.className = 'message-actions';
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', 'Message actions');
+  for (const button of row.querySelectorAll<HTMLButtonElement>(
+    ':scope > .thread-open, :scope > .reply, :scope > .permalink, :scope > .bookmark-message',
+  )) {
+    const label = document.createElement('span');
+    label.className = 'message-action-label';
+    label.textContent = button.textContent;
+    const icon = document.createElement('span');
+    icon.className = 'message-action-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = button.classList.contains('thread-open')
+      ? '☷'
+      : button.classList.contains('reply')
+        ? '↩'
+        : button.classList.contains('permalink')
+          ? '↗'
+          : '☆';
+    button.title = button.getAttribute('aria-label') || button.textContent || '';
+    if (!button.hasAttribute('aria-label')) button.setAttribute('aria-label', button.textContent || '');
+    button.replaceChildren(icon, label);
+    actions.append(button);
+  }
+  if (actions.childElementCount) row.append(actions);
   return row;
 }
 

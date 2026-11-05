@@ -150,3 +150,20 @@ it('forgets ids from the stored layout whether or not they are managed and write
   expect(setItem).not.toHaveBeenCalled();
   setItem.mockRestore();
 });
+
+it('keeps docked iframe containers connected during an ordinary resize', async () => {
+  const video = panel('video-fixture');
+  video.append(document.createElement('iframe'));
+  document.dispatchEvent(
+    new CustomEvent('restore-settings', { detail: { workbench: dock(emptyLayout(), video.id, 'right') } }),
+  );
+  await mutations();
+  const zone = video.closest('[data-zone]')!;
+  const wrapper = video.parentElement!;
+  const observer = new MutationObserver(() => {});
+  observer.observe(zone, { childList: true });
+  resize(1200, 800);
+  const removals = observer.takeRecords().flatMap((record) => [...record.removedNodes]);
+  observer.disconnect();
+  expect(removals).not.toContain(wrapper);
+});

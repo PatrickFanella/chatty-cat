@@ -205,7 +205,7 @@ export function mountAuth(
       button.disabled = !data.enabled;
       button.textContent = data.authenticated ? 'Sign out' : 'Log in with Twitch';
       label.textContent = data.authenticated
-        ? `Signed in as ${data.login}`
+        ? `${data.login}`
         : data.enabled
           ? notice
           : 'Twitch login is not configured';

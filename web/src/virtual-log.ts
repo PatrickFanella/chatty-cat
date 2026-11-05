@@ -46,6 +46,8 @@ export class VirtualLog {
   private modifierHeld = false;
   private hoverTimer: ReturnType<typeof setTimeout> | undefined;
   private smoothTimer: ReturnType<typeof setTimeout> | undefined;
+  private wheelFrame = 0;
+  private wheelTarget: number | undefined;
   private autoScrolling = false;
   private writtenScrollTop: number | undefined;
   private writtenScrollHeight: number | undefined;
@@ -76,6 +78,7 @@ export class VirtualLog {
     window.addEventListener('keydown', this.modifier);
     window.addEventListener('keyup', this.modifier);
     window.addEventListener('blur', this.releaseModifier);
+    document.addEventListener('settings-opened', this.releaseModifier);
     log.addEventListener('mouseover', this.hover);
     log.addEventListener('mouseleave', this.leave);
     log.addEventListener('wheel', this.wheel, { passive: false });
@@ -331,6 +334,9 @@ export class VirtualLog {
     this.writtenScrollTop = undefined;
     this.writtenScrollHeight = undefined;
     this.autoScrolling = false;
+    cancelAnimationFrame(this.wheelFrame);
+    this.wheelFrame = 0;
+    this.wheelTarget = undefined;
     clearTimeout(this.smoothTimer);
   };
   private scrollKey = (event: KeyboardEvent): void => {
@@ -338,17 +344,35 @@ export class VirtualLog {
   };
   private wheel = (event: Event): void => {
     this.wheelDuringHold = true;
+    const pending = this.wheelTarget;
     this.scrollIntent();
     if (!(event instanceof WheelEvent) || event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
     const p = getPresentation();
-    if (p.scrollMultiplier === 1 && !p.smoothScroll) return;
+    if (p.scrollMultiplier === 1) return;
     event.preventDefault();
     const delta =
       event.deltaY *
       (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.log.clientHeight : 1) *
       p.scrollMultiplier;
-    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    this.log.scrollBy({ top: delta, behavior: p.smoothScroll && !reduced ? 'smooth' : 'auto' });
+    if (!p.smoothScroll || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      this.log.scrollBy({ top: delta, behavior: 'auto' });
+      return;
+    }
+    this.wheelTarget = Math.max(
+      0,
+      Math.min(this.log.scrollHeight - this.log.clientHeight, Math.round((pending ?? this.log.scrollTop) + delta)),
+    );
+    this.wheelFrame = requestAnimationFrame(this.animateWheel);
+  };
+  private animateWheel = (): void => {
+    const target = this.wheelTarget;
+    if (target === undefined || this.stopped) return;
+    const remaining = target - this.log.scrollTop;
+    this.log.scrollBy({ top: Math.abs(remaining) < 2 ? remaining : remaining * 0.45, behavior: 'auto' });
+    if (Math.abs(remaining) < 2) {
+      this.wheelTarget = undefined;
+      this.wheelFrame = 0;
+    } else this.wheelFrame = requestAnimationFrame(this.animateWheel);
   };
   private canSmooth(target: number): boolean {
     return (
@@ -529,6 +553,7 @@ export class VirtualLog {
   }
   stop(): void {
     this.stopped = true;
+    cancelAnimationFrame(this.wheelFrame);
     document.removeEventListener('presentation-before-change', this.beforePresentation);
     document.removeEventListener('visibilitychange', this.visibility);
     clearTimeout(this.hoverTimer);
@@ -536,6 +561,7 @@ export class VirtualLog {
     window.removeEventListener('keydown', this.modifier);
     window.removeEventListener('keyup', this.modifier);
     window.removeEventListener('blur', this.releaseModifier);
+    document.removeEventListener('settings-opened', this.releaseModifier);
     this.markerTrack.remove();
     for (const node of this.log.children) this.release(node);
     cancelAnimationFrame(this.frame);

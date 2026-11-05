@@ -47,8 +47,8 @@ describe('workbench layout model', () => {
   });
   it('clamps zone sizes and shares', () => {
     expect(resizeZone(emptyLayout(), 'right', 5, viewport).sizes.right).toBe(200);
-    expect(resizeZone(emptyLayout(), 'right', 5000, viewport).sizes.right).toBe(768);
-    expect(resizeZone(emptyLayout(), 'bottom', 5000, viewport).sizes.bottom).toBe(480);
+    expect(resizeZone(emptyLayout(), 'right', 5000, viewport).sizes.right).toBe(1088);
+    expect(resizeZone(emptyLayout(), 'bottom', 5000, viewport).sizes.bottom).toBe(680);
     const layout = dock(dock(emptyLayout(), 'a', 'left'), 'b', 'left');
     expect(setShares(layout, 'left', { a: 99, b: Number.NaN, c: 3 }).zones.left.shares).toEqual({ a: 10, b: 1 });
   });

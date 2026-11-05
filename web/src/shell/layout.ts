@@ -21,7 +21,7 @@ export interface Layout {
   closed: string[];
 }
 export const ZONE_MIN = 200,
-  ZONE_MAX_FRACTION = 0.6,
+  ZONE_MAX_FRACTION = 0.85,
   FLOAT_MIN_WIDTH = 240,
   FLOAT_MIN_HEIGHT = 160;
 export function emptyLayout(): Layout {

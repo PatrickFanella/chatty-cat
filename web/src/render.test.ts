@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, expect, it } from 'vitest';
+import { presentationDefaults, setPresentation } from './presentation';
 import { messageRow } from './render';
 import type { ChatMessage } from './protocol';
 import type { ChannelMetadata } from './metadata';
@@ -148,4 +149,31 @@ it('renders supplied membership notices without interpreting names as markup', (
   expect(join.querySelector('.message-body')?.textContent).toBe('alice joined the channel');
   const part = messageRow({ ...message, command: 'PART', text: '', login: 'bob' });
   expect(part.querySelector('.message-body')?.textContent).toBe('bob left the channel');
+});
+
+it('groups thread and reply actions below the message with accessible icon names', () => {
+  const row = messageRow({ ...message, tags: { 'reply-parent-msg-id': 'parent' } }, metadata);
+  const footer = row.querySelector('.message-actions')!;
+  expect(footer.parentElement).toBe(row);
+  expect(row.lastElementChild).toBe(footer);
+  expect(footer.querySelectorAll('button')).toHaveLength(4);
+  expect(footer.querySelector('.thread-open')?.getAttribute('aria-label')).toBeTruthy();
+  expect(footer.querySelector('.message-action-icon')?.getAttribute('aria-hidden')).toBe('true');
+});
+it('hides the displayed reply recipient without shifting Twitch emote offsets or changing the message', () => {
+  setPresentation({ ...presentationDefaults, hideReplyUsername: true });
+  try {
+    const reply = { ...message, text: '@bob Kappa', tags: { 'reply-parent-user-login': 'bob', emotes: '25:5-9' } };
+    const row = messageRow(reply, metadata);
+    expect(row.querySelector('.message')?.textContent).not.toContain('@bob');
+    expect(row.querySelector<HTMLImageElement>('.message img')?.alt).toBe('Kappa');
+    expect(reply.text).toBe('@bob Kappa');
+    const ordinary = messageRow(
+      { ...reply, text: '@bobby hello', tags: { 'reply-parent-user-login': 'bob' } },
+      metadata,
+    );
+    expect(ordinary.querySelector('.message')?.textContent).toContain('@bobby');
+  } finally {
+    setPresentation({ ...presentationDefaults });
+  }
 });

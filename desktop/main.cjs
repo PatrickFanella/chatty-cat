@@ -170,10 +170,63 @@ function openOutside(url) {
   if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
 }
 
+// A Twitch website session belongs to the desktop browser, separately from chat
+// OAuth. This window shares the app's default session with the embedded player.
+let playerLogin;
+function twitchPage(url) {
+  try {
+    const target = new URL(url);
+    return (
+      target.protocol === 'https:' &&
+      !target.username &&
+      !target.password &&
+      ['www.twitch.tv', 'passport.twitch.tv', 'id.twitch.tv'].includes(
+        target.hostname,
+      ) &&
+      !target.port
+    );
+  } catch {
+    return false;
+  }
+}
+function openPlayerLogin() {
+  if (playerLogin && !playerLogin.isDestroyed()) {
+    playerLogin.show();
+    playerLogin.focus();
+    return;
+  }
+  playerLogin = new BrowserWindow({
+    width: 520,
+    height: 760,
+    title: 'Twitch player sign-in',
+    webPreferences: web,
+  });
+  const contents = playerLogin.webContents;
+  const leave = (event, url) => {
+    if (twitchPage(url)) return;
+    event.preventDefault();
+    openOutside(url);
+  };
+  contents.on('will-navigate', leave);
+  contents.on('will-redirect', leave);
+  contents.setWindowOpenHandler(({ url }) => {
+    openOutside(url);
+    return { action: 'deny' };
+  });
+  playerLogin.on('closed', () => {
+    playerLogin = undefined;
+  });
+  void playerLogin.loadURL('https://www.twitch.tv/login');
+}
+
 // App pages (pop-out panes and channels) open as app windows; every other link
 // opens in the default browser.
 function guard(contents) {
   contents.setWindowOpenHandler(({ url }) => {
+    if (url === 'https://www.twitch.tv/login') {
+      openPlayerLogin();
+      return { action: 'deny' };
+    }
     if (sameOrigin(url) || url === 'about:blank') {
       return { action: 'allow', overrideBrowserWindowOptions: { backgroundColor: '#151519', webPreferences: web } };
     }

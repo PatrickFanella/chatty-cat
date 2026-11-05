@@ -377,3 +377,19 @@ describe('settings window', () => {
     expect(document.querySelector('p.settings-notice')).toBeNull();
   });
 });
+
+it('opens subsection links and exposes explanations to keyboard focus', () => {
+  const { win } = make([mk('appearance'), mk('scroll', { section: 'Scrolling', hint: 'Moves chat with the wheel.' })]);
+  win.open();
+  const section = q<HTMLDetailsElement>('[data-section="Scrolling"]');
+  expect(section.open).toBe(false);
+  [...document.querySelectorAll<HTMLButtonElement>('.settings-subnav button')]
+    .find((el) => el.textContent === 'Scrolling')!
+    .click();
+  expect(section.open).toBe(true);
+  const help = row('scroll').querySelector<HTMLButtonElement>('.settings-help')!;
+  help.focus();
+  expect(document.activeElement).toBe(help);
+  expect(help.dataset.tooltip).toBe('Moves chat with the wheel.');
+  expect(help.getAttribute('aria-label')).toContain('scroll');
+});

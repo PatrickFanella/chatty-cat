@@ -69,10 +69,22 @@ export class Topbar {
     this.searchButton.innerHTML = '<span>Search</span><kbd>' + (applePlatform() ? '⌘K' : 'Ctrl K') + '</kbd>';
     this.searchButton.setAttribute('aria-label', 'Search commands');
     this.searchButton.addEventListener('click', openPalette);
+    const settings = document.createElement('button');
+    settings.type = 'button';
+    settings.id = 'shell-settings';
+    settings.className = 'tb-icon';
+    settings.textContent = '⚙';
+    settings.setAttribute('aria-label', 'Settings');
+    settings.title = 'Settings · ' + (applePlatform() ? '⌘,' : 'Ctrl+,');
+    settings.hidden = !registry.get('settings:open');
+    settings.addEventListener('click', () => {
+      const command = registry.get('settings:open');
+      if (command?.available?.() !== false) command?.run();
+    });
     const account = document.createElement('div');
     account.className = 'tb-account';
     account.append(parts.account, parts.login);
-    root.append(brandButton, channels, state, spacer, rate, this.searchButton, account);
+    root.append(brandButton, channels, state, spacer, rate, this.searchButton, settings, account);
     brandButton.addEventListener('click', () => this.openMain());
     this.syncState();
     if (typeof MutationObserver !== 'undefined') {

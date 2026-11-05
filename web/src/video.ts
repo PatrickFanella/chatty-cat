@@ -10,12 +10,15 @@ export class VideoPanel {
   private bundleDispose: () => void;
   private volume = new TwitchVolume();
   private memory = document.createElement('button');
+  private refresh = document.createElement('button');
+  private signIn = document.createElement('a');
   private floating: FloatingPanel;
   private options: VideoPreferences;
   private container: HTMLElement;
   private status: HTMLElement;
   private channel: HTMLSelectElement;
   private dock: HTMLButtonElement;
+  private controlsTimer: ReturnType<typeof setTimeout> | undefined;
   constructor(
     private root: HTMLElement,
     private trigger: HTMLButtonElement,
@@ -28,6 +31,10 @@ export class VideoPanel {
       /* optional storage */
     }
     document.addEventListener('privacychange', this.privacyChanged);
+    root.addEventListener('pointerenter', this.holdControls);
+    root.addEventListener('pointerleave', this.leaveControls);
+    root.addEventListener('focusin', this.holdControls);
+    root.addEventListener('focusout', this.leaveControls);
     this.container = root.querySelector<HTMLElement>('#video-player')!;
     this.status = root.querySelector<HTMLElement>('#video-status')!;
     this.channel = root.querySelector<HTMLSelectElement>('#video-channel')!;
@@ -45,6 +52,18 @@ export class VideoPanel {
       root.querySelector<HTMLButtonElement>('#video-pin')!,
       profileKey('chatthing:v1:video:geometry'),
     );
+    this.signIn.href = 'https://www.twitch.tv/login';
+    this.signIn.target = '_blank';
+    this.signIn.rel = 'noopener noreferrer';
+    this.signIn.textContent = 'Player sign-in';
+    this.signIn.title =
+      'Sign in to Twitch for video. In the desktop app this opens Twitch inside the app; chat sign-in is separate. Close it and refresh the player when finished.';
+    this.refresh.type = 'button';
+    this.refresh.textContent = '↻';
+    this.refresh.setAttribute('aria-label', 'Refresh video player');
+    this.refresh.title = 'Reload the player after signing in to Twitch. Playback restarts.';
+    this.refresh.addEventListener('click', this.reload);
+    root.querySelector('.video-controls')?.append(this.signIn, this.refresh);
     this.memory.type = 'button';
     this.memory.id = 'video-memory';
     this.memory.textContent = 'Remember Twitch volume';
@@ -91,6 +110,26 @@ export class VideoPanel {
     } else if (this.floating.reopen) this.open();
     document.addEventListener('share-settings', this.share);
   }
+  private holdControls = (): void => {
+    clearTimeout(this.controlsTimer);
+    this.root.dataset.controlsOpen = 'true';
+  };
+  private leaveControls = (event: Event): void => {
+    if (event instanceof PointerEvent) {
+      const box = this.root.getBoundingClientRect();
+      if (
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom
+      )
+        return;
+    }
+    clearTimeout(this.controlsTimer);
+    this.controlsTimer = setTimeout(() => {
+      if (!this.root.contains(document.activeElement)) delete this.root.dataset.controlsOpen;
+    }, 500);
+  };
   private paint(): void {
     this.dock.textContent = this.options.docked ? 'Float' : 'Dock';
   }
@@ -170,6 +209,12 @@ export class VideoPanel {
     this.floating.closed();
     this.trigger.focus();
   };
+  private reload = (): void => {
+    if (privacyEnabled()) return;
+    this.volume.stop();
+    this.container.replaceChildren();
+    if (!this.root.hidden) this.open();
+  };
   private changeChannel = (): void => {
     this.volume.stop();
     this.options.channel = this.channel.value;
@@ -219,8 +264,17 @@ export class VideoPanel {
       );
   };
   stop(): void {
+    clearTimeout(this.controlsTimer);
+    this.root.removeEventListener('pointerenter', this.holdControls);
+    this.root.removeEventListener('pointerleave', this.leaveControls);
+    this.root.removeEventListener('focusin', this.holdControls);
+    this.root.removeEventListener('focusout', this.leaveControls);
+    delete this.root.dataset.controlsOpen;
     document.removeEventListener('privacychange', this.privacyChanged);
     this.volume.stop();
+    this.refresh.removeEventListener('click', this.reload);
+    this.refresh.remove();
+    this.signIn.remove();
     this.memory.removeEventListener('click', this.remember);
     document.removeEventListener('share-settings', this.share);
     this.bundleDispose();

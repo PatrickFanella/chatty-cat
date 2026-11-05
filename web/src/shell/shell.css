@@ -422,13 +422,13 @@ html[data-shell][data-channel-count='1'] .row > .channel {
 }
 .wb-zone[data-zone='left'],
 .wb-zone[data-zone='right'] {
-  flex: 0 0 min(var(--wb-left), 45vw);
-  width: min(var(--wb-left), 45vw);
+  flex: 0 1 min(var(--wb-left), calc(100vw - 200px));
+  width: min(var(--wb-left), calc(100vw - 200px));
   flex-direction: column;
 }
 .wb-zone[data-zone='right'] {
-  flex-basis: min(var(--wb-right), 45vw);
-  width: min(var(--wb-right), 45vw);
+  flex-basis: min(var(--wb-right), calc(100vw - 200px));
+  width: min(var(--wb-right), calc(100vw - 200px));
 }
 .wb-zone[data-zone='bottom'] {
   flex: 0 0 min(var(--wb-bottom), 50dvh);
@@ -732,7 +732,8 @@ body.wb-dragging .wb-title {
     pointer-events: none;
     transition: opacity var(--shell-ease);
   }
-  .wb-panel:is(:has(.wb-chrome:hover), :focus-within) .video-controls,
+  .wb-panel > #video-panel[data-controls-open='true'] .video-controls,
+  .wb-panel:is(:hover, :focus-within) .video-controls,
   .wb-panel .video-controls:hover {
     opacity: 1;
     pointer-events: auto;
@@ -1230,4 +1231,269 @@ html[data-overlay='true'] .wb-row {
   #topbar .tb-dot {
     animation: none;
   }
+}
+
+/* Section chrome fills the panel; sticky positioning anchors it while content scrolls. */
+.wb-chrome {
+  box-sizing: border-box;
+  margin: 0 !important;
+  width: 100%;
+  padding-inline: 10px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.wb-chrome .wb-title {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  min-height: 28px;
+}
+.wb-chrome button[hidden] {
+  display: none;
+}
+.wb-panel > * {
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+  overflow: auto;
+}
+.wb-panel > * > .wb-chrome {
+  margin: 0 !important;
+  top: 0;
+  position: sticky !important;
+  width: 100%;
+  flex: none;
+}
+.wb-panel > * > :not(.wb-chrome) {
+  margin-inline: 12px;
+}
+.wb-panel > #video-panel > #video-player {
+  margin: 0;
+  flex: 1 1 auto;
+  min-height: 0 !important;
+}
+.wb-panel > #video-panel {
+  overflow: hidden;
+}
+.wb-panel .video-controls {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+}
+.wb-centre {
+  min-width: min(220px, 100%);
+}
+.wb-centre > .wb-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.wb-row[data-chat-placed='true'] > .wb-zone[data-zone='right'] {
+  flex: 1 1 0;
+  width: auto;
+}
+.wb-row[data-chat-placed='true'] > .wb-splitter[data-zone='right'] {
+  display: none;
+}
+.wb-row[data-chat-placed='true']:has(> .wb-zone[data-zone='right'][hidden]) > .wb-zone[data-zone='left'] {
+  flex: 1 1 0;
+  width: auto;
+}
+.wb-row[data-chat-placed='true']:has(> .wb-zone[data-zone='right'][hidden]) > .wb-splitter {
+  display: none;
+}
+#chat-panel[data-wb-placed] {
+  overflow: hidden;
+  padding: 0;
+}
+#chat-panel[data-wb-placed] > :not(.wb-chrome) {
+  margin-inline: 0;
+}
+#chat-panel .chat-workspace,
+#chat-panel main#log {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+body.wb-dragging,
+body.wb-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+#link-preview,
+#identity-preview {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+}
+#link-preview iframe,
+.social-video iframe {
+  display: block;
+  max-width: 100%;
+  max-height: min(55dvh, 480px);
+  min-height: 0;
+  aspect-ratio: 16 / 9;
+}
+
+/* Message actions share a stable footer; icons retain accessible names. */
+html[data-shell] .row .message-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 3px 0 0;
+  min-height: 20px;
+}
+html[data-shell] #log .row .message-actions :is(.thread-open, .reply, .permalink, .bookmark-message),
+html[data-shell]
+  #log
+  .row:is(:hover, :focus-within)
+  .message-actions
+  :is(.thread-open, .reply, .permalink, .bookmark-message) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 24px;
+  min-height: 22px;
+  max-height: none;
+  padding: 1px 5px;
+  margin: 0;
+  opacity: 0.65;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  gap: 4px;
+}
+html[data-shell] #log .row:is(:hover, :focus-within) .message-actions button {
+  opacity: 1;
+}
+[data-presentation-message-actions='icons'] .message-action-label,
+[data-presentation-message-actions='text'] .message-action-icon {
+  display: none;
+}
+[data-presentation-hide-settings='true'] #shell-settings {
+  display: none;
+}
+html[data-shell] #log .row .message-actions .reply[hidden],
+html[data-shell][data-presentation-show-reply-button='false'] #log .row .message-actions .reply {
+  display: none;
+}
+.shell-tooltip {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  max-width: min(330px, calc(100vw - 16px));
+  width: max-content;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--fg);
+  box-shadow: var(--shell-shadow);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: normal;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+html[data-shell]
+  :is(dialog, #video-panel, #emote-picker, #whisper-panel, #resources-panel):has(> .wb-chrome):not([data-wb-placed]) {
+  padding: 0 0 12px;
+}
+html[data-shell]
+  :is(dialog, #video-panel, #emote-picker, #whisper-panel, #resources-panel):has(> .wb-chrome):not([data-wb-placed])
+  > :not(.wb-chrome) {
+  margin-inline: 12px;
+  max-width: calc(100% - 24px);
+}
+html[data-shell] dialog > .wb-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+html[data-shell] #user-inspector {
+  box-sizing: border-box;
+  width: min(480px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  overflow-wrap: anywhere;
+}
+html[data-shell] #user-inspector .usercard-heading {
+  margin: 0;
+  padding: 12px 0 0;
+}
+html[data-shell] #user-inspector [data-facts] {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+html[data-shell] #user-inspector blockquote {
+  box-sizing: border-box;
+  margin-block: 12px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  white-space: pre-wrap;
+  max-height: 24dvh;
+  overflow: auto;
+}
+html[data-shell] #user-inspector .usercard-actions,
+html[data-shell] #user-inspector .usercard-moderation {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-block: 10px;
+}
+html[data-shell] #user-inspector .usercard-moderation > summary {
+  flex-basis: 100%;
+  color: var(--muted);
+  cursor: pointer;
+}
+html[data-shell] #user-inspector .usercard-moderation:not([open]) > :not(summary) {
+  display: none;
+}
+html[data-shell] #user-inspector .usercard-moderation p {
+  flex-basis: 100%;
+  font-size: 12px;
+  color: var(--muted);
+}
+#identity-preview {
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 12px;
+}
+#identity-preview .identity-avatar {
+  max-width: 64px;
+  max-height: 64px;
+  border-radius: 50%;
+}
+#identity-preview p {
+  line-height: 1.5;
+  font-size: 12px;
+}
+#link-preview :is(video, img),
+.social-video :is(iframe, video) {
+  max-width: 100%;
+  object-fit: contain;
+}
+
+#link-preview iframe,
+.social-video iframe {
+  width: 100%;
+  height: auto;
+}
+html[data-shell] #settings-window .settings-text > label {
+  display: inline;
+}
+html[data-shell] #settings-window .settings-section > summary > h3 {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+}
+html[data-shell] #settings-window .settings-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
 }

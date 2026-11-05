@@ -1,3 +1,4 @@
+import { mountTooltips } from './tooltips';
 // Shell entry: builds the top bar, command registry, palette and workbench over the existing feature modules.
 import { CommandRegistry, type Command, type CommandGroup } from './registry';
 import { CommandPalette, type PaletteEntry } from './palette';
@@ -89,6 +90,7 @@ function titleFor(registry: CommandRegistry, root: HTMLElement): string {
 }
 export function startShell(options: ShellOptions): Shell {
   document.documentElement.dataset.shell = 'true';
+  const stopTooltips = mountTooltips();
   const header = document.querySelector<HTMLElement>('header')!;
   const registry = new CommandRegistry();
   for (const action of options.actions) {
@@ -117,6 +119,7 @@ export function startShell(options: ShellOptions): Shell {
   const workbench = new Workbench({
     titleFor: (root) => titleFor(registry, root),
     exclude: (root) => root.dataset.shellOwned !== undefined || root.closest('#topbar,.shell-menu') !== null,
+    chat: true,
     centre:
       '#offline,#app-update,#stream,#room-state,#video-panel,main#log,.chat-workspace,#announcer,#composer,.message-navigation',
   });
@@ -204,6 +207,7 @@ export function startShell(options: ShellOptions): Shell {
     topbar,
     stop: () => {
       document.removeEventListener('keydown', keys, true);
+      stopTooltips();
       loginWatch?.disconnect();
       pickerButton?.removeEventListener('click', openPicker);
       palette.stop();

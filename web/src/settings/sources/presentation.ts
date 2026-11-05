@@ -25,6 +25,7 @@ const CHOICE_LABELS: Record<string, string> = {
   login: 'Login name',
   localized: 'Localized name',
   both: 'Both',
+  usercard: 'Usercard menu',
   none: 'None',
   ctrl: 'Ctrl',
   meta: 'Meta',
@@ -50,12 +51,14 @@ function controlFor(key: Key): Control {
 type Spec = [page: PageId, section: string, keys: Key[]];
 
 const SPECS: Spec[] = [
-  ['general', 'Appearance', ['uiScale', 'boldScale']],
-  ['general', 'Links and cards', ['autoCloseUserPopup', 'autoCloseThreadPopup']],
+  ['general', 'Appearance', ['uiScale', 'boldScale', 'tooltipDelay']],
+  ['general', 'Links and cards', ['autoCloseUserPopup', 'autoCloseThreadPopup', 'usercardHover']],
   [
     'general',
     'Messages',
     [
+      'messageActions',
+      'hideReplyUsername',
       'usernameMode',
       'boldUsernames',
       'colorUsernames',

@@ -106,7 +106,7 @@ it('debounces hover and preserves an external link after failure', async () => {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('unavailable')));
   const { anchor, root } = setup();
   anchor.dispatchEvent(new Event('pointerover', { bubbles: true }));
-  await vi.advanceTimersByTimeAsync(300);
+  await vi.advanceTimersByTimeAsync(100);
   expect(root.hidden).toBe(true);
   await vi.advanceTimersByTimeAsync(100);
   expect(root.hidden).toBe(false);

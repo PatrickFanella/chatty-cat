@@ -67,7 +67,7 @@ it('the Settings… command is registered', async () => {
     expect(command?.label).toBe('Settings…');
     expect(command?.group).toBe('view');
     expect(command?.hint).toMatch(/^(Ctrl\+,|⌘,)$/);
-    command!.run();
+    document.getElementById('shell-settings')!.click();
     expect(openSettings).toHaveBeenCalledOnce();
   } finally {
     shell.stop();
@@ -101,6 +101,7 @@ it('readonly views have no Settings command or shortcut', async () => {
   const shell = startShell({ actions: [], run: vi.fn(), available: () => true, extra: () => [] });
   try {
     expect(shell.registry.get('settings:open')).toBeUndefined();
+    expect(document.getElementById('shell-settings')?.hidden).toBe(true);
     const event = new KeyboardEvent('keydown', { code: 'Comma', ctrlKey: true, cancelable: true, bubbles: true });
     document.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);

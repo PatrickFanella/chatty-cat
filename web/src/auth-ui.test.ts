@@ -33,7 +33,7 @@ it('renders account and signs out with CSRF', async () => {
   const stop = mountAuth(button, label);
   await vi.advanceTimersByTimeAsync(0);
   expect(button.textContent).toBe('Sign out');
-  expect(label.textContent).toBe('Signed in as viewer');
+  expect(label.textContent).toBe('viewer');
   button.click();
   await vi.advanceTimersByTimeAsync(0);
   expect(button.textContent).toBe('Log in with Twitch');
