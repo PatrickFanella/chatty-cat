@@ -3,6 +3,7 @@ import { presentationDefaults, setPresentation } from './presentation';
 import { linkDefaults, setLinkPreferences } from './link-preferences';
 import { afterEach, expect, it, vi } from 'vitest';
 import { IdentityCards, emotePage, parseProfile } from './identity-cards';
+import type { ChatMessage } from './protocol';
 import { providerDefaults, setProviderPreferences } from './provider-preferences';
 let cards: IdentityCards | undefined;
 afterEach(() => {
@@ -187,4 +188,107 @@ it('does not fetch or open a usercard on hover by default', async () => {
   await vi.advanceTimersByTimeAsync(1000);
   expect(root.hidden).toBe(true);
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+const retained = (id: string, timestamp: number, extra: Partial<ChatMessage> = {}): ChatMessage => ({
+  id,
+  timestamp,
+  channel: 'one',
+  command: 'PRIVMSG',
+  login: 'alice',
+  text: 'message ' + id,
+  tags: {},
+  ...extra,
+});
+async function hoverHistory(messages: ChatMessage[], hideModerated = false) {
+  vi.useFakeTimers();
+  setPresentation({ ...presentationDefaults, usercardHover: true, hideModerated });
+  const surface = document.createElement('main');
+  surface.innerHTML =
+    '<article class="row" data-login="alice" data-channel="one"><a class="name" tabindex="0">Alice</a><a class="mention" data-mention="alice">@Alice</a></article>';
+  const root = document.createElement('section');
+  root.id = 'identity-preview';
+  root.hidden = true;
+  document.body.append(surface, root);
+  const fetcher = vi.fn().mockRejectedValue(new Error('Profile unavailable'));
+  vi.stubGlobal('fetch', fetcher);
+  cards = new IdentityCards(
+    surface,
+    root,
+    () => messages,
+    async () => undefined,
+  );
+  surface.querySelector('a')!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+  await vi.advanceTimersByTimeAsync(presentationDefaults.tooltipDelay);
+  return { surface, root, fetcher };
+}
+it('shows the latest 50 public messages from the hovered channel before profile details, newest first', async () => {
+  const messages = Array.from({ length: 65 }, (_, i) => retained(String(i), 1000 + i));
+  messages.push(
+    retained('other-channel', 2000, { channel: 'two' }),
+    retained('other-user', 2001, { login: 'bob' }),
+    retained('private', 2002, { command: 'WHISPER', text: 'private text' }),
+    retained('markup', 2003, { login: 'ALICE', text: '<script>inert text</script>' }),
+  );
+  const { root, fetcher } = await hoverHistory(messages);
+  const rows = [...root.querySelectorAll('.identity-history li')];
+  expect(rows).toHaveLength(50);
+  expect(rows[0]!.querySelector('span')?.textContent).toBe('<script>inert text</script>');
+  expect(rows[1]!.querySelector('span')?.textContent).toBe('message 64');
+  expect(rows[49]!.querySelector('span')?.textContent).toBe('message 16');
+  expect(rows[0]!.querySelector('time')?.dateTime).toBe(new Date(2003).toISOString());
+  expect(root.querySelector('script')).toBeNull();
+  expect(root.textContent).not.toMatch(/other-channel|other-user|private text/);
+  expect(root.querySelector('[role="region"]')?.getAttribute('aria-label')).toContain('in #one');
+  expect(root.textContent).toContain('Profile details unavailable');
+  expect(fetcher).toHaveBeenCalledExactlyOnceWith('/api/users/alice', expect.anything());
+});
+it.each([false, true])('respects message deletions and the hide-moderated setting (%s)', async (hideModerated) => {
+  const { root } = await hoverHistory(
+    [
+      retained('cleared', 1),
+      retained('clear', 2, { command: 'CLEARCHAT', text: 'alice' }),
+      retained('deleted', 3),
+      retained('remove', 4, { command: 'CLEARMSG', tags: { 'target-msg-id': 'deleted' } }),
+      retained('tagged', 5, { tags: { deleted: 'true' } }),
+      retained('latest', 6),
+    ],
+    hideModerated,
+  );
+  const rows = [...root.querySelectorAll('.identity-history li > span')];
+  expect(rows.map((row) => row.textContent)).toEqual(
+    hideModerated
+      ? ['message latest']
+      : ['message latest', '[removed message]', '[removed message]', '[removed message]'],
+  );
+});
+it('keeps the history open while moving into it or scrolling with keyboard focus, then closes after departure', async () => {
+  const { surface, root } = await hoverHistory([retained('one', 1)]);
+  const history = root.querySelector<HTMLElement>('.identity-history')!;
+  surface.querySelector('a')!.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, relatedTarget: history }));
+  root.dispatchEvent(new PointerEvent('pointerenter'));
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(root.hidden).toBe(false);
+  history.focus();
+  root.dispatchEvent(new PointerEvent('pointerleave'));
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(root.hidden).toBe(false);
+  const outside = document.createElement('button');
+  document.body.append(outside);
+  outside.focus();
+  await vi.advanceTimersByTimeAsync(499);
+  expect(root.hidden).toBe(false);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(root.hidden).toBe(true);
+  expect(root.childElementCount).toBe(0);
+});
+it('shows an empty state for a mentioned user and clears the history in privacy mode', async () => {
+  const { root, surface } = await hoverHistory([retained('other', 1, { channel: 'two' })]);
+  surface.querySelector('.mention')!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+  await vi.advanceTimersByTimeAsync(presentationDefaults.tooltipDelay);
+  expect(root.querySelector('.identity-history')?.textContent).toContain('No messages retained');
+  expect(root.querySelectorAll('.identity-history li')).toHaveLength(0);
+  document.dispatchEvent(new Event('privacychange'));
+  expect(root.hidden).toBe(true);
+  expect(root.childElementCount).toBe(0);
 });

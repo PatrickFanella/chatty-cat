@@ -39,7 +39,7 @@ const HELP: Record<string, string> = {
   'presentation.stripReplyMention':
     'Remove a leading recipient mention from the reply text you send. Twitch still receives the reply target.',
   'presentation.usercardHover':
-    'Open a profile preview after hovering over a username. It stays open while the pointer is inside the card and closes after a short grace period. Off keeps usernames quiet; click or use the usercard context menu instead.',
+    'Open a profile preview with recent messages retained in the current channel after hovering over a username. It stays open while the pointer is inside the card and closes after a short grace period. Off keeps usernames quiet; click or use the usercard context menu instead.',
   'presentation.autoCloseUserPopup': 'Close the usercard after you stage a reply in the composer.',
   'presentation.autoCloseThreadPopup': 'Close the thread panel when focus moves elsewhere.',
   'presentation.tooltipDelay':

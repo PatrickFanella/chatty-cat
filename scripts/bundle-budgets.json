@@ -385,7 +385,7 @@
       "cssGzipBytes": 0
     },
     "src/settings/index.ts": {
-      "jsGzipBytes": 169372,
+      "jsGzipBytes": 169628,
       "cssGzipBytes": 18046
     },
     "src/shortcuts-ui.ts": {
@@ -413,7 +413,7 @@
       "cssGzipBytes": 16399
     },
     "src/video.ts": {
-      "jsGzipBytes": 158180,
+      "jsGzipBytes": 158436,
       "cssGzipBytes": 16399
     },
     "src/vod-context-ui.ts": {
