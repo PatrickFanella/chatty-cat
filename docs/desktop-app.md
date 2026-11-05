@@ -47,6 +47,23 @@ files already uploaded.
   profile. The AppImage needs FUSE 2 (`libfuse2`), which Debian 13 doesn't install
   by default. Without it, run the AppImage with `APPIMAGE_EXTRACT_AND_RUN=1`.
 
+## Checking for updates
+
+On macOS, choose **Chatty Cat → Check for Updates…**; on Linux, choose
+**Help → Check for Updates…**. The dialog shows your installed build ID.
+Choose **Open Downloads** to open the releases page in your default browser.
+Compare the newest release's build ID with the installed one, then download
+its installer. Sign in to Gitea in your browser if asked.
+
+Quit Chatty Cat before replacing it with the downloaded version. Settings live
+in the separate app profile described above. The Mac build remains ad-hoc signed,
+so macOS may require first-open approval again.
+
+This is a manual check through the browser. The app does not store a Gitea token,
+automatically compare private releases, download installers, or install updates.
+The build ID also appears in **About Chatty Cat**. Older builds need one manual
+replacement to gain this menu item.
+
 ## Twitch sign-in
 
 Click **Log in with Twitch**, then **Open Twitch in your browser**. Approve
@@ -95,8 +112,9 @@ after the build.
 
 `--smoke=<file.png>` is the check CI runs. It starts the app with a throwaway
 profile and an unused loopback port, waits until the status leaves "Connecting…",
-checks that Twitch login is enabled and the visible Emotes button opens a
-populated picker, then saves a screenshot and prints what rendered:
+checks that Twitch login is enabled, the visible Emotes button opens a
+populated picker, and the update menu exists, then saves a screenshot and
+prints what rendered:
 
 ```sh
 xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --smoke=/tmp/smoke.png

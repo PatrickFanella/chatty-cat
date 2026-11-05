@@ -3,7 +3,7 @@
 // bundled web UI in this app's own Chromium window. Nothing is loaded from
 // chat.subcult.tv; chat, emotes and metadata go straight from the bundled server
 // to Twitch and the emote providers.
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, Menu, shell } = require('electron');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const net = require('node:net');
@@ -11,6 +11,8 @@ const os = require('node:os');
 const path = require('node:path');
 // Public Twitch client ID: it identifies this app and is safe to distribute.
 const { clientID } = require('./twitch-client.json');
+const RELEASES = 'https://git.subcult.tv/subculture-collective/chatty-cat/releases';
+const serverDirectory = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, 'build'), 'server');
 
 // A fixed port keeps the page origin, and with it saved settings and history,
 // the same on every launch.
@@ -45,7 +47,7 @@ function smokePort() {
 }
 
 function startServer() {
-  const dir = path.join(app.isPackaged ? process.resourcesPath : path.join(__dirname, 'build'), 'server');
+  const dir = serverDirectory;
   // Server settings come only from here: never from a stray .env or the user's
   // environment. Only the registered public client ID ships in the app.
   const env = Object.fromEntries(
@@ -70,6 +72,78 @@ function startServer() {
     else dialog.showErrorBox('Chatty Cat', reason);
     app.exit(1);
   });
+}
+
+function installMenu() {
+  let build = 'development build';
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(serverDirectory, 'manifest.json'), 'utf8'));
+    if (/^[a-f0-9]{40}$/.test(manifest.baseCommit)) {
+      build = 'build ' + manifest.baseCommit.slice(0, 7);
+      if (manifest.sourceIncludesUncommittedChanges) build += ' (local changes)';
+    }
+  } catch {
+    // Unpackaged development runs may not have a release manifest yet.
+  }
+  app.setAboutPanelOptions({ applicationName: 'Chatty Cat', applicationVersion: `${app.getVersion()} · ${build}` });
+  const update = {
+    id: 'check-updates',
+    label: 'Check for Updates…',
+    click: async () => {
+      const { response } = await dialog.showMessageBox({
+        type: 'info',
+        title: 'Chatty Cat updates',
+        message: 'Check for a newer desktop build',
+        detail: `Installed: ${build}.\n\nOpen releases in your browser to compare builds and download the latest version. Sign in to Gitea if asked.\n\nQuit Chatty Cat before replacing the app. Your settings are stored separately from the app.`,
+        buttons: ['Open Downloads', 'Cancel'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (response === 0) {
+        try {
+          await shell.openExternal(RELEASES);
+        } catch {
+          dialog.showErrorBox(
+            'Chatty Cat updates',
+            `Could not open your browser. Open this address to download an update:\n${RELEASES}`,
+          );
+        }
+      }
+    },
+  };
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      ...(process.platform === 'darwin'
+        ? [
+            {
+              label: app.name,
+              submenu: [
+                { role: 'about' },
+                update,
+                { type: 'separator' },
+                { role: 'services' },
+                { type: 'separator' },
+                { role: 'hide' },
+                { role: 'hideOthers' },
+                { role: 'unhide' },
+                { type: 'separator' },
+                { role: 'quit' },
+              ],
+            },
+          ]
+        : [{ label: 'File', submenu: [{ role: 'quit' }] }]),
+      { role: 'editMenu' },
+      { role: 'viewMenu' },
+      { role: 'windowMenu' },
+      {
+        role: 'help',
+        submenu: [
+          ...(process.platform === 'darwin' ? [] : [{ role: 'about' }]),
+          { ...update, id: process.platform === 'darwin' ? 'help-check-updates' : update.id },
+        ],
+      },
+    ]),
+  );
 }
 
 async function waitReady() {
@@ -163,10 +237,11 @@ async function runSmoke(win) {
     if (controls.loginEnabled && controls.pickerVisible && controls.pickerItems > 0) break;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  const passed = connected && controls?.loginEnabled && controls.pickerVisible && controls.pickerItems > 0;
+  const updateMenu = !!Menu.getApplicationMenu()?.getMenuItemById('check-updates');
+  const passed = connected && controls?.loginEnabled && controls.pickerVisible && controls.pickerItems > 0 && updateMenu;
   const image = await win.webContents.capturePage();
   fs.writeFileSync(smoke, image.toPNG());
-  console.log(JSON.stringify({ smoke: passed ? 'passed' : 'failed', ...(await read()), ...controls, screenshot: smoke }));
+  console.log(JSON.stringify({ smoke: passed ? 'passed' : 'failed', ...(await read()), ...controls, updateMenu, screenshot: smoke }));
   stop(passed ? 0 : 1);
 }
 
@@ -186,6 +261,7 @@ app.on('before-quit', () => {
 
 app.whenReady().then(async () => {
   if (smoke && process.platform === 'darwin') app.dock?.hide();
+  installMenu();
   try {
     if (smoke) {
       PORT = await smokePort();
