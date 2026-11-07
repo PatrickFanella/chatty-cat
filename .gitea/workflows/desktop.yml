@@ -18,6 +18,8 @@ on:
       - 'scripts/build-release.py'
       - 'scripts/build-desktop.py'
       - 'scripts/package-browser-companion.py'
+      - 'scripts/build-chatthing-release.py'
+      - 'scripts/chatthing-launcher.sh'
       - '.gitea/workflows/desktop.yml'
   pull_request:
     paths:
@@ -34,6 +36,8 @@ on:
       - 'scripts/build-release.py'
       - 'scripts/build-desktop.py'
       - 'scripts/package-browser-companion.py'
+      - 'scripts/build-chatthing-release.py'
+      - 'scripts/chatthing-launcher.sh'
       - '.gitea/workflows/desktop.yml'
   workflow_dispatch:
 jobs:
@@ -123,9 +127,46 @@ jobs:
           name: browser-companions
           path: browser-dist/*
           if-no-files-found: error
+  chatthing:
+    name: Browser build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: https://github.com/actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - run: npm --prefix web ci --no-audit --no-fund
+      - run: python3 scripts/build-chatthing-release.py chatthing-dist
+      - name: Start the Linux build and serve the UI
+        # BROWSER=echo prints the address the launcher would open.
+        run: |
+          set -eu
+          mkdir smoke
+          tar -xzf chatthing-dist/chatthing-*-linux-x64.tar.gz -C smoke
+          cd smoke/chatthing-*-linux-x64
+          BROWSER=echo ./chatty-cat > launcher.log 2>&1 &
+          server=$!
+          for _ in $(seq 150); do curl -fs -o /dev/null http://127.0.0.1:47830/api/ready && break; sleep 0.1; done
+          curl -fsS http://127.0.0.1:47830/ | grep -q '<title>Chatty Cat'
+          sleep 1
+          grep -qxF 'http://localhost:47830/' launcher.log
+          kill -TERM "$server"
+          wait "$server"
+      - uses: https://github.com/actions/upload-artifact@c6a3b2bd78b3985e4b2f15397fec357f0fd808de # v3.2.2-node20
+        with:
+          name: chatthing
+          path: chatthing-dist/*.tar.gz
+          if-no-files-found: error
   publish:
     name: Publish release
-    needs: [linux, mac, browser]
+    needs: [linux, mac, browser, chatthing]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -166,6 +207,10 @@ jobs:
                   '`xattr -dr com.apple.quarantine "/Applications/Chatty Cat.app"`.\n'
                   '- **Linux (x86-64):** install the .deb, or run the AppImage. The AppImage needs FUSE '
                   '(`libfuse2`); without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.\n\n'
+                  '- **Browser build:** the chatthing archives run the chat server without the app window. '
+                  'Extract the archive for your computer and run `./chatty-cat`; it opens Chatty Cat in your default '
+                  'browser. Press Ctrl+C to stop it. On macOS, first run '
+                  '`xattr -dr com.apple.quarantine chatthing-*-mac-arm64`.\n\n'
                   '- **Browser companion:** load the Chromium zip unpacked. The Firefox XPI is unsigned; '
                   'load it temporarily from `about:debugging#/runtime/this-firefox` in Firefox 142 or newer. '
                   'Permanent Firefox installation needs Mozilla signing.\n\n'

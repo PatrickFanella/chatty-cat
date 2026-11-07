@@ -64,6 +64,8 @@ on the hosted build. See [acceptance evidence](docs/parity.md).
 
 The [desktop app](docs/desktop-app.md) for Linux and macOS bundles the server and
 UI and renders chat in its own window. Builds are published as Gitea releases.
+Each release also has a smaller [browser build](docs/desktop-app.md#browser-build):
+the server plus a `chatty-cat` launcher that opens Chatty Cat in your own browser.
 
 ## Self-hosting
 
