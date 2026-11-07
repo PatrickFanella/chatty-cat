@@ -30,12 +30,13 @@ publishes a Gitea release tagged `desktop-<commit>` with these files and a
 | --- | --- |
 | Linux x86-64 | `.deb` and `.AppImage` |
 | macOS, Apple Silicon | `.dmg` and `.zip` |
+| Browser build | `chatthing-<commit>-linux-x64.tar.gz` and `chatthing-<commit>-mac-arm64.tar.gz` |
 | Browser companions | Chromium `.zip` and unsigned Firefox `.xpi` |
 
 Intel Macs, Linux on ARM and Windows have no build. While the repository is
 private, downloading a release needs a Gitea sign-in.
 
-Each file is larger than the 100 MB request limit of Cloudflare, which sits in
+Each app is larger than the 100 MB request limit of Cloudflare, which sits in
 front of git.subcult.tv. The publish job therefore uploads to Gitea through
 Almaz's Caddy on the LAN, and Gitea's attachment limit is 500 MB. A failed publish
 can be rerun from the Actions page on `main`: it reuses the release and skips
@@ -47,6 +48,34 @@ files already uploaded.
 - **Linux:** the `.deb` installs the Chromium sandbox helper and an AppArmor
   profile. The AppImage needs FUSE 2 (`libfuse2`), which Debian 13 doesn't install
   by default. Without it, run the AppImage with `APPIMAGE_EXTRACT_AND_RUN=1`.
+
+## Browser build
+
+The `chatthing` archives run the same server without Electron and show Chatty Cat
+in your own browser. Each archive is about 19 MB; the Linux app is 116 MB as a
+`.deb` and 143 MB as an AppImage.
+
+1. Extract the archive for your computer. On macOS, first run
+   `xattr -dr com.apple.quarantine chatthing-<commit>-mac-arm64`; the binary is
+   ad-hoc signed, not notarized.
+2. In a terminal, run `./chatty-cat` from the extracted folder. It starts
+   `chatthing` on `127.0.0.1:47830` with the desktop app's settings, then opens
+   `http://localhost:47830` in your default browser. Set `BROWSER` to use another
+   command. The launcher needs `curl`.
+3. Press Ctrl+C to stop the server. As with quitting the app, this signs you out.
+
+If the desktop app or another launcher is already serving port 47830,
+`./chatty-cat` opens the browser on that server instead of starting a second one.
+
+Differences from the app:
+
+- Settings, history and saved layouts live in your browser's storage for
+  `http://localhost:47830`, separate from the app's profile.
+- Pop-outs and links open as browser windows and tabs, and **Player sign-in**
+  opens Twitch in a tab. Whether the embedded player then sees your Twitch
+  sign-in depends on your browser's third-party cookie settings.
+- There is no app menu, so no **Check for Updates…**; compare your archive's
+  commit with the newest release.
 
 ## Checking for updates
 
@@ -124,6 +153,20 @@ xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --smoke=/tmp/smoke.png
 CI runs it on Linux under Xvfb with `--no-sandbox`, because the job runs as root,
 and on the soyuz macOS runner, where it also checks the signature with
 `codesign --verify`.
+
+The browser build needs only Go, Node 24 and Python 3, and cross-compiles both
+platforms from Linux or macOS:
+
+```sh
+npm --prefix web ci
+python3 scripts/build-chatthing-release.py dist-chatthing
+```
+
+The script runs `scripts/build-release.py` once per platform and adds the
+launcher (`scripts/chatthing-launcher.sh`, shipped as `chatty-cat`) and
+`desktop/twitch-client.json`. CI extracts the Linux archive, runs the launcher
+with `BROWSER=echo`, and checks that it serves the UI and prints the address it
+would open.
 
 ## Verification, November 3, 2026
 
