@@ -40,6 +40,11 @@ on:
       - 'scripts/chatthing-launcher.sh'
       - '.gitea/workflows/desktop.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   linux:
     name: Linux app
