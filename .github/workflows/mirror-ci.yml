@@ -1,0 +1,178 @@
+name: Mirror CI
+run-name: Mirror CI ${{ github.sha }}
+'on':
+  push: null
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  go:
+    name: Go race and vet
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      with:
+        go-version-file: go.mod
+        cache: true
+    - run: go test -race ./...
+    - run: go vet ./...
+    if: github.repository == 'PatrickFanella/chatty-cat'
+  web:
+    name: Frontend tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: '24'
+        cache: npm
+        cache-dependency-path: web/package-lock.json
+    - run: npm --prefix web ci
+    - run: npm --prefix web run format:check
+    - run: npm --prefix web test -- --maxWorkers=2
+    - run: npm --prefix web run build
+    - name: Bundle budget and desktop navigation regressions
+      run: node --test scripts/check-bundle-budgets.test.mjs scripts/desktop-player-login.test.mjs
+    - name: Browser companion syntax and packaging
+      run: |
+        node --check companion/browser/core.js
+        node --check companion/browser/background.js
+        node --check companion/browser/popup.js
+        node --check companion/browser/firefox-content.js
+        python3 scripts/package-browser-companion.py /tmp/chatty-browser-companion.zip
+        python3 scripts/package-browser-companion.py --browser firefox /tmp/chatty-firefox-companion.xpi
+        python3 -m zipfile -e /tmp/chatty-firefox-companion.xpi /tmp/chatty-firefox-companion
+        npx --yes web-ext@10.8.0 lint --source-dir /tmp/chatty-firefox-companion --warnings-as-errors
+    if: github.repository == 'PatrickFanella/chatty-cat'
+  desktop-linux:
+    name: Linux app
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      with:
+        go-version-file: go.mod
+        cache: true
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: '24'
+    - name: Install Xvfb and Electron's libraries
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq --no-install-recommends xvfb xauth libgtk-3-0t64 libnss3 libgbm1 libasound2t64 \
+          libxss1 libxtst6 >/dev/null
+    - run: npm --prefix web ci --no-audit --no-fund
+    - run: npm --prefix desktop ci --no-audit --no-fund
+    - run: python3 scripts/build-desktop.py
+    - name: Start the app and render live chat
+      run: xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --no-sandbox --smoke="$PWD/desktop/dist/smoke-linux.png"
+    if: github.repository == 'PatrickFanella/chatty-cat'
+  desktop-mac:
+    name: macOS app
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      with:
+        go-version-file: go.mod
+        cache: true
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: '24'
+    - run: npm --prefix web ci --no-audit --no-fund
+    - run: npm --prefix desktop ci --no-audit --no-fund
+    - run: python3 scripts/build-desktop.py
+      env:
+        CSC_FOR_PULL_REQUEST: 'true'
+    - name: Check the ad-hoc signature
+      run: codesign --verify --deep --strict "desktop/dist/mac-arm64/Chatty Cat.app"
+    - name: Start the app and render live chat
+      run: '"desktop/dist/mac-arm64/Chatty Cat.app/Contents/MacOS/Chatty Cat" --smoke="$PWD/desktop/dist/smoke-mac.png"'
+    if: github.repository == 'PatrickFanella/chatty-cat'
+  desktop-browser:
+    name: Browser companions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - name: Package Chromium and unsigned Firefox companions
+      run: |
+        mkdir browser-dist
+        python3 scripts/package-browser-companion.py browser-dist/chatty-cat-chromium.zip
+        python3 scripts/package-browser-companion.py --browser firefox browser-dist/chatty-cat-firefox-unsigned.xpi
+    if: github.repository == 'PatrickFanella/chatty-cat'
+  desktop-chatthing:
+    name: Browser build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      with:
+        persist-credentials: false
+    - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      with:
+        go-version-file: go.mod
+        cache: true
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: '24'
+    - run: npm --prefix web ci --no-audit --no-fund
+    - run: python3 scripts/build-chatthing-release.py chatthing-dist
+    - name: Start the Linux build and serve the UI
+      run: |
+        set -eu
+        mkdir smoke
+        tar -xzf chatthing-dist/chatthing-*-linux-x64.tar.gz -C smoke
+        cd smoke/chatthing-*-linux-x64
+        BROWSER="echo" ./chatty-cat > launcher.log 2>&1 &
+        server=$!
+        for _ in $(seq 150); do curl -fs -o /dev/null http://127.0.0.1:47830/api/ready && break; sleep 0.1; done
+        curl -fsS http://127.0.0.1:47830/ | grep -q '<title>Chatty Cat'
+        sleep 1
+        grep -qxF 'http://localhost:47830/' launcher.log
+        kill -TERM "$server"
+        wait "$server"
+    if: github.repository == 'PatrickFanella/chatty-cat'
+  mirror-gate:
+    name: Mirror CI gate
+    if: always() && github.repository == 'PatrickFanella/chatty-cat'
+    needs:
+    - go
+    - web
+    - desktop-linux
+    - desktop-mac
+    - desktop-browser
+    - desktop-chatthing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+    - name: Require every verification job
+      env:
+        RESULTS: ${{ toJSON(needs) }}
+      run: |
+        python3 - <<'PY'
+        import json, os
+        results = json.loads(os.environ["RESULTS"])
+        expected = {'desktop-browser', 'go', 'desktop-chatthing', 'desktop-linux', 'web', 'desktop-mac'}
+        assert set(results) == expected, results
+        for name, result in results.items():
+            assert result["result"] == "success", name + " did not pass"
+        PY
