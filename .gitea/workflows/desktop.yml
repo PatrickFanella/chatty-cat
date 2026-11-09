@@ -21,24 +21,6 @@ on:
       - 'scripts/build-chatthing-release.py'
       - 'scripts/chatthing-launcher.sh'
       - '.gitea/workflows/desktop.yml'
-  pull_request:
-    paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'web/**'
-      - 'companion/**'
-      - 'desktop/**'
-      - 'go.mod'
-      - 'go.sum'
-      - '.go-version'
-      - 'NOTICE.md'
-      - 'LICENSE'
-      - 'scripts/build-release.py'
-      - 'scripts/build-desktop.py'
-      - 'scripts/package-browser-companion.py'
-      - 'scripts/build-chatthing-release.py'
-      - 'scripts/chatthing-launcher.sh'
-      - '.gitea/workflows/desktop.yml'
   workflow_dispatch:
 
 concurrency:

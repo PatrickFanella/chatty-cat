@@ -1,7 +1,7 @@
 name: Verify
 on:
   push:
-  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +20,7 @@ jobs:
       - uses: https://github.com/actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
           go-version-file: go.mod
-          cache: false
+          cache: true
       - run: go test -race ./...
       - run: go vet ./...
   web:
@@ -34,6 +34,8 @@ jobs:
       - uses: https://github.com/actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - run: npm --prefix web ci
       - run: npm --prefix web run format:check
       - run: npm --prefix web test -- --maxWorkers=2

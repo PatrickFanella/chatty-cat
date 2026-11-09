@@ -131,3 +131,11 @@ a modified version for remote users as required by the license.
 ## Repository artwork
 
 [Brand assets and usage](assets/brand/README.md).
+
+## Public mirror CI
+
+Pull-request verification runs on standard GitHub-hosted runners in the public
+[PatrickFanella/chatty-cat mirror](https://github.com/PatrickFanella/chatty-cat/actions/workflows/mirror-ci.yml).
+Gitea remains the source for changes and pull requests. Its required
+`GitHub CI / Mirror CI gate` status follows the exact mirrored commit. Main-branch
+release verification and deployments run in Gitea.
