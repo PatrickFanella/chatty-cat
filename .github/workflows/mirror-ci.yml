@@ -84,6 +84,7 @@ jobs:
     - run: npm --prefix desktop ci --no-audit --no-fund
     - run: python3 scripts/build-desktop.py
     - name: Start the app and render live chat
+      timeout-minutes: 5
       run: xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --no-sandbox --smoke="$PWD/desktop/dist/smoke-linux.png"
     if: github.repository == 'subculture-collective/chatty-cat'
   desktop-mac:
@@ -115,6 +116,7 @@ jobs:
     - name: Check the ad-hoc signature
       run: codesign --verify --deep --strict "desktop/dist/mac-arm64/Chatty Cat.app"
     - name: Start the app and render live chat
+      timeout-minutes: 5
       run: '"desktop/dist/mac-arm64/Chatty Cat.app/Contents/MacOS/Chatty Cat" --smoke="$PWD/desktop/dist/smoke-mac.png"'
     if: github.repository == 'subculture-collective/chatty-cat'
   desktop-chatthing:
