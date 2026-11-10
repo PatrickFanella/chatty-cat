@@ -61,7 +61,8 @@ jobs:
     # NUC's fixed chatty-cat-autodeploy, which fetches main itself, requires these
     # checks to have passed on that commit and skips releases with no shipped change.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    # Homelab deploy keys accept only Kvant's address (Kvant and its Kuznya VM); the kvant label keeps this job off Buran.
+    runs-on: [ubuntu-latest, kvant]
     timeout-minutes: 30
     steps:
       - name: Run the guarded deploy on NUC
