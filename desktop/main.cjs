@@ -292,7 +292,17 @@ async function runSmoke(win) {
   }
   const updateMenu = !!Menu.getApplicationMenu()?.getMenuItemById('check-updates');
   const passed = connected && controls?.loginEnabled && controls.pickerVisible && controls.pickerItems > 0 && updateMenu;
-  const image = await win.webContents.capturePage();
+  // capturePage on the hidden smoke window intermittently rejects with
+  // UnknownVizError under Xvfb; retry the screenshot, not the checks above.
+  let image;
+  for (let attempt = 1; !image; attempt += 1) {
+    try {
+      image = await win.webContents.capturePage();
+    } catch (error) {
+      if (attempt === 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
   fs.writeFileSync(smoke, image.toPNG());
   console.log(JSON.stringify({ smoke: passed ? 'passed' : 'failed', ...(await read()), ...controls, updateMenu, screenshot: smoke }));
   stop(passed ? 0 : 1);
@@ -332,5 +342,11 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
-  if (smoke) await runSmoke(win);
+  if (smoke) {
+    // An unhandled rejection would leave the app running until the CI job times out.
+    await runSmoke(win).catch((error) => {
+      console.error(error);
+      stop(1);
+    });
+  }
 });

@@ -1,7 +1,9 @@
 name: Mirror CI
 run-name: Mirror CI ${{ github.sha }}
 'on':
-  push: null
+  push:
+    branches-ignore:
+    - main
   workflow_dispatch: null
 permissions:
   contents: read
@@ -23,7 +25,7 @@ jobs:
         cache: true
     - run: go test -race ./...
     - run: go vet ./...
-    if: github.repository == 'PatrickFanella/chatty-cat'
+    if: github.repository == 'subculture-collective/chatty-cat'
   web:
     name: Frontend tests and build
     runs-on: ubuntu-24.04
@@ -53,7 +55,7 @@ jobs:
         python3 scripts/package-browser-companion.py --browser firefox /tmp/chatty-firefox-companion.xpi
         python3 -m zipfile -e /tmp/chatty-firefox-companion.xpi /tmp/chatty-firefox-companion
         npx --yes web-ext@10.8.0 lint --source-dir /tmp/chatty-firefox-companion --warnings-as-errors
-    if: github.repository == 'PatrickFanella/chatty-cat'
+    if: github.repository == 'subculture-collective/chatty-cat'
   desktop-linux:
     name: Linux app
     runs-on: ubuntu-24.04
@@ -69,6 +71,10 @@ jobs:
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: '24'
+        cache: npm
+        cache-dependency-path: |
+          web/package-lock.json
+          desktop/package-lock.json
     - name: Install Xvfb and Electron's libraries
       run: |
         sudo apt-get update -qq
@@ -78,8 +84,9 @@ jobs:
     - run: npm --prefix desktop ci --no-audit --no-fund
     - run: python3 scripts/build-desktop.py
     - name: Start the app and render live chat
+      timeout-minutes: 5
       run: xvfb-run -a desktop/dist/linux-unpacked/chatty-cat --no-sandbox --smoke="$PWD/desktop/dist/smoke-linux.png"
-    if: github.repository == 'PatrickFanella/chatty-cat'
+    if: github.repository == 'subculture-collective/chatty-cat'
   desktop-mac:
     name: macOS app
     runs-on: macos-26
@@ -95,30 +102,23 @@ jobs:
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: '24'
+        cache: npm
+        cache-dependency-path: |
+          web/package-lock.json
+          desktop/package-lock.json
     - run: npm --prefix web ci --no-audit --no-fund
     - run: npm --prefix desktop ci --no-audit --no-fund
     - run: python3 scripts/build-desktop.py
       env:
+        # electron-builder skips signing in pull requests unless told otherwise. The
+        # ad-hoc identity uses no certificate or other secret.
         CSC_FOR_PULL_REQUEST: 'true'
     - name: Check the ad-hoc signature
       run: codesign --verify --deep --strict "desktop/dist/mac-arm64/Chatty Cat.app"
     - name: Start the app and render live chat
+      timeout-minutes: 5
       run: '"desktop/dist/mac-arm64/Chatty Cat.app/Contents/MacOS/Chatty Cat" --smoke="$PWD/desktop/dist/smoke-mac.png"'
-    if: github.repository == 'PatrickFanella/chatty-cat'
-  desktop-browser:
-    name: Browser companions
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      with:
-        persist-credentials: false
-    - name: Package Chromium and unsigned Firefox companions
-      run: |
-        mkdir browser-dist
-        python3 scripts/package-browser-companion.py browser-dist/chatty-cat-chromium.zip
-        python3 scripts/package-browser-companion.py --browser firefox browser-dist/chatty-cat-firefox-unsigned.xpi
-    if: github.repository == 'PatrickFanella/chatty-cat'
+    if: github.repository == 'subculture-collective/chatty-cat'
   desktop-chatthing:
     name: Browser build
     runs-on: ubuntu-24.04
@@ -134,6 +134,8 @@ jobs:
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: '24'
+        cache: npm
+        cache-dependency-path: web/package-lock.json
     - run: npm --prefix web ci --no-audit --no-fund
     - run: python3 scripts/build-chatthing-release.py chatthing-dist
     - name: Start the Linux build and serve the UI
@@ -150,16 +152,15 @@ jobs:
         grep -qxF 'http://localhost:47830/' launcher.log
         kill -TERM "$server"
         wait "$server"
-    if: github.repository == 'PatrickFanella/chatty-cat'
+    if: github.repository == 'subculture-collective/chatty-cat'
   mirror-gate:
     name: Mirror CI gate
-    if: always() && github.repository == 'PatrickFanella/chatty-cat'
+    if: always() && github.repository == 'subculture-collective/chatty-cat'
     needs:
     - go
     - web
     - desktop-linux
     - desktop-mac
-    - desktop-browser
     - desktop-chatthing
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -171,7 +172,7 @@ jobs:
         python3 - <<'PY'
         import json, os
         results = json.loads(os.environ["RESULTS"])
-        expected = {'desktop-browser', 'go', 'desktop-chatthing', 'desktop-linux', 'web', 'desktop-mac'}
+        expected = {'go', 'web', 'desktop-linux', 'desktop-mac', 'desktop-chatthing'}
         assert set(results) == expected, results
         for name, result in results.items():
             assert result["result"] == "success", name + " did not pass"
