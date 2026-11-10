@@ -2,101 +2,65 @@
 
 ![Chatty Cat repository banner](assets/brand/banner.png)
 
-Chatty Cat rebuilds [HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org)
-and its [Twitch relay](https://github.com/mxmilkiib/twitch-chat-relay) as one
-self-hosted Go service with a TypeScript frontend. The intended origin is
-`https://chat.subcult.tv`. The original app is a reference, not a constraint:
-since November 2, 2026, product decisions take priority over feature parity.
+Chatty Cat is a self-hosted Twitch chat client: one Go service with a
+TypeScript frontend. It started as a rebuild of
+[HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org) and
+its [Twitch Chat Relay](https://github.com/mxmilkiib/twitch-chat-relay) by
+mxmilkiib. The original app is still the reference for many details, but
+product decisions now come first.
 
-[Parity checklist](docs/parity.md) records release gates and checkpoint evidence.
-[Architecture](docs/architecture.md) describes ownership and deployment boundaries.
-[Chatterino coverage](docs/chatterino-coverage.md) maps the pinned adoption reference to working behavior and roadmap issues.
-[Design system](docs/design-system.md) records the identity, brand roles and interface rules.
+It runs at [chat.subcult.tv](https://chat.subcult.tv). The rebuild is in
+progress; the [parity checklist](docs/parity.md) tracks which feature families
+are complete.
 
-## Run locally
+## Features
 
-Requires Go 1.26+ and Node 22.12+.
+- **Watching chat:** merge up to six channels in one pane or split them into
+  independent panes, without signing in. Chatty Cat reconnects to Twitch IRC and
+  restores available public backfill.
+- **Chatting:** sign in with Twitch to send messages, replies, commands and
+  whispers. Whispers stay in their own pane and out of history and stats.
+- **Messages:** reply threads, permalinks, user cards with recent messages,
+  pronouns, user notes, bookmarks, link previews, VOD context and searchable
+  local history.
+- **Emotes:** a picker with Twitch, account and third-party emotes and Unicode
+  emoji, with filters, recents and animation controls.
+- **Moderation:** moderation actions and presets, the AutoMod queue, polls,
+  predictions and broadcaster actions for accounts with those permissions.
+- **Display:** the original palettes and fonts, custom themes, filters,
+  columns, header modes, saved layouts and keyboard shortcuts
+  ([docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md)).
+- **Stream video:** an embedded player beside chat.
+- **OBS overlay:** `/overlay.html?channel=yourchannel` gives a chat-only
+  browser source.
+- **Imports and sync:** import Chatterino settings, layouts and commands, and
+  sync settings between devices when the server has a sync directory.
+- **Optional services:** BTTV and 7TV events and cosmetics, image uploads to
+  the server, and a relay to other IRC networks, each off until configured.
+- **Desktop app and browser build** for Linux x86-64 and Apple Silicon macOS,
+  plus Chromium and Firefox companion extensions. See
+  [docs/desktop-app.md](docs/desktop-app.md).
+
+OAuth tokens and sessions stay on the server, in memory; they never enter
+browser storage. Restarting the server signs everyone out.
+
+## Quick start
+
+You need Go 1.26+ and Node 22.12+.
 
 ```sh
 npm --prefix web ci
 npm --prefix web run build
-# Recheck the complete overlay JavaScript closure against main:
-npm --prefix web run check:overlay
 go build -o bin/chatthing ./cmd/chatthing
 ./bin/chatthing
 ```
 
-Go serves the frontend and APIs at `http://127.0.0.1:8080`. Anonymous chat works
-without OAuth credentials. It merges up to six rooms, reconnects to Twitch IRC
-and restores available public backfill. Bounded metadata/preview caches keep
-external provider failures separate from chat transport.
+Open `http://127.0.0.1:8080`. Anonymous chat works without Twitch credentials.
+For sign-in, create a Twitch application, register the callback
+`<your origin>/api/auth/callback`, and set `CHATTHING_PUBLIC_URL` to that origin
+(loopback HTTP is allowed for local testing).
 
-The service reads `../.env` by default for the current side-by-side conversion.
-Environment variables already set take precedence. For a standalone checkout,
-set `CHATTHING_ENV_FILE` to your private environment file path, or supply values
-through the process environment. Keep this file out of Git.
-
-| Variable | Default / purpose |
-| --- | --- |
-| `CHATTHING_ADDR` | `127.0.0.1:8080` |
-| `CHATTHING_ASSETS` | `web/dist` |
-| `CHATTHING_ENV_FILE` | `../.env`; optional file, missing is allowed |
-| `CHATTHING_PUBLIC_URL` | `https://chat.subcult.tv`; HTTPS origin, loopback HTTP allowed |
-| `TWITCH_CLIENT_ID` | Server-side Twitch application ID |
-| `TWITCH_CLIENT_SECRET` | Server-side Twitch application secret |
-| `GIPHY_API_KEY` | Optional browser integration key for explicit GIF title searches |
-
-Register `https://chat.subcult.tv/api/auth/callback` on the Twitch developer app.
-For local OAuth, register the exact loopback callback and use that loopback
-origin for `CHATTHING_PUBLIC_URL`. The public callback requires working HTTPS
-routing to this service; a local preview alone does not complete public login.
-
-Go keeps OAuth credentials and opaque sessions in memory. Restarting signs
-users out. Authenticated sending uses Twitch's API and server-held user tokens;
-credentials never enter browser storage. Public VOD and Twitch emote metadata
-use a separate server-held app token. Scope/account permission checks, bounded
-request receipts and explicit handling of uncertain sends apply to commands,
-replies, actions and whispers. Tests use fake Twitch services. The owner also confirmed live consent, posting,
-replies, subscriber emotes, whisper sending and the approved test-message deletion
-on the hosted build. See [acceptance evidence](docs/parity.md).
-
-## Desktop app
-
-The [desktop app](docs/desktop-app.md) for Linux and macOS bundles the server and
-UI and renders chat in its own window. Builds are published as Gitea releases.
-Each release also has a smaller [browser build](docs/desktop-app.md#browser-build):
-the server plus a `chatty-cat` launcher that opens Chatty Cat in your own browser.
-
-## Self-hosting
-
-[Deployment instructions](deploy/README.md) cover the combined Go/frontend image,
-loopback service binding and optional Caddy HTTPS proxy. Container runtime and
-public-domain acceptance must pass before cutover.
-
-## Implemented checkpoints
-
-Chat includes replies, permalinks, room/own-user state, moderation notices,
-retained history, per-channel drafts/completion, local echoes and cross-tab public
-chat coordination. Private whispers use a separate ephemeral pane and a shared
-server EventSub subscription per account. Whispers remain outside public
-archive, usage stats and cross-tab broadcast.
-
-Display settings cover original palettes/fonts, filters, motion, subscription
-chips, reverse flow, columns/rail, header modes, saved slots, OBS transparency and
-composer autohide. The picker includes public/account emotes and original emoji,
-provider/animation filters, usage seeds, recents, age layouts, hold+, use feedback,
-zoom, pin/drag/resize and shared geometry. Stats, curated resources, pronouns,
-public profile/emote/link cards, explicit media loading, stream video and PWA
-history/update behavior are available. Feature-family parity gates remain open
-until the remaining controls and live acceptance checks are complete.
-
-For an OBS browser source, use `/overlay.html?channel=yourchannel`. Legacy
-`/?channel=yourchannel&overlay=1` URLs redirect with their parameters intact.
-Configure appearance in the normal app within the same OBS browser-source
-profile. The overlay has no panels, account session, history persistence or
-storage clocks. See [appearance and qualification](docs/overlay-appearance-demo.md).
-
-## Verify
+Tests and checks:
 
 ```sh
 go test -race -cover ./...
@@ -104,38 +68,88 @@ go vet ./...
 golangci-lint run
 npm --prefix web test
 npm --prefix web run build
-# Recheck the complete overlay JavaScript closure against main:
-npm --prefix web run check:overlay
+npm --prefix web run check:overlay   # checks the overlay's JavaScript bundle
 ```
 
-Use the local browser preview for layout and live anonymous chat checks.
-`GET /api/health` checks the service process; it does not prove Twitch, OAuth,
-external providers or video playback are working. `GET /api/ready` returns 503
-during shutdown or when the application shell is missing, and 200 when ready.
+`GET /api/health` reports that the process is up. `GET /api/ready` returns 503
+while shutting down or when the built frontend is missing.
 
-## Regenerate curated resources
+## Configuration
 
-The generated content is committed, so ordinary builds need no original checkout.
-To update it from the original app:
+The service reads environment variables, plus an optional env file at
+`CHATTHING_ENV_FILE` (default `../.env`; a missing file is allowed). Variables
+already set take precedence. Keep the env file out of Git.
+
+| Variable | Purpose |
+| --- | --- |
+| `CHATTHING_ADDR` | Listen address, default `127.0.0.1:8080` |
+| `CHATTHING_ASSETS` | Built frontend directory, default `web/dist` |
+| `CHATTHING_PUBLIC_URL` | Public HTTPS origin used for OAuth; loopback HTTP allowed |
+| `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Server-side Twitch application credentials |
+| `GIPHY_API_KEY` | Optional browser key for GIF search |
+| `CHATTHING_PROVIDER_SERVICES` | Optional BTTV and/or 7TV event services |
+| `CHATTHING_COSMETIC_PROVIDERS` | Optional cosmetic badge providers |
+| `CHATTHING_SYNC_DIR` | Writable directory that turns on device sync |
+| `CHATTHING_UPLOAD_DIR` | Writable directory that turns on image uploads |
+| `CHATTHING_IRC_CONFIG` | Path to a JSON list of allowed IRC relay endpoints |
+| `CHATTHING_WORKSPACE_CHANNELS`, `CHATTHING_CHAT_SUBSCRIPTIONS` | Channel and subscription limits |
+
+## Deploy
+
+The `Dockerfile` builds one image with the Go service and the built frontend.
+`compose.yaml` runs it read-only on host loopback port 8080:
 
 ```sh
-python3 scripts/port-resources.py /path/to/original/index.html
+docker compose --env-file /path/to/private.env up -d --build chat
 ```
+
+Put an HTTPS reverse proxy in front of it that keeps the Host header and
+WebSocket upgrades, or start the included Caddy proxy with
+`--profile https` after changing `deploy/Caddyfile` to your domain. Set
+`CHATTHING_PUBLIC_URL` to the same origin and register its callback on your
+Twitch application. [deploy/README.md](deploy/README.md) has the details.
+
+To build the desktop app or browser build yourself:
+
+```sh
+npm --prefix web ci
+npm --prefix desktop ci
+python3 scripts/build-desktop.py              # desktop app for this machine
+python3 scripts/build-chatthing-release.py dist   # browser build archives into dist/
+```
+
+## Project layout
+
+```text
+cmd/chatthing/   server entry point
+internal/        auth, IRC, metadata, previews, provider services, uploads, sync
+web/             TypeScript frontend (Vite)
+desktop/         Electron shell for the desktop app
+companion/       browser companion extensions and the macOS overlay helper
+deploy/          Caddy and Compose examples
+docs/            architecture, design system, parity and feature notes
+scripts/         build, release and data-generation scripts
+```
+
+[docs/architecture.md](docs/architecture.md) describes how the parts fit
+together. The curated resource content comes from the original app; to refresh
+it, run `python3 scripts/port-resources.py /path/to/original/index.html`.
+
+## Contributing
+
+- Report bugs and request features in
+  [GitHub issues](https://github.com/subculture-collective/chatty-cat/issues).
+- Ask questions and share ideas in
+  [GitHub Discussions](https://github.com/subculture-collective/chatty-cat/discussions).
+- Send code as a pull request on GitHub against `main`.
+
+CI runs the Go race tests and vet, the frontend tests and build, and builds the
+Linux app, macOS app and browser build on every pull request. The
+`Mirror CI gate` check must pass before a pull request can merge.
 
 ## License
 
-AGPL-3.0. See [LICENSE](LICENSE) and [attribution](NOTICE.md). Retained assets keep
-their applicable upstream licenses. Provide corresponding source when operating
-a modified version for remote users as required by the license.
-
-## Repository artwork
-
-[Brand assets and usage](assets/brand/README.md).
-
-## Public mirror CI
-
-Pull-request verification runs on standard GitHub-hosted runners in the public
-[subculture-collective/chatty-cat mirror](https://github.com/subculture-collective/chatty-cat/actions/workflows/mirror-ci.yml).
-Gitea remains the source for changes and pull requests. Its required
-`GitHub CI / Mirror CI gate` status follows the exact mirrored commit. Main-branch
-release verification and deployments run in Gitea.
+Chatty Cat is licensed under the GNU Affero General Public License v3.0. See
+[LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for attribution. Retained assets
+keep their upstream licenses. If you run a modified version for other people
+over a network, the license requires you to offer them its source.
