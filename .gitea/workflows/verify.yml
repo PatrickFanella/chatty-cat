@@ -6,7 +6,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # Runs only on main and gates the NUC deploy, so a newer push waits for the
+  # running one instead of cancelling it.
+  cancel-in-progress: false
 
 jobs:
   go:
