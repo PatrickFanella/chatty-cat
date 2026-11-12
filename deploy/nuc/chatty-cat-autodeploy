@@ -33,7 +33,7 @@ REQUIRED = ['Verify / Go race and vet (push)', 'Verify / Frontend tests and buil
 # Paths whose change alters the binary, the served files or the packaged companion.
 SHIPPED = ('cmd/', 'internal/', 'web/', 'companion/', 'go.mod', 'go.sum', '.go-version', 'NOTICE.md', 'LICENSE',
            'scripts/build-release.py')
-BUILDER = b"""FROM golang:1.27.2-alpine AS go
+BUILDER = b"""FROM golang:1.27.4-alpine AS go
 FROM node:24-alpine
 COPY --from=go /usr/local/go /usr/local/go
 RUN apk add --no-cache python3 git

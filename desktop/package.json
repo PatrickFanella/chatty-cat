@@ -16,8 +16,8 @@
     "start": "electron ."
   },
   "devDependencies": {
-    "electron": "44.9.2",
-    "electron-builder": "26.17.0"
+    "electron": "44.11.1",
+    "electron-builder": "26.18.1"
   },
   "build": {
     "appId": "tv.subcult.chattycat",

@@ -19,7 +19,7 @@ when nothing that ships in the release changed (for example a docs-only merge).
      `go.mod`, `go.sum`, `.go-version`, `NOTICE.md`, `LICENSE` or
      `scripts/build-release.py`, production stays as it is.
    - Otherwise it builds the release with `scripts/build-release.py` in a builder
-     container (Node 24 with Go 1.27.2, as in the repository `Dockerfile`).
+     container (Node 24 with Go 1.27.4, as in the repository `Dockerfile`).
 3. **`release.py`:** runs as root through `sudo`.
    - `install` copies the build into `releases/<name>` as root.
    - `prepare` writes a recovery checkpoint, builds the image from
