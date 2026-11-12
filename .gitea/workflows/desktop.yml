@@ -69,9 +69,9 @@ jobs:
     runs-on: macos-arm64
     timeout-minutes: 30
     env:
-      # The Mac runner runs jobs on the host and passes on mise's GOROOT (another
-      # Go version). Empty lets the Go from setup-go use its own tree.
-      GOROOT: ''
+      # The Mac runner runs jobs on the host with mise shims on PATH. A shim (python3,
+      # node) exports GOROOT for mise's own Go, which breaks the Go from setup-go.
+      MISE_GO_SET_GOROOT: 'false'
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
