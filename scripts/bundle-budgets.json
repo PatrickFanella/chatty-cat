@@ -229,92 +229,92 @@
   },
   "entries": {
     "index.html": {
-      "jsGzipBytes": 155772,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 156284,
+      "cssGzipBytes": 16655
     },
     "overlay.html": {
       "jsGzipBytes": 28484,
       "cssGzipBytes": 11736
     },
     "src/account-profiles-ui.ts": {
-      "jsGzipBytes": 157068,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157580,
+      "cssGzipBytes": 16655
     },
     "src/archive-ui.ts": {
-      "jsGzipBytes": 162042,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 162554,
+      "cssGzipBytes": 16655
     },
     "src/bookmarks-ui.ts": {
-      "jsGzipBytes": 160454,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 160966,
+      "cssGzipBytes": 16655
     },
     "src/browser-companion-ui.ts": {
-      "jsGzipBytes": 161611,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 162123,
+      "cssGzipBytes": 16655
     },
     "src/chat-context-ui.ts": {
-      "jsGzipBytes": 159725,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 160237,
+      "cssGzipBytes": 16655
     },
     "src/chatterino-import-ui.ts": {
-      "jsGzipBytes": 161172,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 161684,
+      "cssGzipBytes": 16655
     },
     "src/commands-ui.ts": {
-      "jsGzipBytes": 157974,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158486,
+      "cssGzipBytes": 16655
     },
     "src/comparison-ui.ts": {
-      "jsGzipBytes": 160322,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 160834,
+      "cssGzipBytes": 16655
     },
     "src/custom-theme-ui.ts": {
-      "jsGzipBytes": 157986,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158498,
+      "cssGzipBytes": 16655
     },
     "src/desktop-companion-ui.ts": {
-      "jsGzipBytes": 162515,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 163027,
+      "cssGzipBytes": 16655
     },
     "src/device-sync-ui.ts": {
-      "jsGzipBytes": 161325,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 161837,
+      "cssGzipBytes": 16655
     },
     "src/discovery.ts": {
-      "jsGzipBytes": 158633,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 159145,
+      "cssGzipBytes": 16655
     },
     "src/extensions-ui.ts": {
-      "jsGzipBytes": 160022,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 160534,
+      "cssGzipBytes": 16655
     },
     "src/history-import.ts": {
       "jsGzipBytes": 27876,
       "cssGzipBytes": 11568
     },
     "src/image-uploads.ts": {
-      "jsGzipBytes": 159048,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 159560,
+      "cssGzipBytes": 16655
     },
     "src/inbox-ui.ts": {
-      "jsGzipBytes": 157905,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158417,
+      "cssGzipBytes": 16655
     },
     "src/inspector.ts": {
-      "jsGzipBytes": 158070,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158582,
+      "cssGzipBytes": 16655
     },
     "src/irc-relay-ui.ts": {
-      "jsGzipBytes": 162877,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 163389,
+      "cssGzipBytes": 16655
     },
     "src/local-help-ui.ts": {
-      "jsGzipBytes": 156546,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157058,
+      "cssGzipBytes": 16655
     },
     "src/moderation-ui.ts": {
-      "jsGzipBytes": 180337,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 180849,
+      "cssGzipBytes": 16655
     },
     "src/panel-templates/archive-search.html?raw": {
       "jsGzipBytes": 1719,
@@ -349,84 +349,84 @@
       "cssGzipBytes": 0
     },
     "src/picker.ts": {
-      "jsGzipBytes": 161576,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 162088,
+      "cssGzipBytes": 16655
     },
     "src/portable-logs-ui.ts": {
-      "jsGzipBytes": 162601,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 163113,
+      "cssGzipBytes": 16655
     },
     "src/privacy-settings-ui.ts": {
-      "jsGzipBytes": 156531,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157043,
+      "cssGzipBytes": 16655
     },
     "src/provider-activity-ui.ts": {
-      "jsGzipBytes": 159159,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 159671,
+      "cssGzipBytes": 16655
     },
     "src/resource-data-loader.ts": {
-      "jsGzipBytes": 156159,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 156671,
+      "cssGzipBytes": 16655
     },
     "src/resource-readout.ts": {
-      "jsGzipBytes": 157291,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157803,
+      "cssGzipBytes": 16655
     },
     "src/resources.ts": {
-      "jsGzipBytes": 161332,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 161844,
+      "cssGzipBytes": 16655
     },
     "src/rules-ui.ts": {
-      "jsGzipBytes": 158849,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 159361,
+      "cssGzipBytes": 16655
     },
     "src/service-worker.ts": {
       "jsGzipBytes": 2913,
       "cssGzipBytes": 0
     },
     "src/settings/index.ts": {
-      "jsGzipBytes": 169628,
+      "jsGzipBytes": 170140,
       "cssGzipBytes": 18046
     },
     "src/shortcuts-ui.ts": {
-      "jsGzipBytes": 157312,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157824,
+      "cssGzipBytes": 16655
     },
     "src/split-settings-ui.ts": {
-      "jsGzipBytes": 157005,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157517,
+      "cssGzipBytes": 16655
     },
     "src/stats.ts": {
-      "jsGzipBytes": 163303,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 163815,
+      "cssGzipBytes": 16655
     },
     "src/threads-ui.ts": {
-      "jsGzipBytes": 158693,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 159205,
+      "cssGzipBytes": 16655
     },
     "src/user-holds.ts": {
-      "jsGzipBytes": 158240,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158752,
+      "cssGzipBytes": 16655
     },
     "src/user-notes-ui.ts": {
-      "jsGzipBytes": 158954,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 159466,
+      "cssGzipBytes": 16655
     },
     "src/video.ts": {
-      "jsGzipBytes": 158436,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158948,
+      "cssGzipBytes": 16655
     },
     "src/vod-context-ui.ts": {
       "jsGzipBytes": 28557,
       "cssGzipBytes": 11568
     },
     "src/whispers-ui.ts": {
-      "jsGzipBytes": 156739,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 157251,
+      "cssGzipBytes": 16655
     },
     "src/workspaces-ui.ts": {
-      "jsGzipBytes": 157825,
-      "cssGzipBytes": 16399
+      "jsGzipBytes": 158337,
+      "cssGzipBytes": 16655
     },
     "src/storage-worker.ts": {
       "jsGzipBytes": 36081,

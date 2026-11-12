@@ -285,6 +285,74 @@ html[data-shell] body {
 .wb-info > :is(:empty, [hidden]) {
   display: none;
 }
+/* First-visit introduction. The one surface in the brand's phosphor palette, whatever the chat palette is. */
+#intro {
+  --cat-bg: #0b0f0c;
+  --cat-fg: #cfeedd;
+  --cat-face: #7dff9a;
+  --cat-cursor: #e8a33d;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 10px 12px;
+  background: var(--cat-bg);
+  color: var(--cat-fg);
+  border-bottom: 1px solid color-mix(in srgb, var(--cat-bg) 76%, var(--cat-fg));
+  font:
+    13px/1.45 ui-monospace,
+    monospace;
+}
+#intro .intro-lockup {
+  flex: none;
+  width: auto;
+  height: 40px;
+}
+#intro .intro-copy {
+  flex: 1;
+  min-width: 0;
+  max-width: 120ch;
+}
+#intro p {
+  margin: 0;
+}
+#intro .intro-tagline {
+  color: var(--cat-face);
+  font-size: 15px;
+  font-weight: 700;
+}
+#intro .intro-close {
+  flex: none;
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--cat-face);
+  border-radius: 4px;
+  background: none;
+  color: var(--cat-face);
+  font: inherit;
+  cursor: pointer;
+}
+#intro .intro-close:hover {
+  background: var(--cat-face);
+  color: var(--cat-bg);
+}
+#intro .intro-close:focus-visible {
+  outline: 2px solid var(--cat-cursor);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  #intro {
+    flex-wrap: wrap;
+    font-size: 12px;
+  }
+  #intro .intro-lockup {
+    height: 32px;
+  }
+  #intro .intro-copy {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
 .wb-centre > #offline {
   padding: 4px 12px;
   font-size: 11px;

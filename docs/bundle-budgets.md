@@ -64,3 +64,8 @@ The subsequent hover-usercard history adds a bounded, scrollable list of retaine
 messages. Its shared code also appears in the Settings and Video import closures;
 only those JavaScript limits increase by a further 256 bytes each. All other
 limits, including CSS, remain at the values established by the desktop UI pass.
+
+The first-visit introduction (November 12, 2026) adds a small module, its styles and
+an emitted lockup image to the main entry. Every entry that statically imports the main
+closure had little or no headroom left, so their JavaScript limits increase by 512
+bytes and their CSS limits by 256 bytes. Overlay and worker limits stay unchanged.

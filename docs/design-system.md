@@ -218,6 +218,18 @@ the font-size menu, rather than subtracting pixels.
   detaches the panel; dropping within 40px of an edge or onto a zone docks it. The
   "columns and rail" display option docks video, emotes and stats on the right. Layout
   persists per profile and travels in workspaces as the `workbench` settings part.
+- **Introduction.** A signed-out visitor who has not dismissed it sees one strip above
+  the log (`src/shell/intro.ts`): the primary lockup, the line "six channels. one
+  scrollback." and two sentences on what Chatty Cat is, with a "Got it" button that
+  removes it for that browser (`chatthing:v1:intro-dismissed`). Signed-in accounts and
+  readonly popouts never see it. It is the one shell surface in the brand's phosphor
+  palette, whatever the chat palette is: its rule sets `--cat-bg`, `--cat-fg`,
+  `--cat-face` and `--cat-cursor` to the phosphor values and uses only those. The lockup
+  is `src/shell/lockup-primary.svg`, a byte copy of the Studio pack's
+  `logos/lockup-primary-outlined.svg` (sha256 `30d50641…49265e7`), shown as an image at
+  188px wide (150px at or below 600px, where the pack's 160px floor gives way to the
+  phone layout), so no brand face is loaded; the copy is set in the system monospace
+  stack. Copy follows the Studio voice guide and claims C-CHAT-01, 02 and 04.
 - **Notice bars.** The offline bar sits on `--panel` with a `--danger` bottom rule. The
   update-ready control is a normal button. Stream details and room modes share one 11px
   `--muted` line (`.wb-info`) at 60% opacity, full on hover or focus, with no rule.

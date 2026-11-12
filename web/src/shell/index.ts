@@ -7,6 +7,7 @@ import { Workbench } from './workbench';
 import { closeMenus } from './menu';
 import { privacyEnabled } from '../privacy';
 import { applePlatform } from './platform';
+import { mountIntro } from './intro';
 export interface ShellAction {
   id: string;
   label: string;
@@ -116,12 +117,14 @@ export function startShell(options: ShellOptions): Shell {
       available: () => !privacyEnabled(),
       run: openSettings,
     });
+  // Readonly popouts have no Settings window and no introduction.
+  if (openSettings) mountIntro(document.getElementById('offline'));
   const workbench = new Workbench({
     titleFor: (root) => titleFor(registry, root),
     exclude: (root) => root.dataset.shellOwned !== undefined || root.closest('#topbar,.shell-menu') !== null,
     chat: true,
     centre:
-      '#offline,#app-update,#stream,#room-state,#video-panel,main#log,.chat-workspace,#announcer,#composer,.message-navigation',
+      '#intro,#offline,#app-update,#stream,#room-state,#video-panel,main#log,.chat-workspace,#announcer,#composer,.message-navigation',
   });
   // Stream details and room modes share one quiet line above the log.
   const stream = document.getElementById('stream'),
