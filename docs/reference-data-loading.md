@@ -9,7 +9,7 @@ now measures 151.21 kB gzip, down from 203.76 kB at merged panel PR #155.
 Startup retains the 3,944 qualified Unicode emoji sequences and nine group names
 as a compact index. Live message usage tracking, native emoji text and saved
 category validation work before any metadata fetch. Names, subgroups, Unicode
-versions, image asset names, tones and legacy search terms are in immutable JSON.
+versions, image asset names, tones and search terms are in immutable JSON.
 The picker loads this data when open with Emoji enabled. A saved image/label style
 also requests it independently of the picker; messages use native text while it
 loads, then repaint with the requested style. Invalid data cannot install partial
@@ -24,10 +24,10 @@ tab, source attribution, safe links and author controls. A failed resource load
 uses the existing panel load-failure announcement and retries on the next open.
 
 `reference_data.py` emits content-addressed JSON and URL descriptors. The existing
-Unicode/Twemoji generator and original-resource importer use it. Unicode source
+Unicode/Twemoji generator and curated-resource importer use it. Unicode source
 SHA, all 3,944 entry names/groups/versions/tones and both output filename hashes
 were verified locally. `docs/emoji-sources.json` and pinned source/license files
-are unchanged. Original legacy keyword strings moved into the generator's input
+are unchanged. The emoji keyword strings moved into the generator's input
 JSON; they no longer execute in the app.
 
 The worker precaches both JSON assets without decoding them in the page. Its

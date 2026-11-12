@@ -52,7 +52,7 @@ const about: CustomSection = {
   id: 'builtin.about',
   page: 'about',
   section: 'About',
-  keywords: 'about version source code license agpl upstream credit chatty cat',
+  keywords: 'about version source code license agpl chatty cat',
   async mount(el) {
     const box = document.createElement('div');
     const version = document.querySelector<HTMLMetaElement>('meta[name=version]')?.content.trim();
@@ -63,13 +63,7 @@ const about: CustomSection = {
     }
     const source = document.createElement('p');
     source.append(link('/source.tar.gz', 'Source code (AGPL-3.0)', false));
-    const credit = document.createElement('p');
-    credit.append(
-      'Rebuilt in Go and TypeScript from ',
-      link('https://github.com/mxmilkiib/hasanabi.neocities.org', 'the original AGPL project', true),
-      '.',
-    );
-    box.append(source, credit);
+    box.append(source);
     el.append(box);
     return () => box.remove();
   },

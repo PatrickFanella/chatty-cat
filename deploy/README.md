@@ -6,13 +6,10 @@ one HTTPS origin. The default origin and registered Twitch callback are:
 - `https://chat.subcult.tv`
 - `https://chat.subcult.tv/api/auth/callback`
 
-Full parity and live acceptance remain open. These files prepare a deployment;
-they do not authorize or perform a cutover.
-
 ## Existing reverse proxy
 
 From the repository root, use the private environment file already maintained
-outside Git. In the current side-by-side checkout it is `../.env`:
+outside Git. The examples use `../.env`, the service's default env file path:
 
 ```sh
 docker compose --env-file ../.env config --quiet
@@ -24,7 +21,7 @@ Only the named Twitch credentials, public origin and optional Giphy integration
 key are passed into the service.
 Credentials are runtime configuration; the build context excludes environment
 files. Do not share expanded Compose configuration, which can contain secrets.
-For a standalone checkout, replace `../.env` with your private file path.
+If your private env file lives elsewhere, replace `../.env` with its path.
 `GIPHY_API_KEY`, when configured, is a client integration key exposed through
 public configuration for direct browser requests. It is separate from the Twitch
 client secret. Leave it empty to retain GIF-title search links.

@@ -1,7 +1,7 @@
 # Live testing deployment
 
-The owner authorized deploying the current rebuild on October 11, 2026 after
-Twitch rejected the preview browser. Full parity has not been accepted.
+The owner authorized deploying the current build on October 11, 2026 after
+Twitch rejected the preview browser.
 
 Release `20261011T232722Z` runs on NUC as `chatty-cat.service`, listening on
 `10.0.0.56:3075`. Only Almaz is allowed through its ingress firewall rule.
@@ -40,14 +40,13 @@ sudo python3 /opt/server/management/data/chatty-cat-recovery/20261011T232722Z/ro
 sudo /srv/apps/projects/chatty-cat/recovery/rollback-service.sh
 ```
 
-Rollback retains releases and credentials. The original frontend and user
-browser storage remain available.
+Rollback retains releases, credentials and user browser storage.
 
 The owner subsequently reported that public login worked in their regular
 browser. This confirms login/consent from the owner's test; it does not verify
 sending, logout, expiry recovery, whispers or moderator actions.
 
-The owner later sent `Chatty Cat parity test` and a reply through the rebuild in
+The owner later sent `Chatty Cat parity test` and a reply through Chatty Cat in
 their approved `patrick__eff` channel and confirmed that the reply appeared.
 An independent public preview observed the parent message with its broadcaster
 and subscriber badges and name color. Local-echo adoption, rejection handling,

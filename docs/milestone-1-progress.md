@@ -48,7 +48,7 @@ Duplicate panes reuse the view's existing ChatConnection, retained transcript an
 
 Reproduce the synthetic 100,000-message demo with `npm --prefix web run dev -- --port 5174`, then open `http://127.0.0.1:5174/splits-demo.html`. It mounts two virtual readers for alice/bob and makes no Twitch connection or send request. Local browser observation: 74 mounted rows total. Full-app anonymous checks exercised separate channel groups/targets, tab creation/switching, workspace reload, a single-pane popout, and a 375×812 viewport with one visible pane and no horizontal overflow. A held reader kept the same message key and exact pixel offset across a synthetic browser-only arrival. No Twitch send, moderation action or production deployment occurred.
 
-The six-channel source limit remains in place; raising channel admission is tracked separately in #8. Original page-column and rail presets remain available when independent panes are disabled. The bundle remains over Vite's 500 KB advisory threshold.
+The six-channel source limit remains in place; raising channel admission is tracked separately in #8. Page-column and rail presets remain available when independent panes are disabled. The bundle remains over Vite's 500 KB advisory threshold.
 
 Split verification checkpoint: 73 frontend files / 359 tests passed, strict TypeScript/service-worker checks and production build passed. Review added regression coverage for held keyboard navigation, same-channel reply preservation and pending-send destination guards. The single-pane popout mounted no Twitch iframe after workspace restoration.
 

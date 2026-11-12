@@ -6,7 +6,7 @@ export interface Burst {
   timestamp: number;
 }
 
-// Rank five-second rolling windows, matching the original's 4 msgs/s floor.
+// Rank five-second rolling windows with a 4 msgs/s floor.
 // Callers supply their already filtered, deduplicated chat messages.
 export function loudestBursts(
   messages: readonly ChatMessage[],

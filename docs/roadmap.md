@@ -326,7 +326,7 @@ limits. Use the [repository verification commands](../README.md#verify) and
 local checks, exact-head hosted CI, merge, deployment and live/provider results
 as separate evidence. Recheck issue state before starting the next slice.
 
-Historical acceptance remains in [parity](parity.md), [M3](milestone-3-progress.md),
+Historical acceptance remains in [M3](milestone-3-progress.md),
 [M4](m4-deployment-2026-10-13.md), [M5](milestone-5-progress.md) and the
 [October 14 closeout](remaining-acceptance-2026-10-14.md). These dated reports are
 not claims of today's deployed release. The pinned Chatterino 2.5.6

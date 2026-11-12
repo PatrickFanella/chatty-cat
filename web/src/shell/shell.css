@@ -1223,7 +1223,7 @@ html[data-shell] #stats-panel {
   width: min(1000px, calc(100vw - 24px));
 }
 
-/* ---- Row controls added by the rebuild: quiet until the row is hovered or focused ---- */
+/* ---- Row controls: quiet until the row is hovered or focused ---- */
 html[data-shell] #log .row :is(.thread-open, .bookmark-message, .permalink, .parent-jump, .reply) {
   font-size: 10px;
   line-height: 1.5;

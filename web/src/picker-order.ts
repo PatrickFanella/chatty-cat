@@ -1,4 +1,4 @@
-// Family stems and age thresholds match the original picker.
+// Family stems and age thresholds that order the emote picker.
 const familyCollator = new Intl.Collator('en', { sensitivity: 'base' });
 export function familyCompare(a: string, b: string): number {
   const stem = (s: string): string =>

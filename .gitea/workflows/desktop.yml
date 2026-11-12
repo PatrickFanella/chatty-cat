@@ -200,7 +200,7 @@ jobs:
                   '`xattr -dr com.apple.quarantine "/Applications/Chatty Cat.app"`.\n'
                   '- **Linux (x86-64):** install the .deb, or run the AppImage. The AppImage needs FUSE '
                   '(`libfuse2`); without it, run it with `APPIMAGE_EXTRACT_AND_RUN=1`.\n\n'
-                  '- **Browser build:** the chatthing archives run the chat server without the app window. '
+                  '- **Browser build:** the browser-build archives run the chat server without the app window. '
                   'Extract the archive for your computer and run `./chatty-cat`; it opens Chatty Cat in your default '
                   'browser. Press Ctrl+C to stop it. On macOS, first run '
                   '`xattr -dr com.apple.quarantine chatthing-*-mac-arm64`.\n\n'

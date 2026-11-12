@@ -165,4 +165,4 @@ release. Its local qualification passed 571 frontend tests, production compilati
 Go race tests, vet and lint, with native synthetic-provider checks; this does not
 establish live acceptance. Earlier sections of [M3 progress](milestone-3-progress.md)
 describe the state at their implementation checkpoints; this dated report records
-the subsequent deployment. M3 and full parity remain open.
+the subsequent deployment. M3 remains open.

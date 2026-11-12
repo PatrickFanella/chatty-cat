@@ -75,7 +75,7 @@ type Channel struct {
 // Endpoints allows deterministic local-provider integration tests.
 type Endpoints struct{ SevenTV, BTTV, FFZ, IVR, DecAPI, StreamElements string }
 
-// DefaultEndpoints returns the public services used by the original relay.
+// DefaultEndpoints returns the public 7TV, BTTV, FFZ, IVR, DecAPI and StreamElements endpoints.
 func DefaultEndpoints() Endpoints {
 	return Endpoints{SevenTV: "https://7tv.io/v3", BTTV: "https://api.betterttv.net/3/cached", FFZ: "https://api.frankerfacez.com/v1", IVR: "https://api.ivr.fi/v2/twitch", DecAPI: "https://decapi.me/twitch", StreamElements: "https://api.streamelements.com/kappa/v2/chatstats"}
 }
@@ -261,7 +261,7 @@ func (s *Service) fetch(ctx context.Context, address string) ([]byte, error) {
 var channelPattern = regexp.MustCompile(`^[a-z0-9_]{1,25}$`)
 var idPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,100}$`)
 
-// Load combines globals then channel sets in the original provider precedence.
+// Load combines global sets, then channel sets, each in 7TV, BTTV, FFZ order, followed by Twitch global and channel emotes.
 // A failed provider leaves the others available and names the missing source.
 func (s *Service) Load(ctx context.Context, channel string) (Channel, error) {
 	return s.load(ctx, channel, nil)

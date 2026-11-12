@@ -1,4 +1,4 @@
-// Display data ported from the original AGPL app.
+// Display presets, palettes and fonts. Attribution is in NOTICE.md.
 export const PRESETS: Record<string, Record<string, string | number | boolean | Record<string, number>>> = {
   'old-default': {
     colour: 'gray',

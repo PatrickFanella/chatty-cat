@@ -7,11 +7,9 @@ the product's interface rules and identity. The SUBCULT Studio pack in
 promotional artwork and the web-asset generator, and copies this file with hashes. Edit
 interface rules here; edit artwork and palettes there.
 
-Since November 2, 2026 the owner has set aside parity with the original app as a design
-constraint: every surface, the chat presentation included, follows what is best for the
-product. The original app remains a useful reference, and its palette axes, presets,
-fonts and resource content are still AGPL material attributed in `NOTICE.md`. The
-identity applies to the shell, the icons and public material.
+Every surface, the chat presentation included, follows what is best for the product.
+The palette axes, presets, fonts and resource content carry the licenses and attribution
+recorded in `NOTICE.md`. The identity applies to the shell, the icons and public material.
 
 ## Identity
 
@@ -20,9 +18,7 @@ identity applies to the shell, the icons and public material.
 repository, Go module and image names are `chatty-cat`.
 
 **What it is.** A self-hosted Twitch chat client that merges up to six channels into one
-scrollback and keeps the user's display settings. It rebuilds mxmilkiib's HasanAbi Chat
-Thing and Twitch Chat Relay in Go and TypeScript. The original app stays up until
-the owner decides on cutover; `docs/parity.md` records the earlier gates and evidence.
+scrollback and keeps the user's display settings. It is written in Go and TypeScript.
 
 **Mark.** An eight-bit cat face, twelve cells wide and ten tall: two ear cells, two eye
 gaps and a two-cell cursor for a mouth. Every cell is solid, so it reads at 16px as a cat
@@ -40,9 +36,9 @@ the phosphor palette; `web/public/brand-export.json` records their source and ha
 Regenerate in Studio and copy. Do not edit the copies.
 
 **Voice.** Quick, practical, a little dry; chat vocabulary used correctly (rooms, the log,
-scrollback, backfill). Says it is a self-hosted client in migration, names the lineage and
-never implies a Twitch product. Full voice in the Studio voice guide; facts from the
-claims register entries C-CHAT-01 to 04.
+scrollback, backfill). Says it is a self-hosted client and never implies a Twitch product.
+Full voice in the Studio voice guide; facts from claims register entries C-CHAT-02 and 03.
+Entries C-CHAT-01 and 04 still describe the app as a rebuild in migration; do not use them.
 
 ## Palettes
 
@@ -121,7 +117,7 @@ Rules:
    height, no zebra, hour-and-minute timestamps and chat alone (`split` 1). Video, emotes
    and stats open on request; choosing the Nightshade preset explicitly still applies all
    of its values. Saved display settings are left as they are.
-3. The 18 presets in `display-data.ts` came from the original app. Change or add presets
+3. The 18 presets live in `display-data.ts`. Change or add presets
    when it helps the product.
 
 ## Display option labels
@@ -154,7 +150,7 @@ and definitions stay unchanged.
 | Other measurements | Size uses px; line height uses × font size; spacing uses em (`0`: Normal); scrollback uses rows |
 
 These labels describe retained display values; they do not add behavior. The
-workbench keeps its single compact top bar, so the legacy header-mode values do
+workbench keeps its single compact top bar, so the older header-mode values do
 not change that shell. Rail presets apply in landscape and remain subject to
 the existing video and pane settings. Preview image/player permissions and
 reduced-motion preferences still take priority over their display modes.
@@ -229,7 +225,7 @@ the font-size menu, rather than subtracting pixels.
   `logos/lockup-primary-outlined.svg` (sha256 `30d50641…49265e7`), shown as an image at
   188px wide (150px at or below 600px, where the pack's 160px floor gives way to the
   phone layout), so no brand face is loaded; the copy is set in the system monospace
-  stack. Copy follows the Studio voice guide and claims C-CHAT-01, 02 and 04.
+  stack. Copy follows the Studio voice guide and claim C-CHAT-02.
 - **Notice bars.** The offline bar sits on `--panel` with a `--danger` bottom rule. The
   update-ready control is a normal button. Stream details and room modes share one 11px
   `--muted` line (`.wb-info`) at 60% opacity, full on hover or focus, with no rule.

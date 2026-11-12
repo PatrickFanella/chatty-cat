@@ -14,8 +14,7 @@ Owner decisions (2026-11-02):
 - Regroup settings into Chatterino-style pages, splitting today's Display and
   Presentation panels where needed (not a sidebar of today's panels).
 - The window is modal, not a workbench panel.
-- Build approach A: a settings registry rendered by one window. Parity with the original
-  app is not a constraint.
+- Build approach A: a settings registry rendered by one window.
 
 ## Out of scope
 
@@ -159,7 +158,7 @@ Stored keys in parentheses; sections in this order.
 - **Privacy**: visible workspaces while privacy mode is on (custom section,
   `privacy-settings`). Privacy mode itself and panic stay on their existing toggle and
   Alt+Shift+P.
-- **About**: version, source code link (AGPL-3.0), credits, local command help,
+- **About**: version, source code link (AGPL-3.0), local command help,
   resource readout.
 
 Every key of each source store is either placed above or listed under "Exclusions".

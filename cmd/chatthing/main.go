@@ -41,7 +41,7 @@ func run() error {
 		assets = "web/dist"
 	}
 	if _, err := os.Stat(assets + "/index.html"); err != nil {
-		return errors.New("frontend build missing; run npm ci && npm run build in rebuild/web")
+		return errors.New("frontend build missing; run npm --prefix web ci && npm --prefix web run build")
 	}
 	addr := os.Getenv("CHATTHING_ADDR")
 	if addr == "" {

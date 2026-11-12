@@ -103,7 +103,7 @@ it('palette entries hide private settings in privacy mode', () => {
   expect(labels.some((label) => label.startsWith('Size — '))).toBe(false);
 });
 
-it('the About section links the source and credits upstream', async () => {
+it('the About section shows the version and links the source', async () => {
   const meta = document.createElement('meta');
   meta.name = 'version';
   meta.content = '1.2.3';
@@ -116,7 +116,7 @@ it('the About section links the source and credits upstream', async () => {
   expect(el.textContent).toContain('1.2.3');
   const links = [...el.querySelectorAll('a')].map((a) => [a.getAttribute('href'), a.textContent]);
   expect(links).toContainEqual(['/source.tar.gz', 'Source code (AGPL-3.0)']);
-  expect(links).toContainEqual(['https://github.com/mxmilkiib/hasanabi.neocities.org', 'the original AGPL project']);
+  expect(links).toEqual([['/source.tar.gz', 'Source code (AGPL-3.0)']]);
 });
 
 it('the About section omits the version line without a version meta tag', async () => {

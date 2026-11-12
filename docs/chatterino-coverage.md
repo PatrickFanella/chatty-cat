@@ -1,8 +1,8 @@
 # Chatterino 2.5.6 coverage audit
 
-Audit [#5](https://git.subcult.tv/subculture-collective/chatty-cat/issues/5) is complete as an inventory and adoption plan. **Chatterino parity is not complete.** Existing Twitch chat, original-app settings, archive and media behavior remain the baseline; the roadmap still contains missing Chatterino workflows and controls.
+Audit [#5](https://git.subcult.tv/subculture-collective/chatty-cat/issues/5) is complete as an inventory and adoption plan. **Chatterino parity is not complete.** Existing Twitch chat, settings, archive and media behavior remain the baseline; the roadmap still contains missing Chatterino workflows and controls.
 
-Reviewed 2026-10-12 against Chatty Cat `8501a49a826e9b26be9ddb0b6be676d80a887ddc` (main including merged parity PR [#2](https://git.subcult.tv/subculture-collective/chatty-cat/issues/2) and roadmap PR [#39](https://git.subcult.tv/subculture-collective/chatty-cat/issues/39)). This audit changes documentation and adds an inventory checker; it changes no runtime code or deployment.
+Reviewed 2026-10-12 against Chatty Cat `8501a49a826e9b26be9ddb0b6be676d80a887ddc` (main including merged PR [#2](https://git.subcult.tv/subculture-collective/chatty-cat/issues/2) and roadmap PR [#39](https://git.subcult.tv/subculture-collective/chatty-cat/issues/39)). This audit changes documentation and adds an inventory checker; it changes no runtime code or deployment.
 
 The M5 declaration review below was refreshed on October 13 against merged `27174e7` (PRs #113–#118). Earlier matrix/demo evidence retains its original revision and date; it does not establish current production acceptance. The CSV's M5 entries now distinguish delivered adaptations from exact upstream controls that remain missing.
 
@@ -52,7 +52,7 @@ The checker passed all 515 immutable upstream declarations, hashes, row identiti
 
 ## Feature coverage and acceptance
 
-`T` means focused automated verification this audit. `D` means the local browser demo below. `H` means earlier owner/runtime evidence in [parity.md](parity.md); it was not repeated as a live account test in this audit. Code inspected without a matching test or demo is not promoted to runtime-verified.
+`T` means focused automated verification this audit. `D` means the local browser demo below. `H` means earlier owner/runtime evidence recorded during October 2026 acceptance; it was not repeated as a live account test in this audit. Code inspected without a matching test or demo is not promoted to runtime-verified.
 
 | Feature and exact acceptance boundary | State / evidence | Delivery or limitation |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ The checker passed all 515 immutable upstream declarations, hashes, row identiti
 | Generic IRC networks, TLS/auth, server/channel editing and private conversations | Planned web/companion adaptation; `internal/irc/message.go` is Twitch-only | [#38](https://git.subcult.tv/subculture-collective/chatty-cat/issues/38); existing Twitch transport is not generic IRC support. No arbitrary browser socket access. |
 | Experimental Lua plugins, REPL and plugin API | Planned web adaptation; no runtime plugin engine | [#37](https://git.subcult.tv/subculture-collective/chatty-cat/issues/37); capability-limited extensions need separate supported APIs, not unrestricted Lua/filesystem/network compatibility. |
 | Native keyring, package updates, cache/log paths and miniaudio backend | Platform-limited | Browser permissions/storage, server deployment and PWA updates own these concerns. Native configuration is neither imported nor treated as implemented. |
-| Startup cached history and bounded virtual rendering | Implemented adaptation; `web/src/store.ts`, `web/src/archive.ts`, `web/src/virtual-log.ts`; T, D, H | Local cache is not the upstream recent-message service. Existing 100,000-record/35-mounted-row observation in parity.md is historical, not rerun here. |
+| Startup cached history and bounded virtual rendering | Implemented adaptation; `web/src/store.ts`, `web/src/archive.ts`, `web/src/virtual-log.ts`; T, D, H | Local cache is not the upstream recent-message service. The earlier 100,000-record/35-mounted-row observation is historical, not rerun here. |
 
 Every planned matrix row links a roadmap slice. Full acceptance requires the actual setting/action, its persisted semantics, regression evidence and a demo; completing a family headline or this audit does not close the delivery slices.
 
@@ -119,7 +119,7 @@ The checker accepts an existing directory and performs no network access or repo
 
 ## Regression evidence, 2026-10-12
 
-At the reviewed rebuild revision on macOS, Node/Vitest and Go:
+At the reviewed Chatty Cat revision on macOS, Node/Vitest and Go:
 
 ```sh
 npm --prefix web test -- --maxWorkers=1 composer.test.ts completion.test.ts log-keyboard.test.ts archive.test.ts history-import.test.ts virtual-log.test.ts attention.test.ts settings-bundle.test.ts tokens.test.ts render.test.ts whispers.test.ts
@@ -128,7 +128,7 @@ go test -race -count=1 ./internal/auth ./internal/irc
 
 Result: **11 frontend files / 72 tests passed**; both Go packages passed with race detection and cache bypass. These cover composer/caret handling, fixed keyboard navigation, archive/import, virtual rows, settings bundles, alerts, native tokens/rendering, private whispers and auth/command/provider boundaries. The inventory checker passed all 515 declarations and source hashes. The broader build/CI/deployment and every planned feature were not rerun or accepted by these focused checks.
 
-Earlier owner acceptance in parity.md includes actual sign-in, visible public send/reply, subscriber emotes, whisper receipt, message deletion, sound and OS notifications. That evidence remains dated; mock provider tests do not establish every moderation/broadcaster permission or provider delivery outcome. On October 14 the owner accepted direct, uncached GIPHY lookup as the supported adaptation for [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4); original cache/proxy behavior remains unavailable without provider approval.
+Earlier owner acceptance includes actual sign-in, visible public send/reply, subscriber emotes, whisper receipt, message deletion, sound and OS notifications. That evidence remains dated; mock provider tests do not establish every moderation/broadcaster permission or provider delivery outcome. On October 14 the owner accepted direct, uncached GIPHY lookup as the supported adaptation for [#4](https://git.subcult.tv/subculture-collective/chatty-cat/issues/4); original cache/proxy behavior remains unavailable without provider approval.
 
 ## Reproducible browser demo
 

@@ -3,15 +3,7 @@
 ![Chatty Cat repository banner](assets/brand/banner.png)
 
 Chatty Cat is a self-hosted Twitch chat client: one Go service with a
-TypeScript frontend. It started as a rebuild of
-[HasanAbi Chat Thing](https://github.com/mxmilkiib/hasanabi.neocities.org) and
-its [Twitch Chat Relay](https://github.com/mxmilkiib/twitch-chat-relay) by
-mxmilkiib. The original app is still the reference for many details, but
-product decisions now come first.
-
-It runs at [chat.subcult.tv](https://chat.subcult.tv). The rebuild is in
-progress; the [parity checklist](docs/parity.md) tracks which feature families
-are complete.
+TypeScript frontend. It runs at [chat.subcult.tv](https://chat.subcult.tv).
 
 ## Features
 
@@ -27,7 +19,7 @@ are complete.
   emoji, with filters, recents and animation controls.
 - **Moderation:** moderation actions and presets, the AutoMod queue, polls,
   predictions and broadcaster actions for accounts with those permissions.
-- **Display:** the original palettes and fonts, custom themes, filters,
+- **Display:** built-in palettes and fonts, custom themes, filters,
   columns, header modes, saved layouts and keyboard shortcuts
   ([docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md)).
 - **Stream video:** an embedded player beside chat.
@@ -127,13 +119,13 @@ web/             TypeScript frontend (Vite)
 desktop/         Electron shell for the desktop app
 companion/       browser companion extensions and the macOS overlay helper
 deploy/          Caddy and Compose examples
-docs/            architecture, design system, parity and feature notes
+docs/            architecture, design system and feature notes
 scripts/         build, release and data-generation scripts
 ```
 
 [docs/architecture.md](docs/architecture.md) describes how the parts fit
-together. The curated resource content comes from the original app; to refresh
-it, run `python3 scripts/port-resources.py /path/to/original/index.html`.
+together. The Help panel's resource lists are generated data; to regenerate
+them, run `python3 scripts/port-resources.py <source.html>`.
 
 ## Contributing
 
@@ -150,6 +142,6 @@ Linux app, macOS app and browser build on every pull request. The
 ## License
 
 Chatty Cat is licensed under the GNU Affero General Public License v3.0. See
-[LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for attribution. Retained assets
-keep their upstream licenses. If you run a modified version for other people
+[LICENSE](LICENSE) and [NOTICE.md](NOTICE.md) for attribution. Bundled
+fonts, emoji graphics and other third-party assets keep their own licenses. If you run a modified version for other people
 over a network, the license requires you to offer them its source.

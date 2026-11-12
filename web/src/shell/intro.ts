@@ -33,7 +33,7 @@ export function mountIntro(anchor: Element | null): HTMLElement | undefined {
   const about = document.createElement('p');
   about.textContent =
     'Chatty Cat is a self-hosted Twitch chat client: up to six channels in one log, no sign-in needed to read, ' +
-    'in your palette, font and line height. It rebuilds mxmilkiib’s HasanAbi Chat Thing; the rebuild is in progress.';
+    'in your palette, font and line height.';
   copy.append(tagline, about);
   const close = document.createElement('button');
   close.type = 'button';

@@ -2,15 +2,11 @@
 
 ## Requirements confirmed by the owner
 
-- Rebuild in Go and TypeScript.
+- A Go service with a TypeScript frontend.
 - Self-host the frontend and Go service together.
-- Complete feature parity before switching away from the original app.
 
-Keep the original UX and its dense, configurable chat presentation as the
-reference. The migration preview is a transport exercise, not an approved
-redesign. A framework is not required for the existing DOM-driven UI; the current
-foundation uses TypeScript modules and Vite. Reassess component tooling when
-porting the configuration panel, not as a prerequisite for chat transport.
+A framework is not required for the DOM-driven UI; the frontend uses TypeScript
+modules and Vite.
 
 ## Ownership
 
@@ -20,12 +16,8 @@ The browser owns presentation, filtering, rate graphs, UI settings, keyboard
 interaction, local archive/history and cross-tab coordination.
 
 One origin serves static assets and `/api` routes. Browsers connect to the Go
-service directly. The replacement needs neither the externally hosted relay
-iframe nor the original author's Cloudflare Worker.
-
-The existing nested relay is an independent Git checkout. Do not accidentally
-add its Git directory or deploy it as frontend assets. The rebuild resides in
-the root repository; the relay checkout remains reference material.
+service directly. No externally hosted relay iframe or third-party worker is
+involved.
 
 ## Transport and event model
 
@@ -33,7 +25,7 @@ The first checkpoint preserves IRC compatibility through a Go transport adapter.
 The domain message keeps ID, command, channel, login, timestamp, text and tags.
 Tags are necessary for replies, badge versions, moderation, emote positions,
 USERNOTICE and room mode state; reducing messages to a username and text would
-lose parity. TypeScript validates wire data before accepting it into its store.
+lose that information. TypeScript validates wire data before accepting it into its store.
 
 The initial `/api/chat?channels=a,b` stream emits status and message events.
 The protocol will expand with authenticated sending, channel metadata, emote
@@ -43,8 +35,8 @@ domain without forcing a frontend rewrite.
 
 Twitch recommends EventSub and the HTTP API for chat:
 https://dev.twitch.tv/docs/chat/irc-migration/
-The original app's anonymous viewing and client-like behavior need explicit
-compatibility evaluation before choosing EventSub as the only transport.
+Anonymous viewing relies on IRC, so evaluate it before making EventSub the only
+transport.
 Do not assume an IRC slash command, whisper or moderation button still works:
 validate supported behavior against current Twitch APIs and real accounts.
 
@@ -72,15 +64,15 @@ delivery requires checking chat; no automatic resend or optimistic echo runs.
 The adapter follows Twitch's [send-message API](https://dev.twitch.tv/docs/api/reference/#send-chat-message).
 Slash commands, whispers and moderator APIs remain open.
 
-Do not reuse the original client ID, put Twitch tokens in browser localStorage,
+Use only Chatty Cat's registered client ID. Do not put Twitch tokens in browser localStorage,
 log token values, or use a shared upstream identity for different users' sends.
 Anonymous and authenticated session lifecycles remain distinct. Durable encrypted token/session
 persistence is a deployment choice still to resolve; frontend settings and local
-chat history stay client-side for parity.
+chat history stay client-side.
 
 ## Provider services
 
-Port the relay and preview worker into provider adapters in Go:
+Go provider adapters cover:
 
 - Twitch native emotes, badge sets, VOD timing and stream/room status.
 - 7TV, BTTV and FFZ globals, channel sets, animations and zero-width overlays.
@@ -96,31 +88,15 @@ must cancel downstream work.
 
 Preview fetching must reject private destinations after DNS resolution and on
 every redirect, including IPv6 and embedded credentials. An origin allowlist is
-not a substitute for destination validation. Track this as a release acceptance
-case rather than carrying over the original worker's hostname-only checks.
+not a substitute for destination validation, and hostname-only checks are not
+enough. Track this as a release acceptance case.
 
-## Parity and migration
+## Verification
 
-Work in independently verified increments:
-
-1. Connection and domain foundation (this checkpoint).
-2. Anonymous rendering parity: emotes, badges, moderation, replies and metadata.
-3. Authenticated behavior: OAuth, sending, echoes, input history, room controls.
-4. UI parity: configuration, themes, picker, panels, layouts and embedded media.
-5. Local data: history, archive, stats, saved geometry, URL settings, cross-tab
-   synchronization and explicit import of compatible original settings.
-6. Provider preview parity, accessibility and lifecycle/performance checks.
-7. Production packaging, regression verification and reversible cutover.
-
-Add regression fixtures from the actual original behavior as modules migrate.
-Use local integration servers for deterministic network tests. Compare browser
+Add regression fixtures as modules change. Use local integration servers for deterministic network tests. Compare browser
 behavior on desktop/mobile, light/dark themes and representative channel speeds.
 Test suspend/resume and reconnect after a backlog exceeds provider retention.
 Live account checks are required for authenticated and moderator functionality.
-
-Only switch when every required row in `parity.md` has implementation and
-verification evidence. Retain original assets, routing and user storage for
-rollback. Committing or serving this preview does not authorize a public cutover.
 
 ## Current limits
 
@@ -131,6 +107,5 @@ concurrency limit, in-flight coalescing, a 32 MiB/256-entry cache and stale fall
 after provider errors. Metadata handlers have a separate 16-request cap and join
 service shutdown. Stream fields refresh every minute; emotes and badges
 cache for ten minutes. The browser reuses existing row/image nodes but still
-reorders the bounded log and applies moderation across it; the original
-100,000-row option needs further work. These are explicit migration tasks, not
-production scale or full-parity claims.
+reorders the bounded log and applies moderation across it; the 100,000-row
+option needs further work.

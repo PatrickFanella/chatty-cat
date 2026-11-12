@@ -1,4 +1,4 @@
-// Labels belong to the editor. Values remain the legacy storage/URL contract.
+// Labels belong to the editor. Values are the saved storage/URL contract and must not change.
 export const DISPLAY_OPTION_LABELS: Readonly<Record<string, Readonly<Record<string, string>>>> = {
   min: { 0: 'Full header', 1: 'Compact header', 2: 'Graph header' },
   bauto: { 0: 'Always visible', 1: 'Fade until hovered or focused', 2: 'Collapse until hovered or focused' },

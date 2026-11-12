@@ -41,7 +41,7 @@ export class Resources {
       'Video opens Twitch’s player with the current parent domain and does not start playback automatically. Link previews load media players only when selected.',
       'GIF title lookup uses direct, uncached GIPHY requests. Results keep GIPHY attribution and original media URLs. Enable PG-13 safe mode in Settings › General › Links and cards; request limits and failure links still apply. A server cache or proxy is not part of the supported integration.',
       'Warnings/Shield Mode: /warn username reason, /shield, /shieldoff, /banid numeric-user-id [reason], /untimeout username. These composer commands open the moderation review; Confirm sends once and records a private receipt. Warning acknowledgement happens in Twitch and is unavailable here. Supported commands: /me action text, /timeout username [seconds] [reason], /ban username [reason], /unban username, /delete message-id, /clear, /slow [seconds], /slowoff, /followers [minutes], /followersoff, /subscribers and /subscribersoff, /emoteonly and /emoteonlyoff, /uniquechat and /uniquechatoff, /announce text (or /announceblue, /announcegreen, /announceorange, /announcepurple), /color named-color or #RRGGBB. Also /raid username, /unraid, /mod and /unmod username, /vip and /unvip username, /block and /unblock username, /shoutout username. Raid/mod/VIP commands require the selected channel’s broadcaster account. A raid request starts Twitch’s pending raid; complete or cancel it there. Commands require the relevant Twitch scope and channel permission.',
-      'Media, left, libre and author lists retain the original project’s curated links and attribution.',
+      'Media, left, libre and author lists keep their curated links and attribution.',
     ];
     for (const text of instructions) {
       const p = document.createElement('p');
@@ -60,13 +60,7 @@ export class Resources {
       help.append(button);
     }
     const credit = document.createElement('p');
-    credit.append('Rebuilt in Go and TypeScript from ');
-    const upstream = document.createElement('a');
-    upstream.href = 'https://github.com/mxmilkiib/hasanabi.neocities.org';
-    upstream.textContent = 'the original AGPL project';
-    upstream.target = '_blank';
-    upstream.rel = 'noopener noreferrer';
-    credit.append(upstream, '. ');
+    credit.append('Source code: ');
     const source = document.createElement('a');
     source.href = 'https://git.subcult.tv/subculture-collective/chatty-cat';
     source.textContent = 'Go and TypeScript source';
@@ -75,10 +69,7 @@ export class Resources {
     credit.append(source);
     help.append(credit);
     const repositoryOutputs: { url: string; output: HTMLElement }[] = [];
-    for (const [label, url] of [
-      ['Rebuild repository', source.href],
-      ['Upstream repository', upstream.href],
-    ]) {
+    for (const [label, url] of [['Source repository', source.href]]) {
       const row = document.createElement('p'),
         output = document.createElement('span');
       row.append(label + ': ', output);
@@ -93,7 +84,7 @@ export class Resources {
       page.id = 'resources-' + key;
       page.role = 'tabpanel';
       page.tabIndex = 0;
-      // Build-time port strips scripts, event handlers, styles and unsafe URLs.
+      // The build-time import strips scripts, event handlers, styles and unsafe URLs.
       page.innerHTML = html;
       page.hidden = true;
       this.pages.set(key, page);

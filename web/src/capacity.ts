@@ -32,7 +32,7 @@ export async function loadCapacity(): Promise<Capacity> {
       if (parsed) return parsed;
     }
   } catch {
-    /* old/offline servers keep the original six-channel limit */
+    /* old/offline servers keep the default six-channel limit */
   }
   return { paneChannels: 6, workspaceChannels: 6, subscriptions: 96 };
 }

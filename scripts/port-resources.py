@@ -1,4 +1,4 @@
-"""Port the original app's four curated resource tabs without executable markup."""
+"""Generate the Help panel's four curated resource tabs from a source HTML file, without executable markup."""
 from html import escape
 from html.parser import HTMLParser
 from pathlib import Path
@@ -58,6 +58,6 @@ class Tabs(HTMLParser):
         if self.active: self.tabs[self.active] += escape(data)
 
 tabs = Tabs(); tabs.feed(source)
-if len(tabs.tabs) != 4: raise ValueError('Original resource tabs changed')
+if len(tabs.tabs) != 4: raise ValueError('Expected four resource tabs (htabRes, htabLib, htabLbr, htabAuth) in the source HTML')
 from reference_data import emit
 emit('resource-data', tabs.tabs)
