@@ -68,6 +68,10 @@ jobs:
     name: macOS app
     runs-on: macos-arm64
     timeout-minutes: 30
+    env:
+      # The Mac runner runs jobs on the host and passes on mise's GOROOT (another
+      # Go version). Empty lets the Go from setup-go use its own tree.
+      GOROOT: ''
     steps:
       - uses: https://github.com/actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
