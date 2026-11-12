@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -237,7 +239,7 @@ func main() {
 	mux := http.NewServeMux()
 	service.Register(mux)
 	mux.HandleFunc("GET /fixture/consent", func(w http.ResponseWriter, r *http.Request) {
-		state := r.URL.Query().Get("state")
+		state := html.EscapeString(url.QueryEscape(r.URL.Query().Get("state")))
 		suffix := ""
 		if strings.Contains(r.URL.Query().Get("scope"), "moderator:read:suspicious_users") {
 			suffix = "-automod"

@@ -4,8 +4,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync"
 
@@ -115,7 +117,7 @@ func main() {
 	mux := http.NewServeMux()
 	service.Register(mux)
 	mux.HandleFunc("GET /fixture/consent", func(w http.ResponseWriter, r *http.Request) {
-		state := r.URL.Query().Get("state")
+		state := html.EscapeString(url.QueryEscape(r.URL.Query().Get("state")))
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprintf(w, `<!doctype html><title>Moderation fixture consent</title><h1>Local synthetic consent</h1><p>No Twitch connection or writes.</p><a href="/api/auth/callback?state=%s&amp;code=42">Consent as moderator</a><br><a href="/api/auth/callback?state=%s&amp;code=43">Consent as outsider</a><br><a href="/api/auth/callback?state=%s&amp;code=123">Consent as broadcaster one</a>`, state, state, state)
 	})

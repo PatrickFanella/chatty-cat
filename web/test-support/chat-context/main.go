@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -138,7 +140,8 @@ func main() {
 			suffix = "-context"
 		}
 		w.Header().Set("Content-Type", "text/html")
-		_, _ = fmt.Fprintf(w, `<h1>Local synthetic consent</h1><a href="/api/auth/callback?state=%s&code=42%s">Sign in fixture Alice</a><p><a href="/api/auth/callback?state=%s&code=43%s">Sign in fixture Bob</a>`, r.URL.Query().Get("state"), suffix, r.URL.Query().Get("state"), suffix)
+		state := html.EscapeString(url.QueryEscape(r.URL.Query().Get("state")))
+		_, _ = fmt.Fprintf(w, `<h1>Local synthetic consent</h1><a href="/api/auth/callback?state=%s&code=42%s">Sign in fixture Alice</a><p><a href="/api/auth/callback?state=%s&code=43%s">Sign in fixture Bob</a>`, state, suffix, state, suffix)
 	})
 	mux.HandleFunc("GET /fixture/counts", func(w http.ResponseWriter, _ *http.Request) {
 		mu.Lock()

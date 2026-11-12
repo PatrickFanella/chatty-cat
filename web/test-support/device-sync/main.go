@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/devicesync"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -64,7 +66,7 @@ func main() {
 	putAttempts, changes := 0, 0
 	dropReply := false
 	mux.HandleFunc("GET /fixture/consent", func(w http.ResponseWriter, r *http.Request) {
-		state := r.URL.Query().Get("state")
+		state := html.EscapeString(url.QueryEscape(r.URL.Query().Get("state")))
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprintf(w, `<h1>Local synthetic sign-in</h1><a href="/api/auth/callback?state=%s&code=42">Sign in fixture Alice</a><p><a href="/api/auth/callback?state=%s&code=43">Sign in fixture Bob</a>`, state, state)
 	})

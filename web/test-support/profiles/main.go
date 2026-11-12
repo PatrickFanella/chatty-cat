@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"git.subcult.tv/subculture-collective/chatty-cat/internal/auth"
+	"html"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 )
 
@@ -43,7 +45,7 @@ func main() {
 	mux := http.NewServeMux()
 	service.Register(mux)
 	mux.HandleFunc("GET /fixture/consent", func(w http.ResponseWriter, r *http.Request) {
-		state := r.URL.Query().Get("state")
+		state := html.EscapeString(url.QueryEscape(r.URL.Query().Get("state")))
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprintf(w, `<!doctype html><title>Fixture Twitch consent</title><h1>Fixture Twitch consent</h1><p>Local synthetic provider. No Twitch connection or write. Choose the selected account; choosing another must fail.</p><a href="/api/auth/callback?state=%s&amp;code=42">Consent as alice</a><br><a href="/api/auth/callback?state=%s&amp;code=43">Consent as bob</a><br><a href="/api/auth/callback?state=%s&amp;error=access_denied">Cancel consent</a>`, state, state, state)
 	})

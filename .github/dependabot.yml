@@ -2,13 +2,13 @@ version: 2
 # Ready pull requests in this repository merge themselves once the checks pass,
 # and a merge that touches shipped files restarts production. So every
 # ecosystem skips major versions, groups minor and patch updates into one pull
-# request and keeps at most two open.
+# request, runs monthly and keeps at most one open.
 updates:
   - package-ecosystem: gomod
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
@@ -20,8 +20,8 @@ updates:
   - package-ecosystem: npm
     directory: /web
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
@@ -33,8 +33,8 @@ updates:
   - package-ecosystem: npm
     directory: /desktop
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
@@ -46,8 +46,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
@@ -59,8 +59,8 @@ updates:
   - package-ecosystem: docker
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 2
+      interval: monthly
+    open-pull-requests-limit: 1
     ignore:
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
