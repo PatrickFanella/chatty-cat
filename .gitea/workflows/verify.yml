@@ -68,8 +68,10 @@ jobs:
       - name: Run the guarded deploy on NUC
         env:
           NUC_DEPLOY_KEY: ${{ secrets.NUC_DEPLOY_KEY }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TARGET }}
           NUC_HOST_KEY: '10.0.0.56 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDXG1FuUR5ues37EaZ25p6LtmOs9C5mcr3aVo9nAqU1Z'
         run: |
+          : "${DEPLOY_TARGET:?DEPLOY_TARGET secret is not set}"
           umask 077
           key=$(mktemp)
           hosts=$(mktemp)
@@ -77,4 +79,4 @@ jobs:
           printf '%s\n' "$NUC_DEPLOY_KEY" > "$key"
           printf '%s\n' "$NUC_HOST_KEY" > "$hosts"
           ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 \
-            -o UserKnownHostsFile="$hosts" -o StrictHostKeyChecking=yes onnwee@10.0.0.56
+            -o UserKnownHostsFile="$hosts" -o StrictHostKeyChecking=yes "$DEPLOY_TARGET"
