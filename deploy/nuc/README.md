@@ -55,37 +55,15 @@ install -m 644 deploy/nuc/Dockerfile.release /srv/apps/projects/chatty-cat/Docke
 ```
 
 Hold `/srv/apps/projects/chatty-cat/deploy.lock` while you do this, so
-`release.py` cannot run halfway through. Install `release.py` and `Dockerfile.release` together:
-`release.py` passes the binary's name to `Dockerfile.release` as `BIN`, and the
-image always runs it as `/app/chatty-cat-server`. Releases built before the
-binary was renamed ship it under its old name; `release.py` reads the name from
-the release manifest, so it can stage either.
+`release.py` cannot run halfway through.
 
 `Dockerfile.release` sets no application settings. `compose.nuc.yaml`,
 `compose.m4.yaml` and `shared/app.env` set them for production, and `release.py`
 sets them for the staging container.
 
-### Rename transition, November 2026
-
-Settings moved from `CHATTHING_*` to `CHATTY_CAT_*`, and the binary from
-`chatthing` to `chatty-cat-server`. Production must set both names while a
-release from before the rename can still be activated or rolled back to. Before
-merging the rename, under `sudo flock /srv/apps/projects/chatty-cat/deploy.lock`:
-
-1. Install `release.py` and `Dockerfile.release` as above.
-2. In `compose.nuc.yaml`, change the image line to
-   `${CHATTY_CAT_IMAGE:-${CHATTHING_IMAGE:?Set an immutable release image}}` and
-   add `CHATTY_CAT_ADDR`, `CHATTY_CAT_ASSETS` and `CHATTY_CAT_ENV_FILE` beside
-   the old names, with the same values.
-3. Install `deploy/compose.m4.nuc.yaml` as `compose.m4.yaml`; it sets both names.
-4. Add `CHATTY_CAT_PUBLIC_URL` to `shared/app.env` with the value of
-   `CHATTHING_PUBLIC_URL`.
-
-After a later release has replaced the first renamed one (so rollback no longer
-reaches a release from before the rename), remove the `CHATTHING_*` lines from
-these files, rewrite `image.env` as `CHATTY_CAT_IMAGE=…`, drop the nested image
-fallback, and remove the transition lines from `release.py` and
-`compose.m4.nuc.yaml`.
+Releases from before `03bc4ec` (November 13, 2026) used another binary and
+setting names. The current files cannot stage them, and their images do not
+start with the current settings, so do not roll back or redeploy to them.
 
 ## Operating it
 
