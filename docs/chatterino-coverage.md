@@ -135,13 +135,15 @@ Earlier owner acceptance includes actual sign-in, visible public send/reply, sub
 Use a separate local browser profile and an anonymous local preview. Do not upload real chat history or sign in for this demo. Start the app with an empty env file and OAuth/GIPHY values unset; no Twitch writes are possible. Build instructions remain in the repository README.
 
 1. Open `http://127.0.0.1:8093/?channel=patrick__eff`. Confirm login is disabled with “Twitch login is not configured.”
-2. Open Stats → History files and choose [chatterino-audit-history.json](fixtures/chatterino-audit-history.json). The preview reports **3 messages ready · 2 invalid or duplicate rows skipped**.
-3. Import. The notice reports **3 messages imported; existing history retained**. The embedded legacy `<script>` is inert and omitted from message text. The fixture contains synthetic messages only.
-4. Search archive for `coverage audit`. Expect three matches: parent, reply and safe legacy row. Import the same file again and repeat search: still three matches.
-5. Select the safe legacy result. The URL contains `mid=audit-legacy` and that row is revealed. The reply row retains its parent quote and “Jump to parent.”
-6. Open Settings, select font size 20, close and reload. Size 20 remains selected and the three retained messages remain available. Return to the live edge using the existing navigation controls.
+2. Open Stats → History files and choose [chatterino-audit-history.json](fixtures/chatterino-audit-history.json). The preview reports **2 messages ready · 2 invalid or duplicate rows skipped**.
+3. Import. The notice reports **2 messages imported; existing history retained**. The fixture contains synthetic messages only.
+4. Search archive for `coverage audit`. Expect two matches: parent and reply. Import the same file again and repeat search: still two matches.
+5. Select the reply result. The URL contains `mid=audit-reply` and that row is revealed. It retains its parent quote and “Jump to parent.”
+6. Open Settings, select font size 20, close and reload. Size 20 remains selected and the two retained messages remain available. Return to the live edge using the existing navigation controls.
 
 Executed in T3's incognito preview against the local Go service and production asset `main-DlojlrjN.js`. Observed all notices and counts above; after reload, stored/current size both equaled 20, all three stable row keys remained, and no injected script flag was set. Six total rows were mounted in that small demo (the isolated profile also retained earlier fixture rows); this is not a large-load benchmark. No real message, whisper or moderation request was sent. Audibility, notification permissions and live roles were not retested here.
+
+Superseded on 2026-11-12: that run used an earlier fixture with a third row in the original app's HTML format. Import of that format was removed, so the steps above now expect two messages.
 
 ## Follow-up slices discovered by the audit
 

@@ -41,7 +41,6 @@
     },
     {
       "id": "invalid"
-    },
-    "<div class=\"row\" data-ts=\"1791801002000\" data-ch=\"patrick__eff\" data-u=\"audit_legacy\" data-mid=\"audit-legacy\"><span class=\"msg\">coverage audit safe legacy<script>window.auditScriptRan=true</script></span></div>"
+    }
   ]
 }

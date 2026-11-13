@@ -81,7 +81,7 @@ it('produces import-compatible safe records and readable moderation with configu
     notice: 'Retained only; no continuous coverage is claimed',
   };
   const json = logOutput(rows, coverage, 'json', 'utc');
-  expect(parseHistoryImport(json, 'one').messages).toHaveLength(2);
+  expect(parseHistoryImport(json).messages).toHaveLength(2);
   const text = logOutput(rows, coverage, 'text', 'epoch');
   expect(text).toContain('[100000]');
   expect(text).toContain('Timeout alice for 600 seconds');

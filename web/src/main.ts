@@ -2429,7 +2429,6 @@ export async function startMain(): Promise<void> {
           );
           const historyFiles = new HistoryFiles(
             root,
-            () => channels[0]!,
             () => store.messages,
             async (messages) => {
               for (let index = 0; index < messages.length; index += 500) {
