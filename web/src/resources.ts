@@ -109,7 +109,7 @@ export class Resources {
       this.pages.get(key!)?.setAttribute('aria-labelledby', button.id);
     }
     try {
-      const saved = localStorage.getItem(profileKey('chatthing:v1:resources:tab'));
+      const saved = localStorage.getItem(profileKey('chatty-cat:v1:resources:tab'));
       if (saved && this.pages.has(saved)) this.selected = saved;
     } catch {
       /* optional storage */
@@ -139,7 +139,7 @@ export class Resources {
       root,
       root.querySelector<HTMLElement>('#resources-handle')!,
       root.querySelector<HTMLButtonElement>('#resources-pin')!,
-      profileKey('chatthing:v1:resources:geometry'),
+      profileKey('chatty-cat:v1:resources:geometry'),
     );
     trigger.addEventListener('click', this.toggle);
     root.addEventListener('click', this.click);
@@ -180,7 +180,7 @@ export class Resources {
       button.tabIndex = active ? 0 : -1;
     }
     try {
-      localStorage.setItem(profileKey('chatthing:v1:resources:tab'), key);
+      localStorage.setItem(profileKey('chatty-cat:v1:resources:tab'), key);
     } catch {
       /* optional storage */
     }

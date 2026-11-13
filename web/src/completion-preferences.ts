@@ -116,7 +116,7 @@ export function getLocalNickname(login: string): string | undefined {
 }
 export class CompletionPreferenceStore {
   private account = getProfileScope();
-  private key = profileKey('chatthing:v1:completion-preferences');
+  private key = profileKey('chatty-cat:v1:completion-preferences');
   private raw: string | null;
   constructor() {
     this.raw = localStorage.getItem(this.key);

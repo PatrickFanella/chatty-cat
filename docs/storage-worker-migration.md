@@ -67,7 +67,7 @@ tested. Exact results are in the [local evidence](storage-worker-journal-local-e
 
 To repeat native checks, build the frontend and run the existing moderation
 fixture. Use its synthetic consent, open Moderation and refresh/preview the private
-journal. A Window-level `indexedDB.open` guard for `chatthing-moderation-journal`
+journal. A Window-level `indexedDB.open` guard for `chatty-cat-moderation-journal`
 must not fire. The worker URL is in `asset-manifest.json` under
 `src/storage-worker.ts`. Its operations can be exercised with synthetic accounts
 through version-1 messages; never use real private receipts in a QA export.
@@ -248,7 +248,7 @@ values as appropriate. Existing abort, quota, newer-snapshot and replay-deduplic
 checks pass.
 
 Native Chromium moved one synthetic legacy scope through the actual Stats panel
-while a guard rejected main-thread opens of `chatthing-statistics`. The panel
+while a guard rejected main-thread opens of the statistics database. The panel
 reported success, the old slot was released, and worker reads returned exact
 counts. Direct worker write/read and invalid-scope checks also passed. A read-only
 inspection using the saved native open after the guarded flow found one exact
@@ -516,10 +516,44 @@ entry, exact artifact sizes, runtime receipts and remaining acceptance boundarie
 [Wave 5 delivery](wave5-2026-10-18.md). Local, hosted, merged and deployed states
 remain separate. #137 stays open until its change and acceptance are reviewed.
 
+## Database names
+
+The four databases are `chatty-cat-archive`, `chatty-cat-statistics`,
+`chatty-cat-moderation-journal` and `chatty-cat-rates`. Older versions saved
+them under the app's former name. The storage worker moves each one
+(`database-rename.ts`) before it first opens the current database:
+
+- It opens the old database at version 2 without changing its schema. Tabs
+  still running an older version lose their connection and cannot write to it
+  or re-create it.
+- It copies rows in batches (500 archive rows, one row elsewhere). It deletes a
+  batch from the old database only after the copy has committed, so an
+  interrupted move resumes on the next start. A row already in the current
+  database is kept.
+- Statistics snapshot keys and the key named in each backup move to the
+  `chatty-cat:v1:` prefix.
+- It deletes the old database once it is empty. Web Locks keep one move at a
+  time per database; without them every step is still safe to repeat.
+
+While a move runs, the worker sends a `moving` notice for each pending request,
+and the client restarts its 30-second timeout on each one. If a move fails, the
+data stays in the old database and the request fails. A full disk gets a message
+asking the user to free space; other failures ask the user to close older tabs and
+reload.
+
+Page entries also move localStorage and sessionStorage keys from the former
+prefix to `chatty-cat:v1:` before anything reads them (`storage-rename.ts`).
+
+A build from before the rename cannot open a fenced or moved database and does
+not see the moved keys. Rolling back past this change shows default settings and
+empty or unavailable local history until the current build is restored. Data
+saved before the rollback is kept, but changes made while the older build runs
+are discarded when the current build returns: its keys and rows win.
+
 ## Release boundary
 
 Stages one through six are deployed at `b95b7fb`; stages seven through eleven
-are not deployed. Rolling source back leaves the original database readable by
-the previous implementation. No schema reset or destructive data conversion is
+are not deployed. Rolling back past the database rename (see Database names)
+leaves local data unreadable by the older build. No schema reset or destructive data conversion is
 part of rollback. Do not treat a worker crash as permission to repeat an uncertain
 provider action.

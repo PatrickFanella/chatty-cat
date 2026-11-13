@@ -130,10 +130,10 @@ describe('message validation', () => {
 });
 it('keeps drafts and sent history separate for each account without claiming legacy drafts', () => {
   const x = setup();
-  sessionStorage.setItem('chatthing:v1:draft:hasanabi', 'unowned legacy draft');
+  sessionStorage.setItem('chatty-cat:v1:draft:hasanabi', 'unowned legacy draft');
   x.composer.setAuth(signedIn);
   x.edit('alice draft');
-  localStorage.setItem('chatthing:v1:sent:42:hasanabi', JSON.stringify(['alice history']));
+  localStorage.setItem('chatty-cat:v1:sent:42:hasanabi', JSON.stringify(['alice history']));
   x.composer.setAuth({ ...signedIn, userID: '43', login: 'bob' });
   expect(x.input.value).toBe('');
   x.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true }));
@@ -143,7 +143,7 @@ it('keeps drafts and sent history separate for each account without claiming leg
   expect(x.input.value).toBe('alice draft');
   x.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true }));
   expect(x.input.value).toBe('alice history');
-  expect(sessionStorage.getItem('chatthing:v1:draft:hasanabi')).toBe('unowned legacy draft');
+  expect(sessionStorage.getItem('chatty-cat:v1:draft:hasanabi')).toBe('unowned legacy draft');
 });
 it('aborts the previous account send and ignores its response while the new account is sending', async () => {
   const results: ((value: Response) => void)[] = [],
@@ -171,8 +171,8 @@ it('aborts the previous account send and ignores its response while the new acco
   results[1]?.(new Response(JSON.stringify({ sent: true, messageID: 'new' })));
   await vi.advanceTimersByTimeAsync(0);
   expect(x.composer.sending).toBe(false);
-  expect(localStorage.getItem('chatthing:v1:sent:43:hasanabi')).toContain('new message');
-  expect(localStorage.getItem('chatthing:v1:sent:42:hasanabi')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:sent:43:hasanabi')).toContain('new message');
+  expect(localStorage.getItem('chatty-cat:v1:sent:42:hasanabi')).toBeNull();
 });
 it('keeps sending disabled until authenticated', () => {
   const { composer, input, button, edit } = setup();
@@ -333,7 +333,7 @@ it('preserves multiline editing and IME Enter, then sends normalized text', asyn
   expect(JSON.parse(String(fetcher.mock.calls[0]?.[1].body)).message).toBe('one two');
 });
 it('keeps arrow keys inside multiline drafts and cancels replies with Escape', () => {
-  localStorage.setItem('chatthing:v1:sent:hasanabi', '["old"]');
+  localStorage.setItem('chatty-cat:v1:sent:hasanabi', '["old"]');
   const { composer, input, form, edit } = setup();
   composer.setAuth(signedIn);
   edit('one\ntwo');
@@ -437,12 +437,12 @@ it('keeps whisper content out of persistent drafts and sent history and allows i
   composer.setBlock('Slow mode');
   edit('/w alice private text');
   expect(button.disabled).toBe(false);
-  expect(sessionStorage.getItem('chatthing:v1:draft:42:hasanabi')).toBe('');
+  expect(sessionStorage.getItem('chatty-cat:v1:draft:42:hasanabi')).toBe('');
   submit();
   await vi.advanceTimersByTimeAsync(0);
   expect(input.value).toBe('');
   expect(status.textContent).toContain('does not confirm delivery');
-  expect(localStorage.getItem('chatthing:v1:sent:42:hasanabi')).not.toContain('private text');
+  expect(localStorage.getItem('chatty-cat:v1:sent:42:hasanabi')).not.toContain('private text');
   edit('unfinished');
   composer.prepareWhisper('alice');
   expect(input.value).toBe('unfinished');
@@ -537,7 +537,7 @@ it('stages a selected public reply without sending and preserves a different cha
   x.composer.stageReply(reply, 'public answer');
   expect(x.input.value).toBe('public answer');
   expect(x.form.querySelector('#reply-label')?.textContent).toContain('someone');
-  expect(sessionStorage.getItem('chatthing:v1:draft:42:hasanabi')).toBe('source draft');
+  expect(sessionStorage.getItem('chatty-cat:v1:draft:42:hasanabi')).toBe('source draft');
   x.composer.setAuth(undefined);
   expect(x.form.querySelector<HTMLElement>('#reply-target')?.hidden).toBe(true);
 });

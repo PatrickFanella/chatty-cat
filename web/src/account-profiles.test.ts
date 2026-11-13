@@ -21,7 +21,7 @@ it('remembers only validated public identity metadata, bounds profiles and prese
   expect(() => store.remember('108', 'user')).toThrow('eight');
 });
 it('refuses malformed stored profiles and stale registry writes without replacing existing data', () => {
-  localStorage.setItem('chatthing:v1:account-profiles', 'broken');
+  localStorage.setItem('chatty-cat:v1:account-profiles', 'broken');
   expect(() => new AccountProfiles().list()).toThrow();
   localStorage.clear();
   const a = new AccountProfiles(),
@@ -31,12 +31,12 @@ it('refuses malformed stored profiles and stale registry writes without replacin
   expect(new AccountProfiles().list()).toEqual([{ id: '42', login: 'alice' }]);
 });
 it('keeps preferences in fixed account scopes without copying legacy or another profile', () => {
-  expect(profileKey('chatthing:v1:display')).toBe('chatthing:v1:display');
+  expect(profileKey('chatty-cat:v1:display')).toBe('chatty-cat:v1:display');
   setProfileScope('42');
-  const alice = profileKey('chatthing:v1:display');
+  const alice = profileKey('chatty-cat:v1:display');
   localStorage.setItem(alice, 'alice');
   setProfileScope('43');
-  expect(localStorage.getItem(profileKey('chatthing:v1:display'))).toBeNull();
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:display'))).toBeNull();
   setProfileScope('42');
-  expect(localStorage.getItem(profileKey('chatthing:v1:display'))).toBe('alice');
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:display'))).toBe('alice');
 });

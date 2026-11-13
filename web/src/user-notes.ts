@@ -61,7 +61,7 @@ export class UserNotes {
   private raw: string | null = null;
   private get key(): string {
     if (!this.account) throw new Error('Log in before editing private user notes');
-    return 'chatthing:v1:user-notes:' + this.account;
+    return 'chatty-cat:v1:user-notes:' + this.account;
   }
   setAccount(account: string | undefined): void {
     if (account !== undefined && !validAccount(account)) throw new Error('Invalid user note account');

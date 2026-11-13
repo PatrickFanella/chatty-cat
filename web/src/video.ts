@@ -26,7 +26,10 @@ export class VideoPanel {
   ) {
     this.options = parseVideo(null, channels);
     try {
-      this.options = parseVideo(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:video')) ?? 'null'), channels);
+      this.options = parseVideo(
+        JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:video')) ?? 'null'),
+        channels,
+      );
     } catch {
       /* optional storage */
     }
@@ -50,7 +53,7 @@ export class VideoPanel {
       root,
       root.querySelector<HTMLElement>('#video-handle')!,
       root.querySelector<HTMLButtonElement>('#video-pin')!,
-      profileKey('chatthing:v1:video:geometry'),
+      profileKey('chatty-cat:v1:video:geometry'),
     );
     this.signIn.href = 'https://www.twitch.tv/login';
     this.signIn.target = '_blank';
@@ -135,7 +138,7 @@ export class VideoPanel {
   }
   private save(): void {
     try {
-      localStorage.setItem(profileKey('chatthing:v1:video'), JSON.stringify(this.options));
+      localStorage.setItem(profileKey('chatty-cat:v1:video'), JSON.stringify(this.options));
     } catch {
       /* optional storage */
     }

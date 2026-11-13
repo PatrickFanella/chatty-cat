@@ -1,6 +1,6 @@
 # Owner-configured TLS IRC relay
 
-The relay is disabled until the owner supplies `CHATTHING_IRC_CONFIG`, a path to a JSON array of approved endpoints. Each entry belongs to one signed-in account, with a separate IRC nickname. The browser selects a configured network ID; it cannot supply a host, port, password or another account's identity.
+The relay is disabled until the owner supplies `CHATTY_CAT_IRC_CONFIG`, a path to a JSON array of approved endpoints. Each entry belongs to one signed-in account, with a separate IRC nickname. The browser selects a configured network ID; it cannot supply a host, port, password or another account's identity.
 
 Example configuration (replace the endpoint, account ID and channel with approved values):
 

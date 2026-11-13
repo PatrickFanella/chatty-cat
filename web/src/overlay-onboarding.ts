@@ -1,5 +1,5 @@
 import { getProfileScope, profileKey } from './account-profiles';
-const key = 'chatthing:v1:overlay-onboarding';
+const key = 'chatty-cat:v1:overlay-onboarding';
 // Called only after a current-account native open receipt. Storage is optional.
 export function recordOverlayActivation(account: string): boolean {
   if (!/^[1-9][0-9]{0,19}$/.test(account) || getProfileScope() !== account)

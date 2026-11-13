@@ -69,7 +69,7 @@ consent/callback, message acceptance, whispers, permissions, media and reconnect
 at the HTTPS origin before switching users. OAuth sessions are currently held in
 memory, so replacing the service signs users out. Browser history stays local.
 
-For a reviewable release, set `CHATTHING_IMAGE` to an immutable image tag, build
+For a reviewable release, set `CHATTY_CAT_IMAGE` to an immutable image tag, build
 that tag, and retain the previous image. Rollback selects the previous tag and
 runs `docker compose up -d --no-build chat`. Preserve the private environment file
 and proxy certificate volumes; rollback does not restore OAuth sessions.

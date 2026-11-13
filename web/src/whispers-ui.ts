@@ -18,7 +18,7 @@ export class WhisperPanel {
       root,
       root.querySelector('#whisper-handle')!,
       root.querySelector('#whisper-pin')!,
-      profileKey('chatthing:v1:whispers:geometry'),
+      profileKey('chatty-cat:v1:whispers:geometry'),
     );
     root.addEventListener('click', this.click);
     root.addEventListener('keydown', this.key);

@@ -4,14 +4,14 @@ import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { StatisticsStorageControls } from './stats-storage-ui';
 import { readStatistics } from './stats-storage';
-const key = 'chatthing:v1:stats:counts:one',
+const key = 'chatty-cat:v1:stats:counts:one',
   raw = JSON.stringify({ version: 1, since: 0, rows: [] });
 afterEach(async () => {
   document.body.replaceChildren();
   localStorage.clear();
   vi.restoreAllMocks();
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-statistics');
+    const q = indexedDB.deleteDatabase('chatty-cat-statistics');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });

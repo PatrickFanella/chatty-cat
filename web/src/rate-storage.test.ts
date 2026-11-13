@@ -37,7 +37,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   vi.useRealTimers();
   await new Promise<void>((resolve, reject) => {
-    const request = indexedDB.deleteDatabase('chatthing:v1:rates');
+    const request = indexedDB.deleteDatabase('chatty-cat-rates');
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });

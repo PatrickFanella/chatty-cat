@@ -79,18 +79,21 @@ it('privacy mode disables the Settings command and Ctrl+,', async () => {
   const { startShell } = await import('./shell');
   const openSettings = vi.fn();
   const shell = startShell({ actions: [], run: vi.fn(), available: () => true, extra: () => [], openSettings });
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   try {
     expect(shell.registry.get('settings:open')?.available?.()).toBe(false);
     const event = new KeyboardEvent('keydown', { code: 'Comma', ctrlKey: true, cancelable: true, bubbles: true });
     document.dispatchEvent(event);
     expect(openSettings).not.toHaveBeenCalled();
-    localStorage.removeItem('chatthing:v1:privacy');
+    localStorage.removeItem('chatty-cat:v1:privacy');
     expect(shell.registry.get('settings:open')?.available?.()).toBe(true);
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Comma', ctrlKey: true, bubbles: true }));
     expect(openSettings).toHaveBeenCalledOnce();
   } finally {
-    localStorage.removeItem('chatthing:v1:privacy');
+    localStorage.removeItem('chatty-cat:v1:privacy');
     shell.stop();
   }
 });

@@ -8,7 +8,7 @@ let fallback: PrivacyPolicy | undefined;
 export function resetPrivacyFallback(): void {
   fallback = undefined;
 }
-export const PRIVACY_KEY = 'chatthing:v1:privacy';
+export const PRIVACY_KEY = 'chatty-cat:v1:privacy';
 function record(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }

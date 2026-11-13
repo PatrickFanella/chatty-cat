@@ -2,7 +2,7 @@ export interface AccountProfile {
   id: string;
   login: string;
 }
-const KEY = 'chatthing:v1:account-profiles';
+const KEY = 'chatty-cat:v1:account-profiles';
 export const validAccount = (id: string): boolean => /^[0-9]{1,32}$/.test(id);
 let scope = 'anonymous';
 export function setProfileScope(account: string): void {
@@ -13,7 +13,7 @@ export function getProfileScope(): string {
   return scope;
 }
 export function profileKey(key: string): string {
-  return scope === 'anonymous' ? key : 'chatthing:v1:profile:' + scope + ':' + key.replace(/^chatthing:v1:/, '');
+  return scope === 'anonymous' ? key : 'chatty-cat:v1:profile:' + scope + ':' + key.replace(/^chatty-cat:v1:/, '');
 }
 export class AccountProfiles {
   private raw: string | null = null;

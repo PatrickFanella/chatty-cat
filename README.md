@@ -43,13 +43,13 @@ You need Go 1.26+ and Node 22.12+.
 ```sh
 npm --prefix web ci
 npm --prefix web run build
-go build -o bin/chatthing ./cmd/chatthing
-./bin/chatthing
+go build -o bin/chatty-cat-server ./cmd/chatty-cat-server
+./bin/chatty-cat-server
 ```
 
 Open `http://127.0.0.1:8080`. Anonymous chat works without Twitch credentials.
 For sign-in, create a Twitch application, register the callback
-`<your origin>/api/auth/callback`, and set `CHATTHING_PUBLIC_URL` to that origin
+`<your origin>/api/auth/callback`, and set `CHATTY_CAT_PUBLIC_URL` to that origin
 (loopback HTTP is allowed for local testing).
 
 Tests and checks:
@@ -69,22 +69,22 @@ while shutting down or when the built frontend is missing.
 ## Configuration
 
 The service reads environment variables, plus an optional env file at
-`CHATTHING_ENV_FILE` (default `../.env`; a missing file is allowed). Variables
+`CHATTY_CAT_ENV_FILE` (default `../.env`; a missing file is allowed). Variables
 already set take precedence. Keep the env file out of Git.
 
 | Variable | Purpose |
 | --- | --- |
-| `CHATTHING_ADDR` | Listen address, default `127.0.0.1:8080` |
-| `CHATTHING_ASSETS` | Built frontend directory, default `web/dist` |
-| `CHATTHING_PUBLIC_URL` | Public HTTPS origin used for OAuth; loopback HTTP allowed |
+| `CHATTY_CAT_ADDR` | Listen address, default `127.0.0.1:8080` |
+| `CHATTY_CAT_ASSETS` | Built frontend directory, default `web/dist` |
+| `CHATTY_CAT_PUBLIC_URL` | Public HTTPS origin used for OAuth; loopback HTTP allowed |
 | `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET` | Server-side Twitch application credentials |
 | `GIPHY_API_KEY` | Optional browser key for GIF search |
-| `CHATTHING_PROVIDER_SERVICES` | Optional BTTV and/or 7TV event services |
-| `CHATTHING_COSMETIC_PROVIDERS` | Optional cosmetic badge providers |
-| `CHATTHING_SYNC_DIR` | Writable directory that turns on device sync |
-| `CHATTHING_UPLOAD_DIR` | Writable directory that turns on image uploads |
-| `CHATTHING_IRC_CONFIG` | Path to a JSON list of allowed IRC relay endpoints |
-| `CHATTHING_WORKSPACE_CHANNELS`, `CHATTHING_CHAT_SUBSCRIPTIONS` | Channel and subscription limits |
+| `CHATTY_CAT_PROVIDER_SERVICES` | Optional BTTV and/or 7TV event services |
+| `CHATTY_CAT_COSMETIC_PROVIDERS` | Optional cosmetic badge providers |
+| `CHATTY_CAT_SYNC_DIR` | Writable directory that turns on device sync |
+| `CHATTY_CAT_UPLOAD_DIR` | Writable directory that turns on image uploads |
+| `CHATTY_CAT_IRC_CONFIG` | Path to a JSON list of allowed IRC relay endpoints |
+| `CHATTY_CAT_WORKSPACE_CHANNELS`, `CHATTY_CAT_CHAT_SUBSCRIPTIONS` | Channel and subscription limits |
 
 ## Deploy
 
@@ -98,7 +98,7 @@ docker compose --env-file /path/to/private.env up -d --build chat
 Put an HTTPS reverse proxy in front of it that keeps the Host header and
 WebSocket upgrades, or start the included Caddy proxy with
 `--profile https` after changing `deploy/Caddyfile` to your domain. Set
-`CHATTHING_PUBLIC_URL` to the same origin and register its callback on your
+`CHATTY_CAT_PUBLIC_URL` to the same origin and register its callback on your
 Twitch application. [deploy/README.md](deploy/README.md) has the details.
 
 To build the desktop app or browser build yourself:
@@ -107,20 +107,20 @@ To build the desktop app or browser build yourself:
 npm --prefix web ci
 npm --prefix desktop ci
 python3 scripts/build-desktop.py              # desktop app for this machine
-python3 scripts/build-chatthing-release.py dist   # browser build archives into dist/
+python3 scripts/build-browser-release.py dist # browser build archives into dist/
 ```
 
 ## Project layout
 
 ```text
-cmd/chatthing/   server entry point
-internal/        auth, IRC, metadata, previews, provider services, uploads, sync
-web/             TypeScript frontend (Vite)
-desktop/         Electron shell for the desktop app
-companion/       browser companion extensions and the macOS overlay helper
-deploy/          Caddy and Compose examples
-docs/            architecture, design system and feature notes
-scripts/         build, release and data-generation scripts
+cmd/chatty-cat-server/  server entry point
+internal/               auth, IRC, metadata, previews, provider services, uploads, sync
+web/                    TypeScript frontend (Vite)
+desktop/                Electron shell for the desktop app
+companion/              browser companion extensions and the macOS overlay helper
+deploy/                 Caddy and Compose examples
+docs/                   architecture, design system and feature notes
+scripts/                build, release and data-generation scripts
 ```
 
 [docs/architecture.md](docs/architecture.md) describes how the parts fit

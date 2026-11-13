@@ -1,7 +1,7 @@
 import { validBrowserCompanionID } from './browser-companion-id';
 // Only an explicitly confirmed workspace navigation may carry a short-lived,
 // one-use handoff in this tab. Pairing tokens and OAuth/CSRF values stay out.
-const key = 'chatthing:v1:browser-companion-handoff';
+const key = 'chatty-cat:v1:browser-companion-handoff';
 export interface BrowserHandoff {
   extension: string;
   account: string;
@@ -53,7 +53,7 @@ export function saveBrowserHandoff(value: BrowserHandoff): void {
 // While a tab is paired it also holds one reload code, so reloading the same tab
 // resumes the bridge once. The extension binds the code to this tab and account
 // and still enforces its heartbeat lease and eight-hour limit; no token is kept here.
-const reloadKey = 'chatthing:v1:browser-companion-reload';
+const reloadKey = 'chatty-cat:v1:browser-companion-reload';
 export interface BrowserReload {
   extension: string;
   account: string;

@@ -30,9 +30,9 @@ it('saves per-channel coverage and restores page-closed time without overwriting
   model.setMetadata('hasanabi', { A: make('A') });
   model.observe(msg('A', Date.now()), true);
   model.saveAll();
-  const saved = JSON.parse(localStorage.getItem('chatthing:v1:picker:hasanabi') ?? '{}');
+  const saved = JSON.parse(localStorage.getItem('chatty-cat:v1:picker:hasanabi') ?? '{}');
   saved.coverage.savedAt = Date.now() - 120000;
-  localStorage.setItem('chatthing:v1:picker:hasanabi', JSON.stringify(saved));
+  localStorage.setItem('chatty-cat:v1:picker:hasanabi', JSON.stringify(saved));
   const restored = new PickerModel();
   restored.connection(['hasanabi', 'other'], 'connected');
   expect(restored.coverage('hasanabi').missed(180)).toBe(true);
@@ -94,9 +94,9 @@ it('caps and isolates recent selections and removes unavailable entries', () => 
   expect(model.recent('hasanabi')).toEqual([]);
 });
 it('tolerates invalid stored usage and options', () => {
-  localStorage.setItem('chatthing:v1:picker:options', 'broken');
+  localStorage.setItem('chatty-cat:v1:picker:options', 'broken');
   localStorage.setItem(
-    'chatthing:v1:picker:hasanabi',
+    'chatty-cat:v1:picker:hasanabi',
     JSON.stringify({ recent: [7, 'Kappa', 'Kappa'], uses: [['Kappa', { count: -1, last: 'bad' }]] }),
   );
   const model = new PickerModel();

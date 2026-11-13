@@ -17,7 +17,7 @@ console, seed a root, replies and a missing parent into native IndexedDB:
 
 ```js
 const db = await new Promise(resolve => {
-  const request = indexedDB.open('chatthing-archive', 1);
+  const request = indexedDB.open('chatty-cat-archive', 1);
   request.onsuccess = () => resolve(request.result);
 });
 const tx = db.transaction('messages', 'readwrite');
@@ -45,7 +45,7 @@ location.reload();
 3. In the console, inject a synthetic reply through the existing local echo bus:
 
 ```js
-const channel = new BroadcastChannel('chatthing:v1:sent');
+const channel = new BroadcastChannel('chatty-cat:v1:sent:42');
 channel.postMessage({type: 'message', replay: false, message: {
   id: 'live-reply', channel: 'one', command: 'PRIVMSG', login: 'charlie',
   text: 'New observed reply', timestamp: Date.now(),

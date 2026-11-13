@@ -33,11 +33,11 @@ it('switches only by explicit action and forgets saved metadata while preserving
   x.button('Switch to bob').click();
   await new Promise((r) => setTimeout(r, 0));
   expect(x.change).toHaveBeenCalledWith('43');
-  localStorage.setItem('chatthing:v1:bookmarks:43', 'private note');
+  localStorage.setItem('chatty-cat:v1:bookmarks:43', 'private note');
   x.button('Forget bob').click();
   await new Promise((r) => setTimeout(r, 0));
   expect(new AccountProfiles().list().map((p) => p.id)).toEqual(['42']);
-  expect(localStorage.getItem('chatthing:v1:bookmarks:43')).toBe('private note');
+  expect(localStorage.getItem('chatty-cat:v1:bookmarks:43')).toBe('private note');
 });
 it('requires logout before forgetting an active identity and suppresses profile names in privacy', async () => {
   const x = setup();
@@ -45,7 +45,10 @@ it('requires logout before forgetting an active identity and suppresses profile 
   await new Promise((r) => setTimeout(r, 0));
   expect(x.change).toHaveBeenCalledWith('');
   expect(new AccountProfiles().list().map((p) => p.id)).toEqual(['43']);
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.textContent).not.toContain('bob');

@@ -7,7 +7,7 @@ export class CustomThemeRuntime extends EventTarget {
   error = '';
   private raw: string | null = null;
   private account = getProfileScope();
-  private key = profileKey('chatthing:v1:custom-theme');
+  private key = profileKey('chatty-cat:v1:custom-theme');
   private baseline = new Map<string, string>();
   private saveBlocked = false;
   private stopped = false;

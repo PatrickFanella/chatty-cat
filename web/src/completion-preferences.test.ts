@@ -48,7 +48,7 @@ it('isolates saved preferences and rejects account changes, stale writes and quo
   expect(new CompletionPreferenceStore().read().aliases).toEqual([]);
   expect(() => store.save(completionDefaults)).toThrow(/Account changed/);
   setProfileScope('42');
-  localStorage.setItem('chatthing:v1:profile:42:completion-preferences', 'null');
+  localStorage.setItem('chatty-cat:v1:profile:42:completion-preferences', 'null');
   expect(() => store.save(completionDefaults)).toThrow(/another tab/);
   const fresh = new CompletionPreferenceStore();
   vi.stubGlobal('localStorage', {
@@ -76,9 +76,9 @@ it('restores saved completion behavior before any editor exists and clears stale
   expect(getCompletionPreferences().spellcheck).toBe(true);
   expect(document.querySelector('#completion-preferences-panel')).toBeNull();
   setProfileScope('43');
-  localStorage.setItem('chatthing:v1:profile:43:completion-preferences', '{broken');
+  localStorage.setItem('chatty-cat:v1:profile:43:completion-preferences', '{broken');
   expect(() => restoreCompletionPreferences()).toThrow();
   expect(getLocalNickname('alice')).toBeUndefined();
   expect(getCompletionPreferences().spellcheck).toBe(false);
-  expect(localStorage.getItem('chatthing:v1:profile:43:completion-preferences')).toBe('{broken');
+  expect(localStorage.getItem('chatty-cat:v1:profile:43:completion-preferences')).toBe('{broken');
 });

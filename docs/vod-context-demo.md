@@ -19,7 +19,7 @@ in that tab's console:
 
 ```js
 const db = await new Promise(resolve => {
-  const request = indexedDB.open('chatthing-archive', 1);
+  const request = indexedDB.open('chatty-cat-archive', 1);
   request.onsuccess = () => resolve(request.result);
 });
 const tx = db.transaction('messages', 'readwrite');

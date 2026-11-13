@@ -12,16 +12,16 @@ func TestLoadEnv(t *testing.T) {
 		name, body, want string
 		bad              bool
 	}{
-		{"plain", "CHATTHING_TEST_LOCAL=abc # note\n", "abc", false},
-		{"quoted", "export CHATTHING_TEST_LOCAL='a$()#b'\n", "a$()#b", false},
-		{"double", "CHATTHING_TEST_LOCAL=\"a=b\"\n", "a=b", false},
-		{"empty", "# note\nCHATTHING_TEST_LOCAL=\n", "", false},
+		{"plain", "CHATTY_CAT_TEST_LOCAL=abc # note\n", "abc", false},
+		{"quoted", "export CHATTY_CAT_TEST_LOCAL='a$()#b'\n", "a$()#b", false},
+		{"double", "CHATTY_CAT_TEST_LOCAL=\"a=b\"\n", "a=b", false},
+		{"empty", "# note\nCHATTY_CAT_TEST_LOCAL=\n", "", false},
 		{"bad", "secret-without-assignment\n", "", true},
 		{"badkey", "bad-key=secret\n", "", true},
-		{"badquote", "CHATTHING_TEST_LOCAL='secret\n", "", true},
+		{"badquote", "CHATTY_CAT_TEST_LOCAL='secret\n", "", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			key := "CHATTHING_TEST_LOCAL"
+			key := "CHATTY_CAT_TEST_LOCAL"
 			old, exists := os.LookupEnv(key)
 			if err := os.Unsetenv(key); err != nil {
 				t.Fatal(err)
@@ -53,15 +53,15 @@ func TestLoadEnv(t *testing.T) {
 			}
 		})
 	}
-	t.Setenv("CHATTHING_TEST_LOCAL", "existing")
+	t.Setenv("CHATTY_CAT_TEST_LOCAL", "existing")
 	path := filepath.Join(t.TempDir(), ".env")
-	if err := os.WriteFile(path, []byte("CHATTHING_TEST_LOCAL=file\n"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("CHATTY_CAT_TEST_LOCAL=file\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := LoadEnv(path); err != nil {
 		t.Fatal(err)
 	}
-	if os.Getenv("CHATTHING_TEST_LOCAL") != "existing" {
+	if os.Getenv("CHATTY_CAT_TEST_LOCAL") != "existing" {
 		t.Fatal("overwrote environment")
 	}
 	if err := LoadEnv(filepath.Join(t.TempDir(), "missing")); err != nil {

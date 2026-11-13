@@ -39,6 +39,6 @@ it('does not turn transient failure into a cached unset pronoun', async () => {
   expect(await pronouns.get('alice')).toBeUndefined();
   expect(await pronouns.get('alice')).toBeUndefined();
   expect(fetcher).toHaveBeenCalledOnce();
-  expect(localStorage.getItem('chatthing:v1:pronouns')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:pronouns')).toBeNull();
   expect(await pronouns.get('bad/name')).toBeUndefined();
 });

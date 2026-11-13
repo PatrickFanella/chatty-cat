@@ -79,10 +79,10 @@ it('an invalid muted channel list is refused and keeps the stored list', () => {
   const muted = get('presentation.mutedChannels');
   muted.write('Alice, bob bob');
   expect(runtime.saved.mutedChannels).toBe('alice,bob');
-  const stored = localStorage.getItem('chatthing:v1:presentation');
+  const stored = localStorage.getItem('chatty-cat:v1:presentation');
   expect(() => muted.write('alice, not-a-login!')).toThrow('Not a valid value');
   expect(runtime.saved.mutedChannels).toBe('alice,bob');
-  expect(localStorage.getItem('chatthing:v1:presentation')).toBe(stored);
+  expect(localStorage.getItem('chatty-cat:v1:presentation')).toBe(stored);
   muted.write('');
   expect(runtime.saved.mutedChannels).toBe('');
 });
@@ -90,7 +90,7 @@ it('an invalid muted channel list is refused and keeps the stored list', () => {
 // Moved from presentation-ui.test.ts: a failed save keeps the saved and active values.
 it('a failed save keeps saved preferences and reports the storage error', () => {
   get('presentation.collapseLines').write(4);
-  const raw = localStorage.getItem('chatthing:v1:presentation');
+  const raw = localStorage.getItem('chatty-cat:v1:presentation');
   vi.stubGlobal('localStorage', {
     getItem: () => raw,
     setItem: () => {
@@ -105,7 +105,7 @@ it('a failed save keeps saved preferences and reports the storage error', () => 
 // Moved from presentation-ui.test.ts: saved values apply at startup without any settings UI.
 it('applies saved presentation without an editor and ignores cancellation after teardown', () => {
   runtime.stop();
-  localStorage.setItem('chatthing:v1:presentation', JSON.stringify({ ...presentationDefaults, collapseLines: 8 }));
+  localStorage.setItem('chatty-cat:v1:presentation', JSON.stringify({ ...presentationDefaults, collapseLines: 8 }));
   const changed = vi.fn();
   runtime = new PresentationRuntime(changed);
   expect(getPresentation().collapseLines).toBe(8);
@@ -128,7 +128,9 @@ it('overlay appearance saves in the current profile and applies its style', () =
   host.overlay = true;
   defs = presentationSettings(Object.assign(host, { presentation: runtime }) as unknown as SettingsHost);
   get('presentation.overlayBackgroundOpacity').write(128);
-  expect(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:presentation'))!).overlayBackgroundOpacity).toBe(128);
+  expect(JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:presentation'))!).overlayBackgroundOpacity).toBe(
+    128,
+  );
   expect(document.documentElement.style.getPropertyValue('--overlay-background-alpha')).toBe('50.19607843137255%');
   expect(document.documentElement.style.opacity).toBe('');
 });

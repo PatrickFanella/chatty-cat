@@ -57,7 +57,7 @@ it('retains the search link when configuration is absent', async () => {
 });
 it('enforces the persisted hourly budget without storing media URLs', async () => {
   localStorage.setItem(
-    'chatthing:v1:giphy-budget',
+    'chatty-cat:v1:giphy-budget',
     JSON.stringify({ sent: Array.from({ length: 80 }, () => Date.now() - 5000), pause: 0 }),
   );
   const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ giphyApiKey: 'test-public-key' })));
@@ -69,7 +69,7 @@ it('enforces the persisted hourly budget without storing media URLs', async () =
   await vi.waitFor(() => expect(log.textContent).toContain('paused'));
   expect(fetcher).toHaveBeenCalledTimes(1);
   controller.stop();
-  expect(localStorage.getItem('chatthing:v1:giphy-budget')).not.toContain('giphy.com');
+  expect(localStorage.getItem('chatty-cat:v1:giphy-budget')).not.toContain('giphy.com');
 });
 it('backs off for five minutes after 429', async () => {
   const fetcher = vi
@@ -86,7 +86,7 @@ it('backs off for five minutes after 429', async () => {
   button.click();
   await vi.waitFor(() => expect(button.textContent).toContain('paused'));
   expect(fetcher).toHaveBeenCalledTimes(2);
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:giphy-budget')!).pause).toBeGreaterThan(Date.now() + 290000);
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:giphy-budget')!).pause).toBeGreaterThan(Date.now() + 290000);
   controller.stop();
 });
 it('discards an unrestricted response that arrives after safe mode is enabled', async () => {

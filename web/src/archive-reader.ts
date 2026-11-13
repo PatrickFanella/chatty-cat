@@ -9,6 +9,7 @@ import {
   type ArchivePage,
   type ArchiveScanPage,
 } from './archive-records';
+import { openRenamed } from './database-rename';
 function request<T>(req: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     req.onsuccess = () => resolve(req.result);
@@ -23,32 +24,36 @@ function done(tx: IDBTransaction): Promise<void> {
   });
 }
 export class ArchiveReader {
-  protected db = new Promise<IDBDatabase>((resolve, reject) => {
-    let blocked = false;
-    if (typeof indexedDB === 'undefined') {
-      reject(new Error('Archive unavailable'));
-      return;
-    }
-    const open = indexedDB.open('chatthing-archive', 1);
-    open.onupgradeneeded = () => {
-      const store = open.result.createObjectStore('messages', { keyPath: 'key' });
-      store.createIndex('timestamp', 'timestamp');
-      store.createIndex('channel-time', ['channel', 'timestamp']);
-    };
-    open.onsuccess = () => {
-      if (blocked) {
-        open.result.close();
-        return;
-      }
-      open.result.onversionchange = () => open.result.close();
-      resolve(open.result);
-    };
-    open.onerror = () => reject(open.error ?? new Error('Archive unavailable'));
-    open.onblocked = () => {
-      blocked = true;
-      reject(new Error('Archive blocked; close older tabs and reload'));
-    };
-  });
+  protected db = openRenamed(
+    'chatty-cat-archive',
+    () =>
+      new Promise<IDBDatabase>((resolve, reject) => {
+        let blocked = false;
+        if (typeof indexedDB === 'undefined') {
+          reject(new Error('Archive unavailable'));
+          return;
+        }
+        const open = indexedDB.open('chatty-cat-archive', 1);
+        open.onupgradeneeded = () => {
+          const store = open.result.createObjectStore('messages', { keyPath: 'key' });
+          store.createIndex('timestamp', 'timestamp');
+          store.createIndex('channel-time', ['channel', 'timestamp']);
+        };
+        open.onsuccess = () => {
+          if (blocked) {
+            open.result.close();
+            return;
+          }
+          open.result.onversionchange = () => open.result.close();
+          resolve(open.result);
+        };
+        open.onerror = () => reject(open.error ?? new Error('Archive unavailable'));
+        open.onblocked = () => {
+          blocked = true;
+          reject(new Error('Archive blocked; close older tabs and reload'));
+        };
+      }),
+  );
   constructor() {
     void this.db.catch(() => {});
   }

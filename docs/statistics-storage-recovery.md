@@ -6,7 +6,7 @@ confirmation then failed: `Could not save workspaces; free browser storage and
 retry`. The original workspace remained unchanged.
 
 Read-only developer inspection in that Vivaldi origin found a legacy public
-statistics snapshot `chatthing:v1:stats:counts:hasanabi,zackrawrr` using 7,441,286
+statistics snapshot for the channels `hasanabi,zackrawrr` using 7,441,286
 UTF-16 key/value bytes. Other public statistics and retained history also occupy
 localStorage. A stream-history save warning was visible. These observations
 identify a localStorage capacity failure; they do not establish the original
@@ -14,7 +14,7 @@ private IndexedDB journal loss in #82. Neither history nor counts were cleared.
 
 ## Supported persistence
 
-Public statistics snapshots now use `chatthing-statistics` IndexedDB, keyed by
+Public statistics snapshots now use `chatty-cat-statistics` IndexedDB, keyed by
 validated channel groups. Legacy localStorage values remain a read fallback.
 Loading persisted counts finishes before queued bootstrap/live observations are
 processed, retaining saved deduplication IDs and avoiding replay recounting.
@@ -27,7 +27,7 @@ bounded to 100,000 queued operations; capacity omissions remain labelled.
 ## Reviewed move
 
 In **Stats → Public statistics storage**, choose **Review move statistics
-storage**. It inventories only the public `chatthing:v1:stats:counts:` namespace,
+storage**. It inventories only the public `chatty-cat:v1:stats:counts:` namespace,
 with validated channel-group keys, at most 64 scopes and six million total
 key/value characters. It reports scopes and UTF-16 size. Review alone makes no
 storage mutation. **Download reviewed statistics backup** optionally saves the

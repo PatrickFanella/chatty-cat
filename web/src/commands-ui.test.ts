@@ -62,7 +62,7 @@ it('stages a selected-message action in its channel while preserving the other c
   expect(input.value).toBe('/timeout alice 30');
   // The embedding Settings window closes so the composer is reachable.
   expect(staged).toHaveBeenCalledOnce();
-  expect(sessionStorage.getItem('chatthing:v1:draft:20:other')).toBe('keep this draft');
+  expect(sessionStorage.getItem('chatty-cat:v1:draft:20:other')).toBe('keep this draft');
   expect(fetcher).not.toHaveBeenCalled();
   panel.stop();
   runtime.stop();

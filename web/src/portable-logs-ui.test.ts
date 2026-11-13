@@ -114,7 +114,10 @@ it('aborts stale export preparation on privacy activation and never restores the
   );
   ui.button('Preview selected public logs').click();
   await flush();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   finish?.();
   await flush();

@@ -29,42 +29,42 @@ func main() {
 }
 
 func run() error {
-	envFile := os.Getenv("CHATTHING_ENV_FILE")
+	envFile := os.Getenv("CHATTY_CAT_ENV_FILE")
 	if envFile == "" {
 		envFile = "../.env"
 	}
 	if err := config.LoadEnv(envFile); err != nil {
 		return err
 	}
-	assets := os.Getenv("CHATTHING_ASSETS")
+	assets := os.Getenv("CHATTY_CAT_ASSETS")
 	if assets == "" {
 		assets = "web/dist"
 	}
 	if _, err := os.Stat(assets + "/index.html"); err != nil {
 		return errors.New("frontend build missing; run npm --prefix web ci && npm --prefix web run build")
 	}
-	addr := os.Getenv("CHATTHING_ADDR")
+	addr := os.Getenv("CHATTY_CAT_ADDR")
 	if addr == "" {
 		addr = "127.0.0.1:8080"
 	}
-	capacity, err := config.Int("CHATTHING_WORKSPACE_CHANNELS", chatlimits.DefaultWorkspaceChannels, 1, chatlimits.MaxWorkspaceChannels)
+	capacity, err := config.Int("CHATTY_CAT_WORKSPACE_CHANNELS", chatlimits.DefaultWorkspaceChannels, 1, chatlimits.MaxWorkspaceChannels)
 	if err != nil {
 		return err
 	}
-	subscriptions, err := config.Int("CHATTHING_CHAT_SUBSCRIPTIONS", chatlimits.MaxSubscriptions, 1, chatlimits.MaxSubscriptions)
+	subscriptions, err := config.Int("CHATTY_CAT_CHAT_SUBSCRIPTIONS", chatlimits.MaxSubscriptions, 1, chatlimits.MaxSubscriptions)
 	if err != nil {
 		return err
 	}
 	capacity = min(capacity, subscriptions)
-	optionalProviders, err := providerservices.Parse(os.Getenv("CHATTHING_PROVIDER_SERVICES"))
+	optionalProviders, err := providerservices.Parse(os.Getenv("CHATTY_CAT_PROVIDER_SERVICES"))
 	if err != nil {
 		return err
 	}
-	login, err := auth.New(auth.Config{WorkspaceChannels: capacity, ChatSubscriptions: subscriptions, PublicClient: os.Getenv("TWITCH_PUBLIC_CLIENT") == "true", ClientID: os.Getenv("TWITCH_CLIENT_ID"), ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"), PublicURL: os.Getenv("CHATTHING_PUBLIC_URL")})
+	login, err := auth.New(auth.Config{WorkspaceChannels: capacity, ChatSubscriptions: subscriptions, PublicClient: os.Getenv("TWITCH_PUBLIC_CLIENT") == "true", ClientID: os.Getenv("TWITCH_CLIENT_ID"), ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"), PublicURL: os.Getenv("CHATTY_CAT_PUBLIC_URL")})
 	if err != nil {
 		return err
 	}
-	imageStore, err := uploads.New(uploads.Config{Directory: os.Getenv("CHATTHING_UPLOAD_DIR")})
+	imageStore, err := uploads.New(uploads.Config{Directory: os.Getenv("CHATTY_CAT_UPLOAD_DIR")})
 	if err != nil {
 		login.Close()
 		return err
@@ -74,12 +74,12 @@ func run() error {
 			slog.Error("upload storage close failed", "error", err)
 		}
 	}()
-	cosmeticService, err := cosmetics.New(cosmetics.Config{Providers: os.Getenv("CHATTHING_COSMETIC_PROVIDERS")})
+	cosmeticService, err := cosmetics.New(cosmetics.Config{Providers: os.Getenv("CHATTY_CAT_COSMETIC_PROVIDERS")})
 	if err != nil {
 		return err
 	}
 	defer cosmeticService.Close()
-	syncStore, err := devicesync.New(devicesync.Config{Directory: os.Getenv("CHATTHING_SYNC_DIR")})
+	syncStore, err := devicesync.New(devicesync.Config{Directory: os.Getenv("CHATTY_CAT_SYNC_DIR")})
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func run() error {
 			slog.Error("sync storage close failed", "error", err)
 		}
 	}()
-	ircNetworks, err := ircrelay.Load(os.Getenv("CHATTHING_IRC_CONFIG"))
+	ircNetworks, err := ircrelay.Load(os.Getenv("CHATTY_CAT_IRC_CONFIG"))
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func run() error {
 	defer stop()
 	done := make(chan error, 1)
 	go func() { done <- httpServer.ListenAndServe() }()
-	slog.Info("migration preview listening", "address", addr)
+	slog.Info("listening", "address", addr)
 	select {
 	case err := <-done:
 		return err

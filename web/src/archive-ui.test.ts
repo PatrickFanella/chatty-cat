@@ -87,7 +87,7 @@ it('opens the current-channel or joined-channel scope and includes the channel i
   ui.input.value = 'hello';
   ui.dialog.querySelector<HTMLInputElement>('[aria-label="Query name"]')!.value = 'channel';
   ui.button('Save query').click();
-  expect(localStorage.getItem('chatthing:v1:archive-queries:42')).toContain('channel:');
+  expect(localStorage.getItem('chatty-cat:v1:archive-queries:42')).toContain('channel:');
   ui.dialog.close();
   search!.show();
   expect(ui.dialog.querySelector<HTMLSelectElement>('#archive-channel')!.value).toBe('');
@@ -105,7 +105,10 @@ it('cancels stale requests and hides saved names and results when privacy activa
   ui.dialog.querySelector<HTMLInputElement>('[aria-label="Query name"]')!.value = 'private';
   ui.button('Save query').click();
   ui.dialog.querySelector('form')!.dispatchEvent(new Event('submit'));
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   resolve(page);
   await flush();

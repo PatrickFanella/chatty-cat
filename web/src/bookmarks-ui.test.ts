@@ -39,7 +39,7 @@ it('captures, tags and saves notes; preview omits private fields and recovery is
   panel!.root.querySelector<HTMLTextAreaElement>('[aria-label="Private note"]')!.value = 'private secret';
   panel!.root.querySelector<HTMLInputElement>('[aria-label="Tags (comma separated)"]')!.value = 'Important';
   ui.button('Save bookmark').click();
-  expect(localStorage.getItem('chatthing:v1:bookmarks:42')).toContain('private secret');
+  expect(localStorage.getItem('chatty-cat:v1:bookmarks:42')).toContain('private secret');
   ui.button('Preview share').click();
   expect(panel!.root.querySelector('[aria-label="Share preview"]')?.textContent).not.toContain('private secret');
   expect(panel!.root.querySelector('[aria-label="Share preview"]')?.textContent).not.toContain('example.org');
@@ -68,7 +68,10 @@ it('clears private editing, share and backup previews on account switch and priv
   expect(panel!.root.querySelector<HTMLTextAreaElement>('[aria-label="Private note"]')!.value).toBe('');
   expect(panel!.root.querySelector<HTMLInputElement>('[aria-label="Include private note"]')!.checked).toBe(false);
   panel!.setAccount('42');
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.textContent).not.toContain('secret');
   expect(panel!.root.open).toBe(false);

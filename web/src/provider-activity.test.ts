@@ -91,7 +91,10 @@ it('stops on channel/account/privacy change without sending a new target or auto
   expect(activity!.running).toBe(false);
   await vi.advanceTimersByTimeAsync(300000);
   expect(bttv).toHaveBeenCalledOnce();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   await expect(activity!.review()).rejects.toThrow();
 });
@@ -175,7 +178,10 @@ it('aborts a pending write on privacy and never arms from its late response', as
   const start = activity!.start();
   await vi.advanceTimersByTimeAsync(1);
   expect(signal?.aborted).toBe(false);
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(signal?.aborted).toBe(true);
   finish(new Response(null, { status: 204 }));

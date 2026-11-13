@@ -37,7 +37,7 @@ export class LedgerWorker {
   }
   async open(channels: readonly string[], legacy: string | undefined, persist: boolean): Promise<LedgerMeta> {
     if (this.model) throw new Error('Ledger already initialized');
-    this.key = 'chatthing:v1:stats:counts:' + channels.join(',');
+    this.key = 'chatty-cat:v1:stats:counts:' + channels.join(',');
     this.persist = persist;
     const loaded = await loadStatisticsLedger(channels, legacy, persist);
     this.model = new StatsLedgerModel(channels, (channel) => this.catalogs.get(channel) ?? {});

@@ -78,7 +78,7 @@ it('retains prior state on invalid data and re-registers settings after construc
 
 it('shares unopened picker geometry using the existing URL format', () => {
   localStorage.setItem(
-    'chatthing:v1:picker:geometry',
+    'chatty-cat:v1:picker:geometry',
     JSON.stringify({ width: 500, height: 400, left: 20, top: 30, pinned: true, open: false }),
   );
   runtime = new PassivePanelSettings(

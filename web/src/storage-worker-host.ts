@@ -12,6 +12,7 @@ import {
 } from './statistics-store';
 import { ArchiveStore } from './archive-store';
 import { JournalStore } from './moderation-journal-store';
+import { onDatabaseMove } from './database-rename';
 import type { StorageNotice, StorageReply, StorageRequest } from './storage-worker-protocol';
 
 export class StorageWorkerHost {
@@ -24,11 +25,17 @@ export class StorageWorkerHost {
   private ledger = new LedgerWorker();
   private rateModel = new RateWorker();
   private controllers = new Map<number, AbortController>();
+  private moving = new Map<number, () => void>();
   private policies = new Map<number, { resolve: (policy: ArchiveRetention) => void; reject: (error: Error) => void }>();
   private pending = new Set<Promise<unknown>>();
   private closing = false;
   private summary: StatisticsSummaryRequest | undefined;
   private stopped: Promise<void> | undefined;
+  constructor() {
+    onDatabaseMove(() => {
+      for (const notify of this.moving.values()) notify();
+    });
+  }
   async handle(raw: unknown, progress: (value: StorageNotice) => void = () => {}): Promise<StorageReply | undefined> {
     if (
       raw &&
@@ -77,6 +84,7 @@ export class StorageWorkerHost {
       }
       const controller = new AbortController();
       this.controllers.set(id, controller);
+      this.moving.set(id, () => progress({ version: 1, id, moving: true }));
       const operation = this.execute(
         request,
         controller.signal,
@@ -93,6 +101,7 @@ export class StorageWorkerHost {
       } finally {
         this.pending.delete(operation);
         this.controllers.delete(id);
+        this.moving.delete(id);
         this.policies.delete(id);
       }
     } catch (error) {

@@ -4,7 +4,7 @@ import { profileKey } from '../../account-profiles';
 import { firstVisitDisplay, parseDisplay, type DisplayOptions } from '../../display';
 import { captureBundle, parseBundle, restoreBundle, type SettingsBundle } from '../../settings-bundle';
 
-const SLOTS_KEY = 'chatthing:v1:display-slots';
+const SLOTS_KEY = 'chatty-cat:v1:display-slots';
 
 function readSlots(): (SettingsBundle | null)[] {
   try {

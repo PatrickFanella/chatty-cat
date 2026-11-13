@@ -237,7 +237,7 @@ export class BookmarkStore {
     this.account = account;
   }
   get key(): string | undefined {
-    return this.account === undefined ? undefined : 'chatthing:v1:bookmarks:' + this.account;
+    return this.account === undefined ? undefined : 'chatty-cat:v1:bookmarks:' + this.account;
   }
   list(): Bookmark[] {
     const raw = this.key ? localStorage.getItem(this.key) : null;

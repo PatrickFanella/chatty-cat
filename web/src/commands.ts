@@ -144,7 +144,7 @@ export class CommandStore {
   error = '';
   constructor() {
     try {
-      this.raw = localStorage.getItem(profileKey('chatthing:v1:commands'));
+      this.raw = localStorage.getItem(profileKey('chatty-cat:v1:commands'));
       if (this.raw) {
         if (this.raw.length > 65536) throw new Error();
         this.items = parseCommandList(JSON.parse(this.raw));
@@ -161,11 +161,11 @@ export class CommandStore {
   save(items: CommandTemplate[]): void {
     if (this.error) throw new Error(this.error);
     const safe = parseCommandList(items);
-    if (localStorage.getItem(profileKey('chatthing:v1:commands')) !== this.raw)
+    if (localStorage.getItem(profileKey('chatty-cat:v1:commands')) !== this.raw)
       throw new Error('Commands changed in another tab; reload before saving');
     const raw = JSON.stringify(safe);
     try {
-      localStorage.setItem(profileKey('chatthing:v1:commands'), raw);
+      localStorage.setItem(profileKey('chatty-cat:v1:commands'), raw);
     } catch {
       throw new Error('Could not save commands; free browser storage and retry');
     }

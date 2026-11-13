@@ -51,15 +51,15 @@ function startServer() {
   // Server settings come only from here: never from a stray .env or the user's
   // environment. Only the registered public client ID ships in the app.
   const env = Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => !/^(CHATTHING|TWITCH|GIPHY)_/.test(key)),
+    Object.entries(process.env).filter(([key]) => !/^(CHATTY_CAT|TWITCH|GIPHY)_/.test(key)),
   );
-  server = spawn(path.join(dir, 'chatthing'), [], {
+  server = spawn(path.join(dir, 'chatty-cat-server'), [], {
     env: {
       ...env,
-      CHATTHING_ADDR: `127.0.0.1:${PORT}`,
-      CHATTHING_ASSETS: path.join(dir, 'web/dist'),
-      CHATTHING_ENV_FILE: os.devNull,
-      CHATTHING_PUBLIC_URL: ORIGIN,
+      CHATTY_CAT_ADDR: `127.0.0.1:${PORT}`,
+      CHATTY_CAT_ASSETS: path.join(dir, 'web/dist'),
+      CHATTY_CAT_ENV_FILE: os.devNull,
+      CHATTY_CAT_PUBLIC_URL: ORIGIN,
       TWITCH_PUBLIC_CLIENT: 'true',
       TWITCH_CLIENT_ID: clientID,
     },

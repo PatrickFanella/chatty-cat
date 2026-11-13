@@ -64,7 +64,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await new Promise((r) => setTimeout(r, 10));
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-moderation-journal');
+    const q = indexedDB.deleteDatabase('chatty-cat-moderation-journal');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });
@@ -161,7 +161,10 @@ it('refuses missing consent and suppresses private stream state when workspace p
   button('Connect private AutoMod queue').click();
   sources.at(-1)!.emit(snapshot);
   expect(workspace.root.textContent).toContain('private-held-sentinel');
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(workspace.root.open).toBe(false);
   expect(workspace.root.textContent).not.toContain('private-held-sentinel');

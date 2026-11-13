@@ -13,7 +13,7 @@ it('records first activation per account and retains malformed data', () => {
   setProfileScope('43');
   expect(() => recordOverlayActivation('42')).toThrow('account');
   expect(recordOverlayActivation('43')).toBe(true);
-  const key = profileKey('chatthing:v1:overlay-onboarding');
+  const key = profileKey('chatty-cat:v1:overlay-onboarding');
   localStorage.setItem(key, 'unreadable');
   expect(recordOverlayActivation('43')).toBe(true);
   expect(localStorage.getItem(key)).toBe('unreadable');

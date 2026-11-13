@@ -14,7 +14,7 @@ COPY cmd/ cmd/
 COPY internal/ internal/
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags='-s -w' -o /out/chatthing ./cmd/chatthing
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags='-s -w' -o /out/chatty-cat-server ./cmd/chatty-cat-server
 COPY --from=frontend /src/web/src web/src
 COPY --from=frontend /src/web/public web/public
 COPY --from=frontend /src/web/index.html /src/web/package.json /src/web/package-lock.json /src/web/tsconfig.json /src/web/tsconfig.sw.json /src/web/vite.config.ts /src/web/vitest.config.ts web/
@@ -27,12 +27,12 @@ RUN tar -czf /out/source.tar.gz cmd internal web/src web/public web/index.html w
 FROM alpine:3.24
 RUN apk add --no-cache ca-certificates tzdata && addgroup -g 10001 chat && adduser -D -u 10001 -G chat chat
 WORKDIR /app
-COPY --from=service /out/chatthing /app/chatthing
+COPY --from=service /out/chatty-cat-server /app/chatty-cat-server
 COPY --from=frontend /src/web/dist /app/web/dist
 COPY --from=service /out/source.tar.gz /app/web/dist/source.tar.gz
 COPY LICENSE NOTICE.md /app/
-ENV CHATTHING_ADDR=0.0.0.0:8080 CHATTHING_ASSETS=/app/web/dist CHATTHING_ENV_FILE=/app/no-env-file
+ENV CHATTY_CAT_ADDR=0.0.0.0:8080 CHATTY_CAT_ASSETS=/app/web/dist CHATTY_CAT_ENV_FILE=/app/no-env-file
 USER 10001:10001
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD wget -q -T 3 -O /dev/null http://127.0.0.1:8080/api/health || exit 1
-ENTRYPOINT ["/app/chatthing"]
+ENTRYPOINT ["/app/chatty-cat-server"]

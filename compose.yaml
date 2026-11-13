@@ -1,17 +1,17 @@
 services:
   chat:
     build: .
-    image: ${CHATTHING_IMAGE:-chatty-cat:local}
+    image: ${CHATTY_CAT_IMAGE:-chatty-cat:local}
     restart: unless-stopped
     environment:
-      CHATTHING_PUBLIC_URL: ${CHATTHING_PUBLIC_URL:-https://chat.subcult.tv}
-      CHATTHING_ADDR: 0.0.0.0:8080
-      CHATTHING_ASSETS: /app/web/dist
-      CHATTHING_ENV_FILE: /app/no-env-file
+      CHATTY_CAT_PUBLIC_URL: ${CHATTY_CAT_PUBLIC_URL:-https://chat.subcult.tv}
+      CHATTY_CAT_ADDR: 0.0.0.0:8080
+      CHATTY_CAT_ASSETS: /app/web/dist
+      CHATTY_CAT_ENV_FILE: /app/no-env-file
       TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
       TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
-      CHATTHING_PROVIDER_SERVICES: ${CHATTHING_PROVIDER_SERVICES:-}
-      CHATTHING_COSMETIC_PROVIDERS: ${CHATTHING_COSMETIC_PROVIDERS:-}
+      CHATTY_CAT_PROVIDER_SERVICES: ${CHATTY_CAT_PROVIDER_SERVICES:-}
+      CHATTY_CAT_COSMETIC_PROVIDERS: ${CHATTY_CAT_COSMETIC_PROVIDERS:-}
       GIPHY_API_KEY: ${GIPHY_API_KEY:-}
     ports:
       - "127.0.0.1:8080:8080"

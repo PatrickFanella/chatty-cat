@@ -25,7 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	service, err := companion.New(companion.Config{Origin: "http://127.0.0.1:5195", OverlayExecutable: os.Getenv("CHATTHING_OVERLAY_FIXTURE_HOST"), Tools: []companion.Tool{{ID: "fixture", Label: "Fixture child (no stream)", Executable: executable, Arguments: []string{"--playback-fixture", "{url}", "{quality}"}}, {ID: "missing", Label: "Missing player", Executable: "/missing/chatty-cat-player", Arguments: []string{"{url}"}}}})
+	service, err := companion.New(companion.Config{Origin: "http://127.0.0.1:5195", OverlayExecutable: os.Getenv("CHATTY_CAT_OVERLAY_FIXTURE_HOST"), Tools: []companion.Tool{{ID: "fixture", Label: "Fixture child (no stream)", Executable: executable, Arguments: []string{"--playback-fixture", "{url}", "{quality}"}}, {ID: "missing", Label: "Missing player", Executable: "/missing/chatty-cat-player", Arguments: []string{"{url}"}}}})
 	if err != nil {
 		log.Fatal(err)
 	}

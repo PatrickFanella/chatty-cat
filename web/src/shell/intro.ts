@@ -3,7 +3,7 @@
 import lockup from './lockup-primary.svg';
 import { getProfileScope } from '../account-profiles';
 
-const KEY = 'chatthing:v1:intro-dismissed';
+const KEY = 'chatty-cat:v1:intro-dismissed';
 
 function dismissed(): boolean {
   try {

@@ -43,7 +43,7 @@ export class ConversationInbox {
   }
   private readStored(): ReadState {
     const read: ReadState = { keys: [], cursors: {} };
-    const raw = localStorage.getItem('chatthing:v1:inbox-read:' + this.account);
+    const raw = localStorage.getItem('chatty-cat:v1:inbox-read:' + this.account);
     if (!raw) return read;
     if (raw.length > 65536) throw new Error('Invalid read state');
     const value: unknown = JSON.parse(raw);
@@ -160,7 +160,7 @@ export class ConversationInbox {
     const raw = JSON.stringify({ version: 1, keys, cursors });
     if (raw.length > 65536) throw new Error('Public inbox read-state limit reached');
     try {
-      localStorage.setItem('chatthing:v1:inbox-read:' + this.account, raw);
+      localStorage.setItem('chatty-cat:v1:inbox-read:' + this.account, raw);
     } catch {
       throw new Error('Public read state could not be saved; unread items were retained');
     }

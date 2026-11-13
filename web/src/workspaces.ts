@@ -25,7 +25,7 @@ export interface Workspace extends WorkspaceSnapshot {
   id: string;
   name: string;
 }
-const KEY = 'chatthing:v1:workspaces';
+const KEY = 'chatty-cat:v1:workspaces';
 const MAX_BYTES = 256 * 1024;
 const MAX_WORKSPACES = 20;
 const FOCUS = ['log', 'message', 'picker-open', 'archive-open', 'display-open', 'video-open'];

@@ -189,7 +189,7 @@ export function reconcileProviderMetadata(
 }
 export class ProviderPreferenceStore {
   private account = getProfileScope();
-  private key = profileKey('chatthing:v1:provider-preferences');
+  private key = profileKey('chatty-cat:v1:provider-preferences');
   private raw = localStorage.getItem(this.key);
   read(): ProviderPreferences {
     if (this.account !== getProfileScope()) throw new Error('Account changed; reopen provider preferences');

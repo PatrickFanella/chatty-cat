@@ -1,5 +1,10 @@
 # Live testing deployment
 
+> This is a record of the October 2026 live test. Production no longer runs as
+> `chatty-cat.service`; it runs as a Compose container on NUC and deploys
+> automatically from `main`. See [deploy/nuc/README.md](../deploy/nuc/README.md)
+> for the current setup and rollback.
+
 The owner authorized deploying the current build on October 11, 2026 after
 Twitch rejected the preview browser.
 

@@ -25,7 +25,7 @@ export class InboxRuntime extends EventTarget {
     document.dispatchEvent(new Event('panelstatechange'));
   }
   private storage = (event: StorageEvent): void => {
-    if (event.key?.startsWith('chatthing:v1:inbox-read:')) {
+    if (event.key?.startsWith('chatty-cat:v1:inbox-read:')) {
       try {
         this.model.refreshReads();
         this.dispatchEvent(new Event('change'));

@@ -28,10 +28,10 @@ it('renders bounded plain text, reviews backups and requires a separate reviewed
   expect(panel!.root.querySelector('pre')?.textContent).toContain('private sentinel');
   expect(x.button('Download reviewed user notes').disabled).toBe(false);
   x.button('Delete reviewed user notes').click();
-  expect(localStorage.getItem('chatthing:v1:user-notes:42')).toContain('private sentinel');
+  expect(localStorage.getItem('chatty-cat:v1:user-notes:42')).toContain('private sentinel');
   x.button('Preview delete all user notes').click();
   x.button('Delete reviewed user notes').click();
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:user-notes:42')!).notes).toEqual([]);
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:user-notes:42')!).notes).toEqual([]);
   expect(x.button('Download reviewed user notes').disabled).toBe(true);
 });
 it('clears private transfer state on account/privacy changes and refuses stale editor actions', () => {
@@ -42,13 +42,16 @@ it('clears private transfer state on account/privacy changes and refuses stale e
   panel!.setAccount('43');
   x.input.value = 'stale action';
   x.save.click();
-  expect(localStorage.getItem('chatthing:v1:user-notes:43')).toBeNull();
-  expect(localStorage.getItem('chatthing:v1:user-notes:42')).toContain('alice private');
+  expect(localStorage.getItem('chatty-cat:v1:user-notes:43')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:user-notes:42')).toContain('alice private');
   expect(panel!.root.querySelector('pre')?.textContent).toBe('');
   panel!.setAccount('42');
   panel!.open();
   x.button('Preview private user notes backup').click();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.textContent).not.toContain('alice private');
@@ -83,5 +86,5 @@ it('ignores a delayed private import preview after an account change', async () 
   await new Promise((r) => setTimeout(r, 0));
   expect(x.button('Import reviewed user notes').disabled).toBe(true);
   expect(panel!.root.textContent).not.toContain('private delayed sentinel');
-  expect(localStorage.getItem('chatthing:v1:user-notes:43')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:user-notes:43')).toBeNull();
 });

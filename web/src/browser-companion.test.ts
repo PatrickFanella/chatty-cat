@@ -27,8 +27,8 @@ afterEach(() => {
   vi.restoreAllMocks();
   window.dispatchEvent(new Event('pageshow'));
 });
-const navigationKey = 'chatthing:v1:browser-companion-handoff';
-const reloadKey = 'chatthing:v1:browser-companion-reload';
+const navigationKey = 'chatty-cat:v1:browser-companion-handoff';
+const reloadKey = 'chatty-cat:v1:browser-companion-reload';
 const kinds = (calls: unknown[][]) => calls.map(([, m]) => (m as { kind: string }).kind);
 function fixture(pageSender = sender) {
   const state: BridgeState = {};

@@ -37,8 +37,7 @@ Regenerate in Studio and copy. Do not edit the copies.
 
 **Voice.** Quick, practical, a little dry; chat vocabulary used correctly (rooms, the log,
 scrollback, backfill). Says it is a self-hosted client and never implies a Twitch product.
-Full voice in the Studio voice guide; facts from claims register entries C-CHAT-02 and 03.
-Entries C-CHAT-01 and 04 still describe the app as a rebuild in migration; do not use them.
+Full voice in the Studio voice guide; facts from claims register entries C-CHAT-01 to 04.
 
 ## Palettes
 
@@ -51,7 +50,7 @@ tones are mixes of `bg` toward `fg`. Rules: `fg` on `bg` at 4.5:1 or better; `fa
 | --- | --- | --- | --- | --- |
 | phosphor (default) | `#0b0f0c` | `#cfeedd` | `#7dff9a` | `#e8a33d` |
 | amber | `#000000` | `#ffa326` | `#ffb249` | `#5edb81` |
-| gray (the app default) | `#1d2229` | `#e8eff9` | `#e8a33d` | `#5fd98a` |
+| gray (`defaultDisplay()`; first visits use Nightshade) | `#1d2229` | `#e8eff9` | `#e8a33d` | `#5fd98a` |
 
 Thirteen more follow the remaining app colours at their default shades (violet, green,
 ember, red, wine, solarized, nord dark; lavender, sepia, salmon, ice, cream, mirc light).
@@ -217,7 +216,7 @@ the font-size menu, rather than subtracting pixels.
 - **Introduction.** A signed-out visitor who has not dismissed it sees one strip above
   the log (`src/shell/intro.ts`): the primary lockup, the line "six channels. one
   scrollback." and two sentences on what Chatty Cat is, with a "Got it" button that
-  removes it for that browser (`chatthing:v1:intro-dismissed`). Signed-in accounts and
+  removes it for that browser (`chatty-cat:v1:intro-dismissed`). Signed-in accounts and
   readonly popouts never see it. It is the one shell surface in the brand's phosphor
   palette, whatever the chat palette is: its rule sets `--cat-bg`, `--cat-fg`,
   `--cat-face` and `--cat-cursor` to the phosphor values and uses only those. The lockup

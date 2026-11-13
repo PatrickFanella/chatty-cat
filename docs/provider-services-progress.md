@@ -2,7 +2,7 @@
 
 The next #31 layer enables optional BTTV/7TV event and cosmetic services. The configuration contract and browser read subscriptions with bounded badge parsing/retention are implemented. Explicit reviewed activity sessions are also implemented; the owner-confirmed start/Live/stop flow is recorded below; controlled provider-event acceptance remains pending. This foundation does not close #31 or M4.
 
-CHATTHING_PROVIDER_SERVICES is an empty-by-default, closed list of BTTV and/or 7TV. Invalid or duplicate names fail CLI startup before starting auth services. The capability endpoint /api/provider-services/config exposes only allowed names and fixed browser limits (24 channels, three sockets, 30-second provider refresh interval). It contains no credential or arbitrary provider URL. The existing catalog configuration for FFZ/Chatterino is separate.
+CHATTY_CAT_PROVIDER_SERVICES is an empty-by-default, closed list of BTTV and/or 7TV. Invalid or duplicate names fail CLI startup before starting auth services. The capability endpoint /api/provider-services/config exposes only allowed names and fixed browser limits (24 channels, three sockets, 30-second provider refresh interval). It contains no credential or arbitrary provider URL. The existing catalog configuration for FFZ/Chatterino is separate.
 
 Public metadata now carries bounded, optional 7TV owner/channel-set/global-set identifiers from the responses already fetched. Older clients/servers remain compatible. These are public resource identifiers and do not grant account activity or role permissions.
 

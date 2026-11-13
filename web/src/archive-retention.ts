@@ -2,7 +2,7 @@ export interface ArchiveRetention {
   rows: number;
   days: number;
 }
-export const RETENTION_KEY = 'chatthing:v1:archive-retention';
+export const RETENTION_KEY = 'chatty-cat:v1:archive-retention';
 export function parseRetention(value: unknown): ArchiveRetention {
   if (
     value &&

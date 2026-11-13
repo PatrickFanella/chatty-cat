@@ -70,7 +70,7 @@ it('rejects oversized, excessive, malformed and unknown-version imports before a
 it('handles storage failure visibly and leaves in-memory state unchanged', () => {
   const store = new WorkspaceStore();
   const first = store.create('Watching', snapshot());
-  const saved = localStorage.getItem('chatthing:v1:workspaces');
+  const saved = localStorage.getItem('chatty-cat:v1:workspaces');
   vi.stubGlobal('localStorage', {
     getItem: () => saved,
     setItem: () => {

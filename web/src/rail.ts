@@ -77,7 +77,7 @@ export class PanelRail {
     );
     for (const entry of this.panels) entry.button.addEventListener('click', this.toggle);
     try {
-      const saved: unknown = JSON.parse(localStorage.getItem(profileKey('chatthing:v1:rail:split')) ?? 'null');
+      const saved: unknown = JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:rail:split')) ?? 'null');
       if (typeof saved === 'number' && Number.isFinite(saved) && saved >= 0.08 && saved <= 0.92)
         this.proportion = saved;
     } catch {
@@ -188,7 +188,7 @@ export class PanelRail {
     this.proportion = Math.max(0.08, Math.min(0.92, value));
     this.syncSplit();
     try {
-      localStorage.setItem(profileKey('chatthing:v1:rail:split'), JSON.stringify(this.proportion));
+      localStorage.setItem(profileKey('chatty-cat:v1:rail:split'), JSON.stringify(this.proportion));
     } catch {
       /* optional storage */
     }

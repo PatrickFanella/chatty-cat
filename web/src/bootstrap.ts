@@ -1,3 +1,4 @@
+import './storage-rename';
 import { startMain } from './main';
 import { loadAuth } from './auth';
 import { setProfileScope, validAccount } from './account-profiles';
@@ -8,13 +9,13 @@ async function start(): Promise<void> {
     const account = auth.authenticated ? auth.userID! : 'anonymous';
     setProfileScope(account);
     try {
-      sessionStorage.setItem('chatthing:v1:last-profile', account);
+      sessionStorage.setItem('chatty-cat:v1:last-profile', account);
     } catch {
       /* Optional storage. */
     }
   } catch {
     try {
-      const previous = sessionStorage.getItem('chatthing:v1:last-profile');
+      const previous = sessionStorage.getItem('chatty-cat:v1:last-profile');
       if (previous && validAccount(previous)) setProfileScope(previous);
     } catch {
       /* Optional storage; public chat still starts. */

@@ -31,7 +31,7 @@ def main():
     shutil.copy2(root / 'NOTICE.md', output / 'NOTICE.md')
     env = dict(os.environ, CGO_ENABLED='0', GOOS=os.environ.get('GOOS', 'linux'),
                GOARCH=os.environ.get('GOARCH', 'amd64'))
-    subprocess.run(['go', 'build', '-o', str(output / 'chatthing'), './cmd/chatthing'], cwd=root, env=env, check=True)
+    subprocess.run(['go', 'build', '-o', str(output / 'chatty-cat-server'), './cmd/chatty-cat-server'], cwd=root, env=env, check=True)
     sources = ['cmd', 'internal', 'web/src', 'web/public', 'web/index.html',
                'web/overlay.html', 'web/test-support', 'companion', 'web/package.json', 'web/package-lock.json', 'web/tsconfig.json',
                'web/tsconfig.sw.json', 'web/vite.config.ts', 'web/vitest.config.ts',

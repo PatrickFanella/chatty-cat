@@ -211,7 +211,10 @@ it('asks before a one-time fetch, suppresses unsolicited hover and drops privacy
   expect(fetcher).not.toHaveBeenCalled();
   [...root.querySelectorAll('button')].find((b) => b.textContent === 'Fetch this preview once')!.click();
   expect(fetcher).toHaveBeenCalledOnce();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   finish({ ok: true, json: async () => card });
   await vi.advanceTimersByTimeAsync(0);

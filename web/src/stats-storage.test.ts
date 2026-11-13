@@ -3,7 +3,7 @@ import 'fake-indexeddb/auto';
 import '../test-support/storage-worker-shim';
 import { afterEach, expect, it, vi } from 'vitest';
 import { moveStatistics, previewStatisticsMove, readStatistics, writeStatistics } from './stats-storage';
-const key = 'chatthing:v1:stats:counts:one',
+const key = 'chatty-cat:v1:stats:counts:one',
   raw = JSON.stringify({
     version: 1,
     since: 0,
@@ -14,14 +14,14 @@ afterEach(async () => {
   vi.restoreAllMocks();
   localStorage.clear();
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-statistics');
+    const q = indexedDB.deleteDatabase('chatty-cat-statistics');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });
 });
 it('moves exact public count snapshots while preserving unrelated history, workspaces and journal keys', async () => {
   localStorage.setItem(key, raw);
-  for (const name of ['chatthing:v1:history:one', 'chatthing:v1:profile:42:workspaces', 'private-journal'])
+  for (const name of ['chatty-cat:v1:history:one', 'chatty-cat:v1:profile:42:workspaces', 'private-journal'])
     localStorage.setItem(name, 'retain');
   const plan = previewStatisticsMove();
   expect(plan.entries).toEqual([{ key, raw }]);
@@ -30,7 +30,7 @@ it('moves exact public count snapshots while preserving unrelated history, works
   expect(await readStatistics(key)).toBe(raw);
   expect(localStorage.length).toBe(3);
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const q = indexedDB.open('chatthing-statistics');
+    const q = indexedDB.open('chatty-cat-statistics');
     q.onsuccess = () => resolve(q.result);
     q.onerror = () => reject(q.error);
   });

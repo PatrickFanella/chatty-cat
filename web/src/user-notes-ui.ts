@@ -248,7 +248,7 @@ export class UserNotesPanel implements Panel {
   };
   private storage = (event: StorageEvent): void => {
     if (event.key === PRIVACY_KEY || event.key === null) this.privacy();
-    if (event.key === 'chatthing:v1:user-notes:' + this.account || event.key === null) {
+    if (event.key === 'chatty-cat:v1:user-notes:' + this.account || event.key === null) {
       this.closed();
       try {
         this.store.setAccount(this.account);

@@ -91,7 +91,10 @@ it('cancels stale scans and clears graphs, messages and export on account/privac
   await flush();
   expect(panel!.root.querySelectorAll('svg')).toHaveLength(0);
   expect(panel!.root.textContent).not.toContain('Retained raid notice');
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.querySelector('iframe')?.getAttribute('srcdoc')).toBeNull();

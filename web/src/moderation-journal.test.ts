@@ -9,7 +9,7 @@ afterEach(async () => {
   for (const journal of journals.splice(0)) await journal.stop();
   vi.restoreAllMocks();
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-moderation-journal');
+    const q = indexedDB.deleteDatabase('chatty-cat-moderation-journal');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });
@@ -52,7 +52,7 @@ it('reports a database version change without reopening or repeating a pending a
   const store = journal();
   await store.begin('42', receipt);
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.open('chatthing-moderation-journal', 2);
+    const q = indexedDB.open('chatty-cat-moderation-journal', 2);
     q.onsuccess = () => {
       q.result.close();
       resolve();

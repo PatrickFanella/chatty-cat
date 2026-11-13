@@ -16,7 +16,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await new Promise((r) => setTimeout(r, 10));
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-moderation-journal');
+    const q = indexedDB.deleteDatabase('chatty-cat-moderation-journal');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });
@@ -81,7 +81,7 @@ it('does not send a reviewed provider action after journal storage changes', asy
   x.button('Preview moderation action').click();
   expect(x.button('Confirm reviewed moderation action').disabled).toBe(false);
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.open('chatthing-moderation-journal', 2);
+    const q = indexedDB.open('chatty-cat-moderation-journal', 2);
     q.onsuccess = () => {
       q.result.close();
       resolve();
@@ -146,7 +146,10 @@ it('refuses stale pending retention previews after policy edits and clears priva
       'chatty-cat-private-moderation-journal',
     ),
   );
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.querySelector('[aria-label="Private moderation journal preview"]')?.textContent).toBe('');
@@ -345,7 +348,10 @@ it('updates child poll permissions and clears private form values on workspace p
   panel!.setAuth({ ...granted, pollsManageEnabled: false });
   expect(x.button('Confirm reviewed poll action').disabled).toBe(true);
   expect(panel!.root.textContent).toContain('Read-only poll view');
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(title.value).toBe('');
   expect(choices.value).toBe('');

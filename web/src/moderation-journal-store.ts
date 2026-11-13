@@ -3,6 +3,7 @@ import { validPredictionJournalCommand } from './predictions';
 import { validPollJournalCommand } from './polls';
 import { validAutoModJournalCommand } from './automod';
 import { validAccount } from './account-profiles';
+import { openRenamed } from './database-rename';
 import { validModerationCommand } from './moderation';
 export interface JournalEntry {
   id: string;
@@ -121,27 +122,31 @@ export class JournalStore {
   private db: Promise<IDBDatabase>;
   private unavailable = '';
   constructor() {
-    this.db = new Promise((resolve, reject) => {
-      if (typeof indexedDB === 'undefined') {
-        reject(new Error('Private journal storage unavailable'));
-        return;
-      }
-      const q = indexedDB.open('chatthing-moderation-journal', 1);
-      q.onupgradeneeded = () => q.result.createObjectStore('profiles', { keyPath: 'account' });
-      q.onsuccess = () => {
-        q.result.onclose = () => {
-          this.unavailable =
-            'Private journal storage closed unexpectedly; reload and check retained receipts before another action. Browser cleanup or low disk space may have removed local data.';
-        };
-        q.result.onversionchange = () => {
-          this.unavailable =
-            'Private journal storage changed; reload and check retained receipts before another action.';
-          q.result.close();
-        };
-        resolve(q.result);
-      };
-      q.onerror = () => reject(q.error ?? new Error('Private journal unavailable'));
-    });
+    this.db = openRenamed(
+      'chatty-cat-moderation-journal',
+      () =>
+        new Promise((resolve, reject) => {
+          if (typeof indexedDB === 'undefined') {
+            reject(new Error('Private journal storage unavailable'));
+            return;
+          }
+          const q = indexedDB.open('chatty-cat-moderation-journal', 1);
+          q.onupgradeneeded = () => q.result.createObjectStore('profiles', { keyPath: 'account' });
+          q.onsuccess = () => {
+            q.result.onclose = () => {
+              this.unavailable =
+                'Private journal storage closed unexpectedly; reload and check retained receipts before another action. Browser cleanup or low disk space may have removed local data.';
+            };
+            q.result.onversionchange = () => {
+              this.unavailable =
+                'Private journal storage changed; reload and check retained receipts before another action.';
+              q.result.close();
+            };
+            resolve(q.result);
+          };
+          q.onerror = () => reject(q.error ?? new Error('Private journal unavailable'));
+        }),
+    );
     void this.db.catch(() => {});
   }
   private async transaction<T>(account: string, write: boolean, operation: (value: JournalState) => T): Promise<T> {

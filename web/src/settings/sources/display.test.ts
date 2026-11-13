@@ -152,13 +152,13 @@ it('text fields refuse a value the parser would replace and keep the stored text
   const words = get('display.keywords');
   words.write('  alpha, beta ');
   expect(runtime.options.keywords).toBe('  alpha, beta ');
-  const stored = localStorage.getItem(profileKey('chatthing:v1:display'));
+  const stored = localStorage.getItem(profileKey('chatty-cat:v1:display'));
   for (const id of ['display.keywords', 'display.blocked', 'display.hidden']) {
     const before = get(id).read();
     expect(() => get(id).write(42)).toThrow('Not a valid value');
     expect(get(id).read()).toBe(before);
   }
-  expect(localStorage.getItem(profileKey('chatthing:v1:display'))).toBe(stored);
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:display'))).toBe(stored);
   words.write('x'.repeat(1200));
   expect(runtime.options.keywords).toBe('x'.repeat(1000));
 });

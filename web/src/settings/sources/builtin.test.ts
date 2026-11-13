@@ -108,10 +108,10 @@ it('saves three validated slots, recalls them and only overwrites deliberately',
   runtime.setOptions({ ...runtime.options, size: 14 });
   slotButton(el, 0).click();
   expect(runtime.options.size).toBe(24);
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:display-slots')!)[0].display.size).toBe(24);
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:display-slots')!)[0].display.size).toBe(24);
   runtime.setOptions({ ...runtime.options, size: 16 });
   slotButton(el, 0).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:display-slots')!)[0].display.size).toBe(16);
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:display-slots')!)[0].display.size).toBe(16);
 });
 
 // Moved from settings-slots.test.ts.
@@ -119,7 +119,7 @@ it('reads legacy display slots and restores extra state after display recall', a
   const { registerSettings } = await import('../../settings-bundle');
   const runtime = display();
   vi.useFakeTimers();
-  localStorage.setItem('chatthing:v1:display-slots', JSON.stringify([{ size: 18 }, null, null]));
+  localStorage.setItem('chatty-cat:v1:display-slots', JSON.stringify([{ size: 18 }, null, null]));
   const el = document.createElement('div');
   document.body.append(el);
   await section({ display: runtime }, 'builtin.display-slots').mount(el);
@@ -176,7 +176,7 @@ it('resets every display setting to first-visit defaults after a second click an
   const { firstVisitDisplay } = await import('../../display');
   const runtime = display();
   runtime.setOptions({ ...runtime.options, size: 24, split: 3 });
-  localStorage.setItem('chatthing:v1:display-slots', JSON.stringify([null, null, null]));
+  localStorage.setItem('chatty-cat:v1:display-slots', JSON.stringify([null, null, null]));
   const el = document.createElement('div');
   await section({ display: runtime }, 'builtin.display-slots').mount(el);
   const reset = [...el.querySelectorAll('button')].find((b) => b.textContent === 'Reset all display settings')!;
@@ -190,5 +190,5 @@ it('resets every display setting to first-visit defaults after a second click an
   expect(runtime.options).toEqual(firstVisitDisplay());
   expect(reset.textContent).toBe('Reset all display settings');
   expect((preset.mock.calls[0]![0] as CustomEvent).detail).toBe('nightshade');
-  expect(localStorage.getItem('chatthing:v1:display-slots')).toBe(JSON.stringify([null, null, null]));
+  expect(localStorage.getItem('chatty-cat:v1:display-slots')).toBe(JSON.stringify([null, null, null]));
 });

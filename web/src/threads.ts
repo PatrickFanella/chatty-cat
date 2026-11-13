@@ -128,7 +128,7 @@ export class ThreadViews {
   get key(): string | undefined {
     return this.account === undefined
       ? undefined
-      : 'chatthing:v1:threads:' + encodeURIComponent(this.account) + ':' + encodeURIComponent(this.workspace);
+      : 'chatty-cat:v1:threads:' + encodeURIComponent(this.account) + ':' + encodeURIComponent(this.workspace);
   }
   setScope(account: string | undefined, workspace: string): void {
     if (account === this.account && workspace === this.workspace) return;

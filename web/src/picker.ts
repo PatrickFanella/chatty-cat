@@ -173,7 +173,7 @@ export class EmotePicker {
       root,
       get(root, 'picker-handle', HTMLElement),
       get(root, 'picker-pin', HTMLButtonElement),
-      profileKey('chatthing:v1:picker:geometry'),
+      profileKey('chatty-cat:v1:picker:geometry'),
     );
     const query = new URL(location.href).searchParams;
     const presetGeo = pickerPresetGeometry(query.get('theme') ?? '');

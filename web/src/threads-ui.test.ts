@@ -80,7 +80,10 @@ it('loads background views on reload, isolates scopes and clears content on priv
   await flush();
   expect(ui.archive.scanChannel).toHaveBeenCalledWith('one', expect.any(Function), expect.any(AbortSignal));
   expect(ui.archive.scanChannel).toHaveBeenCalledWith('two', expect.any(Function), expect.any(AbortSignal));
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.hidden).toBe(true);
   expect(panel!.root.querySelectorAll('.thread-message')).toHaveLength(0);

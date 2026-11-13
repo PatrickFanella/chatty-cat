@@ -106,7 +106,7 @@ it.each(['fresh live', 'saved reader', 'resume before history'] as const)(
       latest.click();
       expect(evaluate).not.toHaveBeenCalled();
       const { profileKey } = await import('./account-profiles');
-      const key = profileKey('chatthing:v1:rules');
+      const key = profileKey('chatty-cat:v1:rules');
       window.dispatchEvent(
         new StorageEvent('storage', {
           key,

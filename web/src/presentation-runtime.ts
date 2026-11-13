@@ -12,7 +12,7 @@ export class PresentationRuntime extends EventTarget {
   constructor(private changed: () => void) {
     super();
     try {
-      this.raw = localStorage.getItem(profileKey('chatthing:v1:presentation'));
+      this.raw = localStorage.getItem(profileKey('chatty-cat:v1:presentation'));
       if (this.raw) this.saved = parsePresentation(JSON.parse(this.raw));
     } catch {
       this.error = 'Saved presentation could not be read; defaults are active';
@@ -30,10 +30,10 @@ export class PresentationRuntime extends EventTarget {
     );
   }
   persist(value: PresentationOptions): void {
-    if (localStorage.getItem(profileKey('chatthing:v1:presentation')) !== this.raw)
+    if (localStorage.getItem(profileKey('chatty-cat:v1:presentation')) !== this.raw)
       throw new Error('Presentation changed in another tab; reload before saving');
     const raw = JSON.stringify(value);
-    localStorage.setItem(profileKey('chatthing:v1:presentation'), raw);
+    localStorage.setItem(profileKey('chatty-cat:v1:presentation'), raw);
     this.raw = raw;
     this.saved = { ...value };
     this.options = { ...value };
@@ -73,7 +73,7 @@ export class PresentationRuntime extends EventTarget {
     this.changed();
   }
   private storage = (event: StorageEvent): void => {
-    if (event.key !== profileKey('chatthing:v1:presentation')) return;
+    if (event.key !== profileKey('chatty-cat:v1:presentation')) return;
     try {
       const saved = parsePresentation(JSON.parse(event.newValue ?? 'null'));
       this.raw = event.newValue;

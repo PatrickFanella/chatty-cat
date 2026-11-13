@@ -25,7 +25,7 @@ export interface Settings {
   stop(): void;
 }
 
-const PROBE_KEY = 'chatthing:v1:settings-probe';
+const PROBE_KEY = 'chatty-cat:v1:settings-probe';
 
 function storageAvailable(): boolean {
   try {

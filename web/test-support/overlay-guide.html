@@ -6,6 +6,6 @@ import {DesktopOverlayControls} from '/src/desktop-overlay-ui.ts';
 setProfileScope('42');window.fixtureCalls=[];let state={open:false};
 const client={overlay:async action=>{window.fixtureCalls.push(action.kind);state={open:action.kind!=='close',interactive:true,settings:action.settings,x:80,y:80,recovery:'Synthetic receipt'};return state;},overlayStatus:async()=>state};
 window.fixtureControls=new DesktopOverlayControls(client,()=>({enabled:true,authenticated:true,userID:'42',csrf:'fixture',loginURL:'/fixture'}),()=> 'room');
-window.fixtureActivationKey=profileKey('chatthing:v1:overlay-onboarding');
+window.fixtureActivationKey=profileKey('chatty-cat:v1:overlay-onboarding');
 document.body.append(window.fixtureControls.root);window.fixtureControls.setAvailable(true);
 </script>

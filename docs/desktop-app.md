@@ -3,8 +3,8 @@
 The desktop app runs Chatty Cat without the website. It is an Electron shell
 (`desktop/main.cjs`) around the same Go server and web build that production uses:
 
-1. On launch it starts the bundled `chatthing` on `127.0.0.1:47830`, with settings
-   only from the shell: no `.env` file and no `TWITCH_*` or `CHATTHING_*` values
+1. On launch it starts the bundled `chatty-cat-server` on `127.0.0.1:47830`, with settings
+   only from the shell: no `.env` file and no `TWITCH_*` or `CHATTY_CAT_*` values
    from the user's environment. The registered public Twitch client ID ships in
    `desktop/twitch-client.json`; no client secret is included.
 2. When the server is ready, the app opens `http://localhost:47830` in its own
@@ -30,7 +30,7 @@ publishes a Gitea release tagged `desktop-<commit>` with these files and a
 | --- | --- |
 | Linux x86-64 | `.deb` and `.AppImage` |
 | macOS, Apple Silicon | `.dmg` and `.zip` |
-| Browser build | `chatthing-<commit>-linux-x64.tar.gz` and `chatthing-<commit>-mac-arm64.tar.gz` |
+| Browser build | `chatty-cat-browser-<commit>-linux-x64.tar.gz` and `chatty-cat-browser-<commit>-mac-arm64.tar.gz` |
 | Browser companions | Chromium `.zip` and unsigned Firefox `.xpi` |
 
 Intel Macs, Linux on ARM and Windows have no build. While the repository is
@@ -51,15 +51,15 @@ files already uploaded.
 
 ## Browser build
 
-The `chatthing` archives run the same server without Electron and show Chatty Cat
+The `chatty-cat-browser` archives run the same server without Electron and show Chatty Cat
 in your own browser. Each archive is about 19 MB; the Linux app is 116 MB as a
 `.deb` and 143 MB as an AppImage.
 
 1. Extract the archive for your computer. On macOS, first run
-   `xattr -dr com.apple.quarantine chatthing-<commit>-mac-arm64`; the binary is
+   `xattr -dr com.apple.quarantine chatty-cat-browser-<commit>-mac-arm64`; the binary is
    ad-hoc signed, not notarized.
 2. In a terminal, run `./chatty-cat` from the extracted folder. It starts
-   `chatthing` on `127.0.0.1:47830` with the desktop app's settings, then opens
+   `chatty-cat-server` on `127.0.0.1:47830` with the desktop app's settings, then opens
    `http://localhost:47830` in your default browser. Set `BROWSER` to use another
    command. The launcher needs `curl`.
 3. Press Ctrl+C to stop the server. As with quitting the app, this signs you out.
@@ -110,7 +110,7 @@ and account emotes use the signed-in account. Third-party emotes and emoji can
 be browsed without signing in; inserting and sending require sign-in.
 
 For a development server, set `TWITCH_PUBLIC_CLIENT=true`, `TWITCH_CLIENT_ID`
-and a loopback `CHATTHING_PUBLIC_URL`; leave `TWITCH_CLIENT_SECRET` unset.
+and a loopback `CHATTY_CAT_PUBLIC_URL`; leave `TWITCH_CLIENT_SECRET` unset.
 The hosted website continues to use its confidential client and callback.
 
 ## What doesn't work yet
@@ -119,7 +119,7 @@ The hosted website continues to use its confidential client and callback.
   server has them turned off.
 - **Port 47830 in use:** the app reports it and quits. If the app is killed
   without quitting (for example with `kill -9`), its server keeps the port until
-  you stop `chatthing`.
+  you stop `chatty-cat-server`.
 - **Desktop playback and the native overlay:** the separate `chatty-companion`
   still needs installing. Set its web origin to `http://localhost:47830`. The
   browser companion extension doesn't apply to the desktop app.
@@ -159,11 +159,11 @@ platforms from Linux or macOS:
 
 ```sh
 npm --prefix web ci
-python3 scripts/build-chatthing-release.py dist-chatthing
+python3 scripts/build-browser-release.py dist-browser
 ```
 
 The script runs `scripts/build-release.py` once per platform and adds the
-launcher (`scripts/chatthing-launcher.sh`, shipped as `chatty-cat`) and
+launcher (`scripts/browser-launcher.sh`, shipped as `chatty-cat`) and
 `desktop/twitch-client.json`. CI extracts the Linux archive, runs the launcher
 with `BROWSER=echo`, and checks that it serves the UI and prints the address it
 would open.
@@ -173,7 +173,7 @@ would open.
 On Dozor (Debian 13), from `9b774a4` plus this change, the unpacked app and the
 AppImage (with `APPIMAGE_EXTRACT_AND_RUN=1`) both passed the smoke check. Each
 started the bundled server, reached `connected` and rendered 35 live #hasanabi
-rows with emotes, badges and stream information. No `chatthing` process remained
+rows with emotes, badges and stream information. No server process remained
 after quitting. Without FUSE the AppImage refused to start, as described above.
 The `.deb` was inspected but not installed.
 

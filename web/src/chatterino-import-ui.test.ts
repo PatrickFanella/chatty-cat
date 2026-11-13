@@ -40,9 +40,9 @@ function setup() {
 }
 it('reviews without writing and atomically adds copies with a sanitized recovery preview', () => {
   const { store, source, click } = setup(),
-    before = localStorage.getItem('chatthing:v1:profile:123:workspaces');
+    before = localStorage.getItem('chatty-cat:v1:profile:123:workspaces');
   click('Review Chatterino import');
-  expect(localStorage.getItem('chatthing:v1:profile:123:workspaces')).toBe(before);
+  expect(localStorage.getItem('chatty-cat:v1:profile:123:workspaces')).toBe(before);
   expect(panel!.root.textContent).toContain('Original');
   expect(panel!.root.textContent).not.toContain('SECRET');
   click('Preview recovery export');
@@ -50,7 +50,7 @@ it('reviews without writing and atomically adds copies with a sanitized recovery
   click('Save imported workspace copies');
   expect(store.all()).toHaveLength(2);
   expect(store.all()[0]?.name).toBe('Original');
-  expect(localStorage.getItem('chatthing:v1:profile:123:workspaces')).not.toContain('SECRET');
+  expect(localStorage.getItem('chatty-cat:v1:profile:123:workspaces')).not.toContain('SECRET');
   expect(source.value).toBe('');
 });
 it('invalidates reviews on edits, current changes and account changes', () => {
@@ -67,14 +67,14 @@ it('invalidates reviews on edits, current changes and account changes', () => {
   click('Review Chatterino import');
   setProfileScope('456');
   click('Save imported workspace copies');
-  expect(localStorage.getItem('chatthing:v1:profile:456:workspaces')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:profile:456:workspaces')).toBeNull();
   expect(panel!.root.textContent).toContain('Account changed');
 });
 it('refuses quota failure without partial workspace changes', () => {
   const { store, click } = setup();
   click('Review Chatterino import');
   const storage = localStorage,
-    original = storage.getItem('chatthing:v1:profile:123:workspaces');
+    original = storage.getItem('chatty-cat:v1:profile:123:workspaces');
   vi.stubGlobal('localStorage', {
     getItem: storage.getItem.bind(storage),
     setItem: () => {
@@ -83,13 +83,13 @@ it('refuses quota failure without partial workspace changes', () => {
   });
   click('Save imported workspace copies');
   expect(store.all()).toHaveLength(1);
-  expect(storage.getItem('chatthing:v1:profile:123:workspaces')).toBe(original);
+  expect(storage.getItem('chatty-cat:v1:profile:123:workspaces')).toBe(original);
   expect(panel!.root.textContent).toContain('Could not save');
 });
 it('preserves an external workspace edit and refuses to save a stale review', () => {
   const { store, click } = setup();
   click('Review Chatterino import');
-  const key = 'chatthing:v1:profile:123:workspaces',
+  const key = 'chatty-cat:v1:profile:123:workspaces',
     raw = localStorage.getItem(key)!;
   localStorage.setItem(key, raw + ' ');
   click('Save imported workspace copies');
@@ -101,7 +101,10 @@ it('clears source and recovery data on close and streamer privacy', () => {
   const { source, click } = setup();
   click('Review Chatterino import');
   click('Preview recovery export');
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(source.value).toBe('');
   expect(panel!.root.querySelector('[aria-label="Workspace recovery preview"]')?.textContent).toBe('');

@@ -122,8 +122,8 @@ it('completion writes save for the current account and keep the active value on 
   const aliases = find(completionSettings(host), 'completion.aliases');
   aliases.write('alice=Friend');
   expect(getCompletionPreferences().aliases).toEqual([{ login: 'alice', alias: 'Friend' }]);
-  expect(localStorage.getItem('chatthing:v1:profile:42:completion-preferences')).toContain('alice');
-  const raw = localStorage.getItem('chatthing:v1:profile:42:completion-preferences');
+  expect(localStorage.getItem('chatty-cat:v1:profile:42:completion-preferences')).toContain('alice');
+  const raw = localStorage.getItem('chatty-cat:v1:profile:42:completion-preferences');
   vi.stubGlobal('localStorage', {
     getItem: () => raw,
     setItem: () => {
@@ -140,7 +140,7 @@ it('link writes enable remote fetches only once saved', () => {
   const defs = linkSettings(host);
   find(defs, 'links.enabled').write(true);
   find(defs, 'links.thumbnails').write(true);
-  const saved = JSON.parse(localStorage.getItem('chatthing:v1:link-preferences')!);
+  const saved = JSON.parse(localStorage.getItem('chatty-cat:v1:link-preferences')!);
   expect(saved).toMatchObject({ enabled: true, thumbnails: true });
   expect(getLinkPreferences().enabled).toBe(true);
 });

@@ -90,7 +90,7 @@ export function searchURL(p: LinkPreferences, text: string): string {
 }
 export class LinkPreferenceStore {
   private account = getProfileScope();
-  private key = profileKey('chatthing:v1:link-preferences');
+  private key = profileKey('chatty-cat:v1:link-preferences');
   private raw: string | null;
   constructor() {
     this.raw = localStorage.getItem(this.key);

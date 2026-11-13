@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Build the browser releases of Chatty Cat: the chat server plus a launcher.
 
-Writes chatthing-<commit>-linux-x64.tar.gz and chatthing-<commit>-mac-arm64.tar.gz
-into the output directory. Each archive holds the scripts/build-release.py output
+Writes chatty-cat-browser-<commit>-linux-x64.tar.gz and
+chatty-cat-browser-<commit>-mac-arm64.tar.gz into the output directory. Each archive holds the scripts/build-release.py output
 for that platform, the public Twitch client ID and the `chatty-cat` launcher,
 which starts the server on localhost:47830 and opens the default browser.
 Run `npm --prefix web ci` first.
@@ -28,13 +28,13 @@ def main():
     commit = subprocess.check_output(['git', 'rev-parse', '--short=7', 'HEAD'], cwd=root, text=True).strip()
     with tempfile.TemporaryDirectory() as scratch:
         for platform, (goos, goarch) in TARGETS.items():
-            name = f'chatthing-{commit}-{platform}'
+            name = f'chatty-cat-browser-{commit}-{platform}'
             folder = Path(scratch) / name
             subprocess.run([sys.executable, str(root / 'scripts/build-release.py'), '--output', str(folder),
                             '--license', str(root / 'LICENSE')], check=True,
                            env=dict(os.environ, GOOS=goos, GOARCH=goarch))
             shutil.copy2(root / 'desktop/twitch-client.json', folder / 'twitch-client.json')
-            shutil.copy2(root / 'scripts/chatthing-launcher.sh', folder / 'chatty-cat')
+            shutil.copy2(root / 'scripts/browser-launcher.sh', folder / 'chatty-cat')
             (folder / 'chatty-cat').chmod(0o755)
             archive = args.output / f'{name}.tar.gz'
             with tarfile.open(archive, 'w:gz') as tar:

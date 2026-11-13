@@ -36,7 +36,7 @@ export async function loadStatisticsLedger(
   channels: readonly string[],
   legacy: string | undefined,
 ): Promise<LedgerLoad> {
-  if (!validKey('chatthing:v1:stats:counts:' + channels.join(','))) throw new Error('Invalid statistics scope');
+  if (!validKey('chatty-cat:v1:stats:counts:' + channels.join(','))) throw new Error('Invalid statistics scope');
   if (legacy !== undefined && legacy.length > MAX_CHARS) throw new Error('Statistics capacity reached');
   return inWorker('statistics.loadLedger', channels, legacy);
 }

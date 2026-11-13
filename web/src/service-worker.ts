@@ -3,10 +3,10 @@ import { precacheAssets } from './precache-assets';
 import { REFERENCE_ASSETS } from './reference-assets';
 export {};
 const worker = self as unknown as ServiceWorkerGlobalScope;
-const SHELL = 'chatthing-shell-v1';
-const IMAGES = 'chatthing-images-v1';
-const FONTS = 'chatthing-fonts-v1';
-const EMOJI = 'chatthing-emoji-17-v1';
+const SHELL = 'chatty-cat-shell-v1';
+const IMAGES = 'chatty-cat-images-v1';
+const FONTS = 'chatty-cat-fonts-v1';
+const EMOJI = 'chatty-cat-emoji-17-v1';
 const KEEP = new Set([SHELL, IMAGES, FONTS, EMOJI]);
 async function trim(cache: Cache, cap: number): Promise<void> {
   const keys = await cache.keys();
@@ -78,8 +78,10 @@ worker.addEventListener('install', (event) => {
 worker.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // 'chatthing-' caches were made by older versions under the app's former name.
       for (const name of await caches.keys())
-        if (name.startsWith('chatthing-') && !KEEP.has(name)) await caches.delete(name);
+        if (name.startsWith('chatthing-') || (name.startsWith('chatty-cat-') && !KEEP.has(name)))
+          await caches.delete(name);
       // Opaque responses have padded quota costs (roughly 7 MiB each in Chromium).
       // Remove only regenerable asset entries; IndexedDB journals are untouched.
       for (const bucket of [IMAGES, FONTS]) {

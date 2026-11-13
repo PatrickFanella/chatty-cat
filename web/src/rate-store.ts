@@ -1,29 +1,34 @@
 import type { RateSnapshot } from './rate-timeline';
+import { openRenamed } from './database-rename';
 
 export class RateStore {
-  private db = new Promise<IDBDatabase>((resolve, reject) => {
-    let abandoned = false;
-    try {
-      const request = indexedDB.open('chatthing:v1:rates', 1);
-      request.onupgradeneeded = () => request.result.createObjectStore('snapshots');
-      request.onerror = () => reject(request.error ?? new Error('Rate storage unavailable'));
-      request.onblocked = () => {
-        abandoned = true;
-        reject(new Error('Rate storage blocked; close older tabs and reload'));
-      };
-      request.onsuccess = () => {
-        const db = request.result;
-        db.onversionchange = () => db.close();
-        if (abandoned) {
-          db.close();
-          return;
+  private db = openRenamed(
+    'chatty-cat-rates',
+    () =>
+      new Promise<IDBDatabase>((resolve, reject) => {
+        let abandoned = false;
+        try {
+          const request = indexedDB.open('chatty-cat-rates', 1);
+          request.onupgradeneeded = () => request.result.createObjectStore('snapshots');
+          request.onerror = () => reject(request.error ?? new Error('Rate storage unavailable'));
+          request.onblocked = () => {
+            abandoned = true;
+            reject(new Error('Rate storage blocked; close older tabs and reload'));
+          };
+          request.onsuccess = () => {
+            const db = request.result;
+            db.onversionchange = () => db.close();
+            if (abandoned) {
+              db.close();
+              return;
+            }
+            resolve(db);
+          };
+        } catch (error) {
+          reject(error);
         }
-        resolve(db);
-      };
-    } catch (error) {
-      reject(error);
-    }
-  });
+      }),
+  );
   constructor() {
     void this.db.catch(() => {});
   }

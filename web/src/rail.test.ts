@@ -95,5 +95,5 @@ it('resizes docked emotes and stats with a bounded keyboard separator and restor
   rail.set(1);
   expect(emotes.style.flexGrow).toBe('2');
   expect(seam.hidden).toBe(true);
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:rail:split') ?? 'null')).toBe(0.08);
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:rail:split') ?? 'null')).toBe(0.08);
 });

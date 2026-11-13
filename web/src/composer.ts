@@ -191,7 +191,7 @@ export class Composer {
   private account = 'anonymous';
   private sendAbort: AbortController | undefined;
   private storageKey(kind: 'draft' | 'sent', channel: string): string {
-    return 'chatthing:v1:' + kind + ':' + this.account + ':' + channel;
+    return 'chatty-cat:v1:' + kind + ':' + this.account + ':' + channel;
   }
   private reply: ChatMessage | undefined;
   private busy = false;

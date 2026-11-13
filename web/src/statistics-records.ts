@@ -4,7 +4,7 @@ export interface StatisticsMove {
   characters: number;
 }
 export function validKey(key: string): boolean {
-  return /^chatthing:v1:stats:counts:[a-z0-9_]{1,25}(?:,[a-z0-9_]{1,25}){0,11}$/.test(key);
+  return /^chatty-cat:v1:stats:counts:[a-z0-9_]{1,25}(?:,[a-z0-9_]{1,25}){0,11}$/.test(key);
 }
 export function validateStatisticsMove(plan: StatisticsMove): void {
   if (!plan.entries.length) throw new Error('No local statistics need moving');

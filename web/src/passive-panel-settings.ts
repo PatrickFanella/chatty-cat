@@ -37,7 +37,7 @@ function read(key: string): unknown {
   }
 }
 function geometry(part: string): FloatingState {
-  const raw = read('chatthing:v1:' + part + ':geometry');
+  const raw = read('chatty-cat:v1:' + part + ':geometry');
   if (!raw || typeof raw !== 'object') return { pinned: false, open: false };
   const value = raw as Record<string, unknown>;
   return (
@@ -50,7 +50,7 @@ function geometry(part: string): FloatingState {
 }
 function saveGeometry(part: string, value: FloatingState): void {
   localStorage.setItem(
-    profileKey('chatthing:v1:' + part + ':geometry'),
+    profileKey('chatty-cat:v1:' + part + ':geometry'),
     JSON.stringify({ ...value.box, pinned: value.pinned, open: value.open }),
   );
 }
@@ -83,13 +83,13 @@ export class PassivePanelSettings {
     );
     this.add(
       'video',
-      () => ({ options: parseVideo(read('chatthing:v1:video'), channels), floating: geometry('video') }),
+      () => ({ options: parseVideo(read('chatty-cat:v1:video'), channels), floating: geometry('video') }),
       (value) => {
         const data = value as Record<string, unknown>,
           floating = floatingState(data?.floating);
         if (!floating || !data.options || typeof data.options !== 'object') throw new Error('Invalid video settings');
         const options = parseVideo(data.options, channels);
-        localStorage.setItem(profileKey('chatthing:v1:video'), JSON.stringify(options));
+        localStorage.setItem(profileKey('chatty-cat:v1:video'), JSON.stringify(options));
         saveGeometry('video', floating);
         if (floating.open) this.wanted.add('video-panel');
         else this.wanted.delete('video-panel');
@@ -98,10 +98,10 @@ export class PassivePanelSettings {
     );
     this.add(
       'stats',
-      () => this.stats(read('chatthing:v1:stats')),
+      () => this.stats(read('chatty-cat:v1:stats')),
       (value) => {
         const data = this.stats(value);
-        localStorage.setItem(profileKey('chatthing:v1:stats'), JSON.stringify(data));
+        localStorage.setItem(profileKey('chatty-cat:v1:stats'), JSON.stringify(data));
         if (data.open) this.wanted.add('stats-panel');
         else this.wanted.delete('stats-panel');
         return data;
@@ -110,7 +110,7 @@ export class PassivePanelSettings {
     this.add(
       'resources',
       () => ({
-        tab: localStorage.getItem(profileKey('chatthing:v1:resources:tab')) ?? 'help',
+        tab: localStorage.getItem(profileKey('chatty-cat:v1:resources:tab')) ?? 'help',
         authors: { info: 0, sort: 'area' },
         floating: geometry('resources'),
       }),
@@ -133,7 +133,7 @@ export class PassivePanelSettings {
           },
           floating,
         };
-        localStorage.setItem(profileKey('chatthing:v1:resources:tab'), safe.tab);
+        localStorage.setItem(profileKey('chatty-cat:v1:resources:tab'), safe.tab);
         saveGeometry('resources', floating);
         if (floating.open) this.wanted.add('resources-panel');
         else this.wanted.delete('resources-panel');
@@ -252,7 +252,7 @@ export class PassivePanelSettings {
     }
     if (this.stops.has('resources')) {
       const state = geometry('resources');
-      const tab = localStorage.getItem(profileKey('chatthing:v1:resources:tab')) ?? 'help';
+      const tab = localStorage.getItem(profileKey('chatty-cat:v1:resources:tab')) ?? 'help';
       event.detail.searchParams.set('help', state.open ? 'panel' : 'off');
       event.detail.searchParams.set(
         'htab',

@@ -119,7 +119,10 @@ it('accepts scoped refresh hints, batches cosmetics and clears on privacy withou
   expect(changed.mock.calls.length - before).toBe(1);
   expect(cosmeticBadges('2')).toHaveLength(1);
   const late = seven!.onmessage;
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(Socket.all.every((s) => s.readyState === 3)).toBe(true);
   expect(cosmeticBadges('2')).toEqual([]);

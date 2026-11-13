@@ -60,7 +60,7 @@ it('shows conflicts without writing settings and resets only keyboard preference
   compose.dispatchEvent(new Event('input'));
   expect(document.querySelector('#shortcut-status')?.textContent).toMatch(/Conflict/);
   document.querySelector<HTMLButtonElement>('#shortcut-save')?.click();
-  expect(localStorage.getItem('chatthing:v1:hotkeys')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:hotkeys')).toBeNull();
   document.querySelector<HTMLButtonElement>('#shortcut-reset')?.click();
   expect(localStorage.getItem('other-setting')).toBe('keep');
   expect(compose.value).toBe('Alt+KeyM');
@@ -84,7 +84,10 @@ it('honors edited bindings and preserves text fields, composition and privacy', 
     new KeyboardEvent('keydown', { code: 'KeyF', altKey: true, isComposing: true, bubbles: true, cancelable: true }),
   );
   expect(run).not.toHaveBeenCalled();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }),
+  );
   document.body.dispatchEvent(
     new KeyboardEvent('keydown', { code: 'KeyF', altKey: true, bubbles: true, cancelable: true }),
   );
@@ -96,10 +99,10 @@ it('refuses a stale edit after another tab changes shortcuts and reports quota f
   const bindings = defaultBindings();
   bindings.compose = 'Alt+KeyF';
   const newer = JSON.stringify({ version: 1, bindings });
-  localStorage.setItem('chatthing:v1:hotkeys', newer);
-  window.dispatchEvent(new StorageEvent('storage', { key: 'chatthing:v1:hotkeys' }));
+  localStorage.setItem('chatty-cat:v1:hotkeys', newer);
+  window.dispatchEvent(new StorageEvent('storage', { key: 'chatty-cat:v1:hotkeys' }));
   document.querySelector<HTMLButtonElement>('#shortcut-save')?.click();
-  expect(localStorage.getItem('chatthing:v1:hotkeys')).toBe(newer);
+  expect(localStorage.getItem('chatty-cat:v1:hotkeys')).toBe(newer);
   expect(document.querySelector('#shortcut-status')?.textContent).toMatch(/another tab/);
   document.querySelector<HTMLDialogElement>('#shortcut-settings')?.close();
   settings.click();

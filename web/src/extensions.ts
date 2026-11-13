@@ -19,7 +19,7 @@ interface Installed {
   manifest: ExtensionManifest;
   enabled: boolean;
 }
-const key = 'chatthing:v1:extensions';
+const key = 'chatty-cat:v1:extensions';
 function record(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === 'object' && !Array.isArray(v);
 }

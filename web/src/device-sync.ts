@@ -187,16 +187,16 @@ export interface DeviceApplyPlan {
 function localKeys(scope: string): string[] {
   account(scope);
   return [
-    'chatthing:v1:workspaces',
-    'chatthing:v1:display',
-    'chatthing:v1:presentation',
-    'chatthing:v1:picker:options',
-    'chatthing:v1:provider-preferences',
-    'chatthing:v1:link-preferences',
-    'chatthing:v1:sync-annotation-backup',
+    'chatty-cat:v1:workspaces',
+    'chatty-cat:v1:display',
+    'chatty-cat:v1:presentation',
+    'chatty-cat:v1:picker:options',
+    'chatty-cat:v1:provider-preferences',
+    'chatty-cat:v1:link-preferences',
+    'chatty-cat:v1:sync-annotation-backup',
   ]
     .map(profileKey)
-    .concat('chatthing:v1:bookmarks:' + scope);
+    .concat('chatty-cat:v1:bookmarks:' + scope);
 }
 export async function planDeviceApply(value: DeviceDocument, scope: string): Promise<DeviceApplyPlan> {
   account(scope);
@@ -208,7 +208,7 @@ export async function planDeviceApply(value: DeviceDocument, scope: string): Pro
   let removed = 0,
     privateBackups = 0,
     older = 0;
-  const workspaceKey = profileKey('chatthing:v1:workspaces'),
+  const workspaceKey = profileKey('chatty-cat:v1:workspaces'),
     oldWorkspaceRaw = localStorage.getItem(workspaceKey);
   let workspaces: Workspace[] = [],
     active = '';
@@ -235,11 +235,11 @@ export async function planDeviceApply(value: DeviceDocument, scope: string): Pro
   }
   if (document.preferences) {
     const p = document.preferences;
-    add(profileKey('chatthing:v1:display'), JSON.stringify(p.display));
-    add(profileKey('chatthing:v1:presentation'), JSON.stringify(p.presentation));
-    add(profileKey('chatthing:v1:picker:options'), JSON.stringify(p.picker));
-    add(profileKey('chatthing:v1:provider-preferences'), JSON.stringify(p.provider));
-    add(profileKey('chatthing:v1:link-preferences'), JSON.stringify(p.links));
+    add(profileKey('chatty-cat:v1:display'), JSON.stringify(p.display));
+    add(profileKey('chatty-cat:v1:presentation'), JSON.stringify(p.presentation));
+    add(profileKey('chatty-cat:v1:picker:options'), JSON.stringify(p.picker));
+    add(profileKey('chatty-cat:v1:provider-preferences'), JSON.stringify(p.provider));
+    add(profileKey('chatty-cat:v1:link-preferences'), JSON.stringify(p.links));
     workspaces = workspaces.map((w) =>
       w.id === active
         ? {
@@ -260,7 +260,7 @@ export async function planDeviceApply(value: DeviceDocument, scope: string): Pro
   if ((document.workspaces || document.preferences) && workspaces.length)
     add(workspaceKey, JSON.stringify({ version: 1, active, workspaces }));
   if (document.bookmarks) {
-    const key = 'chatthing:v1:bookmarks:' + scope,
+    const key = 'chatty-cat:v1:bookmarks:' + scope,
       raw = localStorage.getItem(key),
       existing = raw ? parseBookmarks(raw) : [],
       byIdentity = new Map(existing.map((b) => [bookmarkKey(b), b]));
@@ -279,7 +279,7 @@ export async function planDeviceApply(value: DeviceDocument, scope: string): Pro
       (b) => !document.bookmarks?.some((next) => bookmarkKey(next) === bookmarkKey(b)),
     );
     removed += removedEntries.length;
-    const backupKey = profileKey('chatthing:v1:sync-annotation-backup'),
+    const backupKey = profileKey('chatty-cat:v1:sync-annotation-backup'),
       saved = localStorage.getItem(backupKey),
       backups = saved ? parseBookmarks(saved) : [];
     const protectedRows = removedEntries.filter((b) => b.note || b.tags.length);
@@ -335,7 +335,7 @@ async function digest(raw: string): Promise<string> {
   return [...new Uint8Array(value)].map((v) => v.toString(16).padStart(2, '0')).join('');
 }
 function journalKey(scope: string): string {
-  return 'chatthing:v1:profile:' + scope + ':sync-local-recovery';
+  return 'chatty-cat:v1:profile:' + scope + ':sync-local-recovery';
 }
 function parseJournal(raw: string, scope: string): Journal {
   if (bytes(raw) > 3 * 1024 * 1024) throw new Error('Local recovery exceeds bounds');

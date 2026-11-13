@@ -58,9 +58,9 @@ it('saves only validated data and keeps the applied view on failed or stale stor
   const { click } = setup();
   click('Review theme');
   click('Apply and save theme');
-  const raw = localStorage.getItem('chatthing:v1:custom-theme');
+  const raw = localStorage.getItem('chatty-cat:v1:custom-theme');
   expect(raw).toContain('Night');
-  localStorage.setItem('chatthing:v1:custom-theme', 'null');
+  localStorage.setItem('chatty-cat:v1:custom-theme', 'null');
   click('Use built-in palette');
   expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#101010');
   expect(panel!.root.textContent).toContain('changed in another tab');
@@ -107,13 +107,13 @@ it('restores only the current account theme and blocks malformed saved data from
   panel = createPanel();
   expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#101010');
   panel.stop();
-  localStorage.setItem('chatthing:v1:profile:123:custom-theme', '{"version":99}');
+  localStorage.setItem('chatty-cat:v1:profile:123:custom-theme', '{"version":99}');
   panel = createPanel();
   const input = panel.root.querySelector('textarea')!;
   input.value = JSON.stringify(theme);
   click('Review theme');
   click('Apply and save theme');
-  expect(localStorage.getItem('chatthing:v1:profile:123:custom-theme')).toBe('{"version":99}');
+  expect(localStorage.getItem('chatty-cat:v1:profile:123:custom-theme')).toBe('{"version":99}');
 });
 it('clears private import text and motion preview when privacy activates', () => {
   const { input, click } = setup();
@@ -122,7 +122,10 @@ it('clears private import text and motion preview when privacy activates', () =>
   const motion = panel!.root.querySelector<HTMLInputElement>('input[type=checkbox]')!;
   motion.checked = true;
   motion.dispatchEvent(new Event('change'));
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(input.value).toBe('');
   expect(document.documentElement.style.getPropertyValue('--bg')).toBe('');
@@ -138,7 +141,7 @@ it('does not schedule a reader repaint after the theme panel stops', () => {
 });
 
 it('closing and disposing the editor restores saved colors while runtime storage updates remain active', () => {
-  localStorage.setItem('chatthing:v1:custom-theme', JSON.stringify(theme));
+  localStorage.setItem('chatty-cat:v1:custom-theme', JSON.stringify(theme));
   const { input, click } = setup();
   panel!.open();
   input.value = JSON.stringify({ ...theme, colors: { ...theme.colors, background: '#303030' } });
@@ -150,17 +153,17 @@ it('closing and disposing the editor restores saved colors while runtime storage
   panel!.stop();
   panel = undefined;
   const updated = JSON.stringify({ ...theme, colors: { ...theme.colors, background: '#404040' } });
-  localStorage.setItem('chatthing:v1:custom-theme', updated);
-  window.dispatchEvent(new StorageEvent('storage', { key: 'chatthing:v1:custom-theme', newValue: updated }));
+  localStorage.setItem('chatty-cat:v1:custom-theme', updated);
+  window.dispatchEvent(new StorageEvent('storage', { key: 'chatty-cat:v1:custom-theme', newValue: updated }));
   expect(document.documentElement.style.getPropertyValue('--bg')).toBe('#404040');
   expect(document.querySelector('#custom-theme-panel')).toBeNull();
 });
 it('invalidates an editor review when another tab changes the saved theme', () => {
   const { click } = setup();
   click('Review theme');
-  localStorage.setItem('chatthing:v1:custom-theme', JSON.stringify(theme));
+  localStorage.setItem('chatty-cat:v1:custom-theme', JSON.stringify(theme));
   window.dispatchEvent(
-    new StorageEvent('storage', { key: 'chatthing:v1:custom-theme', newValue: JSON.stringify(theme) }),
+    new StorageEvent('storage', { key: 'chatty-cat:v1:custom-theme', newValue: JSON.stringify(theme) }),
   );
   click('Apply and save theme');
   expect(panel!.root.textContent).toContain('Review the current theme data first');

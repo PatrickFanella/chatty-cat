@@ -216,7 +216,7 @@ func (s *Service) providerData(ctx context.Context, raw, accept string) ([]byte,
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", "chatthing-preview/1.0 (+https://chat.subcult.tv)")
+	req.Header.Set("User-Agent", "chatty-cat-preview/1.0 (+https://chat.subcult.tv)")
 	req.Header.Set("Accept", accept)
 	if req.URL.Hostname() == "api.github.com" {
 		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")

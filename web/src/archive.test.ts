@@ -8,11 +8,11 @@ const archives: MessageArchive[] = [];
 afterEach(async () => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
-  localStorage.removeItem('chatthing:v1:archive-retention');
+  localStorage.removeItem('chatty-cat:v1:archive-retention');
   for (const archive of archives.splice(0)) archive.stop();
   await new Promise((resolve) => setTimeout(resolve, 20));
   await new Promise<void>((resolve, reject) => {
-    const req = indexedDB.deleteDatabase('chatthing-archive');
+    const req = indexedDB.deleteDatabase('chatty-cat-archive');
     req.onsuccess = () => resolve();
     req.onerror = () => reject(req.error);
   });
@@ -152,7 +152,7 @@ it('streams every channel row chronologically without the normal result cap and 
   expect(visited).toBe(50);
 });
 it('previews age/cap retention without deleting, applies only a current reviewed plan, and persists future-save policy', async () => {
-  localStorage.removeItem('chatthing:v1:archive-retention');
+  localStorage.removeItem('chatty-cat:v1:archive-retention');
   const a = archive(),
     now = Date.now();
   a.add({ ...message, id: 'old', timestamp: now - 10 * 86400000 });
@@ -169,10 +169,10 @@ it('previews age/cap retention without deleting, applies only a current reviewed
   a.add({ ...message, id: 'old-again', timestamp: now - 10 * 86400000 });
   await a.flush();
   expect(await a.get('old-again', ['one'])).toBeUndefined();
-  localStorage.removeItem('chatthing:v1:archive-retention');
+  localStorage.removeItem('chatty-cat:v1:archive-retention');
 });
 it('keeps archived records if retention policy storage fails', async () => {
-  localStorage.removeItem('chatthing:v1:archive-retention');
+  localStorage.removeItem('chatty-cat:v1:archive-retention');
   const a = archive();
   a.add({ ...message, timestamp: 0 });
   const plan = await a.retentionPreview({ rows: 1000, days: 7 });
@@ -187,14 +187,14 @@ it('keeps archived records if retention policy storage fails', async () => {
   await expect(a.applyRetention(plan)).rejects.toThrow('quota');
   vi.stubGlobal('localStorage', native);
   expect(await a.get('id', ['one'])).toBeDefined();
-  localStorage.removeItem('chatthing:v1:archive-retention');
+  localStorage.removeItem('chatty-cat:v1:archive-retention');
 });
 it('rejects private records already present in storage across every archive read path', async () => {
   const a = archive();
   a.add(message);
   await a.flush();
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const q = indexedDB.open('chatthing-archive', 1);
+    const q = indexedDB.open('chatty-cat-archive', 1);
     q.onsuccess = () => resolve(q.result);
     q.onerror = () => reject(q.error);
   });
@@ -317,7 +317,7 @@ it('rolls back a failed append batch, then retries its queued messages after a d
   await expect(a.flush()).rejects.toHaveProperty('name', 'QuotaExceededError');
   put.mockRestore();
   const db = await new Promise<IDBDatabase>((resolve) => {
-    const open = indexedDB.open('chatthing-archive', 1);
+    const open = indexedDB.open('chatty-cat-archive', 1);
     open.onsuccess = () => resolve(open.result);
   });
   const count = db.transaction('messages', 'readonly').objectStore('messages').count();
@@ -407,7 +407,7 @@ it('returns the legacy retention signature and age/cap overlap without changing 
       signature: '7:' + (hash >>> 0),
     });
     expect((await a.search({ text: '' })).map((m) => m.id).sort()).toEqual(records.map((m) => m.id).sort());
-    expect(localStorage.getItem('chatthing:v1:archive-retention')).toBeNull();
+    expect(localStorage.getItem('chatty-cat:v1:archive-retention')).toBeNull();
   } finally {
     await worker.stop();
   }
@@ -417,7 +417,7 @@ it('returns an empty review plan and lets the existing apply transaction accept 
   const plan = await a.retentionPreview({ rows: 1000, days: 7 });
   expect(plan).toMatchObject({ rows: 0, remove: 0, oldest: null, newest: null, signature: '0:2166136261' });
   await a.applyRetention(plan);
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
 });
 
 it('rolls policy back only after a post-policy deletion failure is confirmed aborted', async () => {
@@ -429,7 +429,7 @@ it('rolls policy back only after a post-policy deletion failure is confirmed abo
   });
   await expect(a.applyRetention(plan)).rejects.toThrow('delete denied');
   remove.mockRestore();
-  expect(localStorage.getItem('chatthing:v1:archive-retention')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:archive-retention')).toBeNull();
   expect(await a.get('id', ['one'])).toBeDefined();
 });
 it('preserves a newer policy written elsewhere while a retention transaction aborts', async () => {
@@ -438,12 +438,12 @@ it('preserves a newer policy written elsewhere while a retention transaction abo
   a.add({ ...message, timestamp: Date.now() - 10 * 86400000 });
   const plan = await a.retentionPreview({ rows: 1000, days: 7 });
   const remove = vi.spyOn(IDBObjectStore.prototype, 'delete').mockImplementation(() => {
-    localStorage.setItem('chatthing:v1:archive-retention', replacement);
+    localStorage.setItem('chatty-cat:v1:archive-retention', replacement);
     throw new Error('delete denied');
   });
   await expect(a.applyRetention(plan)).rejects.toThrow('delete denied');
   remove.mockRestore();
-  expect(localStorage.getItem('chatthing:v1:archive-retention')).toBe(replacement);
+  expect(localStorage.getItem('chatty-cat:v1:archive-retention')).toBe(replacement);
   expect(await a.get('id', ['one'])).toBeDefined();
 });
 it('aborts a retention transaction if its Window policy response never arrives', async () => {
@@ -486,7 +486,7 @@ it('retains the selected policy and reports uncertainty if the worker is lost af
     // No queued append: an apply-only request reaches the policy handoff.
     const plan = await a.retentionPreview({ rows: 1000, days: 7 });
     await expect(a.applyRetention(plan)).rejects.toThrow('outcome uncertain');
-    expect(JSON.parse(localStorage.getItem('chatthing:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
+    expect(JSON.parse(localStorage.getItem('chatty-cat:v1:archive-retention') ?? 'null')).toEqual(plan.policy);
     await expect(a.search({ text: '' })).rejects.toHaveProperty('name', 'StorageWorkerUnavailable');
   } finally {
     vi.stubGlobal('Worker', native);
@@ -516,4 +516,19 @@ it('terminates its worker after a failed final append instead of leaving the dat
     put.mockRestore();
     vi.stubGlobal('Worker', native);
   }
+});
+it('keeps a longer backlog while the archive is still opening', async () => {
+  const { StorageWorkerClient } = await import('./storage-worker-client');
+  let opened!: () => void;
+  vi.spyOn(StorageWorkerClient.prototype, 'request').mockImplementation(((type: string) =>
+    type === 'archive.open' ? new Promise<void>((resolve) => (opened = resolve)) : new Promise(() => {})) as never);
+  const failure = vi.fn();
+  const a = new MessageArchive(failure);
+  archives.push(a);
+  for (let i = 0; i < 2500; i++) a.add({ ...message, id: 'id' + i });
+  expect(failure).not.toHaveBeenCalled();
+  opened();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  a.add({ ...message, id: 'late' });
+  expect(failure).toHaveBeenCalledWith('Archive backlog is full; some messages could not be saved');
 });

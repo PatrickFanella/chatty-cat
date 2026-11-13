@@ -38,7 +38,7 @@ export class HotkeyRuntime extends EventTarget {
   }
   private reload(): void {
     try {
-      const raw = localStorage.getItem(profileKey('chatthing:v1:hotkeys'));
+      const raw = localStorage.getItem(profileKey('chatty-cat:v1:hotkeys'));
       const parsed =
         raw && raw.length <= 8192
           ? parseHotkeys(JSON.parse(raw))
@@ -57,10 +57,10 @@ export class HotkeyRuntime extends EventTarget {
   write(bindings: Bindings, expected: string | null): void {
     const errors = validateBindings(bindings);
     if (errors.length) throw new Error(errors.join('; '));
-    if (localStorage.getItem(profileKey('chatthing:v1:hotkeys')) !== expected)
+    if (localStorage.getItem(profileKey('chatty-cat:v1:hotkeys')) !== expected)
       throw new Error('Shortcuts changed in another tab; close and reopen before saving');
     const raw = JSON.stringify({ version: 1, bindings });
-    localStorage.setItem(profileKey('chatthing:v1:hotkeys'), raw);
+    localStorage.setItem(profileKey('chatty-cat:v1:hotkeys'), raw);
     this.raw = raw;
     this.bindings = { ...bindings };
     this.dispatchEvent(new Event('change'));
@@ -79,7 +79,7 @@ export class HotkeyRuntime extends EventTarget {
     this.run(action.id);
   };
   private storage = (event: StorageEvent): void => {
-    if (event.key !== profileKey('chatthing:v1:hotkeys') && event.key !== null) return;
+    if (event.key !== profileKey('chatty-cat:v1:hotkeys') && event.key !== null) return;
     this.reload();
     this.dispatchEvent(new Event('change'));
   };

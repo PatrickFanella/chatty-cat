@@ -71,7 +71,10 @@ it('clears active content and aborts stale verification on account or privacy ch
   expect(panel!.root.querySelector('iframe')).toBeNull();
   expect(panel!.root.textContent).not.toContain('#one');
   panel!.show(message);
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel!.root.open).toBe(false);
   expect(panel!.root.textContent).not.toContain('message UTC');

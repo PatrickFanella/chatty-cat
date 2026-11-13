@@ -42,7 +42,7 @@ export class Pronouns {
   private finishDelay: (() => void) | undefined;
   constructor() {
     try {
-      const saved: unknown = JSON.parse(localStorage.getItem('chatthing:v1:pronouns') ?? 'null');
+      const saved: unknown = JSON.parse(localStorage.getItem('chatty-cat:v1:pronouns') ?? 'null');
       if (Array.isArray(saved))
         for (const pair of saved.slice(-1000)) {
           if (!Array.isArray(pair) || pair.length !== 2) continue;
@@ -125,7 +125,7 @@ export class Pronouns {
             else break;
           }
           try {
-            localStorage.setItem('chatthing:v1:pronouns', JSON.stringify([...this.cache]));
+            localStorage.setItem('chatty-cat:v1:pronouns', JSON.stringify([...this.cache]));
           } catch {
             /* optional storage */
           }

@@ -39,7 +39,7 @@ it('requires review and confirmation to clear a private backup, and rejects stal
     () => true,
     () => {},
   );
-  const key = profileKey('chatthing:v1:sync-annotation-backup');
+  const key = profileKey('chatty-cat:v1:sync-annotation-backup');
   localStorage.setItem(key, 'private original');
   panel.open();
   button('Review clear private annotation backup').click();
@@ -66,7 +66,7 @@ it('clears a pending review on privacy and does not reconnect when reopened', ()
     () => true,
     () => {},
   );
-  localStorage.setItem(profileKey('chatthing:v1:sync-annotation-backup'), 'private');
+  localStorage.setItem(profileKey('chatty-cat:v1:sync-annotation-backup'), 'private');
   panel.open();
   button('Review clear private annotation backup').click();
   expect(button('Confirm reviewed sync action').disabled).toBe(false);

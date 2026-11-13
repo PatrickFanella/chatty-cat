@@ -113,7 +113,7 @@ func (s *Service) send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !s.check(r.Context(), p, time.Now()) {
-		s.cookie(w, "chatthing_session", "", -1)
+		s.cookie(w, "chatty_cat_session", "", -1)
 		writeSend(w, 401, sendResult{Error: "Session expired; log in again"})
 		return
 	}

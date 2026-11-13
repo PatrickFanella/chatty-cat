@@ -57,7 +57,7 @@ it('selects/remembers/forgets public IDs without extension requests or saved pai
   input('Browser companion local name').value = 'Renamed';
   button('Remember browser companion ID').click();
   await vi.waitFor(() => expect(panel!.root.textContent).toContain('remembered locally'));
-  const raw = localStorage.getItem(profileKey('chatthing:v1:browser-companions'))!;
+  const raw = localStorage.getItem(profileKey('chatty-cat:v1:browser-companions'))!;
   expect(raw).not.toContain('d'.repeat(64));
   expect(raw).not.toContain('private-csrf');
   expect(requests).not.toHaveBeenCalled();

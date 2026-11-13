@@ -97,7 +97,10 @@ it('blocks unconfigured destinations and removes previews on privacy', async () 
   const x = setup(write);
   await panel!.ready;
   await panel!.stage(new File(['image'], 'x.png', { type: 'image/png' }));
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   x.click('Upload reviewed image');
   expect(write).not.toHaveBeenCalled();

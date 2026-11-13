@@ -57,6 +57,22 @@ it('treats a lost acknowledgement as unavailable, with no timeout retry', async 
   expect(port.terminate).toHaveBeenCalledOnce();
   await expect(value.request('journal.list', '42')).rejects.toThrow('worker unavailable');
 });
+it('keeps waiting while the worker reports a database move, and still times out once it stops', async () => {
+  vi.useFakeTimers();
+  const { port, value } = client(100);
+  const opened = value.request('archive.open');
+  for (let i = 0; i < 3; i++) {
+    await vi.advanceTimersByTimeAsync(80);
+    port.dispatchEvent(new MessageEvent('message', { data: { version: 1, id: 1, moving: true } }));
+  }
+  port.reply(1, undefined);
+  await expect(opened).resolves.toBeUndefined();
+  const stalled = value.request('archive.open');
+  const result = expect(stalled).rejects.toThrow('worker unavailable');
+  port.dispatchEvent(new MessageEvent('message', { data: { version: 1, id: 2, moving: true } }));
+  await vi.advanceTimersByTimeAsync(100);
+  await result;
+});
 it.each(['messageerror', 'malformed'])('fails closed for %s and rejects every pending call', async (kind) => {
   const { port, value } = client();
   const calls = [value.request('journal.list', '42'), value.request('journal.list', '43')];

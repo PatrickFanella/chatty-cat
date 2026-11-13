@@ -303,7 +303,7 @@ func (s *Service) page(ctx context.Context, u *url.URL) (Card, error) {
 	if err != nil {
 		return Card{}, err
 	}
-	req.Header.Set("User-Agent", "chatthing-preview/1.0")
+	req.Header.Set("User-Agent", "chatty-cat-preview/1.0")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.1")
 	response, err := s.client.Do(req)
 	if err != nil {

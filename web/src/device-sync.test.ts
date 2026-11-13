@@ -62,11 +62,11 @@ afterEach(() => {
 function local() {
   setProfileScope('42');
   localStorage.setItem(
-    profileKey('chatthing:v1:workspaces'),
+    profileKey('chatty-cat:v1:workspaces'),
     JSON.stringify({ version: 1, active: 'one', workspaces: [workspace] }),
   );
   localStorage.setItem(
-    'chatthing:v1:bookmarks:42',
+    'chatty-cat:v1:bookmarks:42',
     JSON.stringify({ format: 'chatty-cat-bookmarks', version: 1, bookmarks: [bookmark] }),
   );
 }
@@ -108,8 +108,8 @@ it('preserves private annotations for removed public bookmarks in a local-only b
   );
   const plan = await planDeviceApply(d, '42');
   await commitDeviceApply(plan);
-  expect(localStorage.getItem('chatthing:v1:bookmarks:42')).not.toContain('private-note-canary');
-  expect(localStorage.getItem(profileKey('chatthing:v1:sync-annotation-backup'))).toContain('private-note-canary');
+  expect(localStorage.getItem('chatty-cat:v1:bookmarks:42')).not.toContain('private-note-canary');
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:sync-annotation-backup'))).toContain('private-note-canary');
 });
 it('rejects stale-tab and account changes before applying', async () => {
   local();
@@ -118,9 +118,9 @@ it('rejects stale-tab and account changes before applying', async () => {
     { workspaces: [workspace], preferences: preferences(), bookmarks: [] },
   );
   const plan = await planDeviceApply(d, '42');
-  localStorage.setItem(profileKey('chatthing:v1:workspaces'), 'newer');
+  localStorage.setItem(profileKey('chatty-cat:v1:workspaces'), 'newer');
   await expect(commitDeviceApply(plan)).rejects.toThrow('changed');
-  expect(localStorage.getItem(profileKey('chatthing:v1:workspaces'))).toBe('newer');
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:workspaces'))).toBe('newer');
   setProfileScope('43');
   await expect(commitDeviceApply(plan)).rejects.toThrow('account');
 });
@@ -132,24 +132,24 @@ it('rolls back earlier local writes after a quota failure and retains unrelated 
     { workspaces: [{ ...workspace, name: 'Remote' }], preferences: preferences(), bookmarks: [] },
   );
   const plan = await planDeviceApply(d, '42'),
-    old = localStorage.getItem(profileKey('chatthing:v1:workspaces')),
+    old = localStorage.getItem(profileKey('chatty-cat:v1:workspaces')),
     original = localStorage.setItem.bind(localStorage);
   let failed = false;
   vi.spyOn(localStorage, 'setItem').mockImplementation((key, value) => {
-    if (!failed && key === profileKey('chatthing:v1:presentation')) {
+    if (!failed && key === profileKey('chatty-cat:v1:presentation')) {
       failed = true;
       throw new DOMException('quota', 'QuotaExceededError');
     }
     original(key, value);
   });
   await expect(commitDeviceApply(plan)).rejects.toThrow();
-  expect(localStorage.getItem(profileKey('chatthing:v1:workspaces'))).toBe(old);
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:workspaces'))).toBe(old);
   expect(localStorage.getItem('unrelated')).toBe('retain');
   expect(await recoverDeviceApply('42')).not.toContain('conflict');
 });
 it('retains a fresh apply lease and restores an older interrupted apply without clobbering other edits', async () => {
   local();
-  const key = profileKey('chatthing:v1:display'),
+  const key = profileKey('chatty-cat:v1:display'),
     old = JSON.stringify(defaultDisplay()),
     next = JSON.stringify({ ...defaultDisplay(), size: 18 });
   localStorage.setItem(key, next);
@@ -162,15 +162,15 @@ it('retains a fresh apply lease and restores an older interrupted apply without 
     started: Date.now(),
     entries: [{ key, before: old, afterDigest: hash }],
   };
-  localStorage.setItem(profileKey('chatthing:v1:sync-local-recovery'), JSON.stringify(journal));
+  localStorage.setItem(profileKey('chatty-cat:v1:sync-local-recovery'), JSON.stringify(journal));
   expect(await recoverDeviceApply('42')).toContain('active');
   expect(localStorage.getItem(key)).toBe(next);
   journal.started -= 31000;
-  localStorage.setItem(profileKey('chatthing:v1:sync-local-recovery'), JSON.stringify(journal));
+  localStorage.setItem(profileKey('chatty-cat:v1:sync-local-recovery'), JSON.stringify(journal));
   expect(await recoverDeviceApply('42')).toContain('rolled back');
   expect(localStorage.getItem(key)).toBe(old);
   localStorage.setItem(key, 'newer edit');
-  localStorage.setItem(profileKey('chatthing:v1:sync-local-recovery'), JSON.stringify(journal));
+  localStorage.setItem(profileKey('chatty-cat:v1:sync-local-recovery'), JSON.stringify(journal));
   expect(await recoverDeviceApply('42')).toContain('Concurrent');
   expect(localStorage.getItem(key)).toBe('newer edit');
 });
@@ -187,7 +187,7 @@ it('carries the explicitly selected active workspace to another device', async (
   );
   const plan = await planDeviceApply(d, '42');
   await commitDeviceApply(plan);
-  expect(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:workspaces'))!).active).toBe('two');
+  expect(JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:workspaces'))!).active).toBe('two');
 });
 it('keeps destination reader positions local for retained workspaces', async () => {
   local();
@@ -197,7 +197,7 @@ it('keeps destination reader positions local for retained workspaces', async () 
   );
   expect(d.workspaces?.[0]?.readers).toEqual([]);
   await commitDeviceApply(await planDeviceApply(d, '42'));
-  const saved = JSON.parse(localStorage.getItem(profileKey('chatthing:v1:workspaces'))!);
+  const saved = JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:workspaces'))!);
   expect(saved.workspaces[0].readers).toEqual(workspace.readers);
 });
 it('preserves matching local pane anchors but clears anchors when the remote pane changes channels', async () => {
@@ -211,7 +211,7 @@ it('preserves matching local pane anchors but clears anchors when the remote pan
     settings: { ...workspace.settings, extras: { splits: split } },
   };
   localStorage.setItem(
-    profileKey('chatthing:v1:workspaces'),
+    profileKey('chatty-cat:v1:workspaces'),
     JSON.stringify({ version: 1, active: 'one', workspaces: [saved] }),
   );
   const d = makeDeviceDocument(
@@ -220,7 +220,7 @@ it('preserves matching local pane anchors but clears anchors when the remote pan
   );
   await commitDeviceApply(await planDeviceApply(d, '42'));
   const read = () =>
-    JSON.parse(localStorage.getItem(profileKey('chatthing:v1:workspaces'))!).workspaces[0].settings.extras.splits
+    JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:workspaces'))!).workspaces[0].settings.extras.splits
       .tabs[0].panes[0];
   expect(read().reader).toEqual({ key: 'room:local', offset: 3 });
   expect(read().unread).toBe(4);
@@ -235,7 +235,7 @@ it('preserves matching local pane anchors but clears anchors when the remote pan
 it('retains an existing private backup when the same bookmark has different annotations', async () => {
   local();
   localStorage.setItem(
-    profileKey('chatthing:v1:sync-annotation-backup'),
+    profileKey('chatty-cat:v1:sync-annotation-backup'),
     JSON.stringify({
       format: 'chatty-cat-bookmarks',
       version: 1,
@@ -247,6 +247,6 @@ it('retains an existing private backup when the same bookmark has different anno
     { workspaces: [], preferences: preferences(), bookmarks: [] },
   );
   await expect(planDeviceApply(d, '42')).rejects.toThrow('private annotation backup');
-  expect(localStorage.getItem('chatthing:v1:bookmarks:42')).toContain('private-note-canary');
-  expect(localStorage.getItem(profileKey('chatthing:v1:sync-annotation-backup'))).toContain('older private note');
+  expect(localStorage.getItem('chatty-cat:v1:bookmarks:42')).toContain('private-note-canary');
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:sync-annotation-backup'))).toContain('older private note');
 });

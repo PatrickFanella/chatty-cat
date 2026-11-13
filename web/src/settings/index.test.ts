@@ -159,12 +159,12 @@ it('startup releases retired ids from a saved layout', () => {
     { width: 1280, height: 800 },
   );
   layout = setClosed(dock(layout, 'provider-preferences-panel', 'left'), 'provider-preferences-panel', true);
-  localStorage.setItem('chatthing:v1:workbench', JSON.stringify(layout));
+  localStorage.setItem('chatty-cat:v1:workbench', JSON.stringify(layout));
   const workbench = new Workbench({ titleFor: (root) => root.id, exclude: () => false, centre: 'main#log' });
   stops.push(() => workbench.stop());
   expect(workbench.wantsPanel('presentation-panel')).toBe(true);
   forgetRetiredPanels(workbench);
-  const saved = localStorage.getItem('chatthing:v1:workbench')!;
+  const saved = localStorage.getItem('chatty-cat:v1:workbench')!;
   for (const id of Object.keys(RETIRED_PANELS)) {
     expect(saved).not.toContain(id);
     expect(workbench.wantsPanel(id)).toBe(false);

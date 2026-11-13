@@ -129,7 +129,7 @@ func (f *fixture) signin(t *testing.T) ([]*http.Cookie, string) {
 	}
 	var sessionCookies []*http.Cookie
 	for _, cookie := range res.Result().Cookies() {
-		if cookie.Name == "chatthing_session" {
+		if cookie.Name == "chatty_cat_session" {
 			sessionCookies = append(sessionCookies, cookie)
 		}
 	}
@@ -174,7 +174,7 @@ func TestStateBinding(t *testing.T) {
 			case "missing":
 				cookies = nil
 			case "wrong-browser":
-				cookies = []*http.Cookie{{Name: "chatthing_oauth", Value: "wrong"}}
+				cookies = []*http.Cookie{{Name: "chatty_cat_oauth", Value: "wrong"}}
 			case "expired":
 				f.service.mu.Lock()
 				p := f.service.pending[state]

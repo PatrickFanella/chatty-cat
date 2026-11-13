@@ -41,7 +41,7 @@ it('keeps local-only policy isolated and refuses stale writes', () => {
   expect(() => b.save(linkDefaults)).toThrow('another tab');
   setProfileScope('43');
   expect(() => a.save(linkDefaults)).toThrow('Account');
-  expect(localStorage.getItem('chatthing:v1:profile:43:link-preferences')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:profile:43:link-preferences')).toBeNull();
 });
 it('applies saved click/search policy before either editor or selection-review DOM exists', () => {
   document.body.innerHTML = '<main id="test-log"><a class="chat-link" href="https://example.com/">public</a></main>';
@@ -71,7 +71,7 @@ it('reviews only selection contained in public chat and exposes a safe encoded s
   const review = document.querySelector<HTMLDialogElement>('[aria-label="Review selection search"]')!;
   expect(review.textContent).toContain('Alice & 😀');
   expect(review.querySelector('a')?.href).toBe('https://duckduckgo.com/?q=Alice%20%26%20%F0%9F%98%80');
-  expect(localStorage.getItem('chatthing:v1:link-preferences') ?? '').not.toContain('Alice');
+  expect(localStorage.getItem('chatty-cat:v1:link-preferences') ?? '').not.toContain('Alice');
   review.close();
   range.selectNodeContents(document.getElementById('outside')!);
   selection.removeAllRanges();
@@ -113,7 +113,10 @@ it('resolves a link only after review and drops a late response on privacy', asy
   expect(fetcher).not.toHaveBeenCalled();
   [...document.querySelectorAll('button')].find((b) => b.textContent === 'Resolve this public URL')!.click();
   expect(fetcher).toHaveBeenCalledOnce();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   finish(new Response(JSON.stringify({ url: 'https://example.com/resolved' })));
   await Promise.resolve();

@@ -138,7 +138,7 @@ export function mountAuth(
   };
   try {
     if (typeof BroadcastChannel !== 'undefined') {
-      sync = new BroadcastChannel('chatthing:v1:auth');
+      sync = new BroadcastChannel('chatty-cat:v1:auth');
       sync.addEventListener('message', reload);
     }
   } catch {

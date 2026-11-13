@@ -54,7 +54,7 @@ it('uses the official iframe without requiring the failed SDK script', () => {
 });
 it('replaces the official frame on channel change and preserves preferences', () => {
   localStorage.setItem(
-    'chatthing:v1:video',
+    'chatty-cat:v1:video',
     JSON.stringify({ channel: 'one', volume: 0.7, muted: false, docked: false }),
   );
   const { root, trigger } = setup();
@@ -67,7 +67,7 @@ it('replaces the official frame on channel change and preserves preferences', ()
   expect(new URL(root.querySelector('iframe')!.src).searchParams.get('channel')).toBe('two');
   expect(new URL(root.querySelector('iframe')!.src).searchParams.get('muted')).toBe('false');
   expect(root.querySelector<HTMLAnchorElement>('#video-external')!.href).toBe('https://www.twitch.tv/two');
-  expect(JSON.parse(localStorage.getItem('chatthing:v1:video') ?? '{}')).toMatchObject({
+  expect(JSON.parse(localStorage.getItem('chatty-cat:v1:video') ?? '{}')).toMatchObject({
     channel: 'two',
     volume: 0.7,
     muted: false,
@@ -133,14 +133,14 @@ it('unloads the hidden Twitch player in privacy mode and restores without autopl
   trigger.click();
   expect(root.querySelector('iframe')).not.toBeNull();
   localStorage.setItem(
-    'chatthing:v1:privacy',
+    'chatty-cat:v1:privacy',
     JSON.stringify({ version: 1, enabled: true, allowed: [], panic: false }),
   );
   document.dispatchEvent(new Event('privacychange'));
   expect(root.querySelector('iframe')).toBeNull();
   panel!.showRail(true);
   expect(root.querySelector('iframe')).toBeNull();
-  localStorage.removeItem('chatthing:v1:privacy');
+  localStorage.removeItem('chatty-cat:v1:privacy');
   document.dispatchEvent(new Event('privacychange'));
   const frame = root.querySelector('iframe')!;
   expect(new URL(frame.src).searchParams.get('autoplay')).toBe('false');

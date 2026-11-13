@@ -36,7 +36,7 @@
   const open = indexedDB.open;
   indexedDB.open = function (name, ...args) {
     if (
-      ['chatthing-archive', 'chatthing-statistics', 'chatthing:v1:rates', 'chatthing-moderation-journal'].includes(name)
+      ['chatty-cat-archive', 'chatty-cat-statistics', 'chatty-cat-rates', 'chatty-cat-moderation-journal'].includes(name)
     ) {
       qa.guardAttempts++;
       throw new Error('Window storage forbidden during qualification');

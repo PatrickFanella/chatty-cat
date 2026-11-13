@@ -25,7 +25,7 @@ function scopeKey(scope: PresetScope): string {
     !/^[a-z0-9_]{1,25}$/.test(scope.channel)
   )
     throw new Error('Choose an authenticated workspace and channel');
-  return 'chatthing:v1:moderation-presets:' + JSON.stringify([scope.account, scope.workspace, scope.channel]);
+  return 'chatty-cat:v1:moderation-presets:' + JSON.stringify([scope.account, scope.workspace, scope.channel]);
 }
 export function expandModerationPreset(
   preset: ModerationPreset,

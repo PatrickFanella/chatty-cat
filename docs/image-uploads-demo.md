@@ -1,7 +1,7 @@
 # Self-hosted image uploads (#30)
 
 The owner selected Chatty Cat storage. Uploads are disabled until the server has a
-dedicated writable `CHATTHING_UPLOAD_DIR`. No third-party image host is contacted.
+dedicated writable `CHATTY_CAT_UPLOAD_DIR`. No third-party image host is contacted.
 Existing Twitch sessions authorize local uploads without extra Twitch scopes.
 
 Choose **Upload image**, or paste/drop one image onto the message composer. The
@@ -39,7 +39,7 @@ Back up this directory privately: receipts contain account IDs. Avoid backups th
 republish deleted/expired images. Application rollback does not undo user uploads.
 
 For the repository Compose deployment, create a dedicated directory owned by the
-container user (see Dockerfile), set `CHATTHING_UPLOAD_HOST_DIR` privately, then use
+container user (see Dockerfile), set `CHATTY_CAT_UPLOAD_HOST_DIR` privately, then use
 `-f compose.yaml -f deploy/compose.uploads.yaml`. The override supplies the sole
 writable upload mount while retaining the read-only root filesystem. Do not mount
 an existing photo library or general data directory. Validate with

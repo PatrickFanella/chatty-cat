@@ -14,7 +14,7 @@ export class TabSync {
   private connect(): void {
     try {
       if (this.account !== undefined && typeof BroadcastChannel !== 'undefined') {
-        this.channel = new BroadcastChannel('chatthing:v1:sent:' + this.account);
+        this.channel = new BroadcastChannel('chatty-cat:v1:sent:' + this.account);
         this.channel.addEventListener('message', this.message);
       }
     } catch {

@@ -111,7 +111,7 @@ export class StatsPanel {
       this.channel.append(option);
     }
     try {
-      const saved: unknown = JSON.parse(localStorage.getItem(profileKey('chatthing:v1:stats')) ?? 'null');
+      const saved: unknown = JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:stats')) ?? 'null');
       if (saved && typeof saved === 'object') {
         const data = saved as Record<string, unknown>;
         if (data.badgeOrder === 'versions' || data.badgeOrder === 'name') this.badgeOrder.value = data.badgeOrder;
@@ -221,7 +221,7 @@ export class StatsPanel {
     this.revision++;
     try {
       localStorage.setItem(
-        profileKey('chatthing:v1:stats'),
+        profileKey('chatty-cat:v1:stats'),
         JSON.stringify({
           badgeOrder: this.badgeOrder.value,
           scope: this.scope.value,

@@ -14,7 +14,7 @@ const theme = {
     accent: '#99ddff',
   },
 };
-const key = 'chatthing:v1:custom-theme';
+const key = 'chatty-cat:v1:custom-theme';
 let runtime: CustomThemeRuntime | undefined;
 afterEach(() => {
   runtime?.stop();
@@ -59,7 +59,7 @@ it('preserves malformed startup bytes and refuses cross-account writes', () => {
   setProfileScope('42');
   expect(() => runtime!.reload()).toThrow('Account changed');
   expect(() => runtime!.persist(theme)).toThrow('Account changed');
-  expect(localStorage.getItem('chatthing:v1:profile:42:custom-theme')).toBeNull();
+  expect(localStorage.getItem('chatty-cat:v1:profile:42:custom-theme')).toBeNull();
 });
 it('restores the original inline palette silently on stop and ignores later storage events', () => {
   document.documentElement.style.setProperty('--bg', '#090909');

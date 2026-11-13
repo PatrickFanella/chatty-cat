@@ -347,15 +347,15 @@ export class DisplayRuntime extends EventTarget {
   constructor(private changed: () => void) {
     super();
     try {
-      const saved = localStorage.getItem(profileKey('chatthing:v1:display'));
+      const saved = localStorage.getItem(profileKey('chatty-cat:v1:display'));
       this.options = saved ? parseDisplay(JSON.parse(saved)) : firstVisitDisplay();
     } catch {
       /* optional storage */
     }
     try {
       if (
-        !localStorage.getItem(profileKey('chatthing:v1:display')) &&
-        localStorage.getItem(profileKey('chatthing:v1:theme')) === 'light'
+        !localStorage.getItem(profileKey('chatty-cat:v1:display')) &&
+        localStorage.getItem(profileKey('chatty-cat:v1:theme')) === 'light'
       )
         this.options.shade = 1;
     } catch {
@@ -454,13 +454,13 @@ export class DisplayRuntime extends EventTarget {
   }
   save(): void {
     try {
-      localStorage.setItem(profileKey('chatthing:v1:display'), JSON.stringify(this.options));
+      localStorage.setItem(profileKey('chatty-cat:v1:display'), JSON.stringify(this.options));
     } catch {
       /* optional storage */
     }
   }
   private storage = (event: StorageEvent): void => {
-    if (event.key !== profileKey('chatthing:v1:display')) return;
+    if (event.key !== profileKey('chatty-cat:v1:display')) return;
     try {
       this.options = parseDisplay(JSON.parse(event.newValue ?? 'null'));
       this.apply();

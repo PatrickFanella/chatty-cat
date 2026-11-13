@@ -249,14 +249,14 @@ export class Workbench {
   }
   private load(): Layout {
     try {
-      return parseLayout(JSON.parse(localStorage.getItem(profileKey('chatthing:v1:workbench')) ?? 'null'), viewport());
+      return parseLayout(JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:workbench')) ?? 'null'), viewport());
     } catch {
       return emptyLayout();
     }
   }
   private save(): void {
     try {
-      localStorage.setItem(profileKey('chatthing:v1:workbench'), JSON.stringify(this.layout));
+      localStorage.setItem(profileKey('chatty-cat:v1:workbench'), JSON.stringify(this.layout));
     } catch {
       /* optional storage */
     }

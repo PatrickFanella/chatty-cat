@@ -6,7 +6,7 @@ import { StatsLedger } from './stats-ledger';
 import * as storage from './stats-storage';
 import * as store from './statistics-store';
 import type { ChatMessage } from './protocol';
-const key = 'chatthing:v1:stats:counts:one';
+const key = 'chatty-cat:v1:stats:counts:one';
 const message: ChatMessage = {
   id: 'one',
   command: 'PRIVMSG',
@@ -20,7 +20,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   localStorage.clear();
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-statistics');
+    const q = indexedDB.deleteDatabase('chatty-cat-statistics');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });

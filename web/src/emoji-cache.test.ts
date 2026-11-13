@@ -36,7 +36,7 @@ it('caches pinned local emoji in a separate bounded 128-entry bucket', async () 
   });
   expect(pending).toBeDefined();
   await pending;
-  expect(open).toHaveBeenCalledWith('chatthing-emoji-17-v1');
+  expect(open).toHaveBeenCalledWith('chatty-cat-emoji-17-v1');
   expect(put).toHaveBeenCalledOnce();
   expect(remove).toHaveBeenCalledOnce();
 });

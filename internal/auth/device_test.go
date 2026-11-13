@@ -171,7 +171,7 @@ func TestPublicDeviceLoginSessionRefreshAndPublicMetadata(t *testing.T) {
 	}
 	var sessionCookies []*http.Cookie
 	for _, c := range w.Result().Cookies() {
-		if c.Name == "chatthing_session" {
+		if c.Name == "chatty_cat_session" {
 			sessionCookies = append(sessionCookies, c)
 		}
 	}
@@ -223,7 +223,7 @@ func TestDeviceLoginBoundaries(t *testing.T) {
 			case "missing-cookie":
 				cookies = nil
 			case "wrong-cookie":
-				cookies = []*http.Cookie{{Name: "chatthing_oauth", Value: "wrong"}}
+				cookies = []*http.Cookie{{Name: "chatty_cat_oauth", Value: "wrong"}}
 			case "origin":
 				origin = "https://evil.example"
 			case "expired":

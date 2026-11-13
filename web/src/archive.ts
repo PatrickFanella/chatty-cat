@@ -22,6 +22,9 @@ export class MessageArchive {
   private queue: ChatMessage[] = [];
   private flushing: Promise<void> | undefined;
   private stopped = false;
+  // Until the worker has opened the archive (which can wait for saved data to move to its current
+  // name), keep a longer backlog so live chat is not dropped.
+  private opened = false;
   private timer: ReturnType<typeof clockTask>;
   constructor(
     private readonly failure: (message: string) => void = () => {},
@@ -29,6 +32,7 @@ export class MessageArchive {
   ) {
     void this.storageWorker()
       .request('archive.open')
+      .then(() => (this.opened = true))
       .catch(() => failure('Local archive unavailable; live chat continues'));
     this.timer = clockTask(
       'storage.archive',
@@ -42,10 +46,13 @@ export class MessageArchive {
   add(message: ChatMessage): void {
     if (this.stopped || !PUBLIC_ARCHIVE_COMMANDS.includes(message.command)) return;
     this.queue.push(message);
-    if (this.queue.length > 2000) {
+    if (this.queue.length > this.backlog()) {
       this.queue.shift();
       this.failure('Archive backlog is full; some messages could not be saved');
     }
+  }
+  private backlog(): number {
+    return this.opened ? 2000 : 20000;
   }
   async flush(): Promise<void> {
     if (this.flushing) {
@@ -66,7 +73,7 @@ export class MessageArchive {
     try {
       await this.storageWorker().request('archive.append', batch);
     } catch (error) {
-      this.queue = [...batch, ...this.queue].slice(-2000);
+      this.queue = [...batch, ...this.queue].slice(-this.backlog());
       throw error;
     }
     await this.prune();

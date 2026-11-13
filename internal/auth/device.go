@@ -72,7 +72,7 @@ func (s *Service) startDeviceLogin(w http.ResponseWriter, r *http.Request, scope
 		device: &deviceLogin{code: code.DeviceCode, scopes: scopes, interval: interval, nextPoll: time.Now().Add(time.Duration(interval) * time.Second)},
 	}
 	s.mu.Unlock()
-	s.cookie(w, "chatthing_oauth", binding, min(code.Expires, 1800))
+	s.cookie(w, "chatty_cat_oauth", binding, min(code.Expires, 1800))
 	nonce := randomValue()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; script-src 'nonce-"+nonce+"'; style-src 'nonce-"+nonce+"'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
@@ -88,7 +88,7 @@ func (s *Service) pollDeviceLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state := r.URL.Query().Get("state")
-	cookie, err := r.Cookie("chatthing_oauth")
+	cookie, err := r.Cookie("chatty_cat_oauth")
 	s.mu.Lock()
 	p, ok := s.pending[state]
 	if err != nil || !ok || p.device == nil || p.binding != sha256.Sum256([]byte(cookie.Value)) || !time.Now().Before(p.expires) {
@@ -159,7 +159,7 @@ func (s *Service) pollDeviceLogin(w http.ResponseWriter, r *http.Request) {
 	s.mu.Lock()
 	delete(s.pending, state)
 	s.mu.Unlock()
-	s.cookie(w, "chatthing_oauth", "", -1)
+	s.cookie(w, "chatty_cat_oauth", "", -1)
 	if res.StatusCode != 200 || result.Access == "" || result.Refresh == "" || result.Expires <= 0 || result.Type != "bearer" {
 		http.Error(w, "Twitch sign-in was cancelled or expired; go back and try again", 400)
 		return

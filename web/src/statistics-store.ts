@@ -1,7 +1,11 @@
 import { restoreLedgerState, type LedgerState } from './stats-ledger-state';
 import { MAX_CHARS, validKey, validateStatisticsMove, type StatisticsMove } from './statistics-records';
-const DATABASE = 'chatthing-statistics';
-async function database(): Promise<IDBDatabase> {
+import { openRenamed } from './database-rename';
+const DATABASE = 'chatty-cat-statistics';
+function database(): Promise<IDBDatabase> {
+  return openRenamed(DATABASE, open);
+}
+function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     let blocked = false;
     const q = indexedDB.open(DATABASE, 1);
@@ -110,7 +114,7 @@ export async function loadStatisticsLedger(
   legacy: string | undefined,
   readDatabase = true,
 ): Promise<LedgerLoad> {
-  const key = 'chatthing:v1:stats:counts:' + channels.join(',');
+  const key = 'chatty-cat:v1:stats:counts:' + channels.join(',');
   if (!validKey(key)) throw new Error('Invalid statistics scope');
   const result: LedgerLoad = { state: undefined, storageFailed: false };
   const restore = (raw: string): void => {

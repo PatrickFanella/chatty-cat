@@ -39,7 +39,7 @@ export class GiphyTitles {
   private safe = document.documentElement.dataset.gifsafe === 'true';
   constructor(private log: HTMLElement) {
     try {
-      const value: unknown = JSON.parse(localStorage.getItem('chatthing:v1:giphy-budget') ?? 'null');
+      const value: unknown = JSON.parse(localStorage.getItem('chatty-cat:v1:giphy-budget') ?? 'null');
       if (object(value)) {
         if (Array.isArray(value.sent))
           this.sent = value.sent
@@ -73,7 +73,7 @@ export class GiphyTitles {
   };
   private saveBudget(): void {
     try {
-      localStorage.setItem('chatthing:v1:giphy-budget', JSON.stringify({ sent: this.sent, pause: this.pause }));
+      localStorage.setItem('chatty-cat:v1:giphy-budget', JSON.stringify({ sent: this.sent, pause: this.pause }));
     } catch {
       /* no media URLs are stored */
     }

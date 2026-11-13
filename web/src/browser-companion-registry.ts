@@ -4,7 +4,7 @@ export interface RegisteredBrowserCompanion {
   id: string;
   name: string;
 }
-const key = 'chatthing:v1:browser-companions';
+const key = 'chatty-cat:v1:browser-companions';
 const validID = validBrowserCompanionID;
 function parse(value: unknown): RegisteredBrowserCompanion[] {
   if (!value || typeof value !== 'object' || Array.isArray(value))

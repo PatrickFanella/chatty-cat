@@ -3,6 +3,12 @@
 services:
   chat:
     environment:
+      CHATTY_CAT_UPLOAD_DIR: /app/uploads
+      CHATTY_CAT_SYNC_DIR: /app/sync
+      CHATTY_CAT_PROVIDER_SERVICES: BTTV,7TV
+      CHATTY_CAT_COSMETIC_PROVIDERS: FFZ,Chatterino
+      # Transition: remove after the rename is deployed. Releases built before the
+      # rename read these names; keep them while one can still be rolled back to.
       CHATTHING_UPLOAD_DIR: /app/uploads
       CHATTHING_SYNC_DIR: /app/sync
       CHATTHING_PROVIDER_SERVICES: BTTV,7TV

@@ -92,7 +92,7 @@ it('boots twelve channels, reuses duplicate pane sources and releases the last c
   expect(Socket.all).toHaveLength(2);
   expect(Socket.all[0]?.closed).toBe(true);
   expect(Socket.all[1]?.url.searchParams.get('channels')?.split(',')).toEqual(joined.slice(6));
-  expect(sessionStorage.getItem('chatthing:v1:draft:anonymous:' + joined[0])).toBe('Synthetic retained draft');
-  const saved = JSON.parse(localStorage.getItem('chatthing:v1:workspaces') ?? '{}');
+  expect(sessionStorage.getItem('chatty-cat:v1:draft:anonymous:' + joined[0])).toBe('Synthetic retained draft');
+  const saved = JSON.parse(localStorage.getItem('chatty-cat:v1:workspaces') ?? '{}');
   expect(saved.workspaces[0].channels).toHaveLength(12);
 });

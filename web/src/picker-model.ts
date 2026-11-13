@@ -149,7 +149,7 @@ export class PickerModel {
   constructor() {
     try {
       this.options = parseOptions(
-        JSON.parse(localStorage.getItem(profileKey('chatthing:v1:picker:options')) ?? 'null'),
+        JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:picker:options')) ?? 'null'),
       );
     } catch {
       /* optional storage */
@@ -269,9 +269,9 @@ export class PickerModel {
     this.load(channel);
     setEmojiStyle(this.options.emojiStyle);
     try {
-      localStorage.setItem(profileKey('chatthing:v1:picker:options'), JSON.stringify(this.options));
+      localStorage.setItem(profileKey('chatty-cat:v1:picker:options'), JSON.stringify(this.options));
       localStorage.setItem(
-        profileKey('chatthing:v1:picker:') + channel,
+        profileKey('chatty-cat:v1:picker:') + channel,
         JSON.stringify({
           recent: this.recents.get(channel) ?? [],
           uses: [...(this.uses.get(channel) ?? [])].slice(-1000),
@@ -286,7 +286,7 @@ export class PickerModel {
     if (this.loaded.has(channel)) return;
     this.loaded.add(channel);
     try {
-      const data: unknown = JSON.parse(localStorage.getItem(profileKey('chatthing:v1:picker:') + channel) ?? 'null');
+      const data: unknown = JSON.parse(localStorage.getItem(profileKey('chatty-cat:v1:picker:') + channel) ?? 'null');
       if (!data || typeof data !== 'object') return;
       const record = data as Record<string, unknown>;
       this.coverages.set(channel, new PickerCoverage(record.coverage));

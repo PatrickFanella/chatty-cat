@@ -46,7 +46,7 @@ it('retains exact VOD timing and safe links, deduplicating archive metadata', ()
   history.observe({ ...data, lastVod }, Date.parse('2026-10-11T00:01:00Z'));
   expect(history.archives('one')).toEqual([lastVod]);
   localStorage.setItem(
-    'chatthing:v1:stream-history',
+    'chatty-cat:v1:stream-history',
     JSON.stringify({
       version: 1,
       samples: [['one', [{ at: 1, live: true, viewers: -1, title: 'bad' }]]],

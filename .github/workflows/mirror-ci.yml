@@ -119,7 +119,7 @@ jobs:
       timeout-minutes: 5
       run: '"desktop/dist/mac-arm64/Chatty Cat.app/Contents/MacOS/Chatty Cat" --smoke="$PWD/desktop/dist/smoke-mac.png"'
     if: github.repository == 'subculture-collective/chatty-cat'
-  desktop-chatthing:
+  browser-build:
     name: Browser build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -137,13 +137,13 @@ jobs:
         cache: npm
         cache-dependency-path: web/package-lock.json
     - run: npm --prefix web ci --no-audit --no-fund
-    - run: python3 scripts/build-chatthing-release.py chatthing-dist
+    - run: python3 scripts/build-browser-release.py browser-build-dist
     - name: Start the Linux build and serve the UI
       run: |
         set -eu
         mkdir smoke
-        tar -xzf chatthing-dist/chatthing-*-linux-x64.tar.gz -C smoke
-        cd smoke/chatthing-*-linux-x64
+        tar -xzf browser-build-dist/chatty-cat-browser-*-linux-x64.tar.gz -C smoke
+        cd smoke/chatty-cat-browser-*-linux-x64
         BROWSER="echo" ./chatty-cat > launcher.log 2>&1 &
         server=$!
         for _ in $(seq 150); do curl -fs -o /dev/null http://127.0.0.1:47830/api/ready && break; sleep 0.1; done
@@ -161,7 +161,7 @@ jobs:
     - web
     - desktop-linux
     - desktop-mac
-    - desktop-chatthing
+    - browser-build
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -172,7 +172,7 @@ jobs:
         python3 - <<'PY'
         import json, os
         results = json.loads(os.environ["RESULTS"])
-        expected = {'go', 'web', 'desktop-linux', 'desktop-mac', 'desktop-chatthing'}
+        expected = {'go', 'web', 'desktop-linux', 'desktop-mac', 'browser-build'}
         assert set(results) == expected, results
         for name, result in results.items():
             assert result["result"] == "success", name + " did not pass"

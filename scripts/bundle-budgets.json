@@ -249,7 +249,7 @@
       "cssGzipBytes": 16655
     },
     "src/browser-companion-ui.ts": {
-      "jsGzipBytes": 162123,
+      "jsGzipBytes": 162379,
       "cssGzipBytes": 16655
     },
     "src/chat-context-ui.ts": {
@@ -413,7 +413,7 @@
       "cssGzipBytes": 16655
     },
     "src/video.ts": {
-      "jsGzipBytes": 158948,
+      "jsGzipBytes": 159204,
       "cssGzipBytes": 16655
     },
     "src/vod-context-ui.ts": {

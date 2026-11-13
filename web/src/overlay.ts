@@ -1,3 +1,4 @@
+import './storage-rename';
 import './style.css';
 import './overlay.css';
 import { ChatConnection } from './connection';
@@ -44,7 +45,7 @@ export function mountOverlay(log: HTMLElement, channels: string[]): () => void {
   const virtual = new VirtualLog(log, 'overlay');
   let frozen = false;
   try {
-    frozen = localStorage.getItem(profileKey('chatthing:v1:frozen')) === '1';
+    frozen = localStorage.getItem(profileKey('chatty-cat:v1:frozen')) === '1';
   } catch {
     /* Optional public display preference. */
   }

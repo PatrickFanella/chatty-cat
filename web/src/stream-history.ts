@@ -6,7 +6,7 @@ export interface StreamSample {
   title: string;
 }
 type Archive = NonNullable<ChannelMetadata['lastVod']>;
-const key = 'chatthing:v1:stream-history',
+const key = 'chatty-cat:v1:stream-history',
   keep = 7 * 86400000;
 function object(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);

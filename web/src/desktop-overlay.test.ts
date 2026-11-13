@@ -44,11 +44,11 @@ it('shows first-open recovery guidance only after a successful receipt and can r
   };
   await open();
   await vi.waitFor(() => expect(controls.root.textContent).toContain('offline'));
-  expect(localStorage.getItem(profileKey('chatthing:v1:overlay-onboarding'))).toBeNull();
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:overlay-onboarding'))).toBeNull();
   expect(guide().hidden).toBe(true);
   button('Confirm reviewed overlay action').click();
   await vi.waitFor(() => expect(guide().hidden).toBe(false));
-  expect(localStorage.getItem(profileKey('chatthing:v1:overlay-onboarding'))).toContain('activated');
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:overlay-onboarding'))).toContain('activated');
   button('Dismiss overlay guide').click();
   await new Promise((r) => setTimeout(r, 0));
   await open();
@@ -90,7 +90,7 @@ it('does not let a late open receipt mark activation or show guidance after acco
   setProfileScope('43');
   resolve({ open: true, interactive: true, settings, x: 80, y: 80, recovery: 'Native menu available' });
   await new Promise((r) => setTimeout(r, 0));
-  expect(localStorage.getItem(profileKey('chatthing:v1:overlay-onboarding'))).toBeNull();
+  expect(localStorage.getItem(profileKey('chatty-cat:v1:overlay-onboarding'))).toBeNull();
   expect(controls.root.querySelector<HTMLElement>('[aria-label="Native overlay first-use guide"]')?.hidden).toBe(true);
   expect(controls.root.textContent).toContain('Overlay unpaired');
 });

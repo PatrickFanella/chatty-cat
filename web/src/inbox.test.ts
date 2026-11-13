@@ -29,7 +29,7 @@ it('persists public reads across reload and isolates accounts, without retaining
   inbox.observe(message('one'));
   inbox.markRead('mentions:room:one');
   inbox.whisper({ ...message('private', 'private secret'), command: 'WHISPER', channel: '' }, false);
-  expect(localStorage.getItem('chatthing:v1:inbox-read:42')).not.toContain('secret');
+  expect(localStorage.getItem('chatty-cat:v1:inbox-read:42')).not.toContain('secret');
   const next = new ConversationInbox();
   next.setAccount('42', 'viewer');
   next.observe(message('one'));
@@ -82,5 +82,5 @@ it('adds explicit public rule matches to mentions without duplicating natural me
   expect(inbox.observe(message('rule', 'special phrase'), true)).toBe(false);
   expect(inbox.items('mentions')).toHaveLength(1);
   inbox.markRead(inbox.items('mentions')[0]!.key);
-  expect(localStorage.getItem('chatthing:v1:inbox-read:account')).not.toContain('special phrase');
+  expect(localStorage.getItem('chatty-cat:v1:inbox-read:account')).not.toContain('special phrase');
 });

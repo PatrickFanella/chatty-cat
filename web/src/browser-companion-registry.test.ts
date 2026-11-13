@@ -28,7 +28,7 @@ it('rejects malformed/private records and enforces the eight-ID limit', () => {
   expect(() => registry.remember('a'.repeat(32), '\n')).toThrow();
   for (let i = 0; i < 8; i++) registry.remember(String.fromCharCode(97 + i).repeat(32), 'Browser ' + i);
   expect(() => registry.remember('i'.repeat(32), 'Ninth')).toThrow('eight');
-  const key = profileKey('chatthing:v1:browser-companions');
+  const key = profileKey('chatty-cat:v1:browser-companions');
   localStorage.setItem(
     key,
     JSON.stringify({ version: 1, companions: [{ id: 'a'.repeat(32), name: 'Bad', token: 'secret' }] }),

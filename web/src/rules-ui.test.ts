@@ -26,11 +26,11 @@ it('requires a matching preview before applying rules, reports storage failures 
   expect(panel.root.querySelector('#rule-result')?.textContent).toContain('Highlighted');
   click('save');
   expect(panel.engine.rules).toHaveLength(1);
-  expect(localStorage.getItem('chatthing:v1:rules')).toContain('Greeting');
+  expect(localStorage.getItem('chatty-cat:v1:rules')).toContain('Greeting');
   runtime.preferences = { muted: false, quietStart: 22, quietEnd: 7 };
   expect(runtime.alertsAllowed(new Date(2026, 0, 1, 23))).toBe(false);
   expect(runtime.alertsAllowed(new Date(2026, 0, 1, 12))).toBe(true);
-  const saved = localStorage.getItem('chatthing:v1:rules');
+  const saved = localStorage.getItem('chatty-cat:v1:rules');
   vi.stubGlobal('localStorage', {
     getItem: () => saved,
     setItem: () => {
@@ -44,7 +44,7 @@ it('requires a matching preview before applying rules, reports storage failures 
 
 it('restores runtime rules and portable settings without constructing an editor', () => {
   const value = { version: 1, rules: [], preferences: { muted: true, quietStart: 0, quietEnd: 0 } };
-  localStorage.setItem('chatthing:v1:rules', JSON.stringify(value));
+  localStorage.setItem('chatty-cat:v1:rules', JSON.stringify(value));
   runtime = new RuleRuntime(vi.fn());
   expect(runtime.alertsAllowed()).toBe(false);
   expect(document.querySelector('dialog')).toBeNull();

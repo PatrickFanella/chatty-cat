@@ -5,7 +5,7 @@ import { presentationDefaults, setPresentation } from './presentation';
 afterEach(() => {
   setPresentation({ ...presentationDefaults });
   document.body.replaceChildren();
-  localStorage.removeItem('chatthing:v1:privacy');
+  localStorage.removeItem('chatty-cat:v1:privacy');
 });
 it('defaults off, safely displays public labels, and ignores stale responses after disabling', async () => {
   const row = document.createElement('article');
@@ -35,7 +35,7 @@ it('does not request public labels in privacy mode or populate a detached row', 
   expect(row.querySelector('.chat-pronouns')).toBeNull();
   document.body.append(row);
   localStorage.setItem(
-    'chatthing:v1:privacy',
+    'chatty-cat:v1:privacy',
     JSON.stringify({ version: 1, enabled: true, allowed: [], panic: false }),
   );
   loadRowPronouns(row, 'alice', lookup);

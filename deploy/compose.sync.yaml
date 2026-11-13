@@ -3,8 +3,8 @@
 services:
   chat:
     environment:
-      CHATTHING_SYNC_DIR: /app/sync
+      CHATTY_CAT_SYNC_DIR: /app/sync
     volumes:
       - type: bind
-        source: ${CHATTHING_SYNC_HOST_DIR:-./data/sync}
+        source: ${CHATTY_CAT_SYNC_HOST_DIR:-./data/sync}
         target: /app/sync

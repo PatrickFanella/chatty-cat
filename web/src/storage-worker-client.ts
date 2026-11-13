@@ -21,6 +21,7 @@ export class StorageWorkerClient {
       resolve: (value: unknown) => void;
       reject: (error: Error) => void;
       clean: () => void;
+      touch: () => void;
       policy?: (() => ArchiveRetention) | undefined;
       progress?: ((scanned: number) => void) | undefined;
     }
@@ -76,7 +77,12 @@ export class StorageWorkerClient {
       return Promise.reject(new Error('Storage worker busy; wait for pending operations.'));
     const id = ++this.nextID;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => this.fail(), this.timeoutMs);
+      let timer = setTimeout(() => this.fail(), this.timeoutMs);
+      // Progress restarts the timeout: a long database move or archive scan is still alive.
+      const touch = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => this.fail(), this.timeoutMs);
+      };
       const clean = () => {
         clearTimeout(timer);
         options.signal?.removeEventListener('abort', abort);
@@ -95,6 +101,7 @@ export class StorageWorkerClient {
         resolve: (value) => resolve(value as StorageOperations[K]['result']),
         reject,
         clean,
+        touch,
         progress: options.progress,
         policy: options.policy,
       });
@@ -163,6 +170,7 @@ export class StorageWorkerClient {
       Number.isSafeInteger(notice.progress)
     ) {
       const pending = this.pending.get(Number(notice.id));
+      pending?.touch();
       try {
         pending?.progress?.(Number(notice.progress));
       } catch (error) {
@@ -175,6 +183,19 @@ export class StorageWorkerClient {
         }
         pending?.reject(error instanceof Error ? error : new Error('Archive progress callback failed'));
       }
+      return;
+    }
+    if (
+      notice &&
+      typeof notice === 'object' &&
+      'version' in notice &&
+      notice.version === 1 &&
+      'id' in notice &&
+      Number.isSafeInteger(notice.id) &&
+      'moving' in notice &&
+      notice.moving === true
+    ) {
+      this.pending.get(Number(notice.id))?.touch();
       return;
     }
     const reply = event.data as StorageReply | undefined;

@@ -69,3 +69,9 @@ The first-visit introduction (November 12, 2026) adds a small module, its styles
 an emitted lockup image to the main entry. Every entry that statically imports the main
 closure had little or no headroom left, so their JavaScript limits increase by 512
 bytes and their CSS limits by 256 bytes. Overlay and worker limits stay unchanged.
+
+Moving browser storage to the `chatty-cat` names (November 12, 2026) adds a small
+module that runs before the main and overlay entries, and every storage key literal
+grows by one character. The Browser companion and Video closures had less headroom
+than that, so only their JavaScript limits increase by 256 bytes each. All other
+limits, including the overlay and storage worker, stay unchanged.

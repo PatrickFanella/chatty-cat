@@ -1,0 +1,13 @@
+# Package an already verified Linux release without rebuilding its application.
+# Build context must contain the server binary, web/dist, LICENSE and NOTICE.md.
+# release.py passes BIN, the binary's name in the release. Settings come from
+# compose.nuc.yaml, compose.m4.yaml and the staging container, not from here.
+FROM alpine:3.23
+RUN apk add --no-cache ca-certificates tzdata && addgroup -g 10001 chat && adduser -D -u 10001 -G chat chat
+WORKDIR /app
+ARG BIN=chatty-cat-server
+COPY ${BIN} /app/chatty-cat-server
+COPY web/dist /app/web/dist
+COPY LICENSE NOTICE.md /app/
+USER 10001:10001
+ENTRYPOINT ["/app/chatty-cat-server"]

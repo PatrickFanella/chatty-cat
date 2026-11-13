@@ -39,7 +39,7 @@ afterEach(async () => {
   vi.unstubAllGlobals();
   await new Promise((r) => setTimeout(r, 10));
   await new Promise<void>((resolve, reject) => {
-    const q = indexedDB.deleteDatabase('chatthing-moderation-journal');
+    const q = indexedDB.deleteDatabase('chatty-cat-moderation-journal');
     q.onsuccess = () => resolve();
     q.onerror = () => reject(q.error);
   });

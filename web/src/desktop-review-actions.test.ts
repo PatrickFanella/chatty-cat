@@ -125,7 +125,7 @@ it('routes /streamlink to a joined channel without IPC and rejects unavailable v
   expect(fetcher).not.toHaveBeenCalled();
 });
 function importStorage(bindings: Record<string, string>): void {
-  localStorage.setItem(profileKey('chatthing:v1:hotkeys'), JSON.stringify({ version: 1, bindings }));
+  localStorage.setItem(profileKey('chatty-cat:v1:hotkeys'), JSON.stringify({ version: 1, bindings }));
 }
 it('discards a previous overlay review when reopening playback setup', async () => {
   const fetcher = setup();

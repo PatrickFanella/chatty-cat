@@ -103,7 +103,7 @@ it('offers an explicit foreground notification check without creating a chat mes
   attention.stop();
 });
 it('suppresses private notification contents, alert tests and delayed notifications after privacy is enabled', async () => {
-  localStorage.removeItem('chatthing:v1:privacy');
+  localStorage.removeItem('chatty-cat:v1:privacy');
   Object.defineProperty(document, 'hidden', { configurable: true, value: true });
   const notification = vi.fn();
   vi.stubGlobal('Notification', Object.assign(notification, { permission: 'granted' }));
@@ -122,7 +122,7 @@ it('suppresses private notification contents, alert tests and delayed notificati
   );
   attention.whisper({ ...message, text: 'private body' });
   localStorage.setItem(
-    'chatthing:v1:privacy',
+    'chatty-cat:v1:privacy',
     JSON.stringify({ version: 1, enabled: true, allowed: [], panic: false }),
   );
   resolve?.({ showNotification } as unknown as ServiceWorkerRegistration);
@@ -132,7 +132,7 @@ it('suppresses private notification contents, alert tests and delayed notificati
   expect(notification).not.toHaveBeenCalled();
   expect(await attention.test()).toBe('Alerts are suppressed in privacy mode');
   attention.stop();
-  localStorage.removeItem('chatthing:v1:privacy');
+  localStorage.removeItem('chatty-cat:v1:privacy');
 });
 it('can collect a highlighted message without requesting its disabled notification', async () => {
   vi.spyOn(document, 'hasFocus').mockReturnValue(false);

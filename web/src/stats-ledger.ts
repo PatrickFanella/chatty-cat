@@ -36,7 +36,7 @@ export class StatsLedger {
     private channels: readonly string[],
     private emotes: (channel: string) => Record<string, Emote>,
   ) {
-    this.key = 'chatthing:v1:stats:counts:' + channels.join(',');
+    this.key = 'chatty-cat:v1:stats:counts:' + channels.join(',');
     let legacy: string | undefined;
     try {
       const raw = localStorage.getItem(this.key);

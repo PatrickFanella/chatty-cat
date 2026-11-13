@@ -48,7 +48,7 @@ export class PageCoverage {
     this.save(now);
   }
   private key(channel: string): string {
-    return 'chatthing:v1:observed:' + channel;
+    return 'chatty-cat:v1:observed:' + channel;
   }
   private save(now = Date.now()): void {
     for (const channel of this.channels) {

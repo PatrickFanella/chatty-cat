@@ -2,6 +2,6 @@
 services:
   chat:
     environment:
-      CHATTHING_UPLOAD_DIR: /app/uploads
+      CHATTY_CAT_UPLOAD_DIR: /app/uploads
     volumes:
-      - ${CHATTHING_UPLOAD_HOST_DIR:?Set the owned host upload directory}:/app/uploads
+      - ${CHATTY_CAT_UPLOAD_HOST_DIR:?Set the owned host upload directory}:/app/uploads

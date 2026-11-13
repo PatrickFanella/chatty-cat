@@ -46,7 +46,7 @@ It opens a real AppKit window, verifies click-through, waits for lease-expiry re
 For the native-browser pairing demo, run Vite on 5174, then:
 
 ```sh
-CHATTHING_OVERLAY_FIXTURE_HOST=/absolute/path/ChattyOverlay.app/Contents/MacOS/ChattyOverlay go run ./web/test-support/desktop-playback
+CHATTY_CAT_OVERLAY_FIXTURE_HOST=/absolute/path/ChattyOverlay.app/Contents/MacOS/ChattyOverlay go run ./web/test-support/desktop-playback
 ```
 
 Open `http://127.0.0.1:5195` in a separate browser profile. The synthetic Alice identity and prefilled pairing code are test-only. Pairing and review open no window; confirmation opens the synthetic public-chat window. Recover and close through the web controls, then change the fixture account and invoke its auth-change hook to verify teardown. The existing child-player fixture remains independent and makes no provider request.

@@ -10,7 +10,7 @@ it('never answers hosted uploads from image cache and removes old cached uploads
     match = vi.fn(),
     open = vi.fn(async (bucket: string) => ({
       keys: async () =>
-        bucket === 'chatthing-images-v1'
+        bucket === 'chatty-cat-images-v1'
           ? [
               new Request('https://chat.subcult.tv/uploads/' + 'a'.repeat(32)),
               new Request('https://cdn.example.com/emote.png'),
@@ -25,7 +25,7 @@ it('never answers hosted uploads from image cache and removes old cached uploads
   );
   vi.stubGlobal('caches', {
     open,
-    keys: async () => ['chatthing-shell-v1', 'chatthing-images-v1', 'chatthing-fonts-v1'],
+    keys: async () => ['chatty-cat-shell-v1', 'chatty-cat-images-v1', 'chatty-cat-fonts-v1'],
   });
   vi.stubGlobal('self', {
     location: { origin: 'https://chat.subcult.tv' },
@@ -81,7 +81,7 @@ it('prunes legacy opaque image and font entries without clearing readable caches
     remove = vi.fn(async (_request: Request) => true),
     deleteBucket = vi.fn();
   vi.stubGlobal('caches', {
-    keys: async () => ['chatthing-images-v1', 'chatthing-fonts-v1', 'chatthing-shell-v1'],
+    keys: async () => ['chatty-cat-images-v1', 'chatty-cat-fonts-v1', 'chatty-cat-shell-v1'],
     delete: deleteBucket,
     open: async () => ({
       keys: async () => [opaque, readable],
@@ -104,6 +104,43 @@ it('prunes legacy opaque image and font entries without clearing readable caches
   await done;
   expect(remove.mock.calls.map((c) => c[0])).toEqual([opaque, opaque]);
   expect(deleteBucket).not.toHaveBeenCalled();
+});
+
+it('deletes caches saved under the former name and unknown chatty-cat caches on activation', async () => {
+  const listeners = new Map<string, (event: any) => void>(),
+    deleteBucket = vi.fn(async (_name: string) => true);
+  vi.stubGlobal('caches', {
+    keys: async () => [
+      'chatthing-shell-v1',
+      'chatthing-images-v1',
+      'chatty-cat-shell-v0',
+      'chatty-cat-shell-v1',
+      'chatty-cat-images-v1',
+      'chatty-cat-fonts-v1',
+      'chatty-cat-emoji-17-v1',
+      'other-app-v1',
+    ],
+    delete: deleteBucket,
+    open: async () => ({ keys: async () => [], match: async () => undefined, delete: vi.fn() }),
+  });
+  vi.stubGlobal('self', {
+    location: { origin: 'https://chat.subcult.tv' },
+    clients: { claim: vi.fn(async () => {}) },
+    addEventListener: (name: string, handler: (event: any) => void) => listeners.set(name, handler),
+  });
+  await import('./service-worker');
+  let done: Promise<unknown> | undefined;
+  listeners.get('activate')!({
+    waitUntil: (p: Promise<unknown>) => {
+      done = p;
+    },
+  });
+  await done;
+  expect(deleteBucket.mock.calls.map((c) => c[0])).toEqual([
+    'chatthing-shell-v1',
+    'chatthing-images-v1',
+    'chatty-cat-shell-v0',
+  ]);
 });
 
 it('precaches an unopened lazy panel and serves it when the network is offline', async () => {

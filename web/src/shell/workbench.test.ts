@@ -48,7 +48,7 @@ it('combines side docks and floats into a sheet without overwriting desktop geom
   left.addEventListener('close', close);
   floating.addEventListener('close', close);
   left.querySelector('input')!.value = 'Retained draft';
-  const saved = localStorage.getItem('chatthing:v1:workbench');
+  const saved = localStorage.getItem('chatty-cat:v1:workbench');
   resize(390, 844);
   expect(left.closest('.wb-sheet')).not.toBeNull();
   expect(floating.closest('.wb-sheet')).not.toBeNull();
@@ -61,7 +61,7 @@ it('combines side docks and floats into a sheet without overwriting desktop geom
   expect(left.parentElement!.inert).toBe(true);
   expect(left.open).toBe(true);
   expect(floating.parentElement!.hidden).toBe(false);
-  expect(localStorage.getItem('chatthing:v1:workbench')).toBe(saved);
+  expect(localStorage.getItem('chatty-cat:v1:workbench')).toBe(saved);
   resize(1280, 800);
   expect(left.closest('[data-zone]')?.getAttribute('data-zone')).toBe('left');
   expect(floating.parentElement!.dataset.placement).toBe('floating');
@@ -138,11 +138,11 @@ it('docks a touch title drag into the bottom sheet without detaching its content
 
 it('forgets ids from the stored layout whether or not they are managed and writes only on change', () => {
   workbench.stop();
-  localStorage.setItem('chatthing:v1:workbench', JSON.stringify(dock(emptyLayout(), 'account-profiles', 'right')));
+  localStorage.setItem('chatty-cat:v1:workbench', JSON.stringify(dock(emptyLayout(), 'account-profiles', 'right')));
   workbench = new Workbench({ titleFor: (root) => root.id, exclude: () => false, centre: 'main#log' });
   expect(workbench.wantsPanel('account-profiles')).toBe(true);
   workbench.forget(['account-profiles']);
-  const saved = localStorage.getItem('chatthing:v1:workbench')!;
+  const saved = localStorage.getItem('chatty-cat:v1:workbench')!;
   expect(saved).not.toContain('account-profiles');
   expect(workbench.wantsPanel('account-profiles')).toBe(false);
   const setItem = vi.spyOn(Storage.prototype, 'setItem');

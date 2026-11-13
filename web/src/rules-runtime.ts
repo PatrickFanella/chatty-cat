@@ -17,7 +17,7 @@ export class RuleRuntime extends EventTarget {
   constructor(private changed: () => void) {
     super();
     try {
-      this.raw = localStorage.getItem(profileKey('chatthing:v1:rules'));
+      this.raw = localStorage.getItem(profileKey('chatty-cat:v1:rules'));
       if (this.raw) this.restore(JSON.parse(this.raw), false);
     } catch {
       this.error = 'Saved rules could not be read; chat remains available';
@@ -49,10 +49,10 @@ export class RuleRuntime extends EventTarget {
       typeof p[key] === 'number' && Number.isInteger(p[key]) && p[key] >= 0 && p[key] <= 23 ? p[key] : 0;
     const preferences = { muted: p.muted === true, quietStart: hour('quietStart'), quietEnd: hour('quietEnd') };
     if (persist) {
-      if (localStorage.getItem(profileKey('chatthing:v1:rules')) !== this.raw)
+      if (localStorage.getItem(profileKey('chatty-cat:v1:rules')) !== this.raw)
         throw new Error('Rules changed in another tab; reload before saving');
       const raw = JSON.stringify({ version: 1, rules, similarity, preferences });
-      localStorage.setItem(profileKey('chatthing:v1:rules'), raw);
+      localStorage.setItem(profileKey('chatty-cat:v1:rules'), raw);
       this.raw = raw;
     }
     this.engine = new RuleEngine(rules);
@@ -74,7 +74,7 @@ export class RuleRuntime extends EventTarget {
     this.dispatchEvent(new Event('counts'));
   }
   private storage = (event: StorageEvent): void => {
-    if (event.key !== profileKey('chatthing:v1:rules')) return;
+    if (event.key !== profileKey('chatty-cat:v1:rules')) return;
     try {
       this.raw = event.newValue;
       this.restore(JSON.parse(event.newValue ?? '{"rules":[]}'), false);

@@ -183,7 +183,7 @@ export async function startMain(): Promise<void> {
   let frozen = false;
   let borrowedFreeze = false;
   try {
-    frozen = localStorage.getItem(profileKey('chatthing:v1:frozen')) === '1';
+    frozen = localStorage.getItem(profileKey('chatty-cat:v1:frozen')) === '1';
   } catch {
     /* optional storage */
   }
@@ -461,7 +461,7 @@ export async function startMain(): Promise<void> {
     if (auth && getProfileScope() !== (auth.authenticated ? auth.userID : 'anonymous')) {
       providerActivity?.preferencesChanged();
       try {
-        sessionStorage.setItem('chatthing:v1:last-profile', auth.authenticated ? auth.userID! : 'anonymous');
+        sessionStorage.setItem('chatty-cat:v1:last-profile', auth.authenticated ? auth.userID! : 'anonymous');
       } catch {
         /* Optional storage. */
       }
@@ -1056,7 +1056,7 @@ export async function startMain(): Promise<void> {
   hydrateHistory();
   display.addEventListener('change', hydrateHistory);
   window.addEventListener('storage', (event) => {
-    if (event.key === profileKey('chatthing:v1:display')) hydrateHistory();
+    if (event.key === profileKey('chatty-cat:v1:display')) hydrateHistory();
   });
 
   const attention = new Attention(
@@ -1913,7 +1913,7 @@ export async function startMain(): Promise<void> {
     frozen = !frozen;
     animation.setAttribute('aria-pressed', String(frozen));
     try {
-      localStorage.setItem(profileKey('chatthing:v1:frozen'), frozen ? '1' : '0');
+      localStorage.setItem(profileKey('chatty-cat:v1:frozen'), frozen ? '1' : '0');
     } catch {
       /* optional storage */
     }

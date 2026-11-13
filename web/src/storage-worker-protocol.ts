@@ -119,4 +119,10 @@ export interface StoragePolicyNotice {
   id: number;
   policy: true;
 }
-export type StorageNotice = StorageProgress | StoragePolicyNotice;
+// Sent to every pending request while a database moves to its current name, so clients keep waiting.
+export interface StorageMovingNotice {
+  version: 1;
+  id: number;
+  moving: true;
+}
+export type StorageNotice = StorageProgress | StoragePolicyNotice | StorageMovingNotice;

@@ -18,7 +18,7 @@ it('enables only allowlisted public workspaces and panic hides every workspace',
 it('persists manual mode for other tabs without storing account or private data', () => {
   savePrivacy(parsePrivacy({ version: 1, enabled: true, allowed: ['public'], token: 'secret', whispers: ['secret'] }));
   expect(privacyEnabled()).toBe(true);
-  expect(localStorage.getItem('chatthing:v1:privacy')).not.toContain('secret');
+  expect(localStorage.getItem('chatty-cat:v1:privacy')).not.toContain('secret');
 });
 it('bounds malformed allowlists and defaults unknown schemas to a hidden view', () => {
   expect(parsePrivacy({ version: 99 }).enabled).toBe(true);

@@ -105,9 +105,12 @@ it('clears private cached names when streamer privacy activates', async () => {
     async () => new Response(JSON.stringify(page)),
   );
   await source.read();
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, allowed: [], panic: true }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(source.names()).toEqual([]);
-  localStorage.removeItem('chatthing:v1:privacy');
+  localStorage.removeItem('chatty-cat:v1:privacy');
   expect(source.names()).toEqual([]);
 });

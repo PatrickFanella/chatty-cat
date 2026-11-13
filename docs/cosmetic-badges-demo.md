@@ -1,6 +1,6 @@
 # Optional cosmetic badges
 
-`CHATTHING_COSMETIC_PROVIDERS` defaults to empty. The supported explicit list is `FFZ`, `Chatterino`, or `FFZ,Chatterino`. Unknown or duplicate names fail startup. Compose forwards this optional value. There is no arbitrary destination URL setting or provider credential. Enabling a service permits the server to read its fixed public catalog; the browser must also opt in under **Provider and badge preferences**. Production configuration has not been changed by this PR.
+`CHATTY_CAT_COSMETIC_PROVIDERS` defaults to empty. The supported explicit list is `FFZ`, `Chatterino`, or `FFZ,Chatterino`. Unknown or duplicate names fail startup. Compose forwards this optional value. There is no arbitrary destination URL setting or provider credential. Enabling a service permits the server to read its fixed public catalog; the browser must also opt in under **Provider and badge preferences**. Production configuration has not been changed by this PR.
 
 FFZ reads `https://api.frankerfacez.com/v1/badges/ids`. Chatterino reads `https://api.chatterino.com/badges`, following the [pinned upstream implementation](https://github.com/Chatterino/chatterino2/blob/v2.5.6/src/providers/chatterino/ChatterinoBadges.cpp). The [official FFZ API](https://api.frankerfacez.com/) documents its badge catalog. User IDs accept exact decimal strings or integers without floating-point conversion. Provider images remain attributed cosmetics; they never grant or assert native Twitch roles. CSS/color/replacement instructions from catalogs are ignored.
 

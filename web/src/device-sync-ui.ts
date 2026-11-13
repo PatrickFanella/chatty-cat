@@ -273,7 +273,7 @@ export class DeviceSyncPanel implements Panel {
   }
   private reviewRecoveryClear(): void {
     const context = this.context(),
-      raw = localStorage.getItem(profileKey('chatthing:v1:sync-local-recovery'));
+      raw = localStorage.getItem(profileKey('chatty-cat:v1:sync-local-recovery'));
     if (!raw) throw new Error('No local recovery record');
     let value: unknown;
     try {
@@ -292,7 +292,7 @@ export class DeviceSyncPanel implements Panel {
   }
   private reviewAnnotationClear(): void {
     const context = this.context(),
-      raw = localStorage.getItem(profileKey('chatthing:v1:sync-annotation-backup'));
+      raw = localStorage.getItem(profileKey('chatty-cat:v1:sync-annotation-backup'));
     if (!raw) throw new Error('No private annotation backup');
     this.pending = { kind: 'recovery-clear', raw, suffix: 'sync-annotation-backup', ...context };
     this.report.textContent =
@@ -311,7 +311,7 @@ export class DeviceSyncPanel implements Panel {
     const generation = this.generation;
     try {
       if (pending.kind === 'recovery-clear') {
-        const key = profileKey('chatthing:v1:' + pending.suffix);
+        const key = profileKey('chatty-cat:v1:' + pending.suffix);
         if (localStorage.getItem(key) !== pending.raw) throw new Error('Recovery record changed; review again');
         localStorage.removeItem(key);
         if (pending.suffix === 'sync-local-recovery') this.recoveryNotice = '';
@@ -380,7 +380,7 @@ export class DeviceSyncPanel implements Panel {
   }
   private exportLocal(suffix: string, name: string): void {
     this.context();
-    const raw = localStorage.getItem(profileKey('chatthing:v1:' + suffix));
+    const raw = localStorage.getItem(profileKey('chatty-cat:v1:' + suffix));
     if (!raw) throw new Error('No local backup of this type');
     this.status.textContent =
       'This local backup can contain private bookmark annotations and older local preferences. It is downloaded only; it is not uploaded.';

@@ -37,7 +37,7 @@ export class SavedArchiveQueries {
     this.account = id;
   }
   get key(): string | undefined {
-    return this.account === undefined ? undefined : 'chatthing:v1:archive-queries:' + this.account;
+    return this.account === undefined ? undefined : 'chatty-cat:v1:archive-queries:' + this.account;
   }
   list(): SavedArchiveQuery[] {
     const raw = this.key ? localStorage.getItem(this.key) : null;

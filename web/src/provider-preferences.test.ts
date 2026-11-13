@@ -91,9 +91,9 @@ it('validates bounds and rejects unknown provider controls instead of enabling s
 it('prevents stale-tab saves and account crossover, retaining corrupt local data', () => {
   const store = new ProviderPreferenceStore();
   store.read();
-  localStorage.setItem('chatthing:v1:provider-preferences', 'broken');
+  localStorage.setItem('chatty-cat:v1:provider-preferences', 'broken');
   expect(() => store.save(providerDefaults())).toThrow();
-  expect(localStorage.getItem('chatthing:v1:provider-preferences')).toBe('broken');
+  expect(localStorage.getItem('chatty-cat:v1:provider-preferences')).toBe('broken');
   setProfileScope('42');
   expect(() => store.read()).toThrow();
 });

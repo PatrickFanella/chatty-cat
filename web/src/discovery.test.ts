@@ -108,7 +108,10 @@ it('clears account data and aborts a pending page on account change or privacy; 
   await flush();
   expect(panel.root.textContent).not.toContain('Live title');
   expect(panel.root.querySelector('section')?.childNodes).toHaveLength(0);
-  localStorage.setItem('chatthing:v1:privacy', JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }));
+  localStorage.setItem(
+    'chatty-cat:v1:privacy',
+    JSON.stringify({ version: 1, enabled: true, panic: true, allowed: [] }),
+  );
   document.dispatchEvent(new Event('privacychange'));
   expect(panel.root.querySelector<HTMLButtonElement>('button')!.disabled).toBe(true);
 });

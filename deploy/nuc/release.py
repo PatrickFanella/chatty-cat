@@ -108,8 +108,10 @@ def main():
         (b / 'rollback.json').write_text(json.dumps({'services': {'chat': {'image': old}}}))
         run('tar', '-czf', str(b / 'data-before.tar.gz'), '-C', str(ROOT / 'shared'), 'uploads', 'sync')
         (b / 'data-before.tar.gz').chmod(0o600)
-        run('docker', 'build', '-q', '-f', str(ROOT / 'Dockerfile.release'), '-t', tag, str(release),
-            stdout=subprocess.DEVNULL)
+        # transition: remove after the rename is deployed (older releases ship 'chatthing').
+        binary = 'chatty-cat-server' if 'chatty-cat-server' in m['sha256'] else 'chatthing'
+        run('docker', 'build', '-q', '-f', str(ROOT / 'Dockerfile.release'), '--build-arg', 'BIN=' + binary,
+            '-t', tag, str(release), stdout=subprocess.DEVNULL)
         new = out('docker', 'image', 'inspect', tag, '--format', '{{.Id}}')
         (b / 'deployed-image').write_text(new)
         staging = b / 'staging-data'
@@ -123,6 +125,9 @@ def main():
             run('docker', 'run', '-d', '--name', stage, '--network', 'host', '--read-only', '--cap-drop', 'ALL',
                 '--security-opt', 'no-new-privileges:true', '--memory', '512m', '--pids-limit', '128',
                 '--tmpfs', '/tmp:size=16m,noexec,nosuid', '--env-file', str(ROOT / 'shared/app.env'),
+                '-e', f'CHATTY_CAT_ADDR=127.0.0.1:{STAGE_PORT}', '-e', 'CHATTY_CAT_ENV_FILE=/dev/null',
+                '-e', 'CHATTY_CAT_UPLOAD_DIR=/app/uploads', '-e', 'CHATTY_CAT_SYNC_DIR=/app/sync',
+                # transition: remove after the rename is deployed (older releases read CHATTHING_*).
                 '-e', f'CHATTHING_ADDR=127.0.0.1:{STAGE_PORT}', '-e', 'CHATTHING_ENV_FILE=/dev/null',
                 '-e', 'CHATTHING_UPLOAD_DIR=/app/uploads', '-e', 'CHATTHING_SYNC_DIR=/app/sync',
                 '-v', f'{staging / "uploads"}:/app/uploads', '-v', f'{staging / "sync"}:/app/sync', new,
@@ -137,9 +142,11 @@ def main():
                     time.sleep(1)
             # Every packaged file, not a sample, must match the manifest.
             listing = out('docker', 'exec', stage, 'sh', '-c',
-                          'cd /app && find chatthing web/dist -type f -exec sha256sum {} +')
+                          'cd /app && find chatty-cat-server web/dist -type f -exec sha256sum {} +')
             packaged = {line.split(None, 1)[1]: line.split(None, 1)[0] for line in listing.splitlines()}
-            expected = {k: v for k, v in m['sha256'].items() if k == 'chatthing' or k.startswith('web/dist/')}
+            # Dockerfile.release installs the release's binary as /app/chatty-cat-server.
+            expected = {('chatty-cat-server' if k == binary else k): v for k, v in m['sha256'].items()
+                        if k == binary or k.startswith('web/dist/')}
             assert packaged == expected, 'packaged files differ from the manifest'
             (b / 'staging-passed').write_text(f'readiness and {len(expected)} packaged hashes verified\n')
         finally:
@@ -170,7 +177,7 @@ def main():
         assert (ROOT / 'image.env').read_bytes() == (b / 'image.env').read_bytes()
         manifest()
         try:
-            (ROOT / 'image.env').write_text('CHATTHING_IMAGE=' + new + '\n')
+            (ROOT / 'image.env').write_text('CHATTY_CAT_IMAGE=' + new + '\n')
             (ROOT / 'image.env').chmod(0o600)
             p = ROOT / 'current.deploy'
             p.symlink_to(str(release.relative_to(ROOT)))
@@ -185,7 +192,8 @@ def main():
         print('activate passed')
         return
     assert live_image() == new and os.readlink(ROOT / 'current') == str(release.relative_to(ROOT))
-    assert (ROOT / 'image.env').read_text() == 'CHATTHING_IMAGE=' + new + '\n'
+    # transition: remove the CHATTHING_IMAGE line after the rename is deployed (older activations wrote it).
+    assert (ROOT / 'image.env').read_text() in ('CHATTY_CAT_IMAGE=' + new + '\n', 'CHATTHING_IMAGE=' + new + '\n')
     if mode == 'check':
         print('Rollback guards passed; no changes')
         return

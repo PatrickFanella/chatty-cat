@@ -130,11 +130,11 @@ func New(cfg Config) (*Service, error) {
 	}
 	u, err := url.Parse(cfg.PublicURL)
 	if err != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Path != "" && u.Path != "/") {
-		return nil, errors.New("CHATTHING_PUBLIC_URL must be an origin")
+		return nil, errors.New("CHATTY_CAT_PUBLIC_URL must be an origin")
 	}
 	loopback := u.Hostname() == "localhost" || u.Hostname() == "127.0.0.1" || u.Hostname() == "::1"
 	if u.Scheme != "https" && (u.Scheme != "http" || !loopback) {
-		return nil, errors.New("CHATTHING_PUBLIC_URL requires HTTPS except on loopback")
+		return nil, errors.New("CHATTY_CAT_PUBLIC_URL requires HTTPS except on loopback")
 	}
 	if cfg.PublicClient && (!loopback || cfg.ClientSecret != "") {
 		return nil, errors.New("public Twitch clients require a loopback origin and no client secret")
@@ -364,7 +364,7 @@ func (s *Service) login(w http.ResponseWriter, r *http.Request) {
 	}
 	s.pending[state] = pending{binding: sha256.Sum256([]byte(binding)), expires: time.Now().Add(stateLifetime), returnTo: returnTo, account: account}
 	s.mu.Unlock()
-	s.cookie(w, "chatthing_oauth", binding, int(stateLifetime.Seconds()))
+	s.cookie(w, "chatty_cat_oauth", binding, int(stateLifetime.Seconds()))
 	u, err := url.Parse(s.cfg.AuthorizeURL)
 	if err != nil {
 		http.Error(w, "login unavailable", http.StatusServiceUnavailable)
@@ -399,7 +399,7 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	state := r.URL.Query().Get("state")
-	c, err := r.Cookie("chatthing_oauth")
+	c, err := r.Cookie("chatty_cat_oauth")
 	s.mu.Lock()
 	p, ok := s.pending[state]
 	if err == nil && ok && time.Now().Before(p.expires) && p.binding == sha256.Sum256([]byte(c.Value)) {
@@ -412,7 +412,7 @@ func (s *Service) callback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid or expired login; try again", 400)
 		return
 	}
-	s.cookie(w, "chatthing_oauth", "", -1)
+	s.cookie(w, "chatty_cat_oauth", "", -1)
 	if r.URL.Query().Get("error") != "" {
 		http.Redirect(w, r, authReturn(p.returnTo, "denied"), http.StatusSeeOther)
 		return
@@ -454,7 +454,7 @@ func (s *Service) establishSession(w http.ResponseWriter, r *http.Request, tok t
 	}
 	// Switching accounts invalidates the old session rather than orphaning it.
 	var oldSession *session
-	if old, err := r.Cookie("chatthing_session"); err == nil {
+	if old, err := r.Cookie("chatty_cat_session"); err == nil {
 		key := sha256.Sum256([]byte(old.Value))
 		oldSession = s.sessions[key]
 		delete(s.sessions, key)
@@ -467,7 +467,7 @@ func (s *Service) establishSession(w http.ResponseWriter, r *http.Request, tok t
 		oldSession.tokens = tokens{}
 		oldSession.mu.Unlock()
 	}
-	s.cookie(w, "chatthing_session", sid, int(sessionLifetime.Seconds()))
+	s.cookie(w, "chatty_cat_session", sid, int(sessionLifetime.Seconds()))
 	return true
 }
 func (s *Service) exchange(ctx context.Context, values url.Values) (tokens, error) {
@@ -529,7 +529,7 @@ func (s *Service) validate(ctx context.Context, access string) (identity, int, e
 	return user, 200, nil
 }
 func (s *Service) lookup(r *http.Request) *session {
-	c, err := r.Cookie("chatthing_session")
+	c, err := r.Cookie("chatty_cat_session")
 	if err != nil {
 		return nil
 	}
@@ -607,7 +607,7 @@ func (s *Service) status(w http.ResponseWriter, r *http.Request) {
 			}
 			result["commandPermissions"] = permissions
 		} else {
-			s.cookie(w, "chatthing_session", "", -1)
+			s.cookie(w, "chatty_cat_session", "", -1)
 		}
 		p.mu.Unlock()
 	}
@@ -629,7 +629,7 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "invalid session request", http.StatusForbidden)
 			return
 		}
-		c, err := r.Cookie("chatthing_session")
+		c, err := r.Cookie("chatty_cat_session")
 		if err == nil {
 			s.mu.Lock()
 			delete(s.sessions, sha256.Sum256([]byte(c.Value)))
@@ -640,7 +640,7 @@ func (s *Service) logout(w http.ResponseWriter, r *http.Request) {
 		p.tokens = tokens{}
 		p.mu.Unlock()
 	}
-	s.cookie(w, "chatthing_session", "", -1)
+	s.cookie(w, "chatty_cat_session", "", -1)
 	w.WriteHeader(http.StatusNoContent)
 }
 func (s *Service) maintain(now time.Time) {

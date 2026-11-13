@@ -11,7 +11,7 @@ export class MessageStore {
     private cap = 5000,
     hydrate = true,
   ) {
-    this.key = 'chatthing:v1:history:' + channels.join(',');
+    this.key = 'chatty-cat:v1:history:' + channels.join(',');
     if (!hydrate) return;
     try {
       const saved: unknown = JSON.parse(localStorage.getItem(this.key) ?? '[]');
